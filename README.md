@@ -27,11 +27,11 @@ To create a production version of your app:
 2. To preview the production build, run `npm run start` after building.
 
 > 💡 Depending on where you plan to deploy your app, you might need to install an appropriate adapter or platform service like [`Vercel`](https://vercel.com/), or other services.
->
-> ## Features
-> 
-> Our project includes several key features:
-> 
+
+## Features
+
+Our project includes several key features:
+
 1. **User Management**: Includes user authentication, profile management, and role-based access control (user, support, admin).
 
 2. **Request System**: Users can create requests, which are then automatically distributed among support staff and the AI system.
