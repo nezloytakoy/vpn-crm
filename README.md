@@ -44,16 +44,16 @@ Our project includes several key features:
    
 6. **Flexible System Settings**: Admins can configure limits on requests, manage coins, and update subscription levels.
 
-> ## Development Environment
->
-> We are using the following stack:
->
-> *  **Next.js**: For both frontend and backend.
->   
-> *  **PostgreSQL + Prisma**: For the database and ORM.
->
-> *  **Telegram Bots**: To manage interactions for users, support staff, and administrators.
->
-> *  **Authentication**: Managed through JWT using the jose library.
->
-> *  **Payment Integration**: With Telegram Stars and NicePay for user payments and subscription handling.
+## Development Environment
+
+We are using the following stack:
+
+*  **Next.js**: For both frontend and backend.
+  
+*  **PostgreSQL + Prisma**: For the database and ORM.
+
+*  **Telegram Bots**: To manage interactions for users, support staff, and administrators.
+
+*  **Authentication**: Managed through JWT using the jose library.
+
+*  **Payment Integration**: With Telegram Stars and NicePay for user payments and subscription handling.
