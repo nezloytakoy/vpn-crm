@@ -1,0 +1,71 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
+}
+
+// User model representing all users (regular users, supports, and administrators)
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  balance   Int      @default(0) // Balance for coins
+  requests  Request[] // Relationship with the Request model
+  assignedRequests Request[] @relation("SupportAssigned") // Requests assigned to this support
+  coinTransactions CoinTransaction[] // Relationship with coin transactions
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Roles for users in the system (regular users, support staff, and administrators)
+enum Role {
+  USER
+  SUPPORT
+  ADMIN
+}
+
+// Request model representing the user requests in the system
+model Request {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  status      RequestStatus @default(PENDING)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      Int       // Foreign key to User
+  user        User      @relation(fields: [userId], references: [id])
+  assignedTo  User?     @relation("SupportAssigned", fields: [assignedToId], references: [id])
+  assignedToId Int?
+}
+
+// Enum to track the status of requests
+enum RequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+}
+
+// A table to manage coin transactions for users
+model CoinTransaction {
+  id          Int      @id @default(autoincrement())
+  amount      Int
+  userId      Int      // Foreign key to User
+  user        User     @relation(fields: [userId], references: [id])
+  type        TransactionType // Type of transaction: ADD or REMOVE
+  createdAt   DateTime @default(now())
+}
+
+// Enum to define the type of coin transaction
+enum TransactionType {
+  ADD
+  REMOVE
+}
