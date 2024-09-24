@@ -26,7 +26,7 @@ To create a production version of your app:
 
 2. To preview the production build, run `npm run start` after building.
 
-> 💡 Depending on where you plan to deploy your app, you might need to install an appropriate adapter or platform service like Vercel, AWS, or other services.
+> 💡 Depending on where you plan to deploy your app, you might need to install an appropriate adapter or platform service like [`Vercel`](https://vercel.com/), AWS, or other services.
 >
 > ## Features
 > 
