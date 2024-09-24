@@ -1,4 +1,10 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {};
+// File: next.config.mjs
 
-export default nextConfig;
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+    experimental: { 
+      serverComponentsExternalPackages: ['grammy'], 
+    }, 
+  }
+  
+  export default nextConfig
