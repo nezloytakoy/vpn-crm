@@ -6,7 +6,7 @@ if (!userBotToken) throw new Error('TELEGRAM_USER_BOT_TOKEN not found.');
 const userBot = new Bot(userBotToken);
 
 userBot.on('message:text', async (ctx) => {
-  await ctx.reply(`Привет, пользователь! Вы сказали: ${ctx.message.text}`);
+  await ctx.reply(`Бот для пользователей! Сообщение: ${ctx.message.text}`);
 });
 
 export const POST = webhookCallback(userBot, 'std/http');
