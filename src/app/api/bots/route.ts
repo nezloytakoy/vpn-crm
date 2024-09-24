@@ -7,7 +7,7 @@ if (!token) throw new Error('TELEGRAM_BOT_TOKEN environment variable not found.'
 const bot = new Bot(token);
 
 bot.on('message:text', async (ctx) => {
-  console.log('Получено сообщение:', ctx.message.text);
+  console.log('Сообщение:', ctx.message.text);
   await ctx.reply(`Вы сказали: ${ctx.message.text}`);
 });
 
