@@ -49,7 +49,7 @@ To create a production version of your app:
 > We are using the following stack:
 >
 > *  **Next.js**: For both frontend and backend.
-> *  
+>   
 > *  **PostgreSQL + Prisma**: For the database and ORM.
 >
 > *  **Telegram Bots**: To manage interactions for users, support staff, and administrators.
