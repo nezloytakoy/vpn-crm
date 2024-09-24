@@ -1,5 +1,3 @@
-// File: app/api/bot/route.ts
-
 import { Bot, webhookCallback } from 'grammy';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
