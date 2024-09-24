@@ -1,9 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 
-// Initialize prisma client
+
 const prisma = new PrismaClient();
 
-// Handle disconnect from database
+
 const handleDisconnect = async () => {
 	try {
 		await prisma.$disconnect();
@@ -19,5 +19,5 @@ process.on('beforeExit', () => handleDisconnect());
 process.on('SIGINT', () => handleDisconnect());
 process.on('SIGTERM', () => handleDisconnect());
 
-// Make prisma client accessible from application
+
 export default prisma;
