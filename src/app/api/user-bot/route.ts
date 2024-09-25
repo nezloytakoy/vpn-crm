@@ -1,12 +1,24 @@
 import { Bot, webhookCallback } from 'grammy';
 
-const userBotToken = process.env.TELEGRAM_USER_BOT_TOKEN;
-if (!userBotToken) throw new Error('TELEGRAM_USER_BOT_TOKEN not found.');
+const token = process.env.TELEGRAM_BOT_TOKEN;
+if (!token) throw new Error('TELEGRAM_BOT_TOKEN not found.');
 
-const userBot = new Bot(userBotToken);
+const bot = new Bot(token);
 
-userBot.on('message:text', async (ctx) => {
-  await ctx.reply(`Бот для пользователей! Сообщение: ${ctx.message.text}`);
+
+bot.command('start', async (ctx) => {
+  await ctx.reply('👋 Это бот для пользователей! Для продолжения нажмите на кнопку ниже и войдите в Telegram Web App.', {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: '🚪 Войти в Web App', 
+            web_app: { url: 'https://your-web-app-url.com' } // Ссылка на ваш Web App
+          }
+        ]
+      ]
+    }
+  });
 });
 
-export const POST = webhookCallback(userBot, 'std/http');
+export const POST = webhookCallback(bot, 'std/http');
