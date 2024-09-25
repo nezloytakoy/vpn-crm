@@ -1,12 +1,24 @@
 import { Bot, webhookCallback } from 'grammy';
 
-const supportBotToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
-if (!supportBotToken) throw new Error('TELEGRAM_SUPPORT_BOT_TOKEN not found.');
+const token = process.env.TELEGRAM_BOT_TOKEN;
+if (!token) throw new Error('TELEGRAM_BOT_TOKEN not found.');
 
-const supportBot = new Bot(supportBotToken);
+const bot = new Bot(token);
 
-supportBot.on('message:text', async (ctx) => {
-  await ctx.reply(`Бот для саппортов! Сообщение: ${ctx.message.text}`);
+
+bot.command('start', async (ctx) => {
+  await ctx.reply('👋 Это бот для саппортов! Для продолжения нажмите на кнопку ниже и войдите в Telegram Web App.', {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: '🚪 Войти в Web App', 
+            web_app: { url: 'https://crm-vpn.vercel.app/login' }
+          }
+        ]
+      ]
+    }
+  });
 });
 
-export const POST = webhookCallback(supportBot, 'std/http');
+export const POST = webhookCallback(bot, 'std/http');
