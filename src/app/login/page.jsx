@@ -23,39 +23,45 @@ export default function Page() {
                 alt="Login Picture"
                 width={500}
                 height={500}
+                className={styles.mainpic}
             />
             <div className={styles.box}>
                 <div className={styles.login}>
                     Введите свой логин
                     <input className={styles.input} type="text" />
                 </div>
-                <div className={styles.login}>
-                    Введите свой пароль
-
-                    <input
-                        className={styles.input}
-                        type={passwordVisible ? "text" : "password"}
-                    />
-                    <span
-                        onClick={togglePasswordVisibility}
-                        className={styles.passwordBox}
-                    >
-                        {passwordVisible ? (
-                            <Image
-                                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/eye-opened-BcUG0ydRkZjONQyIwJMxp3CQ6i4ofN.svg"
-                                alt="Hide Password"
-                                width={35}
-                                height={35}
+                <div className={styles.loginBox}>
+                    <div className={styles.password}>
+                        <p className={styles.title}>Введите свой пароль</p>
+                        <div className={styles.inputBox}>
+                            <input
+                                className={styles.passInput}
+                                type={passwordVisible ? "text" : "password"}
                             />
-                        ) : (
-                            <Image
-                                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/eye-closed-fqZZYtRDq8hx138SDkpeN2KYa3HKkm.svg"
-                                alt="Show Password"
-                                width={35}
-                                height={35}
-                            />
-                        )}
-                    </span>
+                            <span
+                                onClick={togglePasswordVisibility}
+                                className={styles.passwordBox}
+                            >
+                                {passwordVisible ? (
+                                    <Image
+                                        src="https://92eaarerohohicw5.public.blob.vercel-storage.com/eye-opened-BcUG0ydRkZjONQyIwJMxp3CQ6i4ofN.svg"
+                                        alt="Hide Password"
+                                        width={35}
+                                        height={35}
+                                        className={styles.img}
+                                    />
+                                ) : (
+                                    <Image
+                                        src="https://92eaarerohohicw5.public.blob.vercel-storage.com/eye-closed-fqZZYtRDq8hx138SDkpeN2KYa3HKkm.svg"
+                                        alt="Show Password"
+                                        width={35}
+                                        height={35}
+                                        lassName={styles.img}
+                                    />
+                                )}
+                            </span>
+                        </div>
+                    </div>
                 </div>
                 <div className={styles.remember}>
                     <div className={styles.funcbox}>

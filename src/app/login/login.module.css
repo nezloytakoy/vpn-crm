@@ -4,7 +4,7 @@
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    height: auto;
+    height: 100vh;
 }
 
 .box {
@@ -35,13 +35,45 @@
     margin-bottom: 0;
 }
 
+.password {
+    align-items: center;
+    width: 100%;
+    height: 80px;
+    margin: 30px;
+    margin-left: 0;
+    color: white;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    font-size: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: left;
+    margin-bottom: 0;
+}
+
 .input {
-    height: 70px;
+    height: 50px;
     width: 90%;
     background-color: white;
     border: 2px solid #fff;
     border-radius: 5px;
     margin-top: 10px;
+    padding: 5px;
+    box-sizing: border-box;
+    font-size: 20px;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    padding-left: 15px;
+    padding-right: 15px;
+    outline: none;
+}
+
+.passInput {
+    height: 50px;
+    width: 90%;
+    background-color: white;
+    border: 2px solid #fff;
+    border-radius: 5px;
+    margin-top: 0px;
     padding: 5px;
     box-sizing: border-box;
     font-size: 20px;
@@ -62,7 +94,7 @@
     height: 50px;
     background-color: #FD3255;
     margin-top: 30px;
-    margin-bottom: 30px;
+    margin-bottom: 35px;
     border-radius: 13px;
     display: flex;
     align-items: center;
@@ -76,11 +108,26 @@
 
 
 .passwordBox {
-    position: absolute;
-    right: 50px;
-    top: 75%;
-    transform: translateY(-50%);
+    width: 0;
+    position: relative;
+    right: 25px;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+
+}
+
+.img:focus {
+    outline: 0 !important;
+    border: none !important;
+    background-color: red;
+}
+
+.img {
+    outline: 0 !important;
+    background-color: white;
 }
 
 .remember {
@@ -120,8 +167,8 @@
 }
 
 .customCheckbox {
-    width: 25px;
-    height: 25px;
+    width: 21px;
+    height: 21px;
     border: 2px solid #fff;
     border-radius: 5px;
     background-color: transparent;
@@ -130,7 +177,7 @@
 }
 
 .customCheckbox.checked {
-    background-color: #FD3255; /* Цвет, когда чекбокс отмечен */
+    background-color: #FD3255;
     border-color: #FD3255;
 }
 
@@ -142,4 +189,26 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+}
+
+.loginBox {
+    width: 100%;
+}
+
+.inputBox {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.title {
+    margin-bottom: 10px;
+}
+
+@media (max-height: 850px) {
+    .mainpic {
+        width: 300px;
+        height: 300px;
+    }
 }
