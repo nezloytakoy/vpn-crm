@@ -1,6 +1,6 @@
 import { Bot, webhookCallback } from 'grammy';
 
-const token = process.env.TELEGRAM_BOT_TOKEN;
+const token = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
 if (!token) throw new Error('TELEGRAM_BOT_TOKEN not found.');
 
 const bot = new Bot(token);
