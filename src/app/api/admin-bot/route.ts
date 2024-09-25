@@ -13,7 +13,7 @@ bot.command('start', async (ctx) => {
         [
           {
             text: '🚪 Войти в Web App', 
-            web_app: { url: 'https://crm-vpn.vercel.app/login' }
+            web_app: { url: 'https://crm-vpn.vercel.app/admin-login' }
           }
         ]
       ]
