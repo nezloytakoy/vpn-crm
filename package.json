@@ -10,24 +10,38 @@
     "prisma-generate": "prisma generate"
   },
   "dependencies": {
+    "@ionic/react": "^8.3.1",
+    "@ionic/react-router": "^8.3.1",
     "@prisma/client": "^5.19.1",
     "bcrypt": "^5.1.1",
+    "d3-shape": "^3.2.0",
     "grammy": "^1.30.0",
+    "ionicons": "^7.4.0",
     "jose": "^5.9.3",
+    "jquery": "^3.7.1",
     "next": "14.2.13",
-    "node-telegram-bot-api": "^0.66.0",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "react-native-animated-nav-tab-bar": "^3.1.11",
+    "react-native-vector-icons": "^10.2.0",
+    "react-router-dom": "^6.26.2",
+    "react-spring": "^9.7.4",
+    "react-wavify": "^1.11.1",
+    "wavify": "^1.0.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
+    "@types/d3-shape": "^3.1.6",
+    "@types/jquery": "^3.5.30",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.20",
     "eslint": "^8",
     "eslint-config-next": "14.2.13",
+    "postcss": "^8.4.47",
     "prisma": "^5.19.1",
+    "tailwindcss": "^3.4.13",
     "typescript": "^5"
   }
 }
-

@@ -1,11 +1,23 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: { 
-    serverComponentsExternalPackages: ['grammy'], 
+    serverComponentsExternalPackages: ['grammy', 'axios', 'moment'],  // Добавлены другие внешние пакеты
   },
   images: {
-    domains: ['92eaarerohohicw5.public.blob.vercel-storage.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '92eaarerohohicw5.public.blob.vercel-storage.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'example.com',  // Добавлен еще один хост для изображений
+      },
+    ],
   },
+  reactStrictMode: true,  // Включение строгого режима React для лучшего контроля ошибок
+  swcMinify: true,  // Включение SWC для ускоренной минификации
 };
 
 export default nextConfig;
+
