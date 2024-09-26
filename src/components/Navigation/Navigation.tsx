@@ -3,12 +3,12 @@
 import React, { useState } from "react";
 import { IonIcon } from '@ionic/react';
 import { personOutline, chatbubbleOutline } from 'ionicons/icons';
-import Link from 'next/link'; // Импортируем Link
+import Link from 'next/link';
 
 const Navigation = () => {
     const Menus = [
-        { name: "Profile", icon: personOutline, dis: "left-1/4", href: "/user-profile" }, // Добавляем маршрут
-        { name: "Chat", icon: chatbubbleOutline, dis: "left-3/4", href: "/user-profile" }, // Маршрут для чата
+        { name: "Profile", icon: personOutline, dis: "left-1/4", href: "/user-profile" },
+        { name: "Chat", icon: chatbubbleOutline, dis: "left-3/4", href: "/user-profile" },
     ];
     const [active, setActive] = useState(0);
 
