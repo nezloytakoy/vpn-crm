@@ -34,6 +34,10 @@
   grid-row-start: 2;
 }
 
+.mybody {
+  margin: 0;
+}
+
 .main ol {
   font-family: var(--font-geist-mono);
   padding-left: 0;

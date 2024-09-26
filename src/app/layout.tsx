@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import styles from "./page.module.css"
 import Navigation from "../components/Navigation/Navigation";
 
 const geistSans = localFont({
@@ -26,11 +27,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} overflow-hidden`}>
-        <div className="min-h-screen bg-gray-0 flex flex-col justify-between relative">
-          <main className="flex-grow mb-[80px]">{children}</main>
-          <Navigation />
-        </div>
+      <body className={styles.mybody}>
+        <main>{children}</main>
       </body>
     </html>
   );
