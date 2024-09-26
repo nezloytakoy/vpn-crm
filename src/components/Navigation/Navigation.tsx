@@ -1,18 +1,18 @@
-"use client"
+"use client";
 
 import React, { useState } from "react";
 import { IonIcon } from '@ionic/react';
-import { personOutline, chatbubbleOutline } from 'ionicons/icons'; // оставляем только нужные иконки
+import { personOutline, chatbubbleOutline } from 'ionicons/icons';
 
 const Navigation = () => {
   const Menus = [
     { name: "Profile", icon: personOutline, dis: "left-1/4" },
-    { name: "Message", icon: chatbubbleOutline, dis: "left-3/4" }, // позиция для смещения шара
+    { name: "Message", icon: chatbubbleOutline, dis: "left-3/4" },
   ];
   const [active, setActive] = useState(0);
 
   return (
-    <div className="bg-[#4581E9] max-h-[4.4rem] px-12 rounded-t-xl w-full">
+    <div className="bg-[#4581E9] max-h-[4.4rem] px-12 rounded-t-xl w-full font-custom"> {/* Применяем кастомный шрифт */}
       <ul className="flex justify-between relative w-full">
         <span
           className={`bg-rose-600 duration-500 ${active === 0 ? 'left-1/4' : 'left-3/4'} border-4 border-white h-16 w-16 absolute -top-5 rounded-full transform -translate-x-1/2`}

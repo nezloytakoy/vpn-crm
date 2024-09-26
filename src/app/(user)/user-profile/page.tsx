@@ -59,7 +59,7 @@ const WaveComponent = () => {
                                 height={140}
                                 className={styles.ai}
                             />
-                            <p className={styles.text}>AI 5 hours/month</p>
+                            <p className={styles.text}>AI <br/>5 hours/month</p>
                         </div>
                         <div className={styles.rightblock}>
                             <Image

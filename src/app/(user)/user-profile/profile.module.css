@@ -2,6 +2,7 @@
     background-color: #4581E9;
     width: 100%;
     height: 100vh;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
 }
 
 .backbotom {
@@ -9,6 +10,8 @@
     height: auto;
     padding: 5px;
     padding-top: 0;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    background-color: white;
 }
 
 .greetings {
