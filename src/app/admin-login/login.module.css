@@ -3,13 +3,13 @@
     width: 100%;
     align-items: center;
     justify-content: center;
-    flex-direction: column;
+    flex-direction: row;
     height: 100vh;
     margin-top: 20px;
 }
 
 .box {
-    width: 90%;
+    width: 50%;
     height: auto;
     background-color: #4581E9;
     margin: 30px;
@@ -209,6 +209,10 @@
 
 .title {
     margin-bottom: 10px;
+}
+
+.picbox {
+    width: 50%;
 }
 
 @media (max-height: 850px) {

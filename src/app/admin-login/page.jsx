@@ -18,13 +18,6 @@ export default function Page() {
 
     return (
         <div className={styles.main}>
-            <Image
-                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/login-pic-iD9fZtkPEorHEZZTna7hGKgg9K1hlu.gif"
-                alt="Login Picture"
-                width={500}
-                height={500}
-                className={styles.mainpic}
-            />
             <div className={styles.box}>
                 <div className={styles.login}>
                     Введите свой логин
@@ -80,6 +73,15 @@ export default function Page() {
                 <div className={styles.button}>
                     Войти
                 </div>
+            </div>
+            <div className={styles.picbox}>
+                <Image
+                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/login-pic-iD9fZtkPEorHEZZTna7hGKgg9K1hlu.gif"
+                    alt="Login Picture"
+                    width={500}
+                    height={500}
+                    className={styles.mainpic}
+                />
             </div>
         </div>
     );
