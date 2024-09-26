@@ -24,7 +24,7 @@
     "react-dom": "^18",
     "react-native-animated-nav-tab-bar": "^3.1.11",
     "react-native-vector-icons": "^10.2.0",
-    "react-router-dom": "^6.26.2",
+    "react-router-dom": "^5.3.4",
     "react-spring": "^9.7.4",
     "react-wavify": "^1.11.1",
     "wavify": "^1.0.0"
