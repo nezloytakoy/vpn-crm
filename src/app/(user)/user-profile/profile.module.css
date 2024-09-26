@@ -7,11 +7,12 @@
 
 .backbotom {
     width: 100%;
-    height: auto;
+    height: 80vh;
     padding: 5px;
     padding-top: 0;
     font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
     background-color: white;
+    border: 5px sold white;
 }
 
 .greetings {
@@ -58,7 +59,7 @@
 }
 
 .leftblock {
-    width: 130px;
+    width: 29%;
     height: 200px;
     background: linear-gradient(145deg, #99bcf6, #175cd4);
     border-radius: 25px;
@@ -70,7 +71,7 @@
 }
 
 .centerblock {
-    width: 130px;
+    width: 32%;
     height: 230px;
     background: linear-gradient(145deg, #99bcf6, #175cd4);
     border-radius: 15px;
@@ -81,7 +82,7 @@
 }
 
 .rightblock {
-    width: 130px;
+    width: 29%;
     height: 200px;
     background: linear-gradient(145deg, #99bcf6, #175cd4);
     border-radius: 25px;
@@ -97,6 +98,7 @@
     font-weight: 800;
     color: white;
     text-align: center;
+    font-size: 14px;
 }
 
 .section {
@@ -108,7 +110,7 @@
 }
 
 .block {
-    width: 200px;
+    width: 48%;
     height: 100px;
     border-radius: 15px;
     border: 2px solid #4581E9;
@@ -118,11 +120,13 @@
     font-weight: bold;
     font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    flex-direction: column;
 }
 
 
 .ai {
     margin-right: 6px;
+    width: 70px;
 }
 
 
