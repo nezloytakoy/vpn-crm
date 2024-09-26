@@ -4,6 +4,7 @@ import React from 'react';
 import Wave from 'react-wavify';
 import styles from './profile.module.css'
 import Image from 'next/image';
+import Link from 'next/link';
 
 
 const WaveComponent = () => {
@@ -59,7 +60,7 @@ const WaveComponent = () => {
                                 height={100}
                                 className={styles.ai}
                             />
-                            <p className={styles.text}>AI <br/>5 hours/month</p>
+                            <p className={styles.text}>AI <br />5 hours/month</p>
                         </div>
                         <div className={styles.rightblock}>
                             <Image
@@ -73,20 +74,29 @@ const WaveComponent = () => {
                         </div>
                     </div>
                     <div className={styles.section}>
-                        <div className={styles.block}><Image
-                            src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-FlMUqahx2zNkY322YXOHKnGKchz1wT.gif"
-                            alt="avatar"
-                            width={80}
-                            height={80}
-                            className={styles.ai}
-                        /> <p className={styles.aitext}>AI 30 hours/month</p></div>
-                        <div className={styles.block}><Image
-                            src="https://92eaarerohohicw5.public.blob.vercel-storage.com/f3BR23dMA4SapXd0Jg-TxjGLHkcqjJKq8zONZRfnlVilJLKGw.gif"
-                            alt="avatar"
-                            width={80}
-                            height={80}
-                            className={styles.ai}
-                        />Referral</div>
+                        <div className={styles.block}>
+                            <Image
+                                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-FlMUqahx2zNkY322YXOHKnGKchz1wT.gif"
+                                alt="avatar"
+                                width={80}
+                                height={80}
+                                className={styles.ai}
+                            />
+                            <p className={styles.aitext}>AI 30 hours/month</p>
+                        </div>
+                        {/* Оборачиваем блок "Referral" компонентом Link */}
+                        <Link href="/referal-page"  className={styles.block}>
+                            
+                                <Image
+                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/f3BR23dMA4SapXd0Jg-TxjGLHkcqjJKq8zONZRfnlVilJLKGw.gif"
+                                    alt="avatar"
+                                    width={80}
+                                    height={80}
+                                    className={styles.ai}
+                                />
+                                <p className={styles.aitext}>Referral</p>
+                           
+                        </Link>
                     </div>
                 </div>
             </div>
