@@ -3,11 +3,12 @@
 import React, { useState } from "react";
 import { IonIcon } from '@ionic/react';
 import { personOutline, chatbubbleOutline } from 'ionicons/icons';
+import Link from 'next/link'; // Импортируем Link
 
 const Navigation = () => {
     const Menus = [
-        { name: "Profile", icon: personOutline, dis: "left-1/4" },
-        { name: "Message", icon: chatbubbleOutline, dis: "left-3/4" },
+        { name: "Profile", icon: personOutline, dis: "left-1/4", href: "/user-profile" }, // Добавляем маршрут
+        { name: "Chat", icon: chatbubbleOutline, dis: "left-3/4", href: "/user-profile" }, // Маршрут для чата
     ];
     const [active, setActive] = useState(0);
 
@@ -29,25 +30,24 @@ const Navigation = () => {
                 </span>
                 {Menus.map((menu, i) => (
                     <li key={i} className="w-1/2 text-center">
-                        <a
-                            className="flex flex-col items-center pt-6"
-                            onClick={() => setActive(i)}
-                        >
-                            <span
-                                className={`text-xl font-bold text-white cursor-pointer duration-500 ${i === active && "-mt-6 text-white"
-                                    }`}
-                            >
-                                <IonIcon icon={menu.icon} />
-                            </span>
-                            <span
-                                className={`text-white font-bold ${active === i
+                        <Link href={menu.href} onClick={() => setActive(i)}>
+                            <div className="flex flex-col items-center pt-6 cursor-pointer">
+                                <span
+                                    className={`text-xl font-bold text-white cursor-pointer duration-500 ${i === active && "-mt-6 text-white"
+                                        }`}
+                                >
+                                    <IonIcon icon={menu.icon} />
+                                </span>
+                                <span
+                                    className={`text-white font-bold ${active === i
                                         ? "translate-y-4 duration-700 opacity-100"
                                         : "opacity-0 translate-y-10"
-                                    } `}
-                            >
-                                {menu.name}
-                            </span>
-                        </a>
+                                        } `}
+                                >
+                                    {menu.name}
+                                </span>
+                            </div>
+                        </Link>
                     </li>
                 ))}
             </ul>

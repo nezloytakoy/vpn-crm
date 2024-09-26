@@ -12,7 +12,7 @@
     padding-top: 0;
     font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
     background-color: white;
-    border: 5px sold white;
+    border: 5px solid white;
 }
 
 .greetings {
@@ -111,7 +111,7 @@
 
 .block {
     width: 48%;
-    height: 100px;
+    height: 115px;
     border-radius: 15px;
     border: 2px solid #4581E9;
     display: flex; 

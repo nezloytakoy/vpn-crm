@@ -9,7 +9,7 @@ import Image from 'next/image';
 const WaveComponent = () => {
     return (
         <div>
-            <div style={{ position: 'relative', height: '250px', overflow: 'hidden' }}>
+            <div style={{ position: 'relative', height: '250px', overflow: 'hidden', border: '2px solid white' }}>
                 <Wave
                     fill="white"
                     paused={false}
