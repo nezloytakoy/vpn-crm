@@ -7,12 +7,15 @@
 
 .backbotom {
     width: 100%;
-    height: 90vh;
+    min-height: calc(100vh + 100px); /* Минимальная высота будет равна высоте экрана минус граница */
     padding: 5px;
     padding-top: 0;
     font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
     background-color: white;
     border: 5px solid white;
+    box-sizing: border-box; /* Чтобы учесть padding и границу в общей ширине и высоте */
+    display: flex;
+    flex-direction: column;
 }
 
 .greetings {
