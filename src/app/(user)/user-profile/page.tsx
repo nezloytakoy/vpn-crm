@@ -58,7 +58,7 @@ const WaveComponent = () => {
                     <div className={styles.parent}>
 
 
-                        <div className={styles.leftblock} onClick={() => handleButtonClick("Only AI 90")}>
+                        <div className={styles.leftblock} onClick={() => handleButtonClick("Only AI")}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-JV9mpH87gcyosXasiIjyWSapEkqbaQ.png"
                                 alt="avatar"
