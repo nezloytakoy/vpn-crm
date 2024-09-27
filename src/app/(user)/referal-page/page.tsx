@@ -1,13 +1,71 @@
-import React from 'react';
+"use client"
+
+import React, { useState } from 'react';
 import Wave from 'react-wavify';
-import styles from './referal.module.css'
+import styles from './referal.module.css';
 import Image from 'next/image';
+import Link from 'next/link';
 
 
-function page() {
+interface PopupProps {
+    isVisible: boolean;
+    onClose: () => void;
+}
+
+
+const Popup: React.FC<PopupProps> = ({ isVisible, onClose }) => {
+    const [isClosing, setIsClosing] = useState(false);
+
+    const handleClose = () => {
+        setIsClosing(true);
+        setTimeout(() => {
+            setIsClosing(false);
+            onClose();
+        }, 400);
+    };
+
+    if (!isVisible && !isClosing) return null;
+
+    return (
+        <div className={`${styles.popupOverlay} ${isClosing ? styles.fadeOutOverlay : ''}`}>
+            <div className={`${styles.popupContent} ${isClosing ? styles.slideDown : styles.slideUp}`}>
+                <div className={styles.popupHeader}>
+                    <div></div>
+                    <button onClick={handleClose} className={styles.closeButton}>✖</button>
+                </div>
+                <div className={styles.logobox}>
+                    <Image
+                        src="https://92eaarerohohicw5.public.blob.vercel-storage.com/784312486488Credit_Card-avyq19EwaUxOPBuU53pZPUTnoK8QhB.gif"
+                        alt="avatar"
+                        width={150}
+                        height={150}
+                    />
+                </div>
+                <p>Запрос на вывод отправлен;<br />сĸоро
+                    с вами свяжется поддержĸа</p>
+                <button className={styles.confirmButton} onClick={handleClose}>
+                    <Link href="/user-profile">Вернуться к профилю</Link>
+                </button>
+            </div>
+        </div>
+    );
+};
+
+
+function Page() {
+    const [isPopupVisible, setPopupVisible] = useState(false);
+
+    const showPopup = () => {
+        setPopupVisible(true);
+    };
+
+    const hidePopup = () => {
+        setPopupVisible(false);
+    };
+
     return (
         <div>
-            <div style={{ position: 'relative', height: '250px', overflow: 'hidden', border: '2px solid white' }}>
+            <div style={{ position: 'relative', height: '250px', overflow: 'hidden' }}>
                 <Wave
                     fill="white"
                     paused={false}
@@ -86,13 +144,14 @@ function page() {
                     </div>
                     <div className={styles.buttonsContainer}>
                         <div className={styles.button}>Сгенерировать ссылку</div>
-                        <div className={styles.button}>Вывести</div>
+                        <div className={styles.button} onClick={showPopup}>Вывести</div>
                     </div>
-
                 </div>
             </div>
+
+            <Popup isVisible={isPopupVisible} onClose={hidePopup} />
         </div>
-    )
+    );
 }
 
-export default page
+export default Page;
