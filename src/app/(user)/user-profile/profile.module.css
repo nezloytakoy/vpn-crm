@@ -7,7 +7,7 @@
 
 .backbotom {
     width: 100%;
-    min-height: calc(100vh + 100px); /* Минимальная высота будет равна высоте экрана минус граница */
+    min-height: 700px; /* Минимальная высота будет равна высоте экрана минус граница */
     padding: 5px;
     padding-top: 0;
     font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
