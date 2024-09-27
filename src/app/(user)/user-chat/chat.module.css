@@ -1,0 +1,44 @@
+.topbotom {
+    background-color: #4581E9;
+    width: 100%;
+    height: 100vh;
+    font-family: 'Trebuchet MS', sans-serif;
+}
+
+.backbotom {
+    width: 100%;
+    padding: 0;
+    font-family: 'Trebuchet MS', sans-serif;
+    background-color: white;
+    margin: 0;
+    height: 80vh;
+}
+
+.greetings {
+    width: 100%;
+    height: 80px;
+    padding: 35px;
+    color: white;
+    font-size: 26px;
+    font-weight: 800;
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+}
+
+.avatar {
+    margin-top: 30px;
+    z-index: 1000;
+}
+
+.avatarbox {
+    z-index: 10;
+    padding-left: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.name {
+    margin-left: 25px;
+    margin-top: 25px;
+}
