@@ -7,8 +7,8 @@ import Link from 'next/link';
 
 const Navigation = () => {
     const Menus = [
-        { name: "Profile", icon: personOutline, dis: "left-1/4", href: "/user-profile" },
-        { name: "Chat", icon: chatbubbleOutline, dis: "left-3/4", href: "/user-profile" },
+        { name: "Профиль", icon: personOutline, dis: "left-1/4", href: "/user-profile" },
+        { name: "Настройки чата", icon: chatbubbleOutline, dis: "left-3/4", href: "/user-chat" },
     ];
     const [active, setActive] = useState(0);
 
