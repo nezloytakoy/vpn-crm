@@ -35,9 +35,9 @@
 
 .content {
     width: 100%;
-    height: 110vh !important;
     padding: 40px;
     background-color: white;
+    min-height: 600px;
 }
 
 .title {

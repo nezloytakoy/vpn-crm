@@ -7,13 +7,13 @@
 
 .backbotom {
     width: 100%;
-    min-height: 700px; /* Минимальная высота будет равна высоте экрана минус граница */
+    min-height: 600px;
     padding: 5px;
     padding-top: 0;
     font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
     background-color: white;
     border: 5px solid white;
-    box-sizing: border-box; /* Чтобы учесть padding и границу в общей ширине и высоте */
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
 }
