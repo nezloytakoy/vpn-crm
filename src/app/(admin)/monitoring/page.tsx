@@ -56,86 +56,26 @@ const Monitoring: React.FC = () => {
       status: 'Не работает',
       message: 'Ошибка в системе',
     },
-    {
-        nick: '@assistant1',
-        averageResponseTime: 5,
-        completed: 100,
-        denied: 10,
-        current: 2,
-        complaints: 1,
-        status: 'Работает',
-        message: 'Готов к работе',
-      },
-      {
-        nick: '@assistant2',
-        averageResponseTime: 6,
-        completed: 90,
-        denied: 8,
-        current: 1,
-        complaints: 2,
-        status: 'Оффлайн',
-        message: 'Не доступен',
-      },
-      {
-        nick: '@assistant3',
-        averageResponseTime: 7,
-        completed: 80,
-        denied: 5,
-        current: 3,
-        complaints: 0,
-        status: 'Не работает',
-        message: 'Ошибка в системе',
-      },
-      {
-        nick: '@assistant1',
-        averageResponseTime: 5,
-        completed: 100,
-        denied: 10,
-        current: 2,
-        complaints: 1,
-        status: 'Работает',
-        message: 'Готов к работе',
-      },
-      {
-        nick: '@assistant2',
-        averageResponseTime: 6,
-        completed: 90,
-        denied: 8,
-        current: 1,
-        complaints: 2,
-        status: 'Оффлайн',
-        message: 'Не доступен',
-      },
-      {
-        nick: '@assistant3',
-        averageResponseTime: 7,
-        completed: 80,
-        denied: 5,
-        current: 3,
-        complaints: 0,
-        status: 'Не работает',
-        message: 'Ошибка в системе',
-      },
   ];
 
   // Functions to fetch data (placeholder implementations)
-  const fetchDataForPeriod = (period: string): AssistantData[] => {
+  const fetchDataForPeriod = (): AssistantData[] => {
     // Implement logic to fetch data for 'day' and 'week'
     return sampleData;
   };
 
-  const fetchDataForDate = (date: string): AssistantData[] => {
+  const fetchDataForDate = (): AssistantData[] => {
     // Implement logic to fetch data for a specific date
     return sampleData;
   };
 
   const data: AssistantData[] = useMemo(() => {
     if (timePeriod === 'date' && selectedDate) {
-      return fetchDataForDate(selectedDate);
+      return fetchDataForDate();
     } else {
-      return fetchDataForPeriod(timePeriod);
+      return fetchDataForPeriod();
     }
-  }, [timePeriod, selectedDate]);
+  }, [timePeriod, selectedDate, fetchDataForDate, fetchDataForPeriod]);
 
   const columns: Column<AssistantData>[] = useMemo(
     () => [
