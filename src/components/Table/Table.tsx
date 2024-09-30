@@ -25,38 +25,42 @@ const Table = <T extends object>({ columns, data }: TableProps<T>) => {
 
     return (
         <div className={styles.tableWrapper}>
-            <div className={styles.header}>
-                <h3>Жалобы на ассистентов <span>(5)</span></h3>
-            </div>
+          <div className={styles.header}>
+            <h3>
+              Жалобы на ассистентов <span>(5)</span>
+            </h3>
+          </div>
+          <div className={styles.scrollableTableWrapper}>
             <table {...getTableProps()} className={styles.taskTable}>
-                <thead>
-                    {headerGroups.map((headerGroup) => (
-                        <tr {...headerGroup.getHeaderGroupProps()}>
-                            {headerGroup.headers.map((column) => (
-                                <th {...column.getHeaderProps()} className={styles.th}>
-                                    {column.render('Header')}
-                                </th>
-                            ))}
-                        </tr>
+              <thead>
+                {headerGroups.map((headerGroup) => (
+                  <tr {...headerGroup.getHeaderGroupProps()}>
+                    {headerGroup.headers.map((column) => (
+                      <th {...column.getHeaderProps()} className={styles.th}>
+                        {column.render('Header')}
+                      </th>
                     ))}
-                </thead>
-                <tbody {...getTableBodyProps()}>
-                    {rows.map((row) => {
-                        prepareRow(row);
-                        return (
-                            <tr {...row.getRowProps()}>
-                                {row.cells.map((cell) => (
-                                    <td {...cell.getCellProps()} className={styles.td}>
-                                        {cell.render('Cell')}
-                                    </td>
-                                ))}
-                            </tr>
-                        );
-                    })}
-                </tbody>
+                  </tr>
+                ))}
+              </thead>
+              <tbody {...getTableBodyProps()}>
+                {rows.map((row) => {
+                  prepareRow(row);
+                  return (
+                    <tr {...row.getRowProps()}>
+                      {row.cells.map((cell) => (
+                        <td {...cell.getCellProps()} className={styles.td}>
+                          {cell.render('Cell')}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
             </table>
+          </div>
         </div>
-    );
+      );
 };
 
 export default Table;
