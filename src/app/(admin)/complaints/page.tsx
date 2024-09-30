@@ -14,30 +14,86 @@ function App() {
         assistantId: '2332323232',
       },
       {
-        complaint: 'Номер 22',
+        complaint: 'Номер 213',
         user: '@username',
-        userId: '676543',
+        userId: '2332323232',
         assistant: '@username',
         assistantId: '2332323232',
       },
       {
-        complaint: 'Номер 4565',
+        complaint: 'Номер 213',
         user: '@username',
-        userId: '2222333',
+        userId: '2332323232',
         assistant: '@username',
         assistantId: '2332323232',
       },
       {
-        complaint: 'Номер 3433',
+        complaint: 'Номер 213',
         user: '@username',
-        userId: '4343443',
+        userId: '2332323232',
         assistant: '@username',
         assistantId: '2332323232',
       },
       {
-        complaint: 'Номер 4444',
-        user: ' @username',
-        userId: '987654',
+        complaint: 'Номер 213',
+        user: '@username',
+        userId: '2332323232',
+        assistant: '@username',
+        assistantId: '2332323232',
+      },
+      {
+        complaint: 'Номер 213',
+        user: '@username',
+        userId: '2332323232',
+        assistant: '@username',
+        assistantId: '2332323232',
+      },
+      {
+        complaint: 'Номер 213',
+        user: '@username',
+        userId: '2332323232',
+        assistant: '@username',
+        assistantId: '2332323232',
+      },
+      {
+        complaint: 'Номер 213',
+        user: '@username',
+        userId: '2332323232',
+        assistant: '@username',
+        assistantId: '2332323232',
+      },
+      {
+        complaint: 'Номер 213',
+        user: '@username',
+        userId: '2332323232',
+        assistant: '@username',
+        assistantId: '2332323232',
+      },
+      {
+        complaint: 'Номер 213',
+        user: '@username',
+        userId: '2332323232',
+        assistant: '@username',
+        assistantId: '2332323232',
+      },
+      {
+        complaint: 'Номер 213',
+        user: '@username',
+        userId: '2332323232',
+        assistant: '@username',
+        assistantId: '2332323232',
+      },
+      {
+        complaint: 'Номер 213',
+        user: '@username',
+        userId: '2332323232',
+        assistant: '@username',
+        assistantId: '2332323232',
+      },
+      {
+        complaint: 'Номер 213',
+        user: '@username',
+        userId: '2332323232',
         assistant: '@username',
         assistantId: '2332323232',
       },
@@ -45,7 +101,15 @@ function App() {
     []
   );
 
-  const columns = React.useMemo<Column<{ complaint: string; user: string; userId: string; assistant: string; assistantId: string; }>[]>( 
+  const columns = React.useMemo<
+    Column<{
+      complaint: string;
+      user: string;
+      userId: string;
+      assistant: string;
+      assistantId: string;
+    }>[]
+  >(
     () => [
       {
         Header: 'Жалоба',
@@ -64,7 +128,7 @@ function App() {
         accessor: 'assistant' as const,
       },
       {
-        Header: '', 
+        Header: '',
         accessor: 'assistantId' as const,
       },
     ],
@@ -74,7 +138,14 @@ function App() {
   return (
     <div className={styles.main}>
       <div className={styles.tablebox}>
-        <Table columns={columns} data={data} />
+        <div className={styles.tableWrapper}>
+          <div className={styles.header}>
+            <h3>
+              Жалобы на ассистентов <span>({data.length})</span>
+            </h3>
+          </div>
+          <Table columns={columns} data={data} />
+        </div>
       </div>
     </div>
   );

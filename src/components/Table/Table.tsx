@@ -2,7 +2,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   useTable,
   usePagination,
@@ -12,7 +12,12 @@ import {
   UsePaginationInstanceProps,
   UsePaginationState,
 } from 'react-table';
-import { FaAngleDoubleLeft, FaAngleLeft, FaAngleRight, FaAngleDoubleRight } from 'react-icons/fa';
+import {
+  FaAngleDoubleLeft,
+  FaAngleLeft,
+  FaAngleRight,
+  FaAngleDoubleRight,
+} from 'react-icons/fa';
 import styles from './Table.module.css';
 
 interface TableProps<T extends object> {
@@ -56,41 +61,52 @@ const Table = <T extends object>({ columns, data }: TableProps<T>) => {
     state: { pageIndex, pageSize },
   } = instance;
 
+  // Create refs for the table and the wrapper
+  const tableRef = useRef<HTMLTableElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Update the height of the wrapper when the page changes
+  useEffect(() => {
+    if (tableRef.current && wrapperRef.current) {
+      const tableHeight = tableRef.current.getBoundingClientRect().height;
+      wrapperRef.current.style.height = `${tableHeight}px`;
+    }
+  }, [page]);
+
   return (
-    <div className={styles.tableWrapper}>
-      <div className={styles.header}>
-        <h3>
-          Жалобы на ассистентов <span>({data.length})</span>
-        </h3>
-      </div>
-      <div className={styles.scrollableTableWrapper}>
-        <table {...getTableProps()} className={styles.taskTable}>
-          <thead>
-            {headerGroups.map((headerGroup) => (
-              <tr {...headerGroup.getHeaderGroupProps()}>
-                {headerGroup.headers.map((column) => (
-                  <th {...column.getHeaderProps()} className={styles.th}>
-                    {column.render('Header')}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody {...getTableBodyProps()}>
-            {page.map((row) => {
-              prepareRow(row);
-              return (
-                <tr {...row.getRowProps()}>
-                  {row.cells.map((cell) => (
-                    <td {...cell.getCellProps()} className={styles.td}>
-                      {cell.render('Cell')}
-                    </td>
+    <>
+      {/* Wrap the table in a container with class 'animatedTableWrapper' and add a ref */}
+      <div className={styles.animatedTableWrapper} ref={wrapperRef}>
+        <div className={styles.scrollableTableWrapper}>
+          {/* Add ref to the table */}
+          <table {...getTableProps()} className={styles.taskTable} ref={tableRef}>
+            <thead>
+              {headerGroups.map((headerGroup) => (
+                <tr {...headerGroup.getHeaderGroupProps()}>
+                  {headerGroup.headers.map((column) => (
+                    <th {...column.getHeaderProps()} className={styles.th}>
+                      {column.render('Header')}
+                    </th>
                   ))}
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              ))}
+            </thead>
+            <tbody {...getTableBodyProps()}>
+              {page.map((row) => {
+                prepareRow(row);
+                return (
+                  <tr {...row.getRowProps()}>
+                    {row.cells.map((cell) => (
+                      <td {...cell.getCellProps()} className={styles.td}>
+                        {cell.render('Cell')}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className={styles.pagination}>
@@ -125,8 +141,9 @@ const Table = <T extends object>({ columns, data }: TableProps<T>) => {
           ))}
         </select>
       </div>
-    </div>
+    </>
   );
 };
 
 export default Table;
+

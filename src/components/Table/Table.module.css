@@ -1,33 +1,17 @@
-.tableWrapper {
-    background-color: white;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    width: 100%;
+/* Container that will animate its height */
+.animatedTableWrapper {
+    overflow: hidden;
+    transition: height 0.5s ease;
   }
   
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-  }
-  
-  .header h3 {
-    font-size: 18px;
-    font-weight: bold;
-  }
-  
-  .header span {
-    color: #888;
-  }
-  
+  /* Scrollable wrapper for the table */
   .scrollableTableWrapper {
     overflow-x: auto;
     overflow-y: hidden;
     width: 100%;
   }
   
+  /* Styles for the table */
   .taskTable {
     width: 100%;
     border-collapse: collapse;
@@ -37,7 +21,7 @@
   .taskTable th,
   .taskTable td {
     padding: 15px;
-    text-align: left;
+    text-align: center; /* Center the text */
     font-size: 14px;
     border-bottom: 1px solid #e1e1e1;
   }
@@ -59,6 +43,7 @@
     transform: translateY(-2px);
   }
   
+  /* Pagination styles */
   .pagination {
     display: flex;
     justify-content: center;
@@ -67,7 +52,7 @@
   }
   
   .pagination button {
-    background-color: #007bff;
+    background-color: #365CF5;
     color: white;
     border: none;
     padding: 8px 12px;
@@ -103,6 +88,7 @@
     font-size: 14px;
   }
   
+  /* Responsive styles */
   @media (max-width: 600px) {
     .pagination {
       flex-direction: column;

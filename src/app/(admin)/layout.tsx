@@ -3,18 +3,19 @@ import AdminHeader from "@/components/AdminHeader/AdminHeader";
 
 
 export default function RootLayout({
-  children,
+    children,
 }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-  return (
-    
-      <div className={`overflow-hidden`}>
-        <div className="min-h-screen bg-gray-0 flex flex-col justify-between relative">
-        <AdminHeader />
-          <main>{children}</main>
-        </div>
-      </div>
+    return (
 
-  );
+        <div className={`overflow-hidden`}>
+            <div className="min-h-screen flex flex-col relative"
+                style={{ backgroundColor: '#F1F5F9' }}>
+                <AdminHeader />
+                <main>{children}</main>
+            </div>
+        </div>
+
+    );
 }

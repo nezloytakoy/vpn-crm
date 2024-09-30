@@ -4,21 +4,19 @@ import { FaTachometerAlt, FaExclamationCircle, FaCoins, FaUserShield, FaHandsHel
 import React, { useState, useEffect } from 'react';
 import styles from './AdminHeader.module.css';
 import { FaSignOutAlt, FaCog } from 'react-icons/fa';
+import Link from 'next/link';
 
 function AdminSidebar() {
-    const [isOpen, setIsOpen] = useState(false); 
-    const [isMenuOpen, setIsMenuOpen] = useState(false); 
-
+    const [isOpen, setIsOpen] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     const toggleSidebar = () => {
         setIsOpen(!isOpen);
     };
 
-
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);
     };
-
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -32,6 +30,10 @@ function AdminSidebar() {
             window.removeEventListener('click', handleClickOutside);
         };
     }, [isMenuOpen]);
+
+    const handleLinkClick = () => {
+        setIsOpen(false);  // Закрыть меню после клика на ссылку
+    };
 
     return (
         <div className={isOpen ? styles.containerOpen : styles.container}>
@@ -64,14 +66,18 @@ function AdminSidebar() {
             <div className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
                 <nav className={styles.nav}>
                     <ul>
-                        <li>
-                            <FaTachometerAlt className={styles.icon} />
-                            <div className={styles.point}>Мониторинг</div>
-                        </li>
-                        <li>
-                            <FaExclamationCircle className={styles.icon} />
-                            <div className={styles.point}>Жалобы</div>
-                        </li>
+                        <Link href="/monitoring" className={styles.navLink} onClick={handleLinkClick}>
+                            <li>
+                                <FaTachometerAlt className={styles.icon} />
+                                <div className={styles.point}>Мониторинг</div>
+                            </li>
+                        </Link>
+                        <Link href="/complaints" className={styles.navLink} onClick={handleLinkClick}>
+                            <li>
+                                <FaExclamationCircle className={styles.icon} />
+                                <div className={styles.point}>Жалобы</div>
+                            </li>
+                        </Link>
                         <li>
                             <FaCoins className={styles.icon} />
                             <div className={styles.point}>Коины</div>
