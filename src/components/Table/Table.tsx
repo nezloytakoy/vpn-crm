@@ -1,3 +1,5 @@
+/* eslint-disable react/jsx-key */
+
 'use client';
 
 import React from 'react';
@@ -29,7 +31,7 @@ const Table = <T extends object>({ columns, data }: TableProps<T>) => {
             <table {...getTableProps()} className={styles.taskTable}>
                 <thead>
                     {headerGroups.map((headerGroup) => (
-                        <tr {...headerGroup.getHeaderGroupProps()}> {/* key автоматически включен */}
+                        <tr {...headerGroup.getHeaderGroupProps()}>
                             {headerGroup.headers.map((column) => (
                                 <th {...column.getHeaderProps()} className={styles.th}>
                                     {column.render('Header')}
@@ -42,7 +44,7 @@ const Table = <T extends object>({ columns, data }: TableProps<T>) => {
                     {rows.map((row) => {
                         prepareRow(row);
                         return (
-                            <tr {...row.getRowProps()}> {/* key автоматически включен */}
+                            <tr {...row.getRowProps()}>
                                 {row.cells.map((cell) => (
                                     <td {...cell.getCellProps()} className={styles.td}>
                                         {cell.render('Cell')}
