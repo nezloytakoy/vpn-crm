@@ -28,33 +28,37 @@ const Table = <T extends object>({ columns, data }: TableProps<T>) => {
             </div>
             <table {...getTableProps()} className={styles.taskTable}>
                 <thead>
-                    {headerGroups.map(headerGroup => (
-                        <tr {...headerGroup.getHeaderGroupProps()}>
-                            {headerGroup.headers.map(column => (
-                                <th
-                                    {...column.getHeaderProps()}
-                                    className={styles.th}
-                                >
-                                    {column.render('Header')}
-                                </th>
-                            ))}
-                        </tr>
+                    {headerGroups.map((headerGroup, index) => (
+                        <React.Fragment key={index}>
+                            <tr {...headerGroup.getHeaderGroupProps()}>
+                                {headerGroup.headers.map((column, columnIndex) => (
+                                    <th
+                                        {...column.getHeaderProps()}
+                                        className={styles.th}
+                                    >
+                                        {column.render('Header')}
+                                    </th>
+                                ))}
+                            </tr>
+                        </React.Fragment>
                     ))}
                 </thead>
                 <tbody {...getTableBodyProps()}>
-                    {rows.map(row => {
+                    {rows.map((row, rowIndex) => {
                         prepareRow(row);
                         return (
-                            <tr {...row.getRowProps()}> 
-                                {row.cells.map(cell => (
-                                    <td
-                                        {...cell.getCellProps()}  
-                                        className={styles.td}
-                                    >
-                                        {cell.render('Cell')}
-                                    </td>
-                                ))}
-                            </tr>
+                            <React.Fragment key={rowIndex}>
+                                <tr {...row.getRowProps()}>
+                                    {row.cells.map((cell, cellIndex) => (
+                                        <td
+                                            {...cell.getCellProps()}
+                                            className={styles.td}
+                                        >
+                                            {cell.render('Cell')}
+                                        </td>
+                                    ))}
+                                </tr>
+                            </React.Fragment>
                         );
                     })}
                 </tbody>
