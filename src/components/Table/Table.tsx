@@ -29,7 +29,7 @@ const Table = <T extends object>({ columns, data }: TableProps<T>) => {
             <table {...getTableProps()} className={styles.taskTable}>
                 <thead>
                     {headerGroups.map(headerGroup => (
-                        <tr {...headerGroup.getHeaderGroupProps()}>
+                        <tr {...headerGroup.getHeaderGroupProps()}> {/* key уже включен в headerGroup.getHeaderGroupProps() */}
                             {headerGroup.headers.map(column => (
                                 <th
                                     {...column.getHeaderProps()}
@@ -45,7 +45,7 @@ const Table = <T extends object>({ columns, data }: TableProps<T>) => {
                     {rows.map(row => {
                         prepareRow(row);
                         return (
-                            <tr {...row.getRowProps()} className={styles.tr}>
+                            <tr {...row.getRowProps()}> {/* key уже включен в row.getRowProps() */}
                                 {row.cells.map(cell => (
                                     <td
                                         {...cell.getCellProps()}

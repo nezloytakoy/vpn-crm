@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTable, Column } from 'react-table';
+import { Column } from 'react-table';
 import styles from './Complaints.module.css';
 import Table from '@/components/Table/Table';
 
