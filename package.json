@@ -10,6 +10,8 @@
     "prisma-generate": "prisma generate"
   },
   "dependencies": {
+    "@fortawesome/free-solid-svg-icons": "^6.6.0",
+    "@fortawesome/react-fontawesome": "^0.2.2",
     "@ionic/react": "^8.3.1",
     "@ionic/react-router": "^8.3.1",
     "@prisma/client": "^5.19.1",
@@ -27,6 +29,7 @@
     "react-native-vector-icons": "^10.2.0",
     "react-router-dom": "^5.3.4",
     "react-spring": "^9.7.4",
+    "react-table": "^7.8.0",
     "react-wavify": "^1.11.1",
     "wavify": "^1.0.0"
   },
@@ -37,6 +40,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/react-table": "^7.7.20",
     "autoprefixer": "^10.4.20",
     "eslint": "^8",
     "eslint-config-next": "14.2.13",

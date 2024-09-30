@@ -71,6 +71,7 @@
     transition: left 0.3s ease;
     border-right: 1px solid rgb(225, 223, 223);
     box-shadow: 4px 0px 15px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
 }
 
 
@@ -334,18 +335,23 @@
 
 
 .blueSquare {
-    width: 55px;
+    width: 95px;
     height: 55px; 
     background-color: #365CF5; 
     position: fixed; 
     bottom: 50px;
     right: 40px;
     display: flex;
-    justify-content: center; 
+    justify-content: space-between; 
     align-items: center;
     z-index: 9999;
     border-radius: 5px;
     cursor: pointer;
+    color: white;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    padding-left: 20px;
+    padding-right: 20px;
+    font-weight: bold;
 }
 
 .gearIcon {
@@ -511,3 +517,4 @@
         transition: all 0.3s ease;
     }
 }
+

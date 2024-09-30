@@ -78,15 +78,15 @@ function AdminSidebar() {
                         </li>
                         <li>
                             <FaUserShield className={styles.icon} />
-                            <div className={styles.point}>Правила пользователя</div>
+                            <div className={styles.point}>Пользователь</div>
                         </li>
                         <li>
                             <FaHandsHelping className={styles.icon} />
-                            <div className={styles.point}>Правила ассистента</div>
+                            <div className={styles.point}>Ассистент</div>
                         </li>
                         <li>
                             <FaGavel className={styles.icon} />
-                            <div className={styles.point}>Правила модератора</div>
+                            <div className={styles.point}>Модератор</div>
                         </li>
                     </ul>
                 </nav>
@@ -94,6 +94,7 @@ function AdminSidebar() {
 
             <div className={styles.blueSquare}>
                 <FaCog className={styles.gearIcon} />
+                AI
             </div>
         </div>
     );
