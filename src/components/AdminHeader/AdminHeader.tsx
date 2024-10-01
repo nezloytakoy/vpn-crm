@@ -78,10 +78,12 @@ function AdminSidebar() {
                                 <div className={styles.point}>Жалобы</div>
                             </li>
                         </Link>
-                        <li>
-                            <FaCoins className={styles.icon} />
-                            <div className={styles.point}>Коины</div>
-                        </li>
+                        <Link href="/admin/coins" className={styles.navLink} onClick={handleLinkClick}>
+                            <li>
+                                <FaCoins className={styles.icon} />
+                                <div className={styles.point}>Коины</div>
+                            </li>
+                        </Link>
                         <li>
                             <FaUserShield className={styles.icon} />
                             <div className={styles.point}>Пользователь</div>
