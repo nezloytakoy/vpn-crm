@@ -190,3 +190,20 @@ input:checked + .slider:hover {
 .inputContainer.active .inputField {
     color: white;
 }
+
+.submitButton {
+    background-color: #365CF5; /* Синий цвет */
+    color: white; /* Цвет текста */
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 20px; /* Отступ сверху */
+    transition: background-color 0.3s ease;
+    width: 100%; /* Кнопка будет занимать всю ширину */
+}
+
+.submitButton:hover {
+    background-color: #2b4ec9; /* Более тёмный оттенок синего при наведении */
+}

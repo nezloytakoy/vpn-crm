@@ -19,9 +19,12 @@ function Page() {
                     <div className={styles.messagebox}>
                         <h1 className={styles.undertitle}>Форма для сообщения</h1>
                         <textarea className={styles.input} placeholder="Сообщение" />
+                        {/* Добавляем кнопку "Отправить" */}
+                        <button className={styles.submitButton}>Отправить</button>
                     </div>
                 </div>
             </div>
+
             <div className={styles.columnblock}>
                 <div className={styles.messageblock}>
                     <h1 className={styles.notitle}></h1>
