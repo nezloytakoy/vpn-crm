@@ -66,13 +66,13 @@ function AdminSidebar() {
             <div className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
                 <nav className={styles.nav}>
                     <ul>
-                        <Link href="/monitoring" className={styles.navLink} onClick={handleLinkClick}>
+                        <Link href="/admin/monitoring" className={styles.navLink} onClick={handleLinkClick}>
                             <li>
                                 <FaTachometerAlt className={styles.icon} />
                                 <div className={styles.point}>Мониторинг</div>
                             </li>
                         </Link>
-                        <Link href="/complaints" className={styles.navLink} onClick={handleLinkClick}>
+                        <Link href="/admin/complaints" className={styles.navLink} onClick={handleLinkClick}>
                             <li>
                                 <FaExclamationCircle className={styles.icon} />
                                 <div className={styles.point}>Жалобы</div>
