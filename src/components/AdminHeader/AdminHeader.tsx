@@ -54,9 +54,11 @@ function AdminSidebar() {
 
                         <div className={`${styles.popupMenu} ${isMenuOpen ? styles.showMenu : ''}`}>
                             <ul>
-                                <li>
-                                    <FaSignOutAlt className={styles.menuIcon} /> Sign Out
-                                </li>
+                                <Link href="/admin-login" className={styles.navLink} onClick={handleLinkClick}>
+                                    <li>
+                                        <FaSignOutAlt className={styles.menuIcon} /> Выйти из аккаунта
+                                    </li>
+                                </Link>
                             </ul>
                         </div>
                     </div>
