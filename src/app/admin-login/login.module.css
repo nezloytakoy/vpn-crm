@@ -9,7 +9,22 @@
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
+    position: relative; /* Для работы с псевдоэлементом */
 }
+
+/* Псевдоэлемент для наложения цветного слоя */
+.main::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #365CF5; /* Цвет фильтра */
+    opacity: 0.5; /* Прозрачность для смешивания */
+    pointer-events: none; /* Чтобы не блокировать взаимодействие */
+}
+
 
 .parentbox {
     width: 50%;
@@ -19,6 +34,7 @@
     justify-content: center;
     background-color: white;
     flex-direction: column;
+    z-index: 100003;
 }
 
 .box {
@@ -100,12 +116,12 @@
 }
 
 .passInput:focus {
-    border: 2px solid #FD3255;
+    border: 2px solid #365CF5;
     outline: none;
 }
 
 .input:focus {
-    border: 2px solid #FD3255;
+    border: 2px solid #365CF5;
     outline: none;
 }
 
@@ -113,8 +129,8 @@
 .button {
     width: 200px;
     height: 50px;
-    background-color: #FD3255;
-    background: linear-gradient(145deg, #FD3255, #FF5671);
+    background-color: #365CF5;
+    background: linear-gradient(145deg, #365CF5, rgb(7, 84, 236));
     margin-bottom: 25px;
     border-radius: 13px;
     display: flex;
@@ -131,13 +147,13 @@
 }
 
 .button:hover {
-    background: linear-gradient(145deg, #FF5671, #FD3255);
+    background: linear-gradient(145deg, #6480f0, #365CF5);
     box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.3);
     transform: translateY(-3px);
 }
 
 .button:active {
-    background-color: #C22045;
+    background-color: #032197;
     box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
     transform: translateY(2px);
 }
@@ -214,8 +230,8 @@
 }
 
 .customCheckbox.checked {
-    background-color: #FD3255;
-    border-color: #FD3255;
+    background-color: #365CF5;
+    border-color: #5675f3;
 }
 
 .customCheckbox.checked::after {
