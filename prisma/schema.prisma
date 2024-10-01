@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,62 +7,10 @@ datasource db {
   url      = env("POSTGRES_URL")
 }
 
-
-model User {
+model Admin {
   id        Int      @id @default(autoincrement())
-  name      String
   email     String   @unique
   password  String
-  role      Role     @default(USER)
-  balance   Int      @default(0)
-  requests  Request[] 
-  assignedRequests Request[] @relation("SupportAssigned") 
-  coinTransactions CoinTransaction[] 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-
-enum Role {
-  USER
-  SUPPORT
-  ADMIN
-}
-
-
-model Request {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String
-  status      RequestStatus @default(PENDING)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  userId      Int    
-  user        User      @relation(fields: [userId], references: [id])
-  assignedTo  User?     @relation("SupportAssigned", fields: [assignedToId], references: [id])
-  assignedToId Int?
-}
-
-
-enum RequestStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  REJECTED
-}
-
-
-model CoinTransaction {
-  id          Int      @id @default(autoincrement())
-  amount      Int
-  userId      Int     
-  user        User     @relation(fields: [userId], references: [id])
-  type        TransactionType 
-  createdAt   DateTime @default(now())
-}
-
-
-enum TransactionType {
-  ADD
-  REMOVE
 }
