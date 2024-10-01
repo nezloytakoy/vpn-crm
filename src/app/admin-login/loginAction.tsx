@@ -1,7 +1,6 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 
 export default async function loginAction(email: string, password: string): Promise<string | null> {
   const res = await fetch(`${process.env.ROOT_URL}/api/login`, {

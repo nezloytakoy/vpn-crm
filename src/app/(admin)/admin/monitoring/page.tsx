@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Column } from 'react-table';
 import { FaEnvelope } from 'react-icons/fa'; // Importing an icon
 import Table from '@/components/Table/Table';
@@ -58,16 +58,16 @@ const Monitoring: React.FC = () => {
     },
   ];
 
-  // Functions to fetch data (placeholder implementations)
-  const fetchDataForPeriod = (): AssistantData[] => {
+  // Functions to fetch data
+  const fetchDataForPeriod = useCallback((): AssistantData[] => {
     // Implement logic to fetch data for 'day' and 'week'
     return sampleData;
-  };
+  }, []);
 
-  const fetchDataForDate = (): AssistantData[] => {
+  const fetchDataForDate = useCallback((): AssistantData[] => {
     // Implement logic to fetch data for a specific date
     return sampleData;
-  };
+  }, []);
 
   const data: AssistantData[] = useMemo(() => {
     if (timePeriod === 'date' && selectedDate) {
@@ -154,7 +154,7 @@ const Monitoring: React.FC = () => {
       <div className={styles.tableWrapper}>
         <div className={styles.header}>
           <h3>
-            Ассистенты <span>({data.length})</span>
+            Ассистенты <span>({sampleData.length})</span>
           </h3>
           <div
             className={styles.timePeriodButtons}

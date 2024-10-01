@@ -3,7 +3,6 @@ import { NextResponse } from "next/server"
 import { NextRequest } from "next/server";
 import * as jose from "jose";
 
-// This function can be marked `async` if using `await` inside
 export async function middleware(request: NextRequest) {
     // Check for cookie
     const cookie = cookies().get('Authorization');
@@ -11,17 +10,19 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL("/login", request.url));
     }
 
-    //Validate it
+    // Validate the token
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const jwt = cookie.value;
 
     try {
-        const { payload } = await jose.jwtVerify(jwt, secret, {})
-        console.log(payload)
+        const { payload } = await jose.jwtVerify(jwt, secret, {});
+        console.log(payload); // Логирование полезной нагрузки
     } catch (err) {
+        console.error('JWT verification failed:', err); // Логируем ошибку
         return NextResponse.redirect(new URL("/login", request.url));
     }
 }
+
 
 // See "Matching Paths" below to learn more
 export const config = {
