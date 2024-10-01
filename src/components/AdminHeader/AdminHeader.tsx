@@ -84,14 +84,18 @@ function AdminSidebar() {
                                 <div className={styles.point}>Коины</div>
                             </li>
                         </Link>
-                        <li>
-                            <FaUserShield className={styles.icon} />
-                            <div className={styles.point}>Пользователь</div>
-                        </li>
-                        <li>
-                            <FaHandsHelping className={styles.icon} />
-                            <div className={styles.point}>Ассистент</div>
-                        </li>
+                        <Link href="/admin/users" className={styles.navLink} onClick={handleLinkClick}>
+                            <li>
+                                <FaUserShield className={styles.icon} />
+                                <div className={styles.point}>Пользователь</div>
+                            </li>
+                        </Link>
+                        <Link href="/admin/supports" className={styles.navLink} onClick={handleLinkClick}>
+                            <li>
+                                <FaHandsHelping className={styles.icon} />
+                                <div className={styles.point}>Ассистент</div>
+                            </li>
+                        </Link>
                         <li>
                             <FaGavel className={styles.icon} />
                             <div className={styles.point}>Модератор</div>
