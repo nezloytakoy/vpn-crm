@@ -1,14 +1,22 @@
 .main {
-    height: 100vh;
-    width: 90%;
+    height: auto;
+    width: 100%;
     background-color: #F1F5F9;
     display: flex;
+    padding: 50px;
     flex-direction: row;
-    margin: 50px;
     justify-content: space-between;
+
 }
 
-.columnblock {}
+.columnblock {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+
 
 .title {
     font-size: 25px;
@@ -17,31 +25,15 @@
     font-family: "Plus Jakarta Sans", sans-serif;
 }
 
-.messagebox {
-    font-family: "Plus Jakarta Sans", sans-serif;
-    background-color: white;
-    width: 550px;
-    height: 350px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
-    padding: 30px;
-    font-weight: 500;
-}
 
-.messageboxtwo {
-    font-family: "Plus Jakarta Sans", sans-serif;
-    background-color: white;
-    width: 550px;
-    height: 350px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
-    padding: 30px;
-    font-weight: 500;
-    margin-top: 63px;
-}
 
 .undertitle {
     margin-bottom: 10px;
+}
+
+.undertitletwo {
+    margin-bottom: 10px;
+    margin-top: 20px;
 }
 
 .input {
@@ -49,7 +41,7 @@
     border-radius: 5px;
     border: 1px solid #E5E5E5;
     width: 100%;
-    height: 200px;
+    height: 100px;
     padding: 10px;
     font-size: 16px;
     font-family: "Plus Jakarta Sans", sans-serif;
@@ -70,14 +62,28 @@
     height: 26px;
 }
 
-/* Скрываем стандартный checkbox */
+
 .switch input {
     opacity: 0;
     width: 0;
     height: 0;
 }
 
-/* Слайдер */
+.switchtwo {
+    position: relative;
+    display: inline-block;
+    width: 70px;
+    height: 26px;
+}
+
+.switchtwo input {
+    position: relative;
+    display: inline-block;
+    width: 70px;
+    height: 26px;
+}
+
+
 .slider {
     position: absolute;
     cursor: pointer;
@@ -102,22 +108,22 @@
     border-radius: 50%;
 }
 
-/* Цвет переключателя, когда активен */
-input:checked + .slider {
+
+input:checked+.slider {
     background-color: #365CF5;
 }
 
-/* Положение кнопки в активном состоянии */
-input:checked + .slider:before {
+
+input:checked+.slider:before {
     transform: translateX(24px);
 }
 
-/* Для состояния фокуса (синее свечение) */
-input:focus + .slider {
+
+input:focus+.slider {
     box-shadow: 0 0 1px #365CF5;
 }
 
-/* Стиль текста */
+
 .label {
     margin-left: 10px;
     vertical-align: middle;
@@ -131,18 +137,24 @@ input:focus + .slider {
 }
 
 .gifttitle {
-    margin-bottom: 30px;
-    font-size: 23px;
+    margin-bottom: 20px;
+    font-size: 22px;
 }
 
-/* Цвет переключателя при наведении */
+.gifttitletwo {
+    margin-bottom: 20px;
+    font-size: 22px;
+    margin-top: 40px;
+}
+
+
 .slider:hover {
     background-color: #b3b3b3;
 }
 
-/* Цвет переключателя при наведении, когда активен */
-input:checked + .slider:hover {
-    background-color: #0056b3; /* Более тёмный оттенок синего */
+
+input:checked+.slider:hover {
+    background-color: #0056b3;
 }
 
 .inputContainer {
@@ -156,16 +168,38 @@ input:checked + .slider:hover {
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
+.inputContainertwo {
+    display: flex;
+    align-items: center;
+    border: 1px solid #e5e5e5;
+    border-radius: 5px;
+    padding: 10px;
+    background-color: #fff;
+    width: 100%;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+
+
 .inputField {
     border: none;
     outline: none;
     font-size: 16px;
     color: #333;
-    width: 100px;
+    width: 115px;
     background-color: transparent;
 }
 
-/* Активное состояние контейнера */
+.inputFieldtwo {
+    border: none;
+    outline: none;
+    font-size: 16px;
+    color: #333;
+    width: 90%;
+    background-color: transparent;
+}
+
+
 .inputContainer.active {
     background-color: #365CF5;
     border-color: #365CF5;
@@ -175,35 +209,285 @@ input:checked + .slider:hover {
     border-color: #365CF5;
 }
 
-/* Активное состояние текста */
+
 .activeLabel {
     color: white;
 }
 
-/* Стиль для белого текста в поле ввода при активном переключателе */
+
 .inputField {
     color: #333;
     transition: color 0.3s ease;
 }
 
-/* Когда слайдер активен (активное состояние), текст в поле ввода становится белым */
+
 .inputContainer.active .inputField {
     color: white;
 }
 
 .submitButton {
-    background-color: #365CF5; /* Синий цвет */
-    color: white; /* Цвет текста */
+    background-color: #365CF5;
+    color: white;
     border: none;
     border-radius: 5px;
     padding: 10px 20px;
     font-size: 16px;
     cursor: pointer;
-    margin-top: 20px; /* Отступ сверху */
+    margin-top: 20px;
     transition: background-color 0.3s ease;
-    width: 100%; /* Кнопка будет занимать всю ширину */
+    width: 100%;
 }
 
 .submitButton:hover {
-    background-color: #2b4ec9; /* Более тёмный оттенок синего при наведении */
+    background-color: #2b4ec9;
+}
+
+.submitButtontwo {
+    background-color: #365CF5;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background-color 0.3s ease;
+    width: 100%;
+}
+
+
+.modeSelector {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.modeSelector label {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 16px;
+    color: #333;
+    cursor: pointer;
+}
+
+.intervalInputContainer {
+    display: flex;
+    align-items: center;
+    border: 1px solid #e5e5e5;
+    border-radius: 5px;
+    padding: 10px;
+    background-color: #fff;
+    max-width: 200px;
+    margin-top: 10px;
+}
+
+
+.intervalInputContainer input {
+    border: none;
+    outline: none;
+    font-size: 16px;
+    color: #333;
+    width: 100px;
+    background-color: transparent;
+}
+
+.intervalInputContainer.active {
+    background-color: #365CF5;
+    color: white;
+}
+
+.intervalInputContainer.active input {
+    color: white;
+}
+
+.intervalInputContainer.active .label {
+    color: white;
+}
+
+
+.intervalInputContainer:focus-within {
+    border-color: #365CF5;
+}
+
+.modeSlider {
+    display: flex;
+    align-items: center;
+    margin-top: 25px;
+    margin-bottom: 15px;
+}
+
+.modeSlider span {
+    margin: 0 10px;
+    font-size: 16px;
+}
+
+.activeMode {
+    color: #007bff;
+}
+
+.messageblock {
+    margin-bottom: 0px;
+}
+
+.messagebox {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    background-color: white;
+    width: 550px;
+    height: 250px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 30px;
+    font-weight: 500;
+    margin-bottom: 40px;
+}
+
+.messageboxthree {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    background-color: white;
+    width: 550px;
+    height: 325px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 30px;
+    font-weight: 500;
+    margin-bottom: 40px;
+}
+
+.messageboxtwo {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    background-color: white;
+    width: 550px;
+    height: 350px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 30px;
+    font-weight: 500;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 40px;
+}
+
+.messageboxfour {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    background-color: white;
+    width: 550px;
+    height: 650px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 30px;
+    font-weight: 500;
+    margin-bottom: 40px;
+}
+
+.messageboxfive {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    background-color: white;
+    width: 550px;
+    height: 300px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 30px;
+    font-weight: 500;
+    margin-bottom: 40px;
+}
+
+
+.messageboxfive {
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.fakeButton {
+    background-color: #e0f0ff;
+    color: #007bff;
+    padding: 10px 20px;
+    margin-bottom: 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: text;
+    width: 100%;
+    text-align: center;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+
+.fakeButton:focus {
+    outline: none;
+    background-color: #d0e9ff;
+    border: 1px solid #007bff;
+}
+
+.submitButton {
+    background-color: #365cf5;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+    font-size: 16px;
+}
+
+.submitButton:hover {
+    background-color: #2b4ec9;
+}
+
+
+@media (max-width: 1200px) {
+    .main {
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+    }
+
+    .columnblock {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+
+    }
+
+    .messagebox,
+    .messageboxtwo,
+    .messageboxthree,
+    .messageboxfour,
+    .messageboxfive {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        background-color: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        padding: 30px;
+        font-weight: 500;
+        margin-bottom: 40px;
+        width: 100%;
+        height: auto;
+    }
+
+    .messageboxfive {
+        height: auto;
+    }
+
+    .messageboxtwo {
+        height: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .messageboxfour {
+        height: auto;
+    }
+
+    .title {
+        font-size: 18px;
+        
+    }
+
+    .gifttitle {
+        font-size: 18px;
+    }
+
+    .gifttitletwo {
+        font-size: 18px;
+    }
 }
