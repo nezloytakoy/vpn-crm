@@ -14,6 +14,7 @@
     background-color: transparent;
     width: 100vw;
     border-radius: 15px;
+    font-family: "Plus Jakarta Sans", sans-serif;
 }
 
 .header {
@@ -32,7 +33,7 @@
     color: #888;
 }
 
-/* Стили таблицы */
+
 .tableWrapper {
     background-color: white;
     border-radius: 8px;

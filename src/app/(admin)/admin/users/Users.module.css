@@ -4,9 +4,16 @@
     background-color: #F1F5F9;
     display: flex;
     padding: 50px;
-    flex-direction: row;
+    flex-direction: column;
     justify-content: space-between;
+    align-items: center;
 
+}
+
+.settings {
+    display: flex;
+    width: 100%;
+    max-width: 1200px;
 }
 
 .columnblock {
@@ -80,6 +87,21 @@ input:checked+.slider:hover {
     width: 100%;
 }
 
+.submitButtonthree {
+    background-color: #365CF5;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 30px;
+    transition: background-color 0.3s ease;
+    width: 100%;
+
+}
+
+
 .submitButton {
     background-color: #365cf5;
     color: white;
@@ -98,6 +120,7 @@ input:checked+.slider:hover {
 
 .togglebox {
     margin-bottom: 20px;
+    margin-top: 50px;
 }
 
 
@@ -186,6 +209,371 @@ input:checked+.slider:hover {
     color: #333;
 }
 
+.checkboxContainer {
+    display: flex;
+    flex-direction: column;
+    margin-top: 20px;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+    color: #333;
+}
+
+.checkboxLabel input {
+    display: none;
+}
+
+.animatedCheckbox {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ccc;
+    border-radius: 5px;
+    margin-right: 10px;
+    position: relative;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+
+.animatedCheckbox::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 12px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(45deg) scale(0);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.checkboxLabel input:checked+.animatedCheckbox {
+    border-color: #365CF5;
+    background-color: #365CF5;
+}
+
+.checkboxLabel input:checked+.animatedCheckbox::after {
+    transform: translate(-50%, -50%) rotate(45deg) scale(1);
+    opacity: 1;
+}
+
+.checkboxLabel input:hover+.animatedCheckbox {
+    border-color: #007bff;
+}
+
+.checkboxLabel span {
+    margin-left: 5px;
+    vertical-align: middle;
+}
+
+.messagebox {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    background-color: white;
+    width: 550px;
+    height: auto;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 30px;
+    font-weight: 500;
+    margin-bottom: 40px;
+}
+
+.gifttitle {
+    margin-bottom: 20px;
+    font-size: 22px;
+}
+
+.undertitletwo {
+    margin-bottom: 10px;
+    margin-top: 20px;
+}
+
+.inputContainertwo {
+    display: flex;
+    align-items: center;
+    border: 1px solid #e5e5e5;
+    border-radius: 5px;
+    padding: 10px;
+    background-color: #fff;
+    width: 100%;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.inputFieldtwo {
+    border: none;
+    outline: none;
+    font-size: 16px;
+    color: #333;
+    width: 90%;
+    background-color: transparent;
+}
+
+.label {
+    margin-left: 10px;
+    vertical-align: middle;
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+    color: #333;
+}
+
+
+.percentageHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.undertitletwo {
+    font-size: 16px;
+    color: #333;
+    margin-right: 10px;
+    font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.percentageDisplay {
+    font-size: 18px;
+    color: #333;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    text-align: right;
+    width: 60px;
+    /* Adjust as needed */
+}
+
+.percentageSliderContainer {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+.percentageSlider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 10px;
+    background: #e5e5e5;
+    outline: none;
+    border-radius: 5px;
+    transition: background 0.3s ease;
+}
+
+.percentageSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    background: #365CF5;
+    cursor: pointer;
+    border-radius: 50%;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+    transition: background 0.3s ease;
+}
+
+.percentageSlider::-webkit-slider-thumb:hover {
+    background: #2b4ec9;
+}
+
+.submitButtontwo {
+    width: 100%;
+    background-color: #365CF5;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background-color 0.3s ease;
+}
+
+.messageboxfour {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    background-color: white;
+    width: 550px;
+    height: auto;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 30px;
+    font-weight: 500;
+    margin-bottom: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.invitetitle {
+    font-size: 22px;
+}
+
+
+
+.generateButton {
+    padding: 12px 24px;
+    font-size: 16px;
+    background-color: #365CF5;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+    margin-top: 30px;
+}
+
+.generateButton:hover {
+    background-color: #2d4cb3;
+}
+
+.generateButton:active {
+    transform: scale(0.98);
+}
+
+.linkContainer {
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+    animation: fadeIn 0.5s;
+}
+
+.linkInput {
+    flex: 1;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    margin-right: 10px;
+}
+
+.copyButton {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4CAF50;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.copyButton:hover {
+    background-color: #45a049;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.tablebox {
+    background-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 15px;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    width: 1140px;
+}
+
+
+
+.tableWrapper {
+    background-color: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
+   
+}
+
+.animatedTableWrapper {
+    overflow: auto;
+    max-width: 100%;
+}
+
+.scrollableTableWrapper {
+    width: 100%;
+}
+
+.taskTable {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.taskTable th,
+.taskTable td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #e1e1e1;
+}
+
+.taskTable th {
+    background-color: #f8f9fa;
+    color: #555;
+    font-weight: bold;
+}
+
+.taskTable td {
+    color: #333;
+}
+
+.pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.pagination button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.pagination button:disabled {
+    background-color: #ddd;
+}
+
+.pagination select {
+    margin-left: 10px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.header h3 {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.header span {
+    color: #888;
+}
+
 
 @media (max-width: 1200px) {
     .main {
@@ -219,6 +607,10 @@ input:checked+.slider:hover {
 
     .title {
         font-size: 18px;
-        
+
+    }
+
+    .gifttitle {
+        font-size: 18px;
     }
 }
