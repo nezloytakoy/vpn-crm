@@ -433,6 +433,26 @@ input:checked+.slider:hover {
     background-color: #2b4ec9;
 }
 
+.inputContainerthree {
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    transform: translateY(-20px);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.inputContainerthree.show {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.inputContainerthree.hide {
+    max-height: 0;
+    opacity: 0;
+    padding: 0;
+}
+
+
 
 @media (max-width: 1200px) {
     .main {

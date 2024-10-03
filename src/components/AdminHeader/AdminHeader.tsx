@@ -32,7 +32,7 @@ function AdminSidebar() {
     }, [isMenuOpen]);
 
     const handleLinkClick = () => {
-        setIsOpen(false);  // Закрыть меню после клика на ссылку
+        setIsOpen(false);
     };
 
     return (

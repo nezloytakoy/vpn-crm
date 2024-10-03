@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react';
-import styles from './Users.module.css';
+import styles from './Supports.module.css';
 
 function Page() {
     const [isToggled, setIsToggled] = useState(false);
@@ -22,7 +22,7 @@ function Page() {
         setModetwo(modetwo === 'single' ? 'interval' : 'single');
     };
 
-    const [inputValue, setInputValue] = useState('100'); // Начальное значение "100"
+    const [inputValue, setInputValue] = useState('100');
 
 
 
@@ -127,12 +127,10 @@ function Page() {
                         </div>
 
 
-                        {mode === 'interval' && (
-                            <div className={`${styles.inputContainer} ${styles.intervalInputContainer}`}>
-                                <input type="text" className={styles.inputField} placeholder="5" />
-                                <span className={styles.label}>Запросов</span>
-                            </div>
-                        )}
+                        <div className={`${styles.inputContainerthree} ${styles.intervalInputContainer} ${mode === 'interval' ? styles.show : styles.hide}`}>
+                            <input type="text" className={styles.inputField} placeholder="5" />
+                            <span className={styles.label}>Запросов</span>
+                        </div>
                         <button className={styles.submitButton}>Подтвердить</button>
                     </div>
                 </div>
