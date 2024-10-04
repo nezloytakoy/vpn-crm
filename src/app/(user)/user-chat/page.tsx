@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import styles from "./chat.module.css";
 import Image from 'next/image';
 import Wave from 'react-wavify';
+import Link from 'next/link';
 
 function Page() {
     const [isTelegramWebApp, setIsTelegramWebApp] = useState(false);
@@ -88,17 +89,19 @@ function Page() {
                         <p className={styles.text}>Ассистент</p>
                         <div className={styles.void}></div>
                     </div>
-                    <div className={styles.selected} onClick={handleAIClick}>
-                        <Image
-                            src="https://92eaarerohohicw5.public.blob.vercel-storage.com/86c7Op9pK1Dv395eiA%20(1)-hJvzVxfMVzlwNsJWvGfU0lcs4VekiT.gif"
-                            alt="avatar"
-                            width={70}
-                            height={70}
-                            className={styles.ai}
-                        />
-                        <p className={styles.text}>AI</p>
-                        <div className={styles.void}></div>
-                    </div>
+                    <Link href="https://t.me/vpn_srm_userbot">
+                        <div className={styles.selected} onClick={handleAIClick}>
+                            <Image
+                                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/86c7Op9pK1Dv395eiA%20(1)-hJvzVxfMVzlwNsJWvGfU0lcs4VekiT.gif"
+                                alt="avatar"
+                                width={70}
+                                height={70}
+                                className={styles.ai}
+                            />
+                            <p className={styles.text}>AI</p>
+                            <div className={styles.void}></div>
+                        </div>
+                    </Link>
                 </div>
             </div>
         </div>
