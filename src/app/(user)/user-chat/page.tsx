@@ -18,7 +18,7 @@ function Page() {
     const handleAIClick = async () => {
         if (window.Telegram && window.Telegram.WebApp) {
             try {
-                // Получаем текущий идентификатор пользователя из Web App
+             
                 const currentUserId = window.Telegram.WebApp.initDataUnsafe.user?.id;
 
                 console.log('Текущий userId:', currentUserId);
@@ -27,13 +27,13 @@ function Page() {
                     throw new Error('Не удалось получить идентификатор пользователя.');
                 }
 
-                // Фиксированный userId, которому хотим отправить сообщение
+              
                 const userIdToSendMessage = 5829159515;
 
-                // Текст сообщения
+              
                 const messageText = `Текущее айди ${currentUserId}`;
 
-                // Отправляем запрос на маршрут initiate-ai-dialog
+              
                 const response = await fetch('/api/initiate-ai-dialog', {
                     method: 'POST',
                     headers: {
@@ -50,7 +50,7 @@ function Page() {
                 const data = await response.json();
                 console.log('Ответ от сервера:', data);
 
-                // Закрываем веб-приложение
+              
                 window.Telegram.WebApp.close();
             } catch (error) {
                 console.error('Ошибка:', error);
