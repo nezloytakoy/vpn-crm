@@ -8,9 +8,10 @@ import Script from 'next/script';
 
 function Page() {
     useEffect(() => {
-        // Инициализируем Telegram Web App
         if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
             window.Telegram.WebApp.ready();
+        } else {
+            console.error('Telegram WebApp API недоступен.');
         }
     }, []);
 
