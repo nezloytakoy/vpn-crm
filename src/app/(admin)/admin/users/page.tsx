@@ -14,7 +14,17 @@ interface UserData {
     renewed: boolean;
 }
 
+type MyColumn<T extends object> = {
+    Header: string;
+    accessor: keyof T;
+    id: string;
+    Cell?: (cell: CellProps<T, any>) => React.ReactNode;
+};
+
 function Page() {
+
+    const [showSettings, setShowSettings] = useState(true);
+    const [showTablebox, setShowTablebox] = useState(true);
 
     const [isToggledNotifications, setIsToggledNotifications] = useState(false);
     const [checkboxesNotifications, setCheckboxesNotifications] = useState<boolean[]>([false, false, false, false]);
@@ -157,32 +167,34 @@ function Page() {
         });
     };
 
-    const columns: Column<UserData>[] = useMemo(
-        () => [
-            {
-                Header: 'Ник пользователя',
-                accessor: 'nickname',
-            },
-            {
-                Header: 'Количество рефералов',
-                accessor: 'referrals',
-            },
-            {
-                Header: 'Вариант подписки',
-                accessor: 'subscription',
-            },
-            {
-                Header: 'Количество запросов',
-                accessor: 'requests',
-            },
-            {
-                Header: 'Продлевал ли ранее подписку',
-                accessor: 'renewed',
-                Cell: ({ value }: CellProps<UserData, boolean>) => (value ? 'Да' : 'Нет'),
-            },
-        ],
-        []
-    );
+    const columnsData: MyColumn<UserData>[] = [
+        {
+            Header: 'Ник пользователя',
+            accessor: 'nickname',
+            id: 'nickname',
+        },
+        {
+            Header: 'Количество рефералов',
+            accessor: 'referrals',
+            id: 'referrals',
+        },
+        {
+            Header: 'Вариант подписки',
+            accessor: 'subscription',
+            id: 'subscription',
+        },
+        {
+            Header: 'Количество запросов',
+            accessor: 'requests',
+            id: 'requests',
+        },
+        {
+            Header: 'Продлевал ли ранее подписку',
+            accessor: 'renewed',
+            id: 'renewed',
+            Cell: ({ value }: CellProps<UserData, boolean>) => (value ? 'Да' : 'Нет'),
+        },
+    ];
 
 
 
@@ -207,92 +219,275 @@ function Page() {
         []
     );
 
+    const [sortColumn, setSortColumn] = useState<string | null>(null);
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+    const [showSortMenu, setShowSortMenu] = useState<boolean>(false);
+
+
+    const handleSortButtonClick = () => {
+        setShowSortMenu(!showSortMenu);
+    };
+
+
+    const handleSortColumn = (columnId: string) => {
+        if (sortColumn === columnId) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortColumn(columnId);
+            setSortDirection('asc');
+        }
+        setShowSortMenu(false);
+    };
+
+
+    const sortedData = useMemo(() => {
+        if (!sortColumn) return data;
+
+        return [...data].sort((a, b) => {
+            const aValue = a[sortColumn as keyof UserData];
+            const bValue = b[sortColumn as keyof UserData];
+
+            if (aValue < bValue) {
+                return sortDirection === 'asc' ? -1 : 1;
+            }
+            if (aValue > bValue) {
+                return sortDirection === 'asc' ? 1 : -1;
+            }
+            return 0;
+        });
+    }, [data, sortColumn, sortDirection]);
+
     return (
         <div className={styles.main}>
-            <div className={styles.settings}>
-                <div className={styles.columnblock}>
-                    <div className={styles.messagebox}>
-                        <h1 className={styles.title}>Уведомления всем пользователям</h1>
-                        <div className={styles.togglebox}>
-                            <label className={styles.switch}>
-                                <input
-                                    type="checkbox"
-                                    checked={isToggledNotifications}
-                                    onChange={handleToggleChangeNotifications}
-                                />
-                                <span className={styles.slider}></span>
-                            </label>
-                            <span className={styles.label}>Отправить всем категориям пользователей</span>
-                        </div>
-                        <div className={styles.checkboxContainer}>
-                            {checkboxesNotifications.map((checked, index) => (
-                                <label key={index} className={styles.checkboxLabel}>
+            <button className={styles.toggleButton} onClick={() => setShowSettings(!showSettings)}>
+                {showSettings ? 'Скрыть настройки' : 'Показать настройки'}
+                <svg
+                    className={`${styles.arrowIcon} ${showSettings ? styles.up : styles.down}`}
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                >
+                    <path d="M12 15l-7-7h14l-7 7z" />
+                </svg>
+            </button>
+            <div
+                className={`${styles.collapsibleContent} ${showSettings ? styles.expanded : styles.collapsed}`}
+            >
+                <div className={styles.settings}>
+                    <div className={styles.columnblock}>
+                        <div className={styles.messagebox}>
+                            <h1 className={styles.title}>Уведомления всем пользователям</h1>
+                            <div className={styles.togglebox}>
+                                <label className={styles.switch}>
                                     <input
                                         type="checkbox"
-                                        checked={checked}
-                                        onChange={() => handleCheckboxChangeNotifications(index)}
+                                        checked={isToggledNotifications}
+                                        onChange={handleToggleChangeNotifications}
                                     />
-                                    <span className={styles.animatedCheckbox}></span>
-                                    <span>{`Категория пользователей №${index + 1}`}</span>
+                                    <span className={styles.slider}></span>
                                 </label>
-                            ))}
-                        </div>
-                        <h1 className={styles.undertitle}>Форма для сообщения</h1>
-                        <textarea className={styles.input} placeholder="Сообщение" />
-                        <button className={styles.submitButton}>Отправить</button>
-                    </div>
-                    <div className={styles.messageboxfour}>
-                        <Image
-                            src="https://92eaarerohohicw5.public.blob.vercel-storage.com/HLA59jMt2S3n7N2d2O-NF0jQKdkPmFmPomQgf9VIONuWrctwA.gif"
-                            alt="Referral"
-                            width={350}
-                            height={350}
-                        />
-                        <h1 className={styles.invitetitle}>Генерация пригласительной ссылки</h1>
-                        <button className={styles.generateButton} onClick={handleGenerateLink}>
-                            Сгенерировать ссылку
-                        </button>
-                        {generatedLink && (
-                            <div className={styles.linkContainer}>
-                                <input
-                                    type="text"
-                                    className={styles.linkInput}
-                                    value={generatedLink}
-                                    readOnly
-                                />
-                                <button className={styles.copyButton} onClick={handleCopyLink}>
-                                    {copySuccess ? 'Скопировано!' : 'Копировать'}
-                                </button>
+                                <span className={styles.label}>Отправить всем категориям пользователей</span>
                             </div>
-                        )}
-                    </div>
-
-                    <div className={styles.messagebox}>
-                        <h1 className={styles.gifttitle}>Количество запросов к ассистенту</h1>
-                        {inputValuesAssistant.map((value, index) => (
-                            <div key={index}>
-                                <h1 className={styles.undertitletwo}>
-                                    {`Введите количество для категории пользователей №${index + 1}`}
-                                </h1>
-                                <div className={styles.inputContainertwo}>
+                            <div className={styles.checkboxContainer}>
+                                {checkboxesNotifications.map((checked, index) => (
+                                    <label key={index} className={styles.checkboxLabel}>
+                                        <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={() => handleCheckboxChangeNotifications(index)}
+                                        />
+                                        <span className={styles.animatedCheckbox}></span>
+                                        <span>{`Категория пользователей №${index + 1}`}</span>
+                                    </label>
+                                ))}
+                            </div>
+                            <h1 className={styles.undertitle}>Форма для сообщения</h1>
+                            <textarea className={styles.input} placeholder="Сообщение" />
+                            <button className={styles.submitButton}>Отправить</button>
+                        </div>
+                        <div className={styles.messageboxfour}>
+                            <Image
+                                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/HLA59jMt2S3n7N2d2O-NF0jQKdkPmFmPomQgf9VIONuWrctwA.gif"
+                                alt="Referral"
+                                width={350}
+                                height={350}
+                            />
+                            <h1 className={styles.invitetitle}>Генерация пригласительной ссылки</h1>
+                            <button className={styles.generateButton} onClick={handleGenerateLink}>
+                                Сгенерировать ссылку
+                            </button>
+                            {generatedLink && (
+                                <div className={styles.linkContainer}>
                                     <input
                                         type="text"
-                                        className={styles.inputFieldtwo}
-                                        placeholder={value}
-                                        value={value}
-                                        onChange={(e) => handleInputChangeAssistant(index, e.target.value)}
+                                        className={styles.linkInput}
+                                        value={generatedLink}
+                                        readOnly
                                     />
-                                    <span className={styles.label}>Запросов</span>
+                                    <button className={styles.copyButton} onClick={handleCopyLink}>
+                                        {copySuccess ? 'Скопировано!' : 'Копировать'}
+                                    </button>
                                 </div>
+                            )}
+                        </div>
+
+                        <div className={styles.messagebox}>
+                            <h1 className={styles.gifttitle}>Количество запросов к ассистенту</h1>
+                            {inputValuesAssistant.map((value, index) => (
+                                <div key={index}>
+                                    <h1 className={styles.undertitletwo}>
+                                        {`Введите количество для категории пользователей №${index + 1}`}
+                                    </h1>
+                                    <div className={styles.inputContainertwo}>
+                                        <input
+                                            type="text"
+                                            className={styles.inputFieldtwo}
+                                            placeholder={value}
+                                            value={value}
+                                            onChange={(e) => handleInputChangeAssistant(index, e.target.value)}
+                                        />
+                                        <span className={styles.label}>Запросов</span>
+                                    </div>
+                                </div>
+                            ))}
+                            <button className={styles.submitButtontwo}>Подтвердить</button>
+                        </div>
+                    </div>
+
+
+                    <div className={styles.columnblock}>
+
+                        <div className={styles.messagebox}>
+                            <h1 className={styles.gifttitle}>Количество запросов к ИИ</h1>
+                            {inputValuesAI.map((value, index) => (
+                                <div key={index}>
+                                    <h1 className={styles.undertitletwo}>
+                                        {`Введите количество для категории пользователей №${index + 1}`}
+                                    </h1>
+                                    <div className={styles.inputContainertwo}>
+                                        <input
+                                            type="text"
+                                            className={styles.inputFieldtwo}
+                                            placeholder={value}
+                                            value={value}
+                                            onChange={(e) => handleInputChangeAI(index, e.target.value)}
+                                        />
+                                        <span className={styles.label}>Запросов</span>
+                                    </div>
+                                </div>
+                            ))}
+                            <button className={styles.submitButtontwo}>Подтвердить</button>
+                        </div>
+
+                        <div className={styles.messagebox}>
+                            <h1 className={styles.gifttitle}>Отправка пользователем контента</h1>
+
+                            <div className={styles.togglebox}>
+                                <label className={styles.switch}>
+                                    <input
+                                        type="checkbox"
+                                        checked={isToggledVoiceAI}
+                                        onChange={handleToggleChangeVoiceAI}
+                                    />
+                                    <span className={styles.slider}></span>
+                                </label>
+                                <span className={styles.label}>Разрешить отправку голосовых сообщений ИИ</span>
                             </div>
-                        ))}
-                        <button className={styles.submitButtontwo}>Подтвердить</button>
+                            <div className={styles.checkboxContainer}>
+                                {checkboxesVoiceAI.map((checked, index) => (
+                                    <label key={index} className={styles.checkboxLabel}>
+                                        <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={() => handleCheckboxChangeVoiceAI(index)}
+                                        />
+                                        <span className={styles.animatedCheckbox}></span>
+                                        <span>{`Категория пользователей №${index + 1}`}</span>
+                                    </label>
+                                ))}
+                            </div>
+
+                            <div className={styles.togglebox}>
+                                <label className={styles.switch}>
+                                    <input
+                                        type="checkbox"
+                                        checked={isToggledVoiceAssistant}
+                                        onChange={handleToggleChangeVoiceAssistant}
+                                    />
+                                    <span className={styles.slider}></span>
+                                </label>
+                                <span className={styles.label}>Разрешить отправку голосовых сообщений ассистенту</span>
+                            </div>
+                            <div className={styles.checkboxContainer}>
+                                {checkboxesVoiceAssistant.map((checked, index) => (
+                                    <label key={index} className={styles.checkboxLabel}>
+                                        <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={() => handleCheckboxChangeVoiceAssistant(index)}
+                                        />
+                                        <span className={styles.animatedCheckbox}></span>
+                                        <span>{`Категория пользователей №${index + 1}`}</span>
+                                    </label>
+                                ))}
+                            </div>
+
+                            <div className={styles.togglebox}>
+                                <label className={styles.switch}>
+                                    <input
+                                        type="checkbox"
+                                        checked={isToggledVideoAssistant}
+                                        onChange={handleToggleChangeVideoAssistant}
+                                    />
+                                    <span className={styles.slider}></span>
+                                </label>
+                                <span className={styles.label}>Разрешить отправку видео ассистенту</span>
+                            </div>
+                            <div className={styles.checkboxContainer}>
+                                {checkboxesVideoAssistant.map((checked, index) => (
+                                    <label key={index} className={styles.checkboxLabel}>
+                                        <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={() => handleCheckboxChangeVideoAssistant(index)}
+                                        />
+                                        <span className={styles.animatedCheckbox}></span>
+                                        <span>{`Категория пользователей №${index + 1}`}</span>
+                                    </label>
+                                ))}
+                            </div>
+
+                            <div className={styles.togglebox}>
+                                <label className={styles.switch}>
+                                    <input
+                                        type="checkbox"
+                                        checked={isToggledFileAssistant}
+                                        onChange={handleToggleChangeFileAssistant}
+                                    />
+                                    <span className={styles.slider}></span>
+                                </label>
+                                <span className={styles.label}>Разрешить отправку файлов ассистенту</span>
+                            </div>
+                            <div className={styles.checkboxContainer}>
+                                {checkboxesFileAssistant.map((checked, index) => (
+                                    <label key={index} className={styles.checkboxLabel}>
+                                        <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={() => handleCheckboxChangeFileAssistant(index)}
+                                        />
+                                        <span className={styles.animatedCheckbox}></span>
+                                        <span>{`Категория пользователей №${index + 1}`}</span>
+                                    </label>
+                                ))}
+                            </div>
+
+                            <button className={styles.submitButtonthree}>Подтвердить</button>
+                        </div>
                     </div>
                 </div>
-
-
-                <div className={styles.columnblock}>
-                    <div className={styles.messagebox}>
+                <div className={styles.settingstwo}>
+                    <div className={styles.messageboxsix}>
                         <h1 className={styles.gifttitle}>Процент от приглашенных пользователей</h1>
                         <div className={styles.percentageHeader}>
                             <h1 className={styles.undertitletwo}>Выберите процент</h1>
@@ -311,144 +506,55 @@ function Page() {
                         </div>
                         <button className={styles.submitButton}>Подтвердить</button>
                     </div>
-
-                    <div className={styles.messagebox}>
-                        <h1 className={styles.gifttitle}>Количество запросов к ИИ</h1>
-                        {inputValuesAI.map((value, index) => (
-                            <div key={index}>
-                                <h1 className={styles.undertitletwo}>
-                                    {`Введите количество для категории пользователей №${index + 1}`}
-                                </h1>
-                                <div className={styles.inputContainertwo}>
-                                    <input
-                                        type="text"
-                                        className={styles.inputFieldtwo}
-                                        placeholder={value}
-                                        value={value}
-                                        onChange={(e) => handleInputChangeAI(index, e.target.value)}
-                                    />
-                                    <span className={styles.label}>Запросов</span>
-                                </div>
-                            </div>
-                        ))}
-                        <button className={styles.submitButtontwo}>Подтвердить</button>
-                    </div>
-
-                    <div className={styles.messagebox}>
-                        <h1 className={styles.gifttitle}>Отправка пользователем контента</h1>
-
-                        <div className={styles.togglebox}>
-                            <label className={styles.switch}>
-                                <input
-                                    type="checkbox"
-                                    checked={isToggledVoiceAI}
-                                    onChange={handleToggleChangeVoiceAI}
-                                />
-                                <span className={styles.slider}></span>
-                            </label>
-                            <span className={styles.label}>Разрешить отправку голосовых сообщений ИИ</span>
-                        </div>
-                        <div className={styles.checkboxContainer}>
-                            {checkboxesVoiceAI.map((checked, index) => (
-                                <label key={index} className={styles.checkboxLabel}>
-                                    <input
-                                        type="checkbox"
-                                        checked={checked}
-                                        onChange={() => handleCheckboxChangeVoiceAI(index)}
-                                    />
-                                    <span className={styles.animatedCheckbox}></span>
-                                    <span>{`Категория пользователей №${index + 1}`}</span>
-                                </label>
-                            ))}
-                        </div>
-
-                        <div className={styles.togglebox}>
-                            <label className={styles.switch}>
-                                <input
-                                    type="checkbox"
-                                    checked={isToggledVoiceAssistant}
-                                    onChange={handleToggleChangeVoiceAssistant}
-                                />
-                                <span className={styles.slider}></span>
-                            </label>
-                            <span className={styles.label}>Разрешить отправку голосовых сообщений ассистенту</span>
-                        </div>
-                        <div className={styles.checkboxContainer}>
-                            {checkboxesVoiceAssistant.map((checked, index) => (
-                                <label key={index} className={styles.checkboxLabel}>
-                                    <input
-                                        type="checkbox"
-                                        checked={checked}
-                                        onChange={() => handleCheckboxChangeVoiceAssistant(index)}
-                                    />
-                                    <span className={styles.animatedCheckbox}></span>
-                                    <span>{`Категория пользователей №${index + 1}`}</span>
-                                </label>
-                            ))}
-                        </div>
-
-                        <div className={styles.togglebox}>
-                            <label className={styles.switch}>
-                                <input
-                                    type="checkbox"
-                                    checked={isToggledVideoAssistant}
-                                    onChange={handleToggleChangeVideoAssistant}
-                                />
-                                <span className={styles.slider}></span>
-                            </label>
-                            <span className={styles.label}>Разрешить отправку видео ассистенту</span>
-                        </div>
-                        <div className={styles.checkboxContainer}>
-                            {checkboxesVideoAssistant.map((checked, index) => (
-                                <label key={index} className={styles.checkboxLabel}>
-                                    <input
-                                        type="checkbox"
-                                        checked={checked}
-                                        onChange={() => handleCheckboxChangeVideoAssistant(index)}
-                                    />
-                                    <span className={styles.animatedCheckbox}></span>
-                                    <span>{`Категория пользователей №${index + 1}`}</span>
-                                </label>
-                            ))}
-                        </div>
-
-                        <div className={styles.togglebox}>
-                            <label className={styles.switch}>
-                                <input
-                                    type="checkbox"
-                                    checked={isToggledFileAssistant}
-                                    onChange={handleToggleChangeFileAssistant}
-                                />
-                                <span className={styles.slider}></span>
-                            </label>
-                            <span className={styles.label}>Разрешить отправку файлов ассистенту</span>
-                        </div>
-                        <div className={styles.checkboxContainer}>
-                            {checkboxesFileAssistant.map((checked, index) => (
-                                <label key={index} className={styles.checkboxLabel}>
-                                    <input
-                                        type="checkbox"
-                                        checked={checked}
-                                        onChange={() => handleCheckboxChangeFileAssistant(index)}
-                                    />
-                                    <span className={styles.animatedCheckbox}></span>
-                                    <span>{`Категория пользователей №${index + 1}`}</span>
-                                </label>
-                            ))}
-                        </div>
-
-                        <button className={styles.submitButtonthree}>Подтвердить</button>
-                    </div>
                 </div>
             </div>
-            <div className={styles.tablebox}>
-                <div className={styles.tableWrapper}>
-                    <div className={styles.header}>
-                        <h3>
-                            Запросы на распределение коинов <span>({data.length})</span>
-                        </h3>
+
+            <button className={styles.toggleButton} onClick={() => setShowTablebox(!showTablebox)}>
+                {showTablebox ? 'Скрыть таблицу' : 'Показать таблицу'}
+                <svg
+                    className={`${styles.arrowIcon} ${showTablebox ? styles.up : styles.down}`}
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                >
+                    <path d="M12 15l-7-7h14l-7 7z" />
+                </svg>
+            </button>
+            <div
+                className={`${styles.collapsibleContent} ${showTablebox ? styles.expanded : styles.collapsed}`}
+            >
+                <div className={styles.tablebox}>
+                    <div className={styles.tableWrapper}>
+                        <div className={styles.header}>
+                            <h3>
+                                Запросы на распределение коинов <span>({data.length})</span>
+                            </h3>
+                            <div className={styles.sortButtonContainer}>
+                                <button className={styles.sortButton} onClick={handleSortButtonClick}>
+                                    Сортировать
+                                </button>
+                                {showSortMenu && (
+                                    <div className={styles.sortMenu}>
+                                        {columnsData.map((column) => (
+                                            <button
+                                                key={column.id}
+                                                className={styles.sortMenuItem}
+                                                onClick={() => handleSortColumn(column.accessor)}
+                                            >
+                                                {column.Header}
+                                                {sortColumn === column.accessor && (
+                                                    <span className={styles.sortDirection}>
+                                                        {sortDirection === 'asc' ? ' 🔼' : ' 🔽'}
+                                                    </span>
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <Table columns={columnsData as Column<UserData>[]} data={sortedData} />
                     </div>
-                    <Table columns={columns} data={data} />
                 </div>
             </div>
         </div>

@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { Column } from 'react-table';
-import { FaEnvelope } from 'react-icons/fa'; // Importing an icon
+import { FaEnvelope } from 'react-icons/fa';
 import Table from '@/components/Table/Table';
 import styles from './Monitoring.module.css';
 
@@ -24,7 +24,7 @@ const Monitoring: React.FC = () => {
   const timePeriods = ['day', 'week', 'date'];
   const activeIndex = timePeriods.indexOf(timePeriod);
 
-  // Sample assistant data with updated statuses
+
   const sampleData: AssistantData[] = [
     {
       nick: '@assistant1',
@@ -58,14 +58,14 @@ const Monitoring: React.FC = () => {
     },
   ];
 
-  // Functions to fetch data
+
   const fetchDataForPeriod = useCallback((): AssistantData[] => {
-    // Implement logic to fetch data for 'day' and 'week'
+   
     return sampleData;
   }, []);
 
   const fetchDataForDate = useCallback((): AssistantData[] => {
-    // Implement logic to fetch data for a specific date
+  
     return sampleData;
   }, []);
 
@@ -80,7 +80,7 @@ const Monitoring: React.FC = () => {
   const columns: Column<AssistantData>[] = useMemo(
     () => [
       {
-        Header: '', // Nickname (column without header)
+        Header: '',
         accessor: 'nick',
         Cell: ({ value }) => <strong>{value}</strong>,
       },
@@ -105,7 +105,7 @@ const Monitoring: React.FC = () => {
         accessor: 'complaints',
       },
       {
-        Header: '', // Status (column without header)
+        Header: '', 
         accessor: 'status',
         Cell: ({ value }) => (
           <button
@@ -124,14 +124,14 @@ const Monitoring: React.FC = () => {
         ),
       },
       {
-        Header: '', // Message column without header
+        Header: '',
         accessor: 'message',
         Cell: ({ value }) => (
           <button
             className={styles.messageButton}
             onClick={() => {
-              // Handle click event, e.g., show a modal with the message
-              alert(value); // For demonstration purposes
+        
+              alert(value);
             }}
           >
             <FaEnvelope />
@@ -175,7 +175,7 @@ const Monitoring: React.FC = () => {
             ))}
           </div>
         </div>
-        {/* Date picker element */}
+       
         {timePeriod === 'date' && (
           <div className={styles.datePicker}>
             <input
@@ -183,7 +183,7 @@ const Monitoring: React.FC = () => {
               value={selectedDate}
               onChange={(e) => {
                 setSelectedDate(e.target.value);
-                // Update data for the selected date
+                
               }}
             />
           </div>

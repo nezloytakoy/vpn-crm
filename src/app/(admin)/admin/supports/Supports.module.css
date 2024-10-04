@@ -6,7 +6,15 @@
     padding: 50px;
     flex-direction: row;
     justify-content: space-between;
+    align-items: center;
+    justify-content: center;
 
+}
+
+.settings {
+    display: flex;
+    width: 100%;
+    max-width: 1200px;
 }
 
 .columnblock {
