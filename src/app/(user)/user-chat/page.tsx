@@ -8,31 +8,38 @@ import Wave from 'react-wavify';
 function Page() {
     const [isTelegramWebApp, setIsTelegramWebApp] = useState(false);
     const [debugMessage, setDebugMessage] = useState('');
-  
+
     useEffect(() => {
-      if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.ready();
-        setIsTelegramWebApp(true);
-        setDebugMessage('window.Telegram.WebApp доступен.');
-      } else {
-        setIsTelegramWebApp(false);
-        setDebugMessage('window.Telegram.WebApp недоступен.');
-      }
+        if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.ready();
+            setIsTelegramWebApp(true);
+            setDebugMessage('window.Telegram.WebApp доступен.');
+        } else {
+            setIsTelegramWebApp(false);
+            setDebugMessage('window.Telegram.WebApp недоступен.');
+        }
     }, []);
-  
+
     const handleAIClick = () => {
-      if (window.Telegram && window.Telegram.WebApp) {
-        setDebugMessage('Закрываем приложение...');
-        window.Telegram.WebApp.close();
-      } else {
-        setDebugMessage('window.Telegram.WebApp недоступен.');
-        alert('Эта функция доступна только внутри приложения Telegram.');
-      }
+        if (window.Telegram && window.Telegram.WebApp) {
+            setDebugMessage('Закрываем приложение...');
+            window.Telegram.WebApp.close();
+        } else {
+            setDebugMessage('window.Telegram.WebApp недоступен.');
+            alert('Эта функция доступна только внутри приложения Telegram.');
+        }
     };
-  
+
 
     return (
         <div>
+            {/* Display debug message */}
+            {debugMessage && <p>{debugMessage}</p>}
+
+            {/* Optionally, display a message if not running inside Telegram */}
+            {!isTelegramWebApp && (
+                <p>Это приложение должно быть запущено внутри Telegram.</p>
+            )}
             <div style={{ position: 'relative', height: '250px', overflow: 'hidden', border: '2px solid white' }}>
                 <Wave
                     fill="white"

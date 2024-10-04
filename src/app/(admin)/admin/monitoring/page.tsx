@@ -24,42 +24,47 @@ const Monitoring: React.FC = () => {
   const timePeriods = ['day', 'week', 'date'];
   const activeIndex = timePeriods.indexOf(timePeriod);
 
-  const sampleData: AssistantData[] = [
-    {
-      nick: '@assistant1',
-      averageResponseTime: 5,
-      completed: 100,
-      denied: 10,
-      current: 2,
-      complaints: 1,
-      status: 'Работает',
-      message: 'Готов к работе',
-    },
-    {
-      nick: '@assistant2',
-      averageResponseTime: 6,
-      completed: 90,
-      denied: 8,
-      current: 1,
-      complaints: 2,
-      status: 'Оффлайн',
-      message: 'Не доступен',
-    },
-    {
-      nick: '@assistant3',
-      averageResponseTime: 7,
-      completed: 80,
-      denied: 5,
-      current: 3,
-      complaints: 0,
-      status: 'Не работает',
-      message: 'Ошибка в системе',
-    },
-  ];
+  // Wrap sampleData in useMemo
+  const sampleData: AssistantData[] = useMemo(
+    () => [
+      {
+        nick: '@assistant1',
+        averageResponseTime: 5,
+        completed: 100,
+        denied: 10,
+        current: 2,
+        complaints: 1,
+        status: 'Работает',
+        message: 'Готов к работе',
+      },
+      {
+        nick: '@assistant2',
+        averageResponseTime: 6,
+        completed: 90,
+        denied: 8,
+        current: 1,
+        complaints: 2,
+        status: 'Оффлайн',
+        message: 'Не доступен',
+      },
+      {
+        nick: '@assistant3',
+        averageResponseTime: 7,
+        completed: 80,
+        denied: 5,
+        current: 3,
+        complaints: 0,
+        status: 'Не работает',
+        message: 'Ошибка в системе',
+      },
+    ],
+    []
+  );
 
   const data: AssistantData[] = useMemo(() => {
     if (timePeriod === 'date' && selectedDate) {
-      return sampleData; 
+      // Modify this logic as needed
+      return sampleData;
     } else {
       return sampleData;
     }
