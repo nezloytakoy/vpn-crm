@@ -31,7 +31,7 @@ function Page() {
                 const userIdToSendMessage = 5829159515;
 
               
-                const messageText = `Текущее айди ${currentUserId}`;
+                const messageText = currentUserId;
 
               
                 const response = await fetch('/api/initiate-ai-dialog', {

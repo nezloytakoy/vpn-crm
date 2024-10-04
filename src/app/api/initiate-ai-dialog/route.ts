@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       console.log(`Отправляем сообщение пользователю с ID: ${userId}`);
       console.log(`Текст сообщения: ${messageText}`);
   
-      // Получаем токен бота из переменных окружения
+    
       const BOT_TOKEN = process.env.TELEGRAM_USER_BOT_TOKEN;
       if (!BOT_TOKEN) {
         console.error('BOT_TOKEN не установлен в переменных окружения');
@@ -47,6 +47,24 @@ export async function POST(request: Request) {
           text: messageText,
         }),
       });
+
+      const urltwo = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+  
+      // Отправляем POST-запрос к Bot API
+      const telegramResponsetwo = await fetch(urltwo, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: messageText,
+          text: 'Привет, это сообщение от ИИ',
+        }),
+      });
+
+      const resulttwo = await telegramResponsetwo.json();
+  
+      console.log('Ответ от Telegram API:', resulttwo);
   
       const result = await telegramResponse.json();
   
