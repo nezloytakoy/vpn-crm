@@ -34,24 +34,11 @@ export async function POST(request: Request) {
   
       console.log('BOT_TOKEN установлен');
   
+
       const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
   
       // Отправляем POST-запрос к Bot API
       const telegramResponse = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          chat_id: userId,
-          text: messageText,
-        }),
-      });
-
-      const urltwo = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-  
-      // Отправляем POST-запрос к Bot API
-      const telegramResponsetwo = await fetch(urltwo, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -62,9 +49,7 @@ export async function POST(request: Request) {
         }),
       });
 
-      const resulttwo = await telegramResponsetwo.json();
-  
-      console.log('Ответ от Telegram API:', resulttwo);
+      
   
       const result = await telegramResponse.json();
   
