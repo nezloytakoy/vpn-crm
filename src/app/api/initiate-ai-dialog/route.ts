@@ -1,5 +1,3 @@
-
-
 export async function POST() {
 
     console.log('Привет, я ИИ');
