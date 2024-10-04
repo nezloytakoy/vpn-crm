@@ -3,7 +3,30 @@ import styles from "./chat.module.css"
 import Image from 'next/image'
 import Wave from 'react-wavify';
 
-function page() {
+// Custom Type Declaration for Telegram WebApp
+declare global {
+  interface Window {
+    Telegram: {
+      WebApp: {
+        close: () => void;
+        // Add more Telegram WebApp API properties if needed
+      };
+    };
+  }
+}
+
+function Page() {
+    const handleAIClick = () => {
+        // Notify the user that AI is starting and close the web app
+        fetch('/api/notify-ai-start', { method: 'POST' }) // Call server route to notify user
+            .then(() => {
+                const tg = window.Telegram?.WebApp; // Access Telegram WebApp API safely
+                if (tg) {
+                    tg.close(); // Close the mini web app
+                }
+            });
+    };
+
     return (
         <div>
             <div style={{ position: 'relative', height: '250px', overflow: 'hidden', border: '2px solid white' }}>
@@ -51,12 +74,10 @@ function page() {
                             height={70}
                             className={styles.ai}
                         />
-
                         <p className={styles.text}>Ассистент</p>
                         <div className={styles.void}></div>
-
                     </div>
-                    <div className={styles.selected}>
+                    <div className={styles.selected} onClick={handleAIClick}>
                         <Image
                             src="https://92eaarerohohicw5.public.blob.vercel-storage.com/86c7Op9pK1Dv395eiA%20(1)-hJvzVxfMVzlwNsJWvGfU0lcs4VekiT.gif"
                             alt="avatar"
@@ -73,4 +94,4 @@ function page() {
     )
 }
 
-export default page
+export default Page
