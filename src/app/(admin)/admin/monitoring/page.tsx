@@ -1,6 +1,4 @@
-'use client';
-
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Column } from 'react-table';
 import { FaEnvelope } from 'react-icons/fa';
 import Table from '@/components/Table/Table';
@@ -23,7 +21,6 @@ const Monitoring: React.FC = () => {
 
   const timePeriods = ['day', 'week', 'date'];
   const activeIndex = timePeriods.indexOf(timePeriod);
-
 
   const sampleData: AssistantData[] = [
     {
@@ -58,22 +55,13 @@ const Monitoring: React.FC = () => {
     },
   ];
 
-
-  const fetchDataForPeriod = useCallback((): AssistantData[] => {
-    return sampleData;
-  }, [sampleData]);
-
-  const fetchDataForDate = useCallback((): AssistantData[] => {
-    return sampleData;
-  }, [sampleData]);
-
   const data: AssistantData[] = useMemo(() => {
     if (timePeriod === 'date' && selectedDate) {
-      return fetchDataForDate();
+      return sampleData; // Здесь можно добавить фильтрацию по дате, если потребуется
     } else {
-      return fetchDataForPeriod();
+      return sampleData;
     }
-  }, [timePeriod, selectedDate, fetchDataForDate, fetchDataForPeriod]);
+  }, [timePeriod, selectedDate]);
 
   const columns: Column<AssistantData>[] = useMemo(
     () => [
@@ -128,7 +116,6 @@ const Monitoring: React.FC = () => {
           <button
             className={styles.messageButton}
             onClick={() => {
-
               alert(value);
             }}
           >
@@ -181,7 +168,6 @@ const Monitoring: React.FC = () => {
               value={selectedDate}
               onChange={(e) => {
                 setSelectedDate(e.target.value);
-
               }}
             />
           </div>

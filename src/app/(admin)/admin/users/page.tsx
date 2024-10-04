@@ -19,7 +19,7 @@ type MyColumn<T extends object, K extends keyof T> = {
     accessor: K;
     id: string;
     Cell?: (cell: CellProps<T, T[K]>) => React.ReactNode;
-  };
+};
 
 function Page() {
 
@@ -569,6 +569,7 @@ function Page() {
                             </div>
                         </div>
                         <Table columns={columnsData as Column<UserData>[]} data={sortedData} />
+
                     </div>
                 </div>
             </div>
