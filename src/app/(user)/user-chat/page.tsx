@@ -21,6 +21,8 @@ function Page() {
                 // Получаем необходимые данные из Telegram Web App
                 const userId = window.Telegram.WebApp.initDataUnsafe.user?.id;
 
+                console.log(userId)
+
                 if (!userId) {
                     throw new Error('Не удалось получить идентификатор пользователя.');
                 }
