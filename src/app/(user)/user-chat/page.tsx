@@ -1,46 +1,12 @@
-"use client"
-
-import React, { useEffect, useState } from 'react';
-import styles from "./chat.module.css";
-import Image from 'next/image';
+import React from 'react'
+import styles from "./chat.module.css"
+import Image from 'next/image'
 import Wave from 'react-wavify';
 import Link from 'next/link';
 
-function Page() {
-    const [isTelegramWebApp, setIsTelegramWebApp] = useState(false);
-    const [debugMessage, setDebugMessage] = useState('');
-
-    useEffect(() => {
-        if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
-            window.Telegram.WebApp.ready();
-            setIsTelegramWebApp(true);
-            setDebugMessage('window.Telegram.WebApp доступен.');
-        } else {
-            setIsTelegramWebApp(false);
-            setDebugMessage('window.Telegram.WebApp недоступен.');
-        }
-    }, []);
-
-    const handleAIClick = () => {
-        if (window.Telegram && window.Telegram.WebApp) {
-            setDebugMessage('Закрываем приложение...');
-            window.Telegram.WebApp.close();
-        } else {
-            setDebugMessage('window.Telegram.WebApp недоступен.');
-            alert('Эта функция доступна только внутри приложения Telegram.');
-        }
-    };
-
-
+function page() {
     return (
         <div>
-            {/* Display debug message */}
-            {debugMessage && <p>{debugMessage}</p>}
-
-            {/* Optionally, display a message if not running inside Telegram */}
-            {!isTelegramWebApp && (
-                <p>Это приложение должно быть запущено внутри Telegram.</p>
-            )}
             <div style={{ position: 'relative', height: '250px', overflow: 'hidden', border: '2px solid white' }}>
                 <Wave
                     fill="white"
@@ -86,26 +52,26 @@ function Page() {
                             height={70}
                             className={styles.ai}
                         />
+
                         <p className={styles.text}>Ассистент</p>
                         <div className={styles.void}></div>
+
                     </div>
-                    <Link href="https://t.me/vpn_srm_userbot">
-                        <div className={styles.selected} onClick={handleAIClick}>
-                            <Image
-                                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/86c7Op9pK1Dv395eiA%20(1)-hJvzVxfMVzlwNsJWvGfU0lcs4VekiT.gif"
-                                alt="avatar"
-                                width={70}
-                                height={70}
-                                className={styles.ai}
-                            />
-                            <p className={styles.text}>AI</p>
-                            <div className={styles.void}></div>
-                        </div>
+                    <Link href="https://t.me/vpn_srm_userbot" className={styles.selected}>
+                        <Image
+                            src="https://92eaarerohohicw5.public.blob.vercel-storage.com/86c7Op9pK1Dv395eiA%20(1)-hJvzVxfMVzlwNsJWvGfU0lcs4VekiT.gif"
+                            alt="avatar"
+                            width={70}
+                            height={70}
+                            className={styles.ai}
+                        />
+                        <p className={styles.text}>AI</p>
+                        <div className={styles.void}></div>
                     </Link>
                 </div>
             </div>
         </div>
-    );
+    )
 }
 
-export default Page;
+export default page
