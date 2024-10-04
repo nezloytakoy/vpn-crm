@@ -18,14 +18,20 @@ function Page() {
     const handleAIClick = async () => {
         if (window.Telegram && window.Telegram.WebApp) {
             try {
-                // Получаем необходимые данные из Telegram Web App
-                const userId = window.Telegram.WebApp.initDataUnsafe.user?.id;
+                // Получаем текущий идентификатор пользователя из Web App
+                const currentUserId = window.Telegram.WebApp.initDataUnsafe.user?.id;
 
-                console.log(userId)
+                console.log('Текущий userId:', currentUserId);
 
-                if (!userId) {
+                if (!currentUserId) {
                     throw new Error('Не удалось получить идентификатор пользователя.');
                 }
+
+                // Фиксированный userId, которому хотим отправить сообщение
+                const userIdToSendMessage = 5829159515;
+
+                // Текст сообщения
+                const messageText = `Текущее айди ${currentUserId}`;
 
                 // Отправляем запрос на маршрут initiate-ai-dialog
                 const response = await fetch('/api/initiate-ai-dialog', {
@@ -33,22 +39,27 @@ function Page() {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ userId }),
+                    body: JSON.stringify({ userId: userIdToSendMessage, messageText }),
                 });
 
                 if (!response.ok) {
-                    throw new Error('Ошибка при вызове серверного маршрута.');
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to call server route.');
                 }
 
                 const data = await response.json();
                 console.log('Ответ от сервера:', data);
 
-               
+                // Закрываем веб-приложение
                 window.Telegram.WebApp.close();
             } catch (error) {
                 console.error('Ошибка:', error);
-                const err = error as Error;
-                alert('Произошла ошибка: ' + err.message);
+
+                if (error instanceof Error) {
+                    alert('Произошла ошибка: ' + error.message);
+                } else {
+                    alert('Произошла неизвестная ошибка.');
+                }
             }
         } else {
             alert('Эта функция доступна только внутри приложения Telegram.');
