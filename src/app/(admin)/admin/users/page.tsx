@@ -14,12 +14,12 @@ interface UserData {
     renewed: boolean;
 }
 
-type MyColumn<T extends object> = {
+type MyColumn<T extends object, K extends keyof T> = {
     Header: string;
-    accessor: keyof T;
+    accessor: K;
     id: string;
-    Cell?: (cell: CellProps<T, any>) => React.ReactNode;
-};
+    Cell?: (cell: CellProps<T, T[K]>) => React.ReactNode;
+  };
 
 function Page() {
 
@@ -167,33 +167,32 @@ function Page() {
         });
     };
 
-    const columnsData: MyColumn<UserData>[] = [
+    const columnsData: MyColumn<UserData, 'nickname'>[] = [
+        {
+          Header: 'Ник пользователя',
+          accessor: 'nickname',
+          id: 'nickname',
+        },
         {
             Header: 'Ник пользователя',
             accessor: 'nickname',
             id: 'nickname',
-        },
-        {
-            Header: 'Количество рефералов',
-            accessor: 'referrals',
-            id: 'referrals',
-        },
-        {
-            Header: 'Вариант подписки',
-            accessor: 'subscription',
-            id: 'subscription',
-        },
-        {
-            Header: 'Количество запросов',
-            accessor: 'requests',
-            id: 'requests',
-        },
-        {
-            Header: 'Продлевал ли ранее подписку',
-            accessor: 'renewed',
-            id: 'renewed',
-            Cell: ({ value }: CellProps<UserData, boolean>) => (value ? 'Да' : 'Нет'),
-        },
+          },
+          {
+            Header: 'Ник пользователя',
+            accessor: 'nickname',
+            id: 'nickname',
+          },
+          {
+            Header: 'Ник пользователя',
+            accessor: 'nickname',
+            id: 'nickname',
+          },
+          {
+            Header: 'Ник пользователя',
+            accessor: 'nickname',
+            id: 'nickname',
+          }
     ];
 
 

@@ -60,14 +60,12 @@ const Monitoring: React.FC = () => {
 
 
   const fetchDataForPeriod = useCallback((): AssistantData[] => {
-   
     return sampleData;
-  }, []);
+  }, [sampleData]);
 
   const fetchDataForDate = useCallback((): AssistantData[] => {
-  
     return sampleData;
-  }, []);
+  }, [sampleData]);
 
   const data: AssistantData[] = useMemo(() => {
     if (timePeriod === 'date' && selectedDate) {
@@ -105,7 +103,7 @@ const Monitoring: React.FC = () => {
         accessor: 'complaints',
       },
       {
-        Header: '', 
+        Header: '',
         accessor: 'status',
         Cell: ({ value }) => (
           <button
@@ -113,10 +111,10 @@ const Monitoring: React.FC = () => {
               value === 'Работает'
                 ? styles.statusWorking
                 : value === 'Оффлайн'
-                ? styles.statusOffline
-                : value === 'Не работает'
-                ? styles.statusNotWorking
-                : ''
+                  ? styles.statusOffline
+                  : value === 'Не работает'
+                    ? styles.statusNotWorking
+                    : ''
             }
           >
             {value}
@@ -130,7 +128,7 @@ const Monitoring: React.FC = () => {
           <button
             className={styles.messageButton}
             onClick={() => {
-        
+
               alert(value);
             }}
           >
@@ -175,7 +173,7 @@ const Monitoring: React.FC = () => {
             ))}
           </div>
         </div>
-       
+
         {timePeriod === 'date' && (
           <div className={styles.datePicker}>
             <input
@@ -183,7 +181,7 @@ const Monitoring: React.FC = () => {
               value={selectedDate}
               onChange={(e) => {
                 setSelectedDate(e.target.value);
-                
+
               }}
             />
           </div>
