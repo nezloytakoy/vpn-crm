@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useState, useMemo } from 'react';
 import { Column } from 'react-table';
 import { FaEnvelope } from 'react-icons/fa';
