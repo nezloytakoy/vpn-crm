@@ -15,13 +15,44 @@ function Page() {
         }
     }, []);
 
-    const handleAIClick = () => {
+    const handleAIClick = async () => {
         if (window.Telegram && window.Telegram.WebApp) {
-            window.Telegram.WebApp.close();
+            try {
+                // Получаем необходимые данные из Telegram Web App
+                const userId = window.Telegram.WebApp.initDataUnsafe.user?.id;
+
+                if (!userId) {
+                    throw new Error('Не удалось получить идентификатор пользователя.');
+                }
+
+                // Отправляем запрос на маршрут initiate-ai-dialog
+                const response = await fetch('/api/initiate-ai-dialog', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ userId }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Ошибка при вызове серверного маршрута.');
+                }
+
+                const data = await response.json();
+                console.log('Ответ от сервера:', data);
+
+               
+                window.Telegram.WebApp.close();
+            } catch (error) {
+                console.error('Ошибка:', error);
+                const err = error as Error;
+                alert('Произошла ошибка: ' + err.message);
+            }
         } else {
             alert('Эта функция доступна только внутри приложения Telegram.');
         }
     };
+
 
     return (
         <>
