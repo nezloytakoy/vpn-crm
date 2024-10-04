@@ -5,11 +5,11 @@ import bcrypt from 'bcryptjs';
 import * as jose from 'jose';
 
 export async function POST(request: Request) {
-  // Read data off req body
+ 
   const body = await request.json();
   const { email, password } = body;
 
-  // Validate the data
+ 
   if (!validateEmail(email)) {
     return new Response(
       JSON.stringify({
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     );
   }
 
-  // Lookup the user
+  
   const user = await prisma.admin.findFirst({
     where: {
       email,
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     );
   }
 
-  // Compare password
+
   const isCorrectPassword = bcrypt.compareSync(password, user.password);
 
   if (!isCorrectPassword) {
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     );
   }
 
-  // Check if JWT_SECRET exists
+
   if (!process.env.JWT_SECRET) {
     console.error("JWT_SECRET is not defined");
     return new Response(
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     );
   }
 
-  // Create jwt token
+  
   const secret = new TextEncoder().encode(process.env.JWT_SECRET);
   const alg = "HS256";
 
@@ -77,6 +77,6 @@ export async function POST(request: Request) {
     .setSubject(user.id.toString())
     .sign(secret);
 
-  // Respond with it
+
   return new Response(JSON.stringify({ token: jwt }), { status: 200 });
 }

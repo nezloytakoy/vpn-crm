@@ -149,12 +149,24 @@ function Page() {
     const [copySuccess, setCopySuccess] = useState<boolean>(false);
 
 
-    const handleGenerateLink = () => {
-
-        const newLink = 'https://example.com/invite/' + Math.random().toString(36).substr(2, 9);
-        setGeneratedLink(newLink);
-        setCopySuccess(false);
-    };
+    const handleGenerateLink = async () => {
+        try {
+          const response = await fetch('/api/generateAssistantLink', {
+            method: 'POST',
+          });
+      
+          if (!response.ok) {
+            throw new Error('Ошибка при генерации ссылки');
+          }
+      
+          const data = await response.json();
+          setGeneratedLink(data.link);
+          setCopySuccess(false);
+        } catch (error) {
+          console.error('Ошибка генерации ссылки:', error);
+        }
+      };
+      
 
 
     const handleCopyLink = () => {
@@ -167,32 +179,36 @@ function Page() {
         });
     };
 
-    const columnsData: MyColumn<UserData, 'nickname'>[] = [
+    const columnsData: MyColumn<UserData, keyof UserData>[] = [
         {
-          Header: 'Ник пользователя',
-          accessor: 'nickname',
-          id: 'nickname',
+            Header: 'Ник пользователя',
+            accessor: 'nickname',
+            id: 'nickname',
         },
         {
-            Header: 'Ник пользователя',
-            accessor: 'nickname',
-            id: 'nickname',
-          },
-          {
-            Header: 'Ник пользователя',
-            accessor: 'nickname',
-            id: 'nickname',
-          },
-          {
-            Header: 'Ник пользователя',
-            accessor: 'nickname',
-            id: 'nickname',
-          },
-          {
-            Header: 'Ник пользователя',
-            accessor: 'nickname',
-            id: 'nickname',
-          }
+            Header: 'Количество рефералов',
+            accessor: 'referrals',
+            id: 'referrals',
+        },
+        {
+            Header: 'Подписка',
+            accessor: 'subscription',
+            id: 'subscription',
+        },
+        {
+            Header: 'Количество запросов',
+            accessor: 'requests',
+            id: 'requests',
+        },
+        {
+            Header: 'Обновлено',
+            accessor: 'renewed',
+            id: 'renewed',
+            Cell: ({ value }: CellProps<UserData, string | number | boolean>) => (
+                <span>{typeof value === 'boolean' ? (value ? 'Да' : 'Нет') : value}</span>
+            ),
+            
+        },
     ];
 
 

@@ -14,3 +14,24 @@ model Admin {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model Invitation {
+  id         Int      @id @default(autoincrement())
+  link       String   @unique          
+  token      String   @unique           
+  role       String                     
+  used       Boolean  @default(false)   
+  createdAt  DateTime @default(now())    
+  expiresAt  DateTime?                  
+  updatedAt  DateTime @updatedAt
+}
+
+model Assistant {
+  id         Int      @id @default(autoincrement())
+  telegramId String   @unique 
+  role       String   @default("assistant")
+  joinedAt   DateTime @default(now())
+  createdAt  DateTime @default(now()) 
+  updatedAt  DateTime @updatedAt  
+}
+
