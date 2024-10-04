@@ -3,13 +3,13 @@ import styles from "./chat.module.css"
 import Image from 'next/image'
 import Wave from 'react-wavify';
 
-// Custom Type Declaration for Telegram WebApp
+
 declare global {
   interface Window {
     Telegram: {
       WebApp: {
         close: () => void;
-        // Add more Telegram WebApp API properties if needed
+
       };
     };
   }
@@ -17,12 +17,12 @@ declare global {
 
 function Page() {
     const handleAIClick = () => {
-        // Notify the user that AI is starting and close the web app
-        fetch('/api/notify-ai-start', { method: 'POST' }) // Call server route to notify user
+        
+        fetch('/api/initiate-ai-dialog', { method: 'POST' }) 
             .then(() => {
-                const tg = window.Telegram?.WebApp; // Access Telegram WebApp API safely
+                const tg = window.Telegram?.WebApp;
                 if (tg) {
-                    tg.close(); // Close the mini web app
+                    tg.close(); 
                 }
             });
     };
