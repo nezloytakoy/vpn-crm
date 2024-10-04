@@ -1,15 +1,15 @@
+"use client";
+
 import React from 'react'
 import styles from "./chat.module.css"
 import Image from 'next/image'
 import Wave from 'react-wavify';
-
 
 declare global {
   interface Window {
     Telegram: {
       WebApp: {
         close: () => void;
-
       };
     };
   }
@@ -17,12 +17,11 @@ declare global {
 
 function Page() {
     const handleAIClick = () => {
-        
-        fetch('/api/initiate-ai-dialog', { method: 'POST' }) 
+        fetch('/api/initiate-ai-dialog', { method: 'POST' })
             .then(() => {
                 const tg = window.Telegram?.WebApp;
                 if (tg) {
-                    tg.close(); 
+                    tg.close();
                 }
             });
     };
@@ -47,10 +46,10 @@ function Page() {
                         <div className={styles.avatarbox}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg"
-                                alt="avatar"
-                                width={110}
-                                height={110}
-                                className={styles.avatar}
+                            alt="avatar"
+                            width={110}
+                            height={110}
+                            className={styles.avatar}
                             />
                             <p className={styles.name}> John Doe </p>
                         </div>
@@ -94,4 +93,4 @@ function Page() {
     )
 }
 
-export default Page
+export default Page;
