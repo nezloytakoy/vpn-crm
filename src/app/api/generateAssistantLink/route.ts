@@ -2,13 +2,11 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
     const token = Math.random().toString(36).slice(2, 11);
-
     const newLink = `https://t.me/vpn_srm_supportbot?start=invite_${token}`;
 
-   
     const invitation = await prisma.invitation.create({
       data: {
         link: newLink,

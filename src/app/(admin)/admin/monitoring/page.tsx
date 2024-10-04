@@ -59,11 +59,12 @@ const Monitoring: React.FC = () => {
 
   const data: AssistantData[] = useMemo(() => {
     if (timePeriod === 'date' && selectedDate) {
-      return sampleData; // Здесь можно добавить фильтрацию по дате, если потребуется
+      return sampleData; 
     } else {
       return sampleData;
     }
-  }, [timePeriod, selectedDate]);
+  }, [timePeriod, selectedDate, sampleData]);
+  
 
   const columns: Column<AssistantData>[] = useMemo(
     () => [
