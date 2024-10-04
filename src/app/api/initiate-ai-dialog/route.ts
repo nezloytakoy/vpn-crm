@@ -1,12 +1,14 @@
-import { NextApiRequest, NextApiResponse } from 'next';
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method === 'POST') {
-    
-        console.log('Привет, я ИИ');
-        res.status(200).json({ message: 'AI dialog initiated' });
-    } else {
-        res.setHeader('Allow', ['POST']);
-        res.status(405).end(`Method ${req.method} Not Allowed`);
-    }
+
+export async function POST() {
+
+    console.log('Привет, я ИИ');
+
+  
+    return new Response(JSON.stringify({ message: 'AI dialog initiated' }), {
+        status: 200,
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
 }
