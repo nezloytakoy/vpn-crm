@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo } from 'react';
 import styles from './Users.module.css';
-import Image from 'next/image';
 import Table from '@/components/Table/Table';
 import { Column, CellProps } from 'react-table';
 
