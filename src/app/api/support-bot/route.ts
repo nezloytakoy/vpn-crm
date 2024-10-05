@@ -1,4 +1,4 @@
-import { Bot, webhookCallback } from 'grammy';
+import { Bot, webhookCallback, Context } from 'grammy';
 import { PrismaClient } from '@prisma/client';
 
 const token = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
@@ -96,7 +96,7 @@ bot.on('callback_query:data', async (ctx) => {
   }
 });
 
-async function handleAcceptRequest(requestId: string, assistantTelegramId: string, ctx: any) {
+async function handleAcceptRequest(requestId: string, assistantTelegramId: string, ctx: Context) {
   // Обновляем статус запроса
   const assistantRequest = await prisma.assistantRequest.update({
     where: { id: Number(requestId) },
@@ -115,7 +115,7 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: strin
   await sendTelegramMessageToUser(assistantRequest.user.telegramId, 'Ассистент присоединился к чату. Сформулируйте свой вопрос.');
 }
 
-async function handleRejectRequest(requestId: string, assistantTelegramId: string, ctx: any) {
+async function handleRejectRequest(requestId: string, assistantTelegramId: string, ctx: Context) {
   // Обновляем статус запроса
   await prisma.assistantRequest.update({
     where: { id: Number(requestId) },
