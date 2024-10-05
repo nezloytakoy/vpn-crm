@@ -44,7 +44,6 @@ bot.command('start', async (ctx) => {
   }
 });
 
-
 bot.command('menu', async (ctx) => {
   try {
     await ctx.reply('📋 Главное меню:', {
@@ -62,43 +61,36 @@ bot.command('menu', async (ctx) => {
   }
 });
 
-
 bot.on('callback_query:data', async (ctx) => {
   const data = ctx.callbackQuery?.data;
   const telegramId = String(ctx.from?.id);
 
   if (data === 'start_work') {
- 
     const assistant = await prisma.assistant.findUnique({
       where: { telegramId },
     });
 
     if (assistant?.isWorking) {
-      await ctx.reply('⚠️ Вы уже находитесь на смене!');
+      await ctx.reply('⚠️ Вы уже работаете!');
       return;
     }
 
-
     await prisma.assistant.update({
       where: { telegramId },
-      data: { isWorking: true },
+      data: { isWorking: true, isBusy: false },
     });
 
     await ctx.reply('🚀 Работа начата! Чтобы завершить работу, используйте команду /end_work.');
   } else if (data === 'my_coins') {
-
     await ctx.reply('💰 Ваши коины: 1000.');
   } else if (data === 'my_activity') {
-
     await ctx.reply('📊 Моя активность: 10 завершенных задач.');
   }
 });
 
-
 bot.command('end_work', async (ctx) => {
   try {
     const telegramId = String(ctx.from?.id);
-
 
     const assistant = await prisma.assistant.findUnique({
       where: { telegramId },
@@ -109,10 +101,9 @@ bot.command('end_work', async (ctx) => {
       return;
     }
 
-
     await prisma.assistant.update({
       where: { telegramId },
-      data: { isWorking: false },
+      data: { isWorking: false, isBusy: false },
     });
 
     await ctx.reply('🚪 Работа завершена! Вы завершили свою смену.');
