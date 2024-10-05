@@ -12,7 +12,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'userId is required' });
     }
 
+
     await sendTelegramMessage(userId, 'Ваш запрос получен. Ожидайте, пока с вами свяжется ассистент.');
+
 
     const availableAssistants = await prisma.assistant.findMany({
       where: {
@@ -36,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       data: { isBusy: true },
     });
 
-
+ 
     await sendTelegramMessageWithButtons(
       selectedAssistant.telegramId,
       'Поступил запрос от пользователя',
@@ -51,6 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   res.status(405).json({ error: 'Method not allowed' });
 }
+
 
 async function sendTelegramMessage(chatId: string, text: string) {
   const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
@@ -68,7 +71,14 @@ async function sendTelegramMessage(chatId: string, text: string) {
   });
 }
 
-async function sendTelegramMessageWithButtons(chatId: string, text: string, buttons: any[]) {
+
+type TelegramButton = {
+  text: string;
+  callback_data: string;
+};
+
+
+async function sendTelegramMessageWithButtons(chatId: string, text: string, buttons: TelegramButton[]) {
   const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
