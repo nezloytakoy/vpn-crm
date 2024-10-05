@@ -35,3 +35,26 @@ model Assistant {
   updatedAt  DateTime @updatedAt  
 }
 
+enum SubscriptionType {
+  FREE
+  FIRST
+  SECOND
+  THIRD
+  FOURTH
+}
+
+model User {
+  id                     Int               @id @default(autoincrement())
+  telegramId             String            @unique
+  username               String?
+  referralCount          Int               @default(0)
+  subscriptionType       SubscriptionType  @default(FREE)
+  hasUpdatedSubscription Boolean           @default(false)
+  totalRequests          Int               @default(0)
+  aiRequests             Int               @default(0)
+  assistantRequests      Int               @default(0)
+  isActiveAIChat         Boolean           @default(false) // Новое поле
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+}
+
