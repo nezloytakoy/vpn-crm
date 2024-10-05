@@ -161,7 +161,7 @@ bot.on('message', async (ctx) => {
     });
 
     if (!user || !user.isActiveAIChat) {
-      await ctx.reply('Чтобы начать диалог с ИИ, используйте команду /start_ai.');
+      await ctx.reply('Я вас не понимаю. Воспользуйтесь web-приложением /start');
       return;
     }
 
