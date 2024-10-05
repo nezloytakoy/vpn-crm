@@ -85,8 +85,52 @@ bot.on('callback_query:data', async (ctx) => {
     await ctx.reply('💰 Ваши коины: 1000.');
   } else if (data === 'my_activity') {
     await ctx.reply('📊 Моя активность: 10 завершенных задач.');
+  } else if (data.startsWith('accept_') || data.startsWith('reject_')) {
+    const [action, requestId] = data.split('_');
+
+    if (action === 'accept') {
+      await handleAcceptRequest(requestId, telegramId, ctx);
+    } else if (action === 'reject') {
+      await handleRejectRequest(requestId, telegramId, ctx);
+    }
   }
 });
+
+async function handleAcceptRequest(requestId: string, assistantTelegramId: string, ctx: any) {
+  // Обновляем статус запроса
+  const assistantRequest = await prisma.assistantRequest.update({
+    where: { id: Number(requestId) },
+    data: { status: 'IN_PROGRESS', isActive: true },
+    include: { user: true },
+  });
+
+  // Обновляем статус ассистента
+  await prisma.assistant.update({
+    where: { telegramId: assistantTelegramId },
+    data: { isBusy: true },
+  });
+
+  // Отправляем сообщения ассистенту и пользователю
+  await ctx.reply('✅ Вы приняли запрос, ожидайте пока пользователь сформулирует свой вопрос.');
+  await sendTelegramMessageToUser(assistantRequest.user.telegramId, 'Ассистент присоединился к чату. Сформулируйте свой вопрос.');
+}
+
+async function handleRejectRequest(requestId: string, assistantTelegramId: string, ctx: any) {
+  // Обновляем статус запроса
+  await prisma.assistantRequest.update({
+    where: { id: Number(requestId) },
+    data: { status: 'REJECTED', isActive: false },
+  });
+
+  // Освобождаем ассистента
+  await prisma.assistant.update({
+    where: { telegramId: assistantTelegramId },
+    data: { isBusy: false },
+  });
+
+  // Отправляем ассистенту сообщение об отклонении
+  await ctx.reply('❌ Вы отклонили запрос.');
+}
 
 bot.command('end_work', async (ctx) => {
   try {
@@ -112,5 +156,22 @@ bot.command('end_work', async (ctx) => {
     await ctx.reply('⚠️ Произошла ошибка при завершении работы. Пожалуйста, попробуйте еще раз.');
   }
 });
+
+// Функция отправки сообщения пользователю
+async function sendTelegramMessageToUser(chatId: string, text: string) {
+  const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+  await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+    }),
+  });
+}
 
 export const POST = webhookCallback(bot, 'std/http');

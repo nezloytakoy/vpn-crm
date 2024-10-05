@@ -2,28 +2,22 @@ import { Bot, webhookCallback } from 'grammy';
 import OpenAI from 'openai';
 import { PrismaClient } from '@prisma/client';
 
-
 const prisma = new PrismaClient();
-
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-
 const token = process.env.TELEGRAM_USER_BOT_TOKEN;
 if (!token) throw new Error('TELEGRAM_USER_BOT_TOKEN не найден.');
 if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY не найден.');
 
-
 const bot = new Bot(token);
-
 
 type ChatMessage = {
   role: 'system' | 'user' | 'assistant';
   content: string;
 };
-
 
 const userConversations = new Map<string, ChatMessage[]>();
 
