@@ -15,8 +15,8 @@ export async function POST(request: Request) {
       });
     }
 
- 
-    await sendTelegramMessage(userId, 'Ваш запрос получен. Ожидайте, пока с вами свяжется ассистент.');
+
+    await sendTelegramMessageToUser(userId, 'Ваш запрос получен. Ожидайте, пока с вами свяжется ассистент.');
 
 
     const availableAssistants = await prisma.assistant.findMany({
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 
     const selectedAssistant = availableAssistants[0];
 
- 
+
     await prisma.assistant.update({
       where: { id: selectedAssistant.id },
       data: { isBusy: true },
@@ -68,8 +68,8 @@ export async function POST(request: Request) {
 }
 
 
-async function sendTelegramMessage(chatId: string, text: string) {
-  const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
+async function sendTelegramMessageToUser(chatId: string, text: string) {
+  const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
   await fetch(url, {
@@ -89,7 +89,6 @@ type TelegramButton = {
   text: string;
   callback_data: string;
 };
-
 
 async function sendTelegramMessageWithButtons(chatId: string, text: string, buttons: TelegramButton[]) {
   const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
