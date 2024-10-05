@@ -145,40 +145,6 @@ function Page() {
     };
 
 
-    const [generatedLink, setGeneratedLink] = useState<string>('');
-    const [copySuccess, setCopySuccess] = useState<boolean>(false);
-
-
-    const handleGenerateLink = async () => {
-        try {
-          const response = await fetch('/api/generateAssistantLink', {
-            method: 'POST',
-          });
-      
-          if (!response.ok) {
-            throw new Error('Ошибка при генерации ссылки');
-          }
-      
-          const data = await response.json();
-          setGeneratedLink(data.link);
-          setCopySuccess(false);
-        } catch (error) {
-          console.error('Ошибка генерации ссылки:', error);
-        }
-      };
-      
-
-
-    const handleCopyLink = () => {
-        navigator.clipboard.writeText(generatedLink).then(() => {
-            setCopySuccess(true);
-
-            setTimeout(() => setCopySuccess(false), 2000);
-        }, (err) => {
-            console.error('Could not copy text: ', err);
-        });
-    };
-
     const columnsData: MyColumn<UserData, keyof UserData>[] = [
         {
             Header: 'Ник пользователя',
@@ -207,7 +173,7 @@ function Page() {
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => (
                 <span>{typeof value === 'boolean' ? (value ? 'Да' : 'Нет') : value}</span>
             ),
-            
+
         },
     ];
 
@@ -320,31 +286,6 @@ function Page() {
                             <textarea className={styles.input} placeholder="Сообщение" />
                             <button className={styles.submitButton}>Отправить</button>
                         </div>
-                        <div className={styles.messageboxfour}>
-                            <Image
-                                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/HLA59jMt2S3n7N2d2O-NF0jQKdkPmFmPomQgf9VIONuWrctwA.gif"
-                                alt="Referral"
-                                width={350}
-                                height={350}
-                            />
-                            <h1 className={styles.invitetitle}>Генерация пригласительной ссылки</h1>
-                            <button className={styles.generateButton} onClick={handleGenerateLink}>
-                                Сгенерировать ссылку
-                            </button>
-                            {generatedLink && (
-                                <div className={styles.linkContainer}>
-                                    <input
-                                        type="text"
-                                        className={styles.linkInput}
-                                        value={generatedLink}
-                                        readOnly
-                                    />
-                                    <button className={styles.copyButton} onClick={handleCopyLink}>
-                                        {copySuccess ? 'Скопировано!' : 'Копировать'}
-                                    </button>
-                                </div>
-                            )}
-                        </div>
 
                         <div className={styles.messagebox}>
                             <h1 className={styles.gifttitle}>Количество запросов к ассистенту</h1>
@@ -366,6 +307,25 @@ function Page() {
                                 </div>
                             ))}
                             <button className={styles.submitButtontwo}>Подтвердить</button>
+                        </div>
+                        <div className={styles.messagebox}>
+                            <h1 className={styles.gifttitle}>Процент от приглашенных пользователей</h1>
+                            <div className={styles.percentageHeader}>
+                                <h1 className={styles.undertitletwo}>Выберите процент</h1>
+                                <div className={styles.percentageDisplay}>{percentage}%</div>
+                            </div>
+                            <div className={styles.percentageSliderContainer}>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="100"
+                                    value={percentage}
+                                    className={styles.percentageSlider}
+                                    onChange={(e) => setPercentage(Number(e.target.value))}
+                                    style={sliderStyle}
+                                />
+                            </div>
+                            <button className={styles.submitButton}>Подтвердить</button>
                         </div>
                     </div>
 
@@ -499,27 +459,6 @@ function Page() {
 
                             <button className={styles.submitButtonthree}>Подтвердить</button>
                         </div>
-                    </div>
-                </div>
-                <div className={styles.settingstwo}>
-                    <div className={styles.messageboxsix}>
-                        <h1 className={styles.gifttitle}>Процент от приглашенных пользователей</h1>
-                        <div className={styles.percentageHeader}>
-                            <h1 className={styles.undertitletwo}>Выберите процент</h1>
-                            <div className={styles.percentageDisplay}>{percentage}%</div>
-                        </div>
-                        <div className={styles.percentageSliderContainer}>
-                            <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                value={percentage}
-                                className={styles.percentageSlider}
-                                onChange={(e) => setPercentage(Number(e.target.value))}
-                                style={sliderStyle}
-                            />
-                        </div>
-                        <button className={styles.submitButton}>Подтвердить</button>
                     </div>
                 </div>
             </div>

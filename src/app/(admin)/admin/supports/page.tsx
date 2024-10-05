@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import styles from './Supports.module.css';
+import Image from 'next/image';
 
 function Page() {
     const [isToggled, setIsToggled] = useState(false);
@@ -25,6 +26,39 @@ function Page() {
     const [inputValue, setInputValue] = useState('100');
 
 
+    const [generatedLink, setGeneratedLink] = useState<string>('');
+    const [copySuccess, setCopySuccess] = useState<boolean>(false);
+
+
+    const handleGenerateLink = async () => {
+        try {
+            const response = await fetch('/api/generateAssistantLink', {
+                method: 'POST',
+            });
+
+            if (!response.ok) {
+                throw new Error('Ошибка при генерации ссылки');
+            }
+
+            const data = await response.json();
+            setGeneratedLink(data.link);
+            setCopySuccess(false);
+        } catch (error) {
+            console.error('Ошибка генерации ссылки:', error);
+        }
+    };
+
+
+
+    const handleCopyLink = () => {
+        navigator.clipboard.writeText(generatedLink).then(() => {
+            setCopySuccess(true);
+
+            setTimeout(() => setCopySuccess(false), 2000);
+        }, (err) => {
+            console.error('Could not copy text: ', err);
+        });
+    };
 
 
 
@@ -97,6 +131,31 @@ function Page() {
                 </div>
 
                 <div className={styles.columnblock}>
+                    <div className={styles.messageboxfour}>
+                        <Image
+                            src="https://92eaarerohohicw5.public.blob.vercel-storage.com/HLA59jMt2S3n7N2d2O-NF0jQKdkPmFmPomQgf9VIONuWrctwA.gif"
+                            alt="Referral"
+                            width={350}
+                            height={350}
+                        />
+                        <h1 className={styles.invitetitle}>Генерация пригласительной ссылки</h1>
+                        <button className={styles.generateButton} onClick={handleGenerateLink}>
+                            Сгенерировать ссылку
+                        </button>
+                        {generatedLink && (
+                            <div className={styles.linkContainer}>
+                                <input
+                                    type="text"
+                                    className={styles.linkInput}
+                                    value={generatedLink}
+                                    readOnly
+                                />
+                                <button className={styles.copyButton} onClick={handleCopyLink}>
+                                    {copySuccess ? 'Скопировано!' : 'Копировать'}
+                                </button>
+                            </div>
+                        )}
+                    </div>
 
                     <h1 className={styles.notitle}></h1>
                     <div className={styles.messageboxtwo}>
