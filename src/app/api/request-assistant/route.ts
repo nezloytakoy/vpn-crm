@@ -1,9 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import fetch from 'node-fetch';
 
-
 const prisma = new PrismaClient();
-
 
 export async function POST(request: Request) {
   try {
@@ -17,10 +15,10 @@ export async function POST(request: Request) {
       });
     }
 
+    // Отправка сообщения пользователю о получении запроса
+    await sendTelegramMessageToUser(userId.toString(), 'Ваш запрос получен. Ожидайте, пока с вами свяжется ассистент.');
 
-    await sendTelegramMessageToUser(userId, 'Ваш запрос получен. Ожидайте, пока с вами свяжется ассистент.');
-
- 
+    // Поиск свободных ассистентов
     const availableAssistants = await prisma.assistant.findMany({
       where: {
         isWorking: true,
@@ -40,16 +38,16 @@ export async function POST(request: Request) {
 
     const selectedAssistant = availableAssistants[0];
 
- 
+    // Обновляем статус ассистента
     await prisma.assistant.update({
       where: { id: selectedAssistant.id },
       data: { isBusy: true },
     });
 
-
+    // Создание запроса пользователя к ассистенту
     const assistantRequest = await prisma.assistantRequest.create({
       data: {
-        userId: userId,
+        userId: Number(userId), // Преобразование userId к числу
         assistantId: selectedAssistant.id,
         message: 'Запрос пользователя на разговор',
         status: 'PENDING',
@@ -57,9 +55,9 @@ export async function POST(request: Request) {
       },
     });
 
-
+    // Отправка запроса ассистенту
     await sendTelegramMessageWithButtons(
-      selectedAssistant.telegramId,
+      selectedAssistant.telegramId.toString(),
       'Поступил запрос от пользователя',
       [
         { text: 'Принять', callback_data: `accept_${assistantRequest.id}` },
@@ -80,7 +78,7 @@ export async function POST(request: Request) {
   }
 }
 
-
+// Отправка сообщения пользователю
 async function sendTelegramMessageToUser(chatId: string, text: string) {
   const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
@@ -97,7 +95,7 @@ async function sendTelegramMessageToUser(chatId: string, text: string) {
   });
 }
 
-
+// Отправка сообщения с кнопками ассистенту
 async function sendTelegramMessageWithButtons(chatId: string, text: string, buttons: TelegramButton[]) {
   const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
@@ -111,15 +109,14 @@ async function sendTelegramMessageWithButtons(chatId: string, text: string, butt
       chat_id: chatId,
       text,
       reply_markup: {
-        inline_keyboard: [buttons],
+        inline_keyboard: buttons.map((button) => [{ text: button.text, callback_data: button.callback_data }]),
       },
     }),
   });
 }
 
+// Определение типа для кнопок Telegram
 type TelegramButton = {
   text: string;
   callback_data: string;
 };
-
-

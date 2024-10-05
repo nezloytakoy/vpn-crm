@@ -27,8 +27,8 @@ model Invitation {
 }
 
 model Assistant {
-  id         Int      @id @default(autoincrement())
-  telegramId String   @unique
+  id         Int      @id @default(autoincrement()) // Вернули тип Int для id
+  telegramId BigInt   @unique
   role       String   @default("assistant")
   isWorking  Boolean  @default(false) 
   isBusy     Boolean  @default(false)
@@ -39,7 +39,6 @@ model Assistant {
   requests   AssistantRequest[]
 }
 
-
 enum SubscriptionType {
   FREE
   FIRST
@@ -49,8 +48,8 @@ enum SubscriptionType {
 }
 
 model User {
-  id                     Int               @id @default(autoincrement())
-  telegramId             String            @unique
+  id                     Int               @id @default(autoincrement()) // Вернули тип Int для id
+  telegramId             BigInt            @unique
   username               String?
   referralCount          Int               @default(0)
   subscriptionType       SubscriptionType  @default(FREE)
@@ -74,21 +73,18 @@ model Conversation {
   updatedAt   DateTime @updatedAt
 }
 
-
 model AssistantRequest {
   id          Int      @id @default(autoincrement())
   user        User     @relation(fields: [userId], references: [id])
-  userId      Int
+  userId      Int      // Вернули тип Int для userId
   assistant   Assistant @relation(fields: [assistantId], references: [id])
-  assistantId Int
+  assistantId Int      // Вернули тип Int для assistantId
   message     String
   status      RequestStatus @default(PENDING)
   isActive    Boolean @default(false)
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now())
 }
-
-
 
 enum RequestStatus {
   PENDING
