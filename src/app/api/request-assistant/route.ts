@@ -1,18 +1,21 @@
-import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import fetch from 'node-fetch';
 
 const prisma = new PrismaClient();
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === 'POST') {
-    const { userId } = req.body;
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { userId } = body;
 
     if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
+      return new Response(JSON.stringify({ error: 'userId is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-
+ 
     await sendTelegramMessage(userId, 'Ваш запрос получен. Ожидайте, пока с вами свяжется ассистент.');
 
 
@@ -27,12 +30,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     if (availableAssistants.length === 0) {
-      return res.status(200).json({ message: 'Нет доступных ассистентов' });
+      return new Response(JSON.stringify({ message: 'Нет доступных ассистентов' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const selectedAssistant = availableAssistants[0];
 
-
+ 
     await prisma.assistant.update({
       where: { id: selectedAssistant.id },
       data: { isBusy: true },
@@ -48,10 +54,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ]
     );
 
-    return res.status(200).json({ message: 'Запрос отправлен ассистенту.' });
+    return new Response(JSON.stringify({ message: 'Запрос отправлен ассистенту.' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('Ошибка:', error);
+    return new Response(JSON.stringify({ error: 'Server Error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
-
-  res.status(405).json({ error: 'Method not allowed' });
 }
 
 
