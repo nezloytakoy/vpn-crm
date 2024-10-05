@@ -13,7 +13,6 @@ bot.command('start', async (ctx) => {
     const inviteToken = args[0].replace('invite_', '');
 
     try {
-
       const invitation = await prisma.invitation.findUnique({
         where: { token: inviteToken },
       });
@@ -23,7 +22,6 @@ bot.command('start', async (ctx) => {
         return;
       }
 
-  
       await prisma.assistant.create({
         data: {
           telegramId: String(ctx.from?.id),
@@ -31,7 +29,6 @@ bot.command('start', async (ctx) => {
         },
       });
 
-    
       await prisma.invitation.update({
         where: { id: invitation.id },
         data: { used: true },
@@ -68,15 +65,60 @@ bot.command('menu', async (ctx) => {
 
 bot.on('callback_query:data', async (ctx) => {
   const data = ctx.callbackQuery?.data;
+  const telegramId = String(ctx.from?.id);
 
   if (data === 'start_work') {
-    await ctx.reply('🚀 Вы выбрали: Начать работу.');
+ 
+    const assistant = await prisma.assistant.findUnique({
+      where: { telegramId },
+    });
+
+    if (assistant?.isWorking) {
+      await ctx.reply('⚠️ Вы уже находитесь на смене!');
+      return;
+    }
+
+
+    await prisma.assistant.update({
+      where: { telegramId },
+      data: { isWorking: true },
+    });
+
+    await ctx.reply('🚀 Работа начата! Чтобы завершить работу, используйте команду /end_work.');
   } else if (data === 'my_coins') {
 
     await ctx.reply('💰 Ваши коины: 1000.');
   } else if (data === 'my_activity') {
 
     await ctx.reply('📊 Моя активность: 10 завершенных задач.');
+  }
+});
+
+
+bot.command('end_work', async (ctx) => {
+  try {
+    const telegramId = String(ctx.from?.id);
+
+
+    const assistant = await prisma.assistant.findUnique({
+      where: { telegramId },
+    });
+
+    if (!assistant?.isWorking) {
+      await ctx.reply('⚠️ Вы не работаете в данный момент!');
+      return;
+    }
+
+
+    await prisma.assistant.update({
+      where: { telegramId },
+      data: { isWorking: false },
+    });
+
+    await ctx.reply('🚪 Работа завершена! Вы завершили свою смену.');
+  } catch (error) {
+    console.error('Ошибка при завершении работы:', error);
+    await ctx.reply('⚠️ Произошла ошибка при завершении работы. Пожалуйста, попробуйте еще раз.');
   }
 });
 

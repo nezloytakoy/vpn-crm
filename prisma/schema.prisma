@@ -28,11 +28,12 @@ model Invitation {
 
 model Assistant {
   id         Int      @id @default(autoincrement())
-  telegramId String   @unique 
+  telegramId String   @unique
   role       String   @default("assistant")
+  isWorking  Boolean  @default(false)
   joinedAt   DateTime @default(now())
-  createdAt  DateTime @default(now()) 
-  updatedAt  DateTime @updatedAt  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 enum SubscriptionType {
