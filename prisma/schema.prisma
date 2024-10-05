@@ -17,22 +17,22 @@ model Admin {
 
 model Invitation {
   id         Int      @id @default(autoincrement())
-  link       String   @unique          
-  token      String   @unique           
-  role       String                     
-  used       Boolean  @default(false)   
-  createdAt  DateTime @default(now())    
-  expiresAt  DateTime?                  
+  link       String   @unique
+  token      String   @unique
+  role       String
+  used       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime?
   updatedAt  DateTime @updatedAt
 }
 
 model Assistant {
-  id         Int      @id @default(autoincrement()) // Вернули тип Int для id
+  id         Int      @id @default(autoincrement()) 
   telegramId BigInt   @unique
   role       String   @default("assistant")
-  isWorking  Boolean  @default(false) 
+  isWorking  Boolean  @default(false)
   isBusy     Boolean  @default(false)
-  startedAt  DateTime?               
+  startedAt  DateTime?
   joinedAt   DateTime @default(now())
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -48,7 +48,7 @@ enum SubscriptionType {
 }
 
 model User {
-  id                     Int               @id @default(autoincrement()) // Вернули тип Int для id
+  id                     Int               @id @default(autoincrement())
   telegramId             BigInt            @unique
   username               String?
   referralCount          Int               @default(0)
@@ -60,8 +60,8 @@ model User {
   isActiveAIChat         Boolean           @default(false)
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @updatedAt
-  conversations          Conversation[]   
-  requests               AssistantRequest[] 
+  conversations          Conversation[]
+  requests               AssistantRequest[]
 }
 
 model Conversation {
@@ -76,14 +76,14 @@ model Conversation {
 model AssistantRequest {
   id          Int      @id @default(autoincrement())
   user        User     @relation(fields: [userId], references: [id])
-  userId      Int      // Вернули тип Int для userId
+  userId      Int
   assistant   Assistant @relation(fields: [assistantId], references: [id])
-  assistantId Int      // Вернули тип Int для assistantId
+  assistantId Int
   message     String
   status      RequestStatus @default(PENDING)
-  isActive    Boolean @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
+  isActive    Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @default(now())
 }
 
 enum RequestStatus {

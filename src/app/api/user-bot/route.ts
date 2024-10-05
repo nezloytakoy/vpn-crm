@@ -21,16 +21,15 @@ type ChatMessage = {
 
 const userConversations = new Map<string, ChatMessage[]>();
 
-
 bot.command('start', async (ctx) => {
   try {
-    const telegramId = ctx.from?.id.toString();
-    const username = ctx.from?.username || null;
-
-    if (!telegramId) {
+    if (!ctx.from?.id) {
       await ctx.reply('Не удалось получить ваш идентификатор пользователя.');
       return;
     }
+
+    const telegramId = BigInt(ctx.from.id);
+    const username = ctx.from.username || null;
 
     await prisma.user.upsert({
       where: { telegramId },
@@ -59,15 +58,14 @@ bot.command('start', async (ctx) => {
   }
 });
 
-
 bot.command('start_ai', async (ctx) => {
   try {
-    const telegramId = ctx.from?.id.toString();
-
-    if (!telegramId) {
+    if (!ctx.from?.id) {
       await ctx.reply('Не удалось получить ваш идентификатор пользователя.');
       return;
     }
+
+    const telegramId = BigInt(ctx.from.id);
 
     let user = await prisma.user.findUnique({
       where: { telegramId },
@@ -77,7 +75,7 @@ bot.command('start_ai', async (ctx) => {
       user = await prisma.user.create({
         data: {
           telegramId,
-          username: ctx.from?.username || null,
+          username: ctx.from.username || null,
           isActiveAIChat: true,
         },
       });
@@ -103,15 +101,14 @@ bot.command('start_ai', async (ctx) => {
   }
 });
 
-
 bot.command('end_ai', async (ctx) => {
   try {
-    const telegramId = ctx.from?.id.toString();
-
-    if (!telegramId) {
+    if (!ctx.from?.id) {
       await ctx.reply('Не удалось получить ваш идентификатор пользователя.');
       return;
     }
+
+    const telegramId = BigInt(ctx.from.id);
 
     const user = await prisma.user.findUnique({
       where: { telegramId },
@@ -130,7 +127,7 @@ bot.command('end_ai', async (ctx) => {
         data: { isActiveAIChat: false },
       });
 
-      userConversations.delete(telegramId);
+      userConversations.delete(telegramId.toString());
 
       await ctx.reply('Диалог с ИИ завершен. Спасибо за использование нашего сервиса!');
     }
@@ -140,15 +137,14 @@ bot.command('end_ai', async (ctx) => {
   }
 });
 
-
 bot.on('message', async (ctx) => {
   try {
-    const telegramId = ctx.from?.id.toString();
-
-    if (!telegramId) {
+    if (!ctx.from?.id) {
       await ctx.reply('Не удалось получить ваш идентификатор пользователя.');
       return;
     }
+
+    const telegramId = BigInt(ctx.from.id);
 
     const user = await prisma.user.findUnique({
       where: { telegramId },
@@ -166,7 +162,7 @@ bot.on('message', async (ctx) => {
       return;
     }
 
-    const messages: ChatMessage[] = userConversations.get(telegramId) || [
+    const messages: ChatMessage[] = userConversations.get(telegramId.toString()) || [
       { role: 'system', content: 'You are a helpful assistant.' },
     ];
 
@@ -184,7 +180,7 @@ bot.on('message', async (ctx) => {
 
       messages.push({ role: 'assistant', content: aiMessage });
 
-      userConversations.set(telegramId, messages);
+      userConversations.set(telegramId.toString(), messages);
 
       await ctx.reply(aiMessage);
 
@@ -203,6 +199,5 @@ bot.on('message', async (ctx) => {
     await ctx.reply('Произошла ошибка при обработке вашего сообщения. Пожалуйста, попробуйте еще раз позже.');
   }
 });
-
 
 export const POST = webhookCallback(bot, 'std/http');

@@ -4,7 +4,7 @@ import fetch from 'node-fetch';
 
 const prisma = new PrismaClient();
 
-// Обработка нажатий на кнопки
+
 export async function handleCallbackQuery(ctx: Context) {
   const callbackQuery = ctx.callbackQuery;
   const data = callbackQuery?.data;
@@ -31,7 +31,7 @@ export async function handleCallbackQuery(ctx: Context) {
     });
 
     if (request) {
-      await sendTelegramMessageToUser(request.user.telegramId, 'Ассистент присоединился к чату. Сформулируйте свой вопрос.');
+      await sendTelegramMessageToUser(request.user.telegramId.toString(), 'Ассистент присоединился к чату. Сформулируйте свой вопрос.');
     }
   } else if (action === 'reject') {
     await prisma.assistantRequest.update({
@@ -43,7 +43,7 @@ export async function handleCallbackQuery(ctx: Context) {
   }
 }
 
-// Обработка сообщений
+
 export async function handleMessage(ctx: Context) {
   if (!ctx.from) {
     console.error('Отсутствует объект from в контексте.');
@@ -59,14 +59,14 @@ export async function handleMessage(ctx: Context) {
   });
 
   if (activeRequest) {
-    const assistantId = activeRequest.assistant.telegramId;
+    const assistantId = activeRequest.assistant.telegramId.toString();
     await sendTelegramMessageToAssistant(assistantId, message);
   } else {
     await sendTelegramMessageToUser(userId.toString(), 'У вас нет активных запросов.');
   }
 }
 
-// Функции для отправки сообщений
+
 async function sendTelegramMessageToAssistant(chatId: string, text: string) {
   const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
