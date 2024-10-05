@@ -1,82 +1,111 @@
-import validatePassword from "@/helpers/validatePassword";
-import validateEmail from "@/helpers/validateEmail";
-import prisma from "../../../../lib/server/prisma";
-import bcrypt from 'bcryptjs';
-import * as jose from 'jose';
+import { PrismaClient } from '@prisma/client';
+import fetch from 'node-fetch';
+
+const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
- 
-  const body = await request.json();
-  const { email, password } = body;
+  try {
+    const body = await request.json();
+    const { userId } = body;
+
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'userId is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+
+    await sendTelegramMessage(userId, 'Ваш запрос получен. Ожидайте, пока с вами свяжется ассистент.');
 
  
-  if (!validateEmail(email)) {
-    return new Response(
-      JSON.stringify({
-        error: "Invalid email format",
-      }),
-      { status: 400 }
-    );
-  }
+    const availableAssistants = await prisma.assistant.findMany({
+      where: {
+        isWorking: true,
+        isBusy: false,
+      },
+      orderBy: {
+        startedAt: 'asc',
+      },
+    });
 
-  if (!validatePassword(password)) {
-    return new Response(
-      JSON.stringify({
-        error: "Invalid password format",
-      }),
-      { status: 400 }
-    );
-  }
+    if (availableAssistants.length === 0) {
+      return new Response(JSON.stringify({ message: 'Нет доступных ассистентов' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
-  
-  const user = await prisma.admin.findFirst({
-    where: {
-      email,
+    const selectedAssistant = availableAssistants[0];
+
+
+    await prisma.assistant.update({
+      where: { id: selectedAssistant.id },
+      data: { isBusy: true },
+    });
+
+
+    await sendTelegramMessageWithButtons(
+      selectedAssistant.telegramId,
+      'Поступил запрос от пользователя',
+      [
+        { text: 'Принять', callback_data: `accept_${userId}` },
+        { text: 'Отклонить', callback_data: `reject_${userId}` },
+      ]
+    );
+
+    return new Response(JSON.stringify({ message: 'Запрос отправлен ассистенту.' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('Ошибка:', error);
+    return new Response(JSON.stringify({ error: 'Server Error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+
+async function sendTelegramMessage(chatId: string, text: string) {
+  const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+  await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+    }),
   });
-
-  if (!user) {
-    return new Response(
-      JSON.stringify({
-        error: "Invalid email or password",
-      }),
-      { status: 400 }
-    );
-  }
+}
 
 
-  const isCorrectPassword = bcrypt.compareSync(password, user.password);
-
-  if (!isCorrectPassword) {
-    return new Response(
-      JSON.stringify({
-        error: "Invalid email or password",
-      }),
-      { status: 400 }
-    );
-  }
+type TelegramButton = {
+  text: string;
+  callback_data: string;
+};
 
 
-  if (!process.env.JWT_SECRET) {
-    console.error("JWT_SECRET is not defined");
-    return new Response(
-      JSON.stringify({
-        error: "Server error",
-      }),
-      { status: 500 }
-    );
-  }
+async function sendTelegramMessageWithButtons(chatId: string, text: string, buttons: TelegramButton[]) {
+  const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
-  
-  const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-  const alg = "HS256";
-
-  const jwt = await new jose.SignJWT({})
-    .setProtectedHeader({ alg })
-    .setExpirationTime("72h")
-    .setSubject(user.id.toString())
-    .sign(secret);
-
-
-  return new Response(JSON.stringify({ token: jwt }), { status: 200 });
+  await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      reply_markup: {
+        inline_keyboard: [buttons],
+      },
+    }),
+  });
 }
