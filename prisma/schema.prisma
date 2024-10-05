@@ -83,9 +83,11 @@ model AssistantRequest {
   assistantId Int
   message     String
   status      RequestStatus @default(PENDING)
+  isActive    Boolean @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
 
 
 enum RequestStatus {
