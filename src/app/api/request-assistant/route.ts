@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import fetch from 'node-fetch';
+import { Context } from 'grammy';
 
 const prisma = new PrismaClient();
 
@@ -15,10 +16,10 @@ export async function POST(request: Request) {
       });
     }
 
-    
+
     await sendTelegramMessageToUser(userId, 'Ваш запрос получен. Ожидайте, пока с вами свяжется ассистент.');
 
- 
+
     const availableAssistants = await prisma.assistant.findMany({
       where: {
         isWorking: true,
@@ -44,14 +45,14 @@ export async function POST(request: Request) {
       data: { isBusy: true },
     });
 
-   
+
     const assistantRequest = await prisma.assistantRequest.create({
       data: {
         userId: userId,
         assistantId: selectedAssistant.id,
         message: 'Запрос пользователя на разговор',
         status: 'PENDING',
-        isActive: false, 
+        isActive: false,
       },
     });
 
@@ -78,6 +79,7 @@ export async function POST(request: Request) {
   }
 }
 
+
 async function sendTelegramMessageToUser(chatId: string, text: string) {
   const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
@@ -99,6 +101,7 @@ type TelegramButton = {
   callback_data: string;
 };
 
+
 async function sendTelegramMessageWithButtons(chatId: string, text: string, buttons: TelegramButton[]) {
   const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
@@ -119,9 +122,15 @@ async function sendTelegramMessageWithButtons(chatId: string, text: string, butt
 }
 
 
-export async function handleCallbackQuery(callbackQuery: any) {
-  const data = callbackQuery.data;
-  const assistantId = callbackQuery.from.id;
+export async function handleCallbackQuery(ctx: Context) {
+  const callbackQuery = ctx.callbackQuery;
+  const data = callbackQuery?.data;
+  const assistantId = callbackQuery?.from.id;
+
+  if (!data || !assistantId) {
+    console.error('Некорректные данные в callbackQuery');
+    return;
+  }
 
 
   const [action, requestId] = data.split('_');
@@ -133,20 +142,19 @@ export async function handleCallbackQuery(callbackQuery: any) {
       data: { status: 'IN_PROGRESS', isActive: true },
     });
 
- 
-    await sendTelegramMessageToAssistant(assistantId, 'Вы приняли запрос, ожидайте пока пользователь сформулирует свой вопрос.');
 
- 
+    await sendTelegramMessageToAssistant(assistantId.toString(), 'Вы приняли запрос, ожидайте пока пользователь сформулирует свой вопрос.');
+
+
     const request = await prisma.assistantRequest.findUnique({
       where: { id: Number(requestId) },
       include: { user: true },
     });
 
     if (request) {
-    
+
       await sendTelegramMessageToUser(request.user.telegramId, 'Ассистент присоединился к чату. Сформулируйте свой вопрос.');
     }
-
   } else if (action === 'reject') {
 
     await prisma.assistantRequest.update({
@@ -155,9 +163,10 @@ export async function handleCallbackQuery(callbackQuery: any) {
     });
 
 
-    await sendTelegramMessageToAssistant(assistantId, 'Вы отклонили запрос.');
+    await sendTelegramMessageToAssistant(assistantId.toString(), 'Вы отклонили запрос.');
   }
 }
+
 
 async function sendTelegramMessageToAssistant(chatId: string, text: string) {
   const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
@@ -176,21 +185,30 @@ async function sendTelegramMessageToAssistant(chatId: string, text: string) {
 }
 
 
-export async function handleMessage(ctx: any) {
-  const userId = ctx.from.id;
-  const message = ctx.message.text;
+export async function handleMessage(ctx: Context) {
 
+    if (!ctx.from) {
+      console.error('Отсутствует объект from в контексте.');
+      return await ctx.reply('Произошла ошибка при обработке вашего запроса.');
+    }
+  
+    const userId = ctx.from.id;
+    const message = ctx.message?.text || '';
+  
 
-  const activeRequest = await prisma.assistantRequest.findFirst({
-    where: { userId: userId, isActive: true },
-    include: { assistant: true },
-  });
+    const activeRequest = await prisma.assistantRequest.findFirst({
+      where: { userId: userId, isActive: true },
+      include: { assistant: true },
+    });
+  
+    if (activeRequest) {
+      const assistantId = activeRequest.assistant.telegramId;
+  
 
-  if (activeRequest) {
-    const assistantId = activeRequest.assistant.telegramId;
-   
-    await sendTelegramMessageToAssistant(assistantId, message);
-  } else {
-    await sendTelegramMessageToUser(userId, 'У вас нет активных запросов.');
+      await sendTelegramMessageToAssistant(assistantId, message);
+    } else {
+
+      await sendTelegramMessageToUser(userId.toString(), 'У вас нет активных запросов.');
+    }
   }
-}
+  
