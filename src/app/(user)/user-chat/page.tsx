@@ -39,7 +39,45 @@ function Page() {
 
         const data = await response.json();
         console.log('Ответ от сервера:', data);
-        window.Telegram.WebApp.close(); // Закрываем WebApp
+        window.Telegram.WebApp.close();
+      } catch (error) {
+        console.error('Ошибка:', error);
+        if (error instanceof Error) {
+          alert('Произошла ошибка: ' + error.message);
+        } else {
+          alert('Произошла неизвестная ошибка.');
+        }
+      }
+    } else {
+      alert('Эта функция доступна только внутри приложения Telegram.');
+    }
+  };
+
+  const handleAIClick = async () => {
+    if (window.Telegram && window.Telegram.WebApp) {
+      try {
+        const currentUserId = window.Telegram.WebApp.initDataUnsafe.user?.id;
+        console.log('Текущий userId:', currentUserId);
+        if (!currentUserId) {
+          throw new Error('Не удалось получить идентификатор пользователя.');
+        }
+
+        const response = await fetch('/api/initiate-ai-dialog', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: currentUserId }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to call server route.');
+        }
+
+        const data = await response.json();
+        console.log('Ответ от сервера:', data);
+        window.Telegram.WebApp.close();
       } catch (error) {
         console.error('Ошибка:', error);
         if (error instanceof Error) {
@@ -97,12 +135,23 @@ function Page() {
             <div className={styles.button} onClick={handleAssistantClick}>
               <Image
                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/IA158yEgkfW3n1W5Q5%20(1)-KycQ0tzTzLRWMAHYkC04Ckf5fo3EPj.gif"
-                alt="avatar"
+                alt="assistant"
                 width={70}
                 height={70}
                 className={styles.ai}
               />
               <p className={styles.text}>Ассистент</p>
+              <div className={styles.void}></div>
+            </div>
+            <div className={styles.button} onClick={handleAIClick}>
+              <Image
+                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/86c7Op9pK1Dv395eiA%20(1)-hJvzVxfMVzlwNsJWvGfU0lcs4VekiT.gif"
+                alt="ai"
+                width={70}
+                height={70}
+                className={styles.ai}
+              />
+              <p className={styles.text}>AI</p>
               <div className={styles.void}></div>
             </div>
           </div>
