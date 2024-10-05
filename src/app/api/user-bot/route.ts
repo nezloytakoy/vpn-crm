@@ -38,14 +38,12 @@ bot.command('start', async (ctx) => {
       return;
     }
 
-
     await prisma.user.upsert({
       where: { telegramId },
       update: { username },
       create: {
         telegramId,
         username,
-
       },
     });
 
@@ -77,13 +75,11 @@ bot.command('start_ai', async (ctx) => {
       return;
     }
 
-  
     let user = await prisma.user.findUnique({
       where: { telegramId },
     });
 
     if (!user) {
-   
       user = await prisma.user.create({
         data: {
           telegramId,
@@ -106,7 +102,6 @@ bot.command('start_ai', async (ctx) => {
       data: { isActiveAIChat: true },
     });
 
-
     await ctx.reply('Диалог с ИИ начат. Вы можете задавать свои вопросы.');
   } catch (error) {
     console.error('Ошибка при обработке команды /start_ai:', error);
@@ -124,7 +119,6 @@ bot.command('end_ai', async (ctx) => {
       return;
     }
 
-  
     const user = await prisma.user.findUnique({
       where: { telegramId },
     });
@@ -137,16 +131,13 @@ bot.command('end_ai', async (ctx) => {
     if (!user.isActiveAIChat) {
       await ctx.reply('Вы не находитесь в активном диалоге с ИИ.');
     } else {
-  
       await prisma.user.update({
         where: { telegramId },
         data: { isActiveAIChat: false },
       });
 
-
       userConversations.delete(telegramId);
 
-   
       await ctx.reply('Диалог с ИИ завершен. Спасибо за использование нашего сервиса!');
     }
   } catch (error) {
@@ -165,7 +156,6 @@ bot.on('message', async (ctx) => {
       return;
     }
 
-
     const user = await prisma.user.findUnique({
       where: { telegramId },
     });
@@ -182,36 +172,28 @@ bot.on('message', async (ctx) => {
       return;
     }
 
-
-    let messages: ChatMessage[] = userConversations.get(telegramId) || [
+    const messages: ChatMessage[] = userConversations.get(telegramId) || [
       { role: 'system', content: 'You are a helpful assistant.' },
     ];
 
-
     messages.push({ role: 'user', content: userMessage });
 
-  
     const response = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: messages,
       temperature: 0.7,
     });
 
-  
     const firstChoice = response.choices[0];
     if (firstChoice && firstChoice.message && firstChoice.message.content) {
       const aiMessage = firstChoice.message.content.trim();
 
-    
       messages.push({ role: 'assistant', content: aiMessage });
-
 
       userConversations.set(telegramId, messages);
 
-
       await ctx.reply(aiMessage);
 
-  
       await prisma.user.update({
         where: { telegramId },
         data: {
