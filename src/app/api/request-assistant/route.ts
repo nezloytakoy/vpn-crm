@@ -18,10 +18,14 @@ export async function POST(request: Request) {
         // Преобразуем userId из строки в BigInt
         const userIdBigInt = BigInt(userId);
 
+        // Отправляем лог с userIdBigInt в Telegram пользователю с ID 5829159515
+        await sendLogToTelegram(`userIdBigInt перед созданием AssistantRequest: ${userIdBigInt}`);
+
         // Проверяем, существует ли пользователь с данным userId
         const userExists = await prisma.user.findUnique({
             where: { id: userIdBigInt },
         });
+
 
         if (!userExists) {
             return new Response(JSON.stringify({ error: 'Пользователь не найден.' }), {
@@ -30,8 +34,6 @@ export async function POST(request: Request) {
             });
         }
 
-        // Отправляем лог с userIdBigInt в Telegram пользователю с ID 5829159515
-        await sendLogToTelegram(`userIdBigInt перед созданием AssistantRequest: ${userIdBigInt}`);
 
         // Отправляем сообщение пользователю
         await sendTelegramMessageToUser(userIdBigInt.toString(), 'Ваш запрос получен. Ожидайте, пока с вами свяжется ассистент.');
