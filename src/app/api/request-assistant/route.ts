@@ -58,7 +58,7 @@ export async function POST(request: Request) {
 
         // Обновляем состояние ассистента
         await prisma.assistant.update({
-            where: { id: selectedAssistant.telegramId },
+            where: { telegramId: selectedAssistant.telegramId },
             data: { isBusy: true },
         });
 
