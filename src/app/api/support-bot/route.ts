@@ -23,7 +23,7 @@ bot.command('start', async (ctx) => {
       }
 
       if (ctx.from?.id) {
-        const telegramId = BigInt(ctx.from.id); // Преобразуем telegramId в BigInt
+        const telegramId = BigInt(ctx.from.id); // Преобразуем telegramId в bigint
 
         await prisma.assistant.create({
           data: {
@@ -69,7 +69,7 @@ bot.command('menu', async (ctx) => {
 
 bot.on('callback_query:data', async (ctx) => {
   if (ctx.from?.id) {
-    const telegramId = BigInt(ctx.from.id); // Преобразуем telegramId в BigInt
+    const telegramId = BigInt(ctx.from.id); // Преобразуем telegramId в bigint
 
     const data = ctx.callbackQuery?.data;
 
@@ -107,9 +107,9 @@ bot.on('callback_query:data', async (ctx) => {
   }
 });
 
-async function handleAcceptRequest(requestId: string, assistantTelegramId: BigInt, ctx: Context) {
+async function handleAcceptRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
   const assistantRequest = await prisma.assistantRequest.update({
-    where: { id: BigInt(requestId) }, // Преобразуем requestId в BigInt
+    where: { id: BigInt(requestId) }, // Преобразуем requestId в bigint
     data: { status: 'IN_PROGRESS', isActive: true },
     include: { user: true },
   });
@@ -123,9 +123,9 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: BigIn
   await sendTelegramMessageToUser(assistantRequest.user.telegramId.toString(), 'Ассистент присоединился к чату. Сформулируйте свой вопрос.');
 }
 
-async function handleRejectRequest(requestId: string, assistantTelegramId: BigInt, ctx: Context) {
+async function handleRejectRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
   await prisma.assistantRequest.update({
-    where: { id: BigInt(requestId) }, // Преобразуем requestId в BigInt
+    where: { id: BigInt(requestId) }, // Преобразуем requestId в bigint
     data: { status: 'REJECTED', isActive: false },
   });
 
@@ -140,7 +140,7 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: BigIn
 bot.command('end_work', async (ctx) => {
   try {
     if (ctx.from?.id) {
-      const telegramId = BigInt(ctx.from.id); // Преобразуем telegramId в BigInt
+      const telegramId = BigInt(ctx.from.id); // Преобразуем telegramId в bigint
 
       const assistant = await prisma.assistant.findUnique({
         where: { telegramId: telegramId.toString() }, // Преобразуем в строку для запроса
