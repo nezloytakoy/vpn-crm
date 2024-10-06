@@ -15,9 +15,8 @@ export async function POST(request: Request) {
       });
     }
 
-
+    // Преобразуем userId в строку, если это числовой идентификатор
     await sendTelegramMessageToUser(userId.toString(), 'Ваш запрос получен. Ожидайте, пока с вами свяжется ассистент.');
-
 
     const availableAssistants = await prisma.assistant.findMany({
       where: {
@@ -38,23 +37,22 @@ export async function POST(request: Request) {
 
     const selectedAssistant = availableAssistants[0];
 
-
+    // Обновляем состояние ассистента
     await prisma.assistant.update({
       where: { id: selectedAssistant.id },
       data: { isBusy: true },
     });
 
-
+    // Преобразуем идентификаторы в строку, если это необходимо
     const assistantRequest = await prisma.assistantRequest.create({
       data: {
-        userId: Number(userId), 
+        userId: Number(userId),  // Если userId передан как строка, можно убрать преобразование
         assistantId: selectedAssistant.id,
         message: 'Запрос пользователя на разговор',
         status: 'PENDING',
         isActive: false,
       },
     });
-
 
     await sendTelegramMessageWithButtons(
       selectedAssistant.telegramId.toString(),
@@ -78,7 +76,7 @@ export async function POST(request: Request) {
   }
 }
 
-
+// Функция отправки сообщения пользователю через Telegram
 async function sendTelegramMessageToUser(chatId: string, text: string) {
   const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
@@ -95,7 +93,7 @@ async function sendTelegramMessageToUser(chatId: string, text: string) {
   });
 }
 
-
+// Функция отправки сообщения ассистенту с кнопками
 async function sendTelegramMessageWithButtons(chatId: string, text: string, buttons: TelegramButton[]) {
   const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
@@ -114,7 +112,6 @@ async function sendTelegramMessageWithButtons(chatId: string, text: string, butt
     }),
   });
 }
-
 
 type TelegramButton = {
   text: string;
