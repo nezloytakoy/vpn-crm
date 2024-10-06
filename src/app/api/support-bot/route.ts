@@ -23,12 +23,12 @@ bot.command('start', async (ctx) => {
       }
 
       if (ctx.from?.id) {
-        const telegramId = BigInt(ctx.from.id); // Преобразуем telegramId в bigint
+        const telegramId = BigInt(ctx.from.id); // Преобразуем telegramId в BigInt
 
         await prisma.assistant.create({
           data: {
-            telegramId: telegramId, // telegramId используется как идентификатор ассистента
-            role: invitation.role,  // Присваиваем роль
+            telegramId, // telegramId сохраняется как BigInt
+            role: invitation.role, // Присваиваем роль
           },
         });
 
@@ -69,13 +69,13 @@ bot.command('menu', async (ctx) => {
 
 bot.on('callback_query:data', async (ctx) => {
   if (ctx.from?.id) {
-    const telegramId = BigInt(ctx.from.id); // Преобразуем telegramId в bigint
+    const telegramId = BigInt(ctx.from.id); // Преобразуем telegramId в BigInt
 
     const data = ctx.callbackQuery?.data;
 
     if (data === 'start_work') {
       const assistant = await prisma.assistant.findUnique({
-        where: { telegramId: telegramId }, // Ищем ассистента по telegramId
+        where: { telegramId }, // Ищем ассистента по BigInt telegramId
       });
 
       if (assistant?.isWorking) {
@@ -84,7 +84,7 @@ bot.on('callback_query:data', async (ctx) => {
       }
 
       await prisma.assistant.update({
-        where: { telegramId: telegramId }, // Ищем ассистента по telegramId
+        where: { telegramId }, // Ищем ассистента по BigInt telegramId
         data: { isWorking: true, isBusy: false },
       });
 
@@ -109,13 +109,13 @@ bot.on('callback_query:data', async (ctx) => {
 
 async function handleAcceptRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
   const assistantRequest = await prisma.assistantRequest.update({
-    where: { id: BigInt(requestId) }, // Преобразуем requestId в bigint
+    where: { id: BigInt(requestId) }, // Преобразуем requestId в BigInt
     data: { status: 'IN_PROGRESS', isActive: true },
     include: { user: true },
   });
 
   await prisma.assistant.update({
-    where: { telegramId: assistantTelegramId }, // Ищем ассистента по telegramId
+    where: { telegramId: assistantTelegramId }, // Ищем ассистента по BigInt telegramId
     data: { isBusy: true },
   });
 
@@ -125,12 +125,12 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
 
 async function handleRejectRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
   await prisma.assistantRequest.update({
-    where: { id: BigInt(requestId) }, // Преобразуем requestId в bigint
+    where: { id: BigInt(requestId) }, // Преобразуем requestId в BigInt
     data: { status: 'REJECTED', isActive: false },
   });
 
   await prisma.assistant.update({
-    where: { telegramId: assistantTelegramId }, // Ищем ассистента по telegramId
+    where: { telegramId: assistantTelegramId }, // Ищем ассистента по BigInt telegramId
     data: { isBusy: false },
   });
 
@@ -140,10 +140,10 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
 bot.command('end_work', async (ctx) => {
   try {
     if (ctx.from?.id) {
-      const telegramId = BigInt(ctx.from.id); // Преобразуем telegramId в bigint
+      const telegramId = BigInt(ctx.from.id); // Преобразуем telegramId в BigInt
 
       const assistant = await prisma.assistant.findUnique({
-        where: { telegramId: telegramId }, // Ищем ассистента по telegramId
+        where: { telegramId }, // Ищем ассистента по BigInt telegramId
       });
 
       if (!assistant?.isWorking) {
@@ -152,7 +152,7 @@ bot.command('end_work', async (ctx) => {
       }
 
       await prisma.assistant.update({
-        where: { telegramId: telegramId }, // Ищем ассистента по telegramId
+        where: { telegramId }, // Ищем ассистента по BigInt telegramId
         data: { isWorking: false, isBusy: false },
       });
 

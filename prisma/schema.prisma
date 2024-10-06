@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Admin {
-  id        BigInt   @id  
+  id        BigInt   @id @default(autoincrement())
   email     String   @unique
   password  String
   createdAt DateTime @default(now())
