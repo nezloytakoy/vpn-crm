@@ -104,10 +104,8 @@ export default function Page() {
   const handleCopyLink = () => {
     navigator.clipboard.writeText(generatedLink).then(() => {
       setCopySuccess(true);
-
+  
       setTimeout(() => setCopySuccess(false), 2000);
-    }, (err) => {
-      console.error('Could not copy text: ', err);
     });
   };
 
