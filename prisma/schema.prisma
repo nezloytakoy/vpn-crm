@@ -15,6 +15,19 @@ model Admin {
   updatedAt DateTime @updatedAt
 }
 
+model Moderator {
+  id           BigInt   @id @default(autoincrement())
+  login        String   @unique
+  password     String
+  telegramId   BigInt   @unique  // Telegram ID модератора
+  role         String   @default("moderator") // Роль по умолчанию "модератор"
+  isActive     Boolean  @default(true) // Флаг активности модератора
+  lastActiveAt DateTime @default(now()) // Время последней активности
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+
 model Invitation {
   id        BigInt   @id @default(autoincrement())  // Поле id генерируется автоматически
   link      String   @unique

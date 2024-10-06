@@ -154,6 +154,51 @@
     background-color: #45a049;
 }
 
+.credentialsBox {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+    animation: fadeIn 0.5s;
+}
+
+.inputField {
+    width: 80%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.confirmButton {
+    padding: 12px 24px;
+    font-size: 16px;
+    background-color: #365CF5;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.confirmButton:hover {
+    background-color: #2d4cb3;
+}
+
+.error {
+    color: red;
+    font-size: 14px;
+}
+
+.linkContainer {
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+    animation: fadeIn 0.5s;
+}
+
+
 
 @media (max-width: 1200px) {
 
