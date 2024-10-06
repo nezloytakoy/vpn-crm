@@ -1,50 +1,59 @@
-import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import { nanoid } from 'nanoid'; // Для генерации уникальных токенов
 
 const prisma = new PrismaClient();
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { token } = req.query;
+export async function POST(req: Request) {
+    try {
+        const url = new URL(req.url);
+        const token = url.searchParams.get('token');
 
-  if (!token) {
-    return res.status(400).json({ message: 'Токен приглашения обязателен' });
-  }
+        if (!token) {
+            return new Response(JSON.stringify({ message: 'Токен приглашения обязателен' }), {
+                status: 400,
+            });
+        }
 
-  try {
-    const invitation = await prisma.invitation.findUnique({
-      where: { token: token as string },
-    });
+        const invitation = await prisma.invitation.findUnique({
+            where: { token },
+        });
 
-    if (!invitation || invitation.used) {
-      return res.status(400).json({ message: 'Недействительная или уже использованная ссылка' });
+        if (!invitation || invitation.used) {
+            return new Response(JSON.stringify({ message: 'Недействительная или уже использованная ссылка' }), {
+                status: 400,
+            });
+        }
+
+        const { telegramId } = await req.json(); // Получение `telegramId` из тела запроса
+
+        if (!telegramId) {
+            return new Response(JSON.stringify({ message: 'Telegram ID обязателен' }), {
+                status: 400,
+            });
+        }
+
+        // Добавление модератора в систему
+        await prisma.moderator.create({
+            data: {
+                login: `moderator_${nanoid()}`, // Сгенерированный логин
+                password: 'defaultPassword', // Пароль, который можно будет сменить
+                telegramId: BigInt(telegramId), // Telegram ID модератора
+            },
+        });
+
+        // Обновление статуса приглашения как использованное
+        await prisma.invitation.update({
+            where: { token },
+            data: { used: true },
+        });
+
+        return new Response(JSON.stringify({ message: 'Приглашение успешно принято, модератор добавлен.' }), {
+            status: 200,
+        });
+    } catch (error) {
+        console.error('Ошибка при обработке приглашения модератора:', error);
+        return new Response(JSON.stringify({ message: 'Ошибка при обработке приглашения' }), {
+            status: 500,
+        });
     }
-
-    // Предполагаем, что у вас есть какой-то способ получения `telegramId` модератора
-    const { telegramId } = req.body; // Получаем `telegramId` из запроса
-
-    if (!telegramId) {
-      return res.status(400).json({ message: 'Telegram ID обязателен' });
-    }
-
-    // Добавляем модератора в систему
-    await prisma.moderator.create({
-      data: {
-        login: `moderator_${nanoid()}`, // Сгенерированный логин
-        password: 'defaultPassword', // Пароль, который можно будет сменить
-        telegramId: BigInt(telegramId), // Telegram ID модератора
-      },
-    });
-
-    // Обновляем статус приглашения как использованное
-    await prisma.invitation.update({
-      where: { token: token as string },
-      data: { used: true },
-    });
-
-    res.status(200).json({ message: 'Приглашение успешно принято, модератор добавлен.' });
-  } catch (error) {
-    console.error('Ошибка при обработке приглашения модератора:', error);
-    res.status(500).json({ message: 'Ошибка при обработке приглашения' });
-  }
 }
