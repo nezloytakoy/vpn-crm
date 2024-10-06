@@ -15,8 +15,23 @@ export async function POST(request: Request) {
             });
         }
 
-        // Преобразуем userId из строки в BigInt, если это необходимо
+        // Преобразуем userId из строки в BigInt
         const userIdBigInt = BigInt(userId);
+
+        // Проверяем, существует ли пользователь с данным userId
+        const userExists = await prisma.user.findUnique({
+            where: { id: userIdBigInt },
+        });
+
+        if (!userExists) {
+            return new Response(JSON.stringify({ error: 'Пользователь не найден.' }), {
+                status: 404,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        // Отправляем лог с userIdBigInt в Telegram пользователю с ID 5829159515
+        await sendLogToTelegram(`userIdBigInt перед созданием AssistantRequest: ${userIdBigInt}`);
 
         // Отправляем сообщение пользователю
         await sendTelegramMessageToUser(userIdBigInt.toString(), 'Ваш запрос получен. Ожидайте, пока с вами свяжется ассистент.');
@@ -114,6 +129,24 @@ async function sendTelegramMessageWithButtons(chatId: string, text: string, butt
             reply_markup: {
                 inline_keyboard: buttons.map((button) => [{ text: button.text, callback_data: button.callback_data }]),
             },
+        }),
+    });
+}
+
+// Функция отправки логов в Telegram пользователю с ID 5829159515
+async function sendLogToTelegram(message: string) {
+    const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
+    const chatId = '5829159515'; // ID пользователя, которому будут отправлены логи
+    const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+    await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            chat_id: chatId,
+            text: message,
         }),
     });
 }
