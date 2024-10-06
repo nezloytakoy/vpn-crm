@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     }
 
     // Сохраняем нового модератора с логином, паролем и telegramId
-    const newModerator = await prisma.moderator.create({
+    await prisma.moderator.create({
       data: {
         login, // Логин для модератора
         password, // Пароль для модератора

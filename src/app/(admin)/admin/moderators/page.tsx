@@ -64,7 +64,7 @@ export default function Page() {
   const [login, setLogin] = useState<string>(''); // Логин для входа
   const [password, setPassword] = useState<string>(''); // Пароль для входа
   const [step, setStep] = useState<number>(0); // Шаг: 0 - генерация, 1 - ввод логина/пароля
-  const [error, setError] = useState<string>(''); // Для отображения ошибок
+  const [errorMessage, setErrorMessage] = useState<string>(''); // Сообщение об ошибке
 
   const handleGenerateLink = () => {
     setStep(1); // Переходим на шаг 1 (ввод логина/пароля)
@@ -73,7 +73,7 @@ export default function Page() {
 
   const handleConfirmCredentials = async () => {
     if (!login || !password) {
-      setError('Введите логин и пароль!');
+      setErrorMessage('Введите логин и пароль!');
       return;
     }
 
@@ -95,8 +95,9 @@ export default function Page() {
       setGeneratedLink(data.link); // Устанавливаем сгенерированную ссылку
       setCopySuccess(false);
       setStep(2); // Переходим на шаг 2 (отображение ссылки)
+      setErrorMessage(''); // Очищаем сообщение об ошибке
     } catch (error) {
-      setError('Ошибка генерации ссылки');
+      setErrorMessage('Ошибка генерации ссылки');
     }
   };
 
@@ -142,7 +143,7 @@ export default function Page() {
         {step === 1 && (
           <div className={styles.credentialsBox}>
             <h2>Введите логин и пароль</h2>
-            {error && <p className={styles.error}>{error}</p>}
+            {errorMessage && <p className={styles.error}>{errorMessage}</p>}
             <input
               type="text"
               className={styles.inputField}
