@@ -66,7 +66,7 @@ export async function POST(request: Request) {
         const assistantRequest = await prisma.assistantRequest.create({
             data: {
                 userId: userIdBigInt,  // Используем BigInt для userId
-                assistantId: BigInt(selectedAssistant.id),  // Преобразуем id ассистента в BigInt
+                assistantId: BigInt(selectedAssistant.telegramId),  // Преобразуем id ассистента в BigInt
                 message: 'Запрос пользователя на разговор',
                 status: 'PENDING',
                 isActive: false,
