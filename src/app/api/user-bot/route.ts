@@ -28,7 +28,7 @@ bot.command('start', async (ctx) => {
       return;
     }
 
-    const telegramId = BigInt(ctx.from.id);
+    const telegramId = ctx.from.id.toString();  // Преобразуем в строку
     const username = ctx.from.username || null;
 
     await prisma.user.upsert({
@@ -65,7 +65,7 @@ bot.command('start_ai', async (ctx) => {
       return;
     }
 
-    const telegramId = BigInt(ctx.from.id);
+    const telegramId = ctx.from.id.toString();  // Преобразуем в строку
 
     let user = await prisma.user.findUnique({
       where: { telegramId },
@@ -108,7 +108,7 @@ bot.command('end_ai', async (ctx) => {
       return;
     }
 
-    const telegramId = BigInt(ctx.from.id);
+    const telegramId = ctx.from.id.toString();  // Преобразуем в строку
 
     const user = await prisma.user.findUnique({
       where: { telegramId },
@@ -127,7 +127,7 @@ bot.command('end_ai', async (ctx) => {
         data: { isActiveAIChat: false },
       });
 
-      userConversations.delete(telegramId.toString());
+      userConversations.delete(telegramId);
 
       await ctx.reply('Диалог с ИИ завершен. Спасибо за использование нашего сервиса!');
     }
@@ -144,7 +144,7 @@ bot.on('message', async (ctx) => {
       return;
     }
 
-    const telegramId = BigInt(ctx.from.id);
+    const telegramId = ctx.from.id.toString();  // Преобразуем в строку
 
     const user = await prisma.user.findUnique({
       where: { telegramId },
@@ -162,7 +162,7 @@ bot.on('message', async (ctx) => {
       return;
     }
 
-    const messages: ChatMessage[] = userConversations.get(telegramId.toString()) || [
+    const messages: ChatMessage[] = userConversations.get(telegramId) || [
       { role: 'system', content: 'You are a helpful assistant.' },
     ];
 
@@ -180,7 +180,7 @@ bot.on('message', async (ctx) => {
 
       messages.push({ role: 'assistant', content: aiMessage });
 
-      userConversations.set(telegramId.toString(), messages);
+      userConversations.set(telegramId, messages);
 
       await ctx.reply(aiMessage);
 
