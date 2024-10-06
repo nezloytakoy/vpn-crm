@@ -200,7 +200,6 @@ bot.on('message', async (ctx) => {
 
     // Пересылаем сообщение пользователю
     await sendTelegramMessageToUser(activeRequest.user.telegramId.toString(), assistantMessage);
-    await ctx.reply('Сообщение отправлено пользователю.');
   } catch (error) {
     console.error('Ошибка при пересылке сообщения пользователю:', error);
     await ctx.reply('Произошла ошибка при пересылке сообщения. Пожалуйста, попробуйте еще раз.');
