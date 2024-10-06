@@ -26,14 +26,12 @@ export async function POST(request: Request) {
             where: { id: userIdBigInt },
         });
 
-
         if (!userExists) {
             return new Response(JSON.stringify({ error: 'Пользователь не найден.' }), {
                 status: 404,
                 headers: { 'Content-Type': 'application/json' },
             });
         }
-
 
         // Отправляем сообщение пользователю
         await sendTelegramMessageToUser(userIdBigInt.toString(), 'Ваш запрос получен. Ожидайте, пока с вами свяжется ассистент.');
@@ -77,7 +75,7 @@ export async function POST(request: Request) {
 
         // Отправляем сообщение ассистенту с кнопками
         await sendTelegramMessageWithButtons(
-            selectedAssistant.telegramId,  // Telegram ID остается строкой
+            selectedAssistant.telegramId.toString(),  // Преобразуем telegramId в строку для отправки в Telegram API
             'Поступил запрос от пользователя',
             [
                 { text: 'Принять', callback_data: `accept_${assistantRequest.id}` },

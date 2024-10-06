@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Admin {
-  id        BigInt   @id @default(autoincrement())  // Изменено на BigInt
+  id        BigInt   @id @default(autoincrement())  
   email     String   @unique
   password  String
   createdAt DateTime @default(now())
@@ -16,7 +16,7 @@ model Admin {
 }
 
 model Invitation {
-  id         BigInt   @id @default(autoincrement())  // Изменено на BigInt
+  id         BigInt   @id @default(autoincrement())  
   link       String   @unique          
   token      String   @unique           
   role       String                     
@@ -27,8 +27,8 @@ model Invitation {
 }
 
 model Assistant {
-  id         BigInt   @id @default(autoincrement())  // Изменено на BigInt
-  telegramId String   @unique  // Храним telegramId как строку
+  id         BigInt   @id @default(autoincrement())  
+  telegramId BigInt   @unique  // Изменено на BigInt для хранения telegramId
   role       String   @default("assistant")
   isWorking  Boolean  @default(false)
   isBusy     Boolean  @default(false)
@@ -48,8 +48,8 @@ enum SubscriptionType {
 }
 
 model User {
-  id                     BigInt            @id @default(autoincrement())  // Изменено на BigInt
-  telegramId             String            @unique  // Храним telegramId как строку
+  id                     BigInt            @id @default(autoincrement())  
+  telegramId             BigInt            @unique  // Изменено на BigInt
   username               String?
   referralCount          Int               @default(0)
   subscriptionType       SubscriptionType  @default(FREE)
@@ -65,20 +65,20 @@ model User {
 }
 
 model Conversation {
-  id          BigInt   @id @default(autoincrement())  // Изменено на BigInt
+  id          BigInt   @id @default(autoincrement())  
   user        User     @relation(fields: [userId], references: [id])
-  userId      BigInt   // Изменено на BigInt
+  userId      BigInt   
   messages    Json     @default("[]")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
 model AssistantRequest {
-  id          BigInt   @id @default(autoincrement())  // Изменено на BigInt
+  id          BigInt   @id @default(autoincrement())  
   user        User     @relation(fields: [userId], references: [id])
-  userId      BigInt   // Изменено на BigInt
+  userId      BigInt   
   assistant   Assistant @relation(fields: [assistantId], references: [id])
-  assistantId BigInt    // Изменено на BigInt
+  assistantId BigInt    
   message     String
   status      RequestStatus @default(PENDING)
   isActive    Boolean @default(false)
