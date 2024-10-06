@@ -76,7 +76,7 @@ export default function Page() {
       setErrorMessage('Введите логин и пароль!');
       return;
     }
-
+  
     try {
       // Отправляем запрос на генерацию ссылки
       const response = await fetch('/api/generateModeratorLink', {
@@ -86,20 +86,22 @@ export default function Page() {
         },
         body: JSON.stringify({ login, password }),
       });
-
+  
       if (!response.ok) {
         throw new Error('Ошибка при генерации ссылки');
       }
-
+  
       const data = await response.json();
       setGeneratedLink(data.link); // Устанавливаем сгенерированную ссылку
       setCopySuccess(false);
       setStep(2); // Переходим на шаг 2 (отображение ссылки)
       setErrorMessage(''); // Очищаем сообщение об ошибке
     } catch (error) {
+      console.error('Error:', error); // Log the error for debugging
       setErrorMessage('Ошибка генерации ссылки');
     }
   };
+  
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(generatedLink).then(() => {
