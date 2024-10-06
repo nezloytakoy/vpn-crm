@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
         // Проверяем, существует ли пользователь с данным userId
         const userExists = await prisma.user.findUnique({
-            where: { id: userIdBigInt },
+            where: { telegramId: userIdBigInt },
         });
 
         if (!userExists) {
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
 
         // Обновляем состояние ассистента
         await prisma.assistant.update({
-            where: { id: selectedAssistant.id },
+            where: { id: selectedAssistant.telegramId },
             data: { isBusy: true },
         });
 
