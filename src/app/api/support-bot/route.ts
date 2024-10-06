@@ -166,6 +166,47 @@ bot.command('end_work', async (ctx) => {
   }
 });
 
+// Пересылка сообщений от ассистента к пользователю
+bot.on('message', async (ctx) => {
+  try {
+    if (!ctx.from?.id) {
+      await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
+      return;
+    }
+
+    const telegramId = BigInt(ctx.from.id); // Преобразуем telegramId в BigInt
+
+    // Найти активный запрос для данного ассистента
+    const activeRequest = await prisma.assistantRequest.findFirst({
+      where: {
+        assistant: { telegramId }, // Ищем по telegramId ассистента
+        isActive: true,
+      },
+      include: { user: true }, // Включаем данные пользователя
+    });
+
+    if (!activeRequest) {
+      await ctx.reply('⚠️ У вас нет активных запросов.');
+      return;
+    }
+
+    // Получаем сообщение, отправленное ассистентом
+    const assistantMessage = ctx.message?.text;
+
+    if (!assistantMessage) {
+      await ctx.reply('Пожалуйста, отправьте текстовое сообщение.');
+      return;
+    }
+
+    // Пересылаем сообщение пользователю
+    await sendTelegramMessageToUser(activeRequest.user.telegramId.toString(), assistantMessage);
+    await ctx.reply('Сообщение отправлено пользователю.');
+  } catch (error) {
+    console.error('Ошибка при пересылке сообщения пользователю:', error);
+    await ctx.reply('Произошла ошибка при пересылке сообщения. Пожалуйста, попробуйте еще раз.');
+  }
+});
+
 async function sendTelegramMessageToUser(chatId: string, text: string) {
   const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
