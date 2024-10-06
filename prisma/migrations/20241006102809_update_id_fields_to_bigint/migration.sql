@@ -6,7 +6,7 @@ CREATE TYPE "RequestStatus" AS ENUM ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'REJ
 
 -- CreateTable
 CREATE TABLE "Admin" (
-    "id" SERIAL NOT NULL,
+    "id" BIGSERIAL NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -17,7 +17,7 @@ CREATE TABLE "Admin" (
 
 -- CreateTable
 CREATE TABLE "Invitation" (
-    "id" SERIAL NOT NULL,
+    "id" BIGSERIAL NOT NULL,
     "link" TEXT NOT NULL,
     "token" TEXT NOT NULL,
     "role" TEXT NOT NULL,
@@ -31,7 +31,7 @@ CREATE TABLE "Invitation" (
 
 -- CreateTable
 CREATE TABLE "Assistant" (
-    "id" SERIAL NOT NULL,
+    "id" BIGSERIAL NOT NULL,
     "telegramId" TEXT NOT NULL,
     "role" TEXT NOT NULL DEFAULT 'assistant',
     "isWorking" BOOLEAN NOT NULL DEFAULT false,
@@ -46,7 +46,7 @@ CREATE TABLE "Assistant" (
 
 -- CreateTable
 CREATE TABLE "User" (
-    "id" SERIAL NOT NULL,
+    "id" BIGSERIAL NOT NULL,
     "telegramId" TEXT NOT NULL,
     "username" TEXT,
     "referralCount" INTEGER NOT NULL DEFAULT 0,
@@ -64,8 +64,8 @@ CREATE TABLE "User" (
 
 -- CreateTable
 CREATE TABLE "Conversation" (
-    "id" SERIAL NOT NULL,
-    "userId" INTEGER NOT NULL,
+    "id" BIGSERIAL NOT NULL,
+    "userId" BIGINT NOT NULL,
     "messages" JSONB NOT NULL DEFAULT '[]',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -75,9 +75,9 @@ CREATE TABLE "Conversation" (
 
 -- CreateTable
 CREATE TABLE "AssistantRequest" (
-    "id" SERIAL NOT NULL,
-    "userId" INTEGER NOT NULL,
-    "assistantId" INTEGER NOT NULL,
+    "id" BIGSERIAL NOT NULL,
+    "userId" BIGINT NOT NULL,
+    "assistantId" BIGINT NOT NULL,
     "message" TEXT NOT NULL,
     "status" "RequestStatus" NOT NULL DEFAULT 'PENDING',
     "isActive" BOOLEAN NOT NULL DEFAULT false,

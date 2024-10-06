@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Admin {
-  id        Int      @id @default(autoincrement())
+  id        BigInt   @id @default(autoincrement())  // Изменено на BigInt
   email     String   @unique
   password  String
   createdAt DateTime @default(now())
@@ -16,7 +16,7 @@ model Admin {
 }
 
 model Invitation {
-  id         Int      @id @default(autoincrement())
+  id         BigInt   @id @default(autoincrement())  // Изменено на BigInt
   link       String   @unique          
   token      String   @unique           
   role       String                     
@@ -27,7 +27,7 @@ model Invitation {
 }
 
 model Assistant {
-  id         Int      @id @default(autoincrement())
+  id         BigInt   @id @default(autoincrement())  // Изменено на BigInt
   telegramId String   @unique  // Храним telegramId как строку
   role       String   @default("assistant")
   isWorking  Boolean  @default(false)
@@ -48,7 +48,7 @@ enum SubscriptionType {
 }
 
 model User {
-  id                     Int               @id @default(autoincrement())
+  id                     BigInt            @id @default(autoincrement())  // Изменено на BigInt
   telegramId             String            @unique  // Храним telegramId как строку
   username               String?
   referralCount          Int               @default(0)
@@ -65,20 +65,20 @@ model User {
 }
 
 model Conversation {
-  id          Int      @id @default(autoincrement())
+  id          BigInt   @id @default(autoincrement())  // Изменено на BigInt
   user        User     @relation(fields: [userId], references: [id])
-  userId      Int
+  userId      BigInt   // Изменено на BigInt
   messages    Json     @default("[]")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
 model AssistantRequest {
-  id          Int      @id @default(autoincrement())
+  id          BigInt   @id @default(autoincrement())  // Изменено на BigInt
   user        User     @relation(fields: [userId], references: [id])
-  userId      Int
+  userId      BigInt   // Изменено на BigInt
   assistant   Assistant @relation(fields: [assistantId], references: [id])
-  assistantId Int
+  assistantId BigInt    // Изменено на BigInt
   message     String
   status      RequestStatus @default(PENDING)
   isActive    Boolean @default(false)
