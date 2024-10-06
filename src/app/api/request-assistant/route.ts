@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
         // Проверяем, существует ли пользователь с данным userId
         const userExists = await prisma.user.findUnique({
-            where: { telegramId: userIdBigInt },
+            where: { telegramId: userIdBigInt }, // Telegram ID используется для поиска пользователя
         });
 
         if (!userExists) {
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
             });
         }
 
-        // Отправляем сообщение пользователю
+        // Отправляем сообщение пользователю (используем telegramId для отправки сообщений в Telegram)
         await sendTelegramMessageToUser(userIdBigInt.toString(), 'Ваш запрос получен. Ожидайте, пока с вами свяжется ассистент.');
 
         // Ищем доступных ассистентов
@@ -56,24 +56,24 @@ export async function POST(request: Request) {
 
         const selectedAssistant = availableAssistants[0];
 
-        // Обновляем состояние ассистента
+        // Обновляем состояние ассистента в базе данных (используем id записи ассистента)
         await prisma.assistant.update({
-            where: { telegramId: selectedAssistant.telegramId },
+            where: { telegramId: selectedAssistant.telegramId }, // Telegram ID ассистента для поиска в базе данных
             data: { isBusy: true },
         });
 
         // Создаем запрос ассистента
         const assistantRequest = await prisma.assistantRequest.create({
             data: {
-                userId: userIdBigInt,  // Используем BigInt для userId
-                assistantId: BigInt(selectedAssistant.telegramId),  // Преобразуем id ассистента в BigInt
+                userId: userIdBigInt,  // Telegram ID пользователя в качестве userId
+                assistantId: selectedAssistant.telegramId,  // Telegram ID ассистента как assistantId
                 message: 'Запрос пользователя на разговор',
                 status: 'PENDING',
                 isActive: false,
             },
         });
 
-        // Отправляем сообщение ассистенту с кнопками
+        // Отправляем сообщение ассистенту с кнопками (Telegram ID ассистента для отправки сообщений в Telegram)
         await sendTelegramMessageWithButtons(
             selectedAssistant.telegramId.toString(),  // Преобразуем telegramId в строку для отправки в Telegram API
             'Поступил запрос от пользователя',

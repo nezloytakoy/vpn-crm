@@ -28,7 +28,7 @@ model Invitation {
 
 model Assistant {
   id         BigInt   @id @default(autoincrement())  
-  telegramId BigInt   @unique  // Изменено на BigInt для хранения telegramId
+  telegramId BigInt   @unique  // Telegram ID остается BigInt
   role       String   @default("assistant")
   isWorking  Boolean  @default(false)
   isBusy     Boolean  @default(false)
@@ -36,7 +36,7 @@ model Assistant {
   joinedAt   DateTime @default(now())
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  requests   AssistantRequest[]
+  requests   AssistantRequest[]  // Связь с запросами
 }
 
 enum SubscriptionType {
@@ -49,7 +49,7 @@ enum SubscriptionType {
 
 model User {
   id                     BigInt            @id @default(autoincrement())  
-  telegramId             BigInt            @unique  // Изменено на BigInt
+  telegramId             BigInt            @unique  // Telegram ID как BigInt
   username               String?
   referralCount          Int               @default(0)
   subscriptionType       SubscriptionType  @default(FREE)
@@ -60,25 +60,25 @@ model User {
   isActiveAIChat         Boolean           @default(false)
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @updatedAt
-  conversations          Conversation[]   
-  requests               AssistantRequest[] 
+  conversations          Conversation[]    // Связь с разговорами
+  requests               AssistantRequest[] // Связь с запросами ассистента
 }
 
 model Conversation {
   id          BigInt   @id @default(autoincrement())  
-  user        User     @relation(fields: [userId], references: [id])
-  userId      BigInt   
-  messages    Json     @default("[]")
+  user        User     @relation(fields: [userId], references: [id])  // Связь через id пользователя
+  userId      BigInt   // id пользователя
+  messages    Json     @default("[]")  // Храним сообщения в JSON
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
 model AssistantRequest {
   id          BigInt   @id @default(autoincrement())  
-  user        User     @relation(fields: [userId], references: [id])
-  userId      BigInt   
-  assistant   Assistant @relation(fields: [assistantId], references: [id])
-  assistantId BigInt    
+  user        User     @relation(fields: [userId], references: [id])  // Связь с пользователем через id
+  userId      BigInt   // id пользователя
+  assistant   Assistant @relation(fields: [assistantId], references: [id])  // Связь с ассистентом через id
+  assistantId BigInt    // id ассистента
   message     String
   status      RequestStatus @default(PENDING)
   isActive    Boolean @default(false)
