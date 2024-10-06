@@ -15,15 +15,15 @@ export async function POST(request: Request) {
             });
         }
 
-        // Преобразуем userId из строки в BigInt
+        // Преобразуем userId из строки в BigInt, так как telegramId и id теперь одно и то же
         const userIdBigInt = BigInt(userId);
 
-        // Отправляем лог с userIdBigInt в Telegram пользователю с ID 5829159515
+        // Логирование
         await sendLogToTelegram(`userIdBigInt перед созданием AssistantRequest: ${userIdBigInt}`);
 
-        // Проверяем, существует ли пользователь с данным userId
+        // Проверяем, существует ли пользователь с данным userId (telegramId)
         const userExists = await prisma.user.findUnique({
-            where: { telegramId: userIdBigInt }, // Telegram ID используется для поиска пользователя
+            where: { telegramId: userIdBigInt }, // Telegram ID используется как id
         });
 
         if (!userExists) {
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
             });
         }
 
-        // Отправляем сообщение пользователю (используем telegramId для отправки сообщений в Telegram)
+        // Отправляем сообщение пользователю в Telegram (используем telegramId для отправки сообщений)
         await sendTelegramMessageToUser(userIdBigInt.toString(), 'Ваш запрос получен. Ожидайте, пока с вами свяжется ассистент.');
 
         // Ищем доступных ассистентов
@@ -56,24 +56,24 @@ export async function POST(request: Request) {
 
         const selectedAssistant = availableAssistants[0];
 
-        // Обновляем состояние ассистента в базе данных (используем id записи ассистента)
+        // Обновляем состояние ассистента (используем telegramId как id)
         await prisma.assistant.update({
-            where: { telegramId: selectedAssistant.telegramId }, // Telegram ID ассистента для поиска в базе данных
+            where: { telegramId: selectedAssistant.telegramId },
             data: { isBusy: true },
         });
 
         // Создаем запрос ассистента
         const assistantRequest = await prisma.assistantRequest.create({
             data: {
-                userId: userIdBigInt,  // Telegram ID пользователя в качестве userId
-                assistantId: selectedAssistant.telegramId,  // Telegram ID ассистента как assistantId
+                userId: userIdBigInt,  // telegramId пользователя как userId
+                assistantId: selectedAssistant.telegramId,  // telegramId ассистента как assistantId
                 message: 'Запрос пользователя на разговор',
                 status: 'PENDING',
                 isActive: false,
             },
         });
 
-        // Отправляем сообщение ассистенту с кнопками (Telegram ID ассистента для отправки сообщений в Telegram)
+        // Отправляем сообщение ассистенту с кнопками (Telegram ID ассистента)
         await sendTelegramMessageWithButtons(
             selectedAssistant.telegramId.toString(),  // Преобразуем telegramId в строку для отправки в Telegram API
             'Поступил запрос от пользователя',

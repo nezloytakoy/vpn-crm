@@ -32,13 +32,15 @@ bot.command('start', async (ctx) => {
     const username = ctx.from.username || null;
 
     await prisma.user.upsert({
-      where: { telegramId }, // Используем bigint напрямую
+      where: { id: telegramId }, // Используем id, который равен telegramId
       update: { username },
       create: {
-        telegramId,
+        id: telegramId,  // telegramId используется как id
+        telegramId: telegramId, // Telegram ID также нужно указать
         username,
       },
     });
+
 
     await ctx.reply('👋 Это бот для пользователей! Для продолжения нажмите на кнопку ниже и войдите в Telegram Web App.', {
       reply_markup: {
@@ -68,17 +70,19 @@ bot.command('start_ai', async (ctx) => {
     const telegramId = BigInt(ctx.from.id);  // Преобразуем в BigInt
 
     let user = await prisma.user.findUnique({
-      where: { telegramId }, // Используем bigint напрямую
+      where: { id: telegramId }, // Используем id, который равен telegramId
     });
 
     if (!user) {
       user = await prisma.user.create({
         data: {
-          telegramId,
-          username: ctx.from.username || null,
-          isActiveAIChat: true,
+          id: telegramId,  // id и telegramId теперь одно и то же значение
+          telegramId: telegramId,  // Обязательно указываем telegramId
+          username: ctx.from.username || null,  // Имя пользователя
+          isActiveAIChat: true,  // Устанавливаем активный чат с ИИ
         },
       });
+
 
       await ctx.reply('Диалог с ИИ начат. Вы можете задавать свои вопросы.');
       return;
@@ -90,7 +94,7 @@ bot.command('start_ai', async (ctx) => {
     }
 
     await prisma.user.update({
-      where: { telegramId }, // Используем bigint напрямую
+      where: { id: telegramId }, // Используем id
       data: { isActiveAIChat: true },
     });
 
@@ -111,7 +115,7 @@ bot.command('end_ai', async (ctx) => {
     const telegramId = BigInt(ctx.from.id);  // Преобразуем в BigInt
 
     const user = await prisma.user.findUnique({
-      where: { telegramId }, // Используем bigint напрямую
+      where: { id: telegramId }, // Используем id
     });
 
     if (!user) {
@@ -123,7 +127,7 @@ bot.command('end_ai', async (ctx) => {
       await ctx.reply('Вы не находитесь в активном диалоге с ИИ.');
     } else {
       await prisma.user.update({
-        where: { telegramId }, // Используем bigint напрямую
+        where: { id: telegramId }, // Используем id
         data: { isActiveAIChat: false },
       });
 
@@ -147,7 +151,7 @@ bot.on('message', async (ctx) => {
     const telegramId = BigInt(ctx.from.id);  // Преобразуем в BigInt
 
     const user = await prisma.user.findUnique({
-      where: { telegramId }, // Используем bigint напрямую
+      where: { id: telegramId }, // Используем id
     });
 
     if (!user || !user.isActiveAIChat) {
@@ -185,7 +189,7 @@ bot.on('message', async (ctx) => {
       await ctx.reply(aiMessage);
 
       await prisma.user.update({
-        where: { telegramId }, // Используем bigint напрямую
+        where: { id: telegramId }, // Используем id
         data: {
           aiRequests: { increment: 1 },
           totalRequests: { increment: 1 },

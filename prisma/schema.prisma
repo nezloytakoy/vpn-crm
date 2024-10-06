@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Admin {
-  id        BigInt   @id @default(autoincrement())  
+  id        BigInt   @id  
   email     String   @unique
   password  String
   createdAt DateTime @default(now())
@@ -16,7 +16,7 @@ model Admin {
 }
 
 model Invitation {
-  id         BigInt   @id @default(autoincrement())  
+  id         BigInt   @id  
   link       String   @unique          
   token      String   @unique           
   role       String                     
@@ -27,8 +27,7 @@ model Invitation {
 }
 
 model Assistant {
-  id         BigInt   @id @default(autoincrement())  
-  telegramId BigInt   @unique  // Telegram ID остается BigInt
+  telegramId BigInt   @id @unique  // Telegram ID и id одновременно
   role       String   @default("assistant")
   isWorking  Boolean  @default(false)
   isBusy     Boolean  @default(false)
@@ -48,37 +47,36 @@ enum SubscriptionType {
 }
 
 model User {
-  id                     BigInt            @id @default(autoincrement())  
-  telegramId             BigInt            @unique  // Telegram ID как BigInt
+  telegramId             BigInt   @id @unique  // Telegram ID и id одновременно
   username               String?
-  referralCount          Int               @default(0)
+  referralCount          Int      @default(0)
   subscriptionType       SubscriptionType  @default(FREE)
-  hasUpdatedSubscription Boolean           @default(false)
-  totalRequests          Int               @default(0)
-  aiRequests             Int               @default(0)
-  assistantRequests      Int               @default(0)
-  isActiveAIChat         Boolean           @default(false)
-  createdAt              DateTime          @default(now())
-  updatedAt              DateTime          @updatedAt
+  hasUpdatedSubscription Boolean  @default(false)
+  totalRequests          Int      @default(0)
+  aiRequests             Int      @default(0)
+  assistantRequests      Int      @default(0)
+  isActiveAIChat         Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
   conversations          Conversation[]    // Связь с разговорами
   requests               AssistantRequest[] // Связь с запросами ассистента
 }
 
 model Conversation {
   id          BigInt   @id @default(autoincrement())  
-  user        User     @relation(fields: [userId], references: [id])  // Связь через id пользователя
-  userId      BigInt   // id пользователя
-  messages    Json     @default("[]")  // Храним сообщения в JSON
+  user        User     @relation(fields: [userId], references: [telegramId])  // Связь через telegramId пользователя
+  userId      BigInt   
+  messages    Json     @default("[]")  // Храним сообщения в формате JSON
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
 model AssistantRequest {
   id          BigInt   @id @default(autoincrement())  
-  user        User     @relation(fields: [userId], references: [id])  // Связь с пользователем через id
-  userId      BigInt   // id пользователя
-  assistant   Assistant @relation(fields: [assistantId], references: [id])  // Связь с ассистентом через id
-  assistantId BigInt    // id ассистента
+  user        User     @relation(fields: [userId], references: [telegramId])  // Связь через telegramId пользователя
+  userId      BigInt   
+  assistant   Assistant @relation(fields: [assistantId], references: [telegramId])  // Связь через telegramId ассистента
+  assistantId BigInt    
   message     String
   status      RequestStatus @default(PENDING)
   isActive    Boolean @default(false)
