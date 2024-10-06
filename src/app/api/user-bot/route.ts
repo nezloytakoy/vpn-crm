@@ -32,6 +32,51 @@ async function sendMessageToAssistant(chatId: string, text: string) {
   });
 }
 
+// Команда для завершения диалога
+bot.command('end_dialog', async (ctx) => {
+  try {
+    if (!ctx.from?.id) {
+      await ctx.reply('Не удалось получить ваш идентификатор пользователя.');
+      return;
+    }
+
+    const telegramId = BigInt(ctx.from.id);
+
+    // Проверяем, есть ли активный запрос с ассистентом
+    const activeRequest = await prisma.assistantRequest.findFirst({
+      where: {
+        user: { telegramId: telegramId }, // Используем BigInt напрямую
+        isActive: true,
+      },
+      include: { assistant: true },
+    });
+
+    if (!activeRequest) {
+      await ctx.reply('У вас нет активного диалога с ассистентом.');
+      return;
+    }
+
+    // Завершаем диалог
+    await prisma.assistantRequest.update({
+      where: { id: activeRequest.id },
+      data: { status: 'COMPLETED', isActive: false },
+    });
+
+    await prisma.assistant.update({
+      where: { id: activeRequest.assistant.id },
+      data: { isBusy: false },
+    });
+
+    await ctx.reply('Диалог с ассистентом завершен. Спасибо за использование нашего сервиса!');
+
+    // Уведомляем ассистента о завершении диалога
+    await sendMessageToAssistant(activeRequest.assistant.telegramId.toString(), 'Пользователь завершил диалог.');
+  } catch (error) {
+    console.error('Ошибка при завершении диалога:', error);
+    await ctx.reply('Произошла ошибка при завершении диалога. Пожалуйста, попробуйте еще раз позже.');
+  }
+});
+
 bot.command('start', async (ctx) => {
   try {
     if (!ctx.from?.id) {

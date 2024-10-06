@@ -7,6 +7,51 @@ if (!token) throw new Error('TELEGRAM_BOT_TOKEN not found.');
 const bot = new Bot(token);
 const prisma = new PrismaClient();
 
+// Команда завершения диалога
+bot.command('end_dialog', async (ctx) => {
+  try {
+    if (!ctx.from?.id) {
+      await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
+      return;
+    }
+
+    const telegramId = BigInt(ctx.from.id);
+
+    // Проверяем, есть ли активный запрос у ассистента
+    const activeRequest = await prisma.assistantRequest.findFirst({
+      where: {
+        assistant: { telegramId }, // Используем BigInt для поиска ассистента
+        isActive: true,
+      },
+      include: { user: true }, // Включаем данные о пользователе
+    });
+
+    if (!activeRequest) {
+      await ctx.reply('⚠️ У вас нет активных запросов.');
+      return;
+    }
+
+    // Завершаем диалог
+    await prisma.assistantRequest.update({
+      where: { id: activeRequest.id },
+      data: { status: 'COMPLETED', isActive: false },
+    });
+
+    await prisma.assistant.update({
+      where: { telegramId },
+      data: { isBusy: false },
+    });
+
+    await ctx.reply('Диалог с пользователем завершен.');
+
+    // Уведомляем пользователя о завершении диалога
+    await sendTelegramMessageToUser(activeRequest.user.telegramId.toString(), 'Ассистент завершил диалог.');
+  } catch (error) {
+    console.error('Ошибка при завершении диалога:', error);
+    await ctx.reply('Произошла ошибка при завершении диалога. Пожалуйста, попробуйте еще раз позже.');
+  }
+});
+
 bot.command('start', async (ctx) => {
   const args = ctx.match?.split(' ') ?? [];
   if (args.length > 0 && args[0].startsWith('invite_')) {
@@ -23,12 +68,12 @@ bot.command('start', async (ctx) => {
       }
 
       if (ctx.from?.id) {
-        const telegramId = BigInt(ctx.from.id); // Преобразуем telegramId в BigInt
+        const telegramId = BigInt(ctx.from.id);
 
         await prisma.assistant.create({
           data: {
-            telegramId, // telegramId сохраняется как BigInt
-            role: invitation.role, // Присваиваем роль
+            telegramId,
+            role: invitation.role,
           },
         });
 
@@ -69,13 +114,13 @@ bot.command('menu', async (ctx) => {
 
 bot.on('callback_query:data', async (ctx) => {
   if (ctx.from?.id) {
-    const telegramId = BigInt(ctx.from.id); // Преобразуем telegramId в BigInt
+    const telegramId = BigInt(ctx.from.id);
 
     const data = ctx.callbackQuery?.data;
 
     if (data === 'start_work') {
       const assistant = await prisma.assistant.findUnique({
-        where: { telegramId }, // Ищем ассистента по BigInt telegramId
+        where: { telegramId },
       });
 
       if (assistant?.isWorking) {
@@ -84,7 +129,7 @@ bot.on('callback_query:data', async (ctx) => {
       }
 
       await prisma.assistant.update({
-        where: { telegramId }, // Ищем ассистента по BigInt telegramId
+        where: { telegramId },
         data: { isWorking: true, isBusy: false },
       });
 
@@ -109,13 +154,13 @@ bot.on('callback_query:data', async (ctx) => {
 
 async function handleAcceptRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
   const assistantRequest = await prisma.assistantRequest.update({
-    where: { id: BigInt(requestId) }, // Преобразуем requestId в BigInt
+    where: { id: BigInt(requestId) },
     data: { status: 'IN_PROGRESS', isActive: true },
     include: { user: true },
   });
 
   await prisma.assistant.update({
-    where: { telegramId: assistantTelegramId }, // Ищем ассистента по BigInt telegramId
+    where: { telegramId: assistantTelegramId }, 
     data: { isBusy: true },
   });
 
@@ -125,12 +170,12 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
 
 async function handleRejectRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
   await prisma.assistantRequest.update({
-    where: { id: BigInt(requestId) }, // Преобразуем requestId в BigInt
+    where: { id: BigInt(requestId) },
     data: { status: 'REJECTED', isActive: false },
   });
 
   await prisma.assistant.update({
-    where: { telegramId: assistantTelegramId }, // Ищем ассистента по BigInt telegramId
+    where: { telegramId: assistantTelegramId },
     data: { isBusy: false },
   });
 
@@ -140,10 +185,10 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
 bot.command('end_work', async (ctx) => {
   try {
     if (ctx.from?.id) {
-      const telegramId = BigInt(ctx.from.id); // Преобразуем telegramId в BigInt
+      const telegramId = BigInt(ctx.from.id);
 
       const assistant = await prisma.assistant.findUnique({
-        where: { telegramId }, // Ищем ассистента по BigInt telegramId
+        where: { telegramId },
       });
 
       if (!assistant?.isWorking) {
@@ -152,7 +197,7 @@ bot.command('end_work', async (ctx) => {
       }
 
       await prisma.assistant.update({
-        where: { telegramId }, // Ищем ассистента по BigInt telegramId
+        where: { telegramId },
         data: { isWorking: false, isBusy: false },
       });
 
@@ -166,7 +211,6 @@ bot.command('end_work', async (ctx) => {
   }
 });
 
-// Пересылка сообщений от ассистента к пользователю
 bot.on('message', async (ctx) => {
   try {
     if (!ctx.from?.id) {
@@ -174,15 +218,14 @@ bot.on('message', async (ctx) => {
       return;
     }
 
-    const telegramId = BigInt(ctx.from.id); // Преобразуем telegramId в BigInt
+    const telegramId = BigInt(ctx.from.id);
 
-    // Найти активный запрос для данного ассистента
     const activeRequest = await prisma.assistantRequest.findFirst({
       where: {
-        assistant: { telegramId }, // Ищем по telegramId ассистента
+        assistant: { telegramId }, 
         isActive: true,
       },
-      include: { user: true }, // Включаем данные пользователя
+      include: { user: true },
     });
 
     if (!activeRequest) {
@@ -190,7 +233,6 @@ bot.on('message', async (ctx) => {
       return;
     }
 
-    // Получаем сообщение, отправленное ассистентом
     const assistantMessage = ctx.message?.text;
 
     if (!assistantMessage) {
@@ -198,7 +240,6 @@ bot.on('message', async (ctx) => {
       return;
     }
 
-    // Пересылаем сообщение пользователю
     await sendTelegramMessageToUser(activeRequest.user.telegramId.toString(), assistantMessage);
   } catch (error) {
     console.error('Ошибка при пересылке сообщения пользователю:', error);
