@@ -45,7 +45,7 @@ bot.command('end_dialog', async (ctx) => {
     // Проверяем, есть ли активный запрос с ассистентом
     const activeRequest = await prisma.assistantRequest.findFirst({
       where: {
-        user: { telegramId: telegramId }, // Используем BigInt напрямую
+        user: { telegramId: telegramId },
         isActive: true,
       },
       include: { assistant: true },
@@ -63,7 +63,7 @@ bot.command('end_dialog', async (ctx) => {
     });
 
     await prisma.assistant.update({
-      where: { id: activeRequest.assistant.id },
+      where: { telegramId: activeRequest.assistant.telegramId }, // Используем telegramId
       data: { isBusy: false },
     });
 
@@ -124,7 +124,7 @@ bot.on('message', async (ctx) => {
     // Проверяем, есть ли активный запрос с ассистентом
     const activeRequest = await prisma.assistantRequest.findFirst({
       where: {
-        user: { telegramId: telegramId }, // Используем BigInt напрямую
+        user: { telegramId: telegramId }, 
         isActive: true,
       },
       include: { assistant: true },
