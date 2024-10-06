@@ -98,10 +98,12 @@ function AdminSidebar() {
                                 <div className={styles.point}>Ассистент</div>
                             </li>
                         </Link>
-                        <li>
-                            <FaGavel className={styles.icon} />
-                            <div className={styles.point}>Модератор</div>
-                        </li>
+                        <Link href="/admin/moderators" className={styles.navLink} onClick={handleLinkClick}>
+                            <li>
+                                <FaGavel className={styles.icon} />
+                                <div className={styles.point}>Модератор</div>
+                            </li>
+                        </Link>
                     </ul>
                 </nav>
             </div>

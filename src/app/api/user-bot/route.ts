@@ -17,7 +17,7 @@ type ChatMessage = {
 
 const userConversations = new Map<bigint, ChatMessage[]>();
 
-// Функция отправки сообщений ассистенту
+
 async function sendMessageToAssistant(chatId: string, text: string) {
   const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
@@ -32,7 +32,7 @@ async function sendMessageToAssistant(chatId: string, text: string) {
   });
 }
 
-// Команда для завершения диалога
+
 bot.command('end_dialog', async (ctx) => {
   try {
     if (!ctx.from?.id) {
@@ -42,7 +42,7 @@ bot.command('end_dialog', async (ctx) => {
 
     const telegramId = BigInt(ctx.from.id);
 
-    // Проверяем, есть ли активный запрос с ассистентом
+
     const activeRequest = await prisma.assistantRequest.findFirst({
       where: {
         user: { telegramId: telegramId },
@@ -56,20 +56,20 @@ bot.command('end_dialog', async (ctx) => {
       return;
     }
 
-    // Завершаем диалог
+
     await prisma.assistantRequest.update({
       where: { id: activeRequest.id },
       data: { status: 'COMPLETED', isActive: false },
     });
 
     await prisma.assistant.update({
-      where: { telegramId: activeRequest.assistant.telegramId }, // Используем telegramId
+      where: { telegramId: activeRequest.assistant.telegramId },
       data: { isBusy: false },
     });
 
     await ctx.reply('Диалог с ассистентом завершен. Спасибо за использование нашего сервиса!');
 
-    // Уведомляем ассистента о завершении диалога
+
     await sendMessageToAssistant(activeRequest.assistant.telegramId.toString(), 'Пользователь завершил диалог.');
   } catch (error) {
     console.error('Ошибка при завершении диалога:', error);
@@ -121,7 +121,7 @@ bot.on('message', async (ctx) => {
       return;
     }
 
-    // Проверяем, есть ли активный запрос с ассистентом
+   
     const activeRequest = await prisma.assistantRequest.findFirst({
       where: {
         user: { telegramId: telegramId }, 
@@ -131,11 +131,11 @@ bot.on('message', async (ctx) => {
     });
 
     if (activeRequest) {
-      // Если запрос активен, пересылаем сообщение ассистенту
+    
       await sendMessageToAssistant(activeRequest.assistant.telegramId.toString(), userMessage);
 
     } else {
-      // Обрабатываем как стандартный запрос к ИИ
+   
       const messages: ChatMessage[] = userConversations.get(telegramId) || [
         { role: 'system', content: 'You are a helpful assistant.' },
       ];
