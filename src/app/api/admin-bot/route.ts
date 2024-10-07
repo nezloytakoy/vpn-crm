@@ -1,30 +1,29 @@
 import { Bot, InlineKeyboard, webhookCallback, Context } from 'grammy'; 
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
-const token = process.env.TELEGRAM_ADMIN_BOT_TOKEN;
-if (!token) throw new Error('TELEGRAM_BOT_TOKEN not found.');
+// Боты для пользователей, ассистентов и модераторов
+const userBot = new Bot(process.env.TELEGRAM_USER_BOT_TOKEN!);
+const supportBot = new Bot(process.env.TELEGRAM_SUPPORT_BOT_TOKEN!);
+const adminBot = new Bot(process.env.TELEGRAM_ADMIN_BOT_TOKEN!);
 
-const bot = new Bot(token);
+const prisma = new PrismaClient();
+
+const moderatorState: { [moderatorId: number]: { state: string, targetId?: string } } = {};
 
 // Команда /start с проверкой токена и добавлением Telegram ID
-bot.command('start', async (ctx) => {
-  if (ctx.from?.id) {  // Проверяем, что ctx.from и ctx.from.id существуют
-    // Проверяем, зарегистрирован ли пользователь как модератор
+adminBot.command('start', async (ctx) => {
+  if (ctx.from?.id) {
     const moderator = await prisma.moderator.findFirst({
       where: { telegramId: BigInt(ctx.from.id) },
     });
 
     if (moderator) {
-      // Если пользователь уже зарегистрирован, показываем меню
       await showModeratorMenu(ctx);
     } else if (ctx.message?.text) {
-      // Если пользователь не зарегистрирован, проверяем, есть ли токен в команде
       const args = ctx.message.text.split(' ');
       if (args.length > 1) {
         const inviteToken = args[1].replace('invite_', '');
 
-        // Проверка токена в базе данных
         const inviteModerator = await prisma.moderator.findFirst({
           where: {
             inviteToken,
@@ -33,15 +32,12 @@ bot.command('start', async (ctx) => {
         });
 
         if (inviteModerator) {
-          // Обновляем модератора, добавляя telegramId
           await prisma.moderator.update({
             where: { id: inviteModerator.id },
             data: { telegramId: BigInt(ctx.from.id) },
           });
 
           await ctx.reply(`👋 Добро пожаловать, ${ctx.from.username}! Теперь у вас есть полномочия модератора.`);
-
-          // Показываем меню после успешной регистрации
           await showModeratorMenu(ctx);
         } else {
           await ctx.reply('Неверная или уже использованная ссылка.');
@@ -57,33 +53,68 @@ bot.command('start', async (ctx) => {
   }
 });
 
-// Функция для отображения меню модератора с эмодзи
+// Функция для отображения меню модератора
 async function showModeratorMenu(ctx: Context) {
   const keyboard = new InlineKeyboard()
-    .text('💬 Сообщение пользователю', 'message_user')  // Кнопка для сообщения пользователю
+    .text('💬 Сообщение пользователю', 'message_user')
     .row()
-    .text('👨‍💻 Сообщение ассистенту', 'message_assistant')  // Кнопка для сообщения ассистенту
+    .text('👨‍💻 Сообщение ассистенту', 'message_assistant')
     .row()
-    .text('⚖️ Текущие арбитражи', 'current_arbitrations'); // Кнопка для просмотра текущих арбитражей
+    .text('⚖️ Текущие арбитражи', 'current_arbitrations');
 
   await ctx.reply('📋 Меню:', { reply_markup: keyboard });
 }
 
 // Обработка нажатий на кнопки
-bot.callbackQuery('message_user', async (ctx) => {
-  await ctx.answerCallbackQuery();  // Убираем "зависание" кнопки
-  await ctx.reply('Введите сообщение для пользователя.');
+adminBot.callbackQuery('message_user', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  moderatorState[ctx.from.id] = { state: 'awaiting_user_id' };
+  await ctx.reply('Введите ID пользователя.');
 });
 
-bot.callbackQuery('message_assistant', async (ctx) => {
-  await ctx.answerCallbackQuery();  // Убираем "зависание" кнопки
-  await ctx.reply('Введите сообщение для ассистента.');
+adminBot.callbackQuery('message_assistant', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  moderatorState[ctx.from.id] = { state: 'awaiting_assistant_id' };
+  await ctx.reply('Введите ID ассистента.');
 });
 
-bot.callbackQuery('current_arbitrations', async (ctx) => {
-  await ctx.answerCallbackQuery();  // Убираем "зависание" кнопки
+// Обработка текстовых сообщений модератора
+adminBot.on('message:text', async (ctx) => {
+  const modId = ctx.from?.id;
+  if (!modId || !moderatorState[modId]) return;
+
+  const state = moderatorState[modId].state;
+
+  if (state === 'awaiting_user_id' || state === 'awaiting_assistant_id') {
+    moderatorState[modId].targetId = ctx.message.text; // Сохраняем ID пользователя или ассистента
+    moderatorState[modId].state = 'awaiting_message';
+    await ctx.reply('Напишите ваше сообщение.');
+  } else if (state === 'awaiting_message') {
+    const targetId = moderatorState[modId].targetId;
+
+    if (targetId) {
+      const targetMessage = `Сообщение от модератора: ${ctx.message.text}`;
+      try {
+        if (moderatorState[modId].state === 'awaiting_user_id') {
+          // Отправляем сообщение пользователю через userBot
+          await userBot.api.sendMessage(Number(targetId), targetMessage);
+        } else if (moderatorState[modId].state === 'awaiting_assistant_id') {
+          // Отправляем сообщение ассистенту через supportBot
+          await supportBot.api.sendMessage(Number(targetId), targetMessage);
+        }
+        await ctx.reply('Сообщение успешно отправлено.');
+      } catch (error) {
+        await ctx.reply('Ошибка при отправке сообщения. Проверьте ID пользователя.');
+      }
+    }
+    delete moderatorState[modId]; // Сбрасываем состояние модератора
+  }
+});
+
+adminBot.callbackQuery('current_arbitrations', async (ctx) => {
+  await ctx.answerCallbackQuery();
   await ctx.reply('Список текущих арбитражей.');
 });
 
 // Webhook для Next.js
-export const POST = webhookCallback(bot, 'std/http');
+export const POST = webhookCallback(adminBot, 'std/http');
