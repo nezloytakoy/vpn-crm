@@ -103,7 +103,7 @@ adminBot.on('message:text', async (ctx) => {
           await supportBot.api.sendMessage(Number(targetId), targetMessage);
         }
         await ctx.reply('Сообщение успешно отправлено.');
-      } catch (error) {
+      } catch {
         await ctx.reply('Ошибка при отправке сообщения. Проверьте ID пользователя.');
       }
     }
