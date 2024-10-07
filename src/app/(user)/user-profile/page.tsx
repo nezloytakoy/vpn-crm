@@ -1,16 +1,29 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Wave from 'react-wavify';
 import styles from './profile.module.css';
 import Image from 'next/image';
 import Link from 'next/link';
-import Popup from "./../../../components/Popup/Popup"
+import Popup from './../../../components/Popup/Popup';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../../i18n'; // Импортируем настройки i18n
 
 const WaveComponent = () => {
+    const { t } = useTranslation();
     const [isPopupVisible, setPopupVisible] = useState(false);
     const [buttonText, setButtonText] = useState('');
 
+    useEffect(() => {
+        // Получение языка пользователя через Telegram WebApp SDK
+        const userLang = window?.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
+
+        if (userLang === 'ru') {
+            i18n.changeLanguage('ru'); // Переключаем язык на русский
+        } else {
+            i18n.changeLanguage('en'); // По умолчанию — английский
+        }
+    }, []);
 
     const handleButtonClick = (text: string) => {
         setButtonText(text);
@@ -37,7 +50,7 @@ const WaveComponent = () => {
                 />
                 <div className={styles.topbotom}>
                     <div className={styles.greetings}>
-                        Приветствуем,
+                        {t('greeting')}, {/* Переводим текст */}
                         <div className={styles.avatarbox}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg"
@@ -53,12 +66,11 @@ const WaveComponent = () => {
             </div>
             <div className={styles.backbotom}>
                 <div className={styles.backbotom}>
-                    <p className={styles.time}>Subscription: None</p>
-                    <p className={styles.time}>Time: 0 hours</p>
+                    <p className={styles.time}>{t('subscription')}</p> {/* Переводим текст */}
+                    <p className={styles.time}>{t('time')}</p> {/* Переводим текст */}
                     <div className={styles.parent}>
 
-
-                        <div className={styles.leftblock} onClick={() => handleButtonClick("Only AI")}>
+                        <div className={styles.leftblock} onClick={() => handleButtonClick(t('only_ai'))}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-JV9mpH87gcyosXasiIjyWSapEkqbaQ.png"
                                 alt="avatar"
@@ -66,11 +78,10 @@ const WaveComponent = () => {
                                 height={90}
                                 className={styles.ai}
                             />
-                            <p className={styles.text}>Only AI</p>
+                            <p className={styles.text}>{t('only_ai')}</p> {/* Переводим текст */}
                         </div>
 
-
-                        <div className={styles.centerblock} onClick={() => handleButtonClick("AI 5 hours/month")}>
+                        <div className={styles.centerblock} onClick={() => handleButtonClick(t('ai_5_hours'))}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-three-cGoXQPamKncukOKvfhxY8Gwhd4xKpO.png"
                                 alt="avatar"
@@ -78,11 +89,10 @@ const WaveComponent = () => {
                                 height={100}
                                 className={styles.ai}
                             />
-                            <p className={styles.text}>AI <br />5 hours/month</p>
+                            <p className={styles.text}>{t('ai_5_hours')}</p> {/* Переводим текст */}
                         </div>
 
-
-                        <div className={styles.rightblock} onClick={() => handleButtonClick("AI 14 hours/month")}>
+                        <div className={styles.rightblock} onClick={() => handleButtonClick(t('ai_14_hours'))}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/GIU%20AMA%20255-02-kdT58Hckjc871B2UsslUF7ZrAg9SAi.png"
                                 alt="avatar"
@@ -90,13 +100,13 @@ const WaveComponent = () => {
                                 height={105}
                                 className={styles.ai}
                             />
-                            <p className={styles.text}>AI 14 hours/month</p>
+                            <p className={styles.text}>{t('ai_14_hours')}</p> {/* Переводим текст */}
                         </div>
                     </div>
 
                     <div className={styles.section}>
 
-                        <div className={styles.block} onClick={() => handleButtonClick("AI 30 hours/month")}>
+                        <div className={styles.block} onClick={() => handleButtonClick(t('ai_30_hours'))}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-FlMUqahx2zNkY322YXOHKnGKchz1wT.gif"
                                 alt="avatar"
@@ -104,9 +114,8 @@ const WaveComponent = () => {
                                 height={80}
                                 className={styles.ai}
                             />
-                            <p className={styles.aitext}>AI 30 hours/month</p>
+                            <p className={styles.aitext}>{t('ai_30_hours')}</p> {/* Переводим текст */}
                         </div>
-
 
                         <Link href="/referal-page" className={styles.block}>
                             <Image
@@ -116,12 +125,11 @@ const WaveComponent = () => {
                                 height={80}
                                 className={styles.ai}
                             />
-                            <p className={styles.aitext}>Referral</p>
+                            <p className={styles.aitext}>{t('referral')}</p> {/* Переводим текст */}
                         </Link>
                     </div>
                 </div>
             </div>
-
 
             {isPopupVisible && (
                 <Popup isVisible={isPopupVisible} onClose={handleClosePopup} buttonText={buttonText} />
