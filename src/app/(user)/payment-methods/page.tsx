@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useState } from 'react';
 import styles from './Payment.module.css';
 import Image from 'next/image';
@@ -8,9 +6,39 @@ import Wave from 'react-wavify';
 function PaymentPage() {
 
     const [selectedMethod, setSelectedMethod] = useState<number | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleSelectMethod = (index: number) => {
         setSelectedMethod(index);
+    };
+
+    const handleContinue = async () => {
+        if (selectedMethod === 1) { // Звезды Telegram
+            setIsLoading(true);
+            try {
+                // Отправляем запрос на создание инвойса
+                const response = await fetch('/api/telegram-invoice', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ userId: 'USER_ID' }), // Замените на реальный ID пользователя
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    // Перенаправляем пользователя на ссылку оплаты
+                    window.open(data.invoiceLink, '_blank');
+                } else {
+                    alert(data.message || 'Ошибка создания инвойса');
+                }
+            } catch (error) {
+                console.error('Ошибка при создании инвойса:', error);
+                alert('Не удалось создать инвойс. Попробуйте снова позже.');
+            } finally {
+                setIsLoading(false);
+            }
+        }
     };
 
     return (
@@ -114,6 +142,7 @@ function PaymentPage() {
                             </div>
                         )}
                     </div>
+
                     <div
                         className={`${styles.method} ${selectedMethod === 3 ? styles.selectedMethod : ''}`}
                         onClick={() => handleSelectMethod(3)}
@@ -138,12 +167,12 @@ function PaymentPage() {
                     </div>
                 </div>
                 
-                {/* Кнопка изменяет стиль в зависимости от выбора метода оплаты */}
                 <button 
                     className={`${styles.continueButton} ${selectedMethod === null ? styles.disabledButton : ''}`}
-                    disabled={selectedMethod === null} // Блокируем кнопку, если ничего не выбрано
+                    disabled={selectedMethod === null || isLoading}
+                    onClick={handleContinue}
                 >
-                    Продолжить
+                    {isLoading ? 'Загрузка...' : 'Продолжить'}
                 </button>
             </div>
         </div>
