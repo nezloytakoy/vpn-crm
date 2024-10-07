@@ -109,9 +109,9 @@ adminBot.on('message:text', async (ctx) => {
 
     // Теперь определим, для пользователя или ассистента мы ожидаем сообщение
     if (currentState === 'awaiting_user_id') {
-      moderatorState[modId].state = 'awaiting_message_user';
+      moderatorState[modId].state = 'awaiting_message_user'; // Обновляем состояние для пользователя
     } else {
-      moderatorState[modId].state = 'awaiting_message_assistant';
+      moderatorState[modId].state = 'awaiting_message_assistant'; // Обновляем состояние для ассистента
     }
 
     await ctx.reply('Напишите ваше сообщение.');
@@ -133,8 +133,10 @@ adminBot.on('message:text', async (ctx) => {
         console.error('Ошибка при отправке сообщения:', error); // Логирование ошибки
         await ctx.reply('Ошибка при отправке сообщения. Проверьте ID.');
       }
+    } else {
+      await ctx.reply('Не удалось определить целевой ID.');
     }
-    delete moderatorState[modId]; // Сбрасываем состояние модератора
+    delete moderatorState[modId]; // Сбрасываем состояние модератора после отправки
   } else {
     await ctx.reply('Я вас не понимаю.');
   }
