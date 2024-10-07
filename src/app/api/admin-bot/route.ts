@@ -69,28 +69,46 @@ async function showModeratorMenu(ctx: Context) {
 adminBot.callbackQuery('message_user', async (ctx) => {
   await ctx.answerCallbackQuery();
   moderatorState[ctx.from.id] = { state: 'awaiting_user_id' };
-  await ctx.reply('Введите ID пользователя.');
+  await ctx.reply('Введите ID пользователя (9 цифр).');
 });
 
 adminBot.callbackQuery('message_assistant', async (ctx) => {
   await ctx.answerCallbackQuery();
   moderatorState[ctx.from.id] = { state: 'awaiting_assistant_id' };
-  await ctx.reply('Введите ID ассистента.');
+  await ctx.reply('Введите ID ассистента (9 цифр).');
 });
 
 // Обработка текстовых сообщений модератора
 adminBot.on('message:text', async (ctx) => {
   const modId = ctx.from?.id;
-  if (!modId || !moderatorState[modId]) return;
+  if (!modId) {
+    await ctx.reply('Ошибка: невозможно определить пользователя.');
+    return;
+  }
 
-  const state = moderatorState[modId].state;
+  const currentState = moderatorState[modId]?.state;
 
-  if (state === 'awaiting_user_id' || state === 'awaiting_assistant_id') {
-    moderatorState[modId].targetId = ctx.message.text; // Сохраняем ID пользователя или ассистента
+  if (!currentState) {
+    // Если состояние неизвестно
+    await ctx.reply('Я вас не понимаю.');
+    return;
+  }
+
+  // Проверка ID пользователя или ассистента
+  if (currentState === 'awaiting_user_id' || currentState === 'awaiting_assistant_id') {
+    const id = ctx.message.text;
+
+    if (!/^\d{9}$/.test(id)) { // Проверка, что ID состоит из 9 цифр
+      await ctx.reply('ID должен состоять из 9 цифр. Попробуйте снова.');
+      return;
+    }
+
+    // Сохраняем ID пользователя или ассистента
+    moderatorState[modId].targetId = id;
     moderatorState[modId].state = 'awaiting_message';
     await ctx.reply('Напишите ваше сообщение.');
-  } else if (state === 'awaiting_message') {
-    const targetId = moderatorState[modId].targetId;
+  } else if (currentState === 'awaiting_message') {
+    const targetId = moderatorState[modId]?.targetId;
 
     if (targetId) {
       const targetMessage = `Сообщение от модератора: ${ctx.message.text}`;
@@ -104,10 +122,12 @@ adminBot.on('message:text', async (ctx) => {
         }
         await ctx.reply('Сообщение успешно отправлено.');
       } catch {
-        await ctx.reply('Ошибка при отправке сообщения. Проверьте ID пользователя.');
+        await ctx.reply('Ошибка при отправке сообщения. Проверьте ID.');
       }
     }
     delete moderatorState[modId]; // Сбрасываем состояние модератора
+  } else {
+    await ctx.reply('Я вас не понимаю.');
   }
 });
 
