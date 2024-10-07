@@ -9,41 +9,56 @@ const bot = new Bot(token);
 
 // Команда /start с проверкой токена и добавлением Telegram ID
 bot.command('start', async (ctx) => {
-  if (ctx.message?.text) {
-    const args = ctx.message.text.split(' ');
-    if (args.length > 1) {
-      const inviteToken = args[1].replace('invite_', '');
+  if (ctx.from?.id) {  // Проверяем, что ctx.from и ctx.from.id существуют
+    // Проверяем, зарегистрирован ли пользователь как модератор
+    const moderator = await prisma.moderator.findFirst({
+      where: { telegramId: BigInt(ctx.from.id) },
+    });
 
-      const moderator = await prisma.moderator.findFirst({
-        where: {
-          inviteToken,
-          telegramId: null,
-        },
-      });
+    if (moderator) {
+      // Если пользователь уже зарегистрирован, показываем меню
+      await showModeratorMenu(ctx);
+    } else if (ctx.message?.text) {
+      // Если пользователь не зарегистрирован, проверяем, есть ли токен в команде
+      const args = ctx.message.text.split(' ');
+      if (args.length > 1) {
+        const inviteToken = args[1].replace('invite_', '');
 
-      if (moderator) {
-        await prisma.moderator.update({
-          where: { id: moderator.id },
-          data: { telegramId: BigInt(ctx.from.id) },
+        // Проверка токена в базе данных
+        const inviteModerator = await prisma.moderator.findFirst({
+          where: {
+            inviteToken,
+            telegramId: null,
+          },
         });
 
-        await ctx.reply(`👋 Добро пожаловать, ${ctx.from.username}! Теперь у вас есть полномочия модератора.`);
+        if (inviteModerator) {
+          // Обновляем модератора, добавляя telegramId
+          await prisma.moderator.update({
+            where: { id: inviteModerator.id },
+            data: { telegramId: BigInt(ctx.from.id) },
+          });
 
-        // Показываем меню после успешной регистрации
-        await showModeratorMenu(ctx);
+          await ctx.reply(`👋 Добро пожаловать, ${ctx.from.username}! Теперь у вас есть полномочия модератора.`);
+
+          // Показываем меню после успешной регистрации
+          await showModeratorMenu(ctx);
+        } else {
+          await ctx.reply('Неверная или уже использованная ссылка.');
+        }
       } else {
-        await ctx.reply('Неверная или уже использованная ссылка.');
+        await ctx.reply('👋 Это бот для модераторов!');
       }
     } else {
-      await ctx.reply('👋 Это бот для модераторов!');
+      await ctx.reply('Ошибка: не удалось обработать команду. Попробуйте снова.');
     }
   } else {
-    await ctx.reply('Ошибка: не удалось обработать команду. Попробуйте снова.');
+    await ctx.reply('Ошибка: невозможно определить пользователя.');
   }
 });
 
 // Функция для отображения меню модератора
-async function showModeratorMenu(ctx: Context) {  // Указали правильный тип 'Context'
+async function showModeratorMenu(ctx: Context) {
   const keyboard = new InlineKeyboard()
     .text('Сообщение пользователю', 'message_user')  // Кнопка для сообщения пользователю
     .row()
