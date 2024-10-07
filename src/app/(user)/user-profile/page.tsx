@@ -9,6 +9,30 @@ import Popup from './../../../components/Popup/Popup';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n'; // Импортируем настройки i18n
 
+// Функция для отправки логов в Telegram
+const sendLogToTelegram = async (message: string) => {
+    const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_USER_BOT_TOKEN; // Убедитесь, что токен Telegram бота добавлен в переменные окружения
+    const CHAT_ID = '5829159515'; // ID пользователя, которому отправляем логи
+
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    const body = {
+        chat_id: CHAT_ID,
+        text: message,
+    };
+
+    try {
+        await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+        });
+    } catch (error) {
+        console.error('Ошибка при отправке логов в Telegram:', error);
+    }
+};
+
 const WaveComponent = () => {
     const { t } = useTranslation();
     const [isPopupVisible, setPopupVisible] = useState(false);
@@ -23,15 +47,20 @@ const WaveComponent = () => {
         } else {
             i18n.changeLanguage('en'); // По умолчанию — английский
         }
+
+        // Отправляем лог о выбранном языке в Telegram
+        sendLogToTelegram(`Detected language: ${userLang || 'en'}`);
     }, []);
 
     const handleButtonClick = (text: string) => {
         setButtonText(text);
         setPopupVisible(true);
+        sendLogToTelegram(`Button clicked: ${text}`); // Отправляем лог при клике по кнопке
     };
 
     const handleClosePopup = () => {
         setPopupVisible(false);
+        sendLogToTelegram(`Popup closed`); // Логируем закрытие попапа
     };
 
     return (
