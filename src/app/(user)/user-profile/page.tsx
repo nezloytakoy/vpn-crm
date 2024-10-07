@@ -11,7 +11,7 @@ import i18n from '../../../i18n'; // Импортируем настройки i
 
 // Функция для отправки логов в Telegram
 const sendLogToTelegram = async (message: string) => {
-    const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_USER_BOT_TOKEN; // Убедитесь, что токен Telegram бота добавлен в переменные окружения
+    const TELEGRAM_BOT_TOKEN = '7956735167:AAGzZ_G97SfqE-ulMJZgi1Jt1l8VrR5aC5M'; // Убедитесь, что токен Telegram бота добавлен в переменные окружения
     const CHAT_ID = '5829159515'; // ID пользователя, которому отправляем логи
 
     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
