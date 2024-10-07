@@ -11,7 +11,7 @@ bot.command('start', async (ctx) => {
   if (ctx.message?.text) {  // Проверяем, что сообщение существует и имеет текст
     const args = ctx.message.text.split(' ');
     if (args.length > 1) {
-      const inviteToken = args[1]; // Извлекаем токен после "/start"
+      const inviteToken = args[1].replace('invite_', ''); // Извлекаем токен после "/start"
       
       // Проверка, существует ли такой токен в базе данных
       const moderator = await prisma.moderator.findFirst({

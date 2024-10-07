@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client'; 
 import { nanoid } from 'nanoid'; // Для генерации уникальных токенов
 
 const prisma = new PrismaClient();
@@ -25,16 +25,20 @@ export async function POST(req: Request) {
       });
     }
 
-    // Сохраняем нового модератора с логином и паролем
+    // Генерируем уникальный inviteToken
+    const inviteToken = nanoid(10);
+
+    // Сохраняем нового модератора с логином, паролем и токеном приглашения
     await prisma.moderator.create({
       data: {
         login, // Логин для модератора
         password, // Пароль для модератора
+        inviteToken, // Токен приглашения
       },
     });
 
     // Генерируем ссылку на бота для модераторов
-    const inviteLink = `https://t.me/vpn_srm_adminbot?start=invite_${nanoid(10)}`; // Используем токен в ссылке
+    const inviteLink = `https://t.me/vpn_srm_adminbot?start=invite_${inviteToken}`; // Используем токен в ссылке
 
     return new Response(JSON.stringify({ link: inviteLink }), {
       status: 200,
