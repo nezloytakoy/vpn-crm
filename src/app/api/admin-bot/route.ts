@@ -130,6 +130,7 @@ adminBot.on('message:text', async (ctx) => {
         }
         await ctx.reply('Сообщение успешно отправлено.');
       } catch (error) {
+        console.error('Ошибка при отправке сообщения:', error); // Логирование ошибки
         await ctx.reply('Ошибка при отправке сообщения. Проверьте ID.');
       }
     }
