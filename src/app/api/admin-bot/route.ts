@@ -119,7 +119,7 @@ adminBot.on('message:text', async (ctx) => {
     const targetId = moderatorState[modId]?.targetId;
 
     if (targetId) {
-      const targetMessage = `Сообщение от модератора: ${ctx.message.text}`;
+      const targetMessage = `Сообщение от модератора:\n\n${ctx.message.text}`;
       try {
         if (currentState === 'awaiting_message_user') {
           // Отправляем сообщение пользователю через userBot
