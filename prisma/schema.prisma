@@ -20,12 +20,14 @@ model Moderator {
   login        String   @unique
   password     String
   telegramId   BigInt?  @unique  // Telegram ID модератора (необязательное поле)
+  inviteToken  String?  @unique  // Сделано необязательным
   role         String   @default("moderator") // Роль по умолчанию "модератор"
   isActive     Boolean  @default(true) // Флаг активности модератора
   lastActiveAt DateTime @default(now()) // Время последней активности
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
+
 
 
 
