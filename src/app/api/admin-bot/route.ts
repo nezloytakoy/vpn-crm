@@ -98,6 +98,7 @@ adminBot.on('message:text', async (ctx) => {
   if (currentState === 'awaiting_user_id' || currentState === 'awaiting_assistant_id') {
     const id = ctx.message.text;
 
+    // Проверяем, что ID состоит из 9 цифр и является числом
     if (!/^\d{9}$/.test(id)) { // Проверка, что ID состоит из 9 цифр
       await ctx.reply('ID должен состоять из 9 цифр. Попробуйте снова.');
       return;
@@ -105,23 +106,30 @@ adminBot.on('message:text', async (ctx) => {
 
     // Сохраняем ID пользователя или ассистента
     moderatorState[modId].targetId = id;
-    moderatorState[modId].state = 'awaiting_message';
+
+    // Теперь определим, для пользователя или ассистента мы ожидаем сообщение
+    if (currentState === 'awaiting_user_id') {
+      moderatorState[modId].state = 'awaiting_message_user';
+    } else {
+      moderatorState[modId].state = 'awaiting_message_assistant';
+    }
+
     await ctx.reply('Напишите ваше сообщение.');
-  } else if (currentState === 'awaiting_message') {
+  } else if (currentState === 'awaiting_message_user' || currentState === 'awaiting_message_assistant') {
     const targetId = moderatorState[modId]?.targetId;
 
     if (targetId) {
       const targetMessage = `Сообщение от модератора: ${ctx.message.text}`;
       try {
-        if (moderatorState[modId].state === 'awaiting_user_id') {
+        if (currentState === 'awaiting_message_user') {
           // Отправляем сообщение пользователю через userBot
           await userBot.api.sendMessage(Number(targetId), targetMessage);
-        } else if (moderatorState[modId].state === 'awaiting_assistant_id') {
+        } else if (currentState === 'awaiting_message_assistant') {
           // Отправляем сообщение ассистенту через supportBot
           await supportBot.api.sendMessage(Number(targetId), targetMessage);
         }
         await ctx.reply('Сообщение успешно отправлено.');
-      } catch {
+      } catch (error) {
         await ctx.reply('Ошибка при отправке сообщения. Проверьте ID.');
       }
     }
