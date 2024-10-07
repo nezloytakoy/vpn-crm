@@ -31,6 +31,8 @@ function Page() {
 
     const [inputValuesAssistant, setInputValuesAssistant] = useState<string[]>(['60', '120', '180', '240']);
 
+    
+
 
     const [inputValuesAI, setInputValuesAI] = useState<string[]>(['60', '120', '180', '240']);
 

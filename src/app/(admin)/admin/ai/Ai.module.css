@@ -1,0 +1,280 @@
+.main {
+    height: auto;
+    width: 100%;
+    background-color: #F1F5F9;
+    display: flex;
+    padding: 50px;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+
+}
+
+.settings {
+    display: flex;
+    width: 100%;
+    max-width: 1200px;
+    min-width: 1200px;
+}
+
+.columnblock {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.messagebox {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    background-color: white;
+    width: 550px;
+    height: 250px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 30px;
+    font-weight: 500;
+    margin-bottom: 40px;
+}
+
+.gifttitle {
+    margin-bottom: 20px;
+    font-size: 22px;
+}
+
+.undertitletwo {
+    margin-bottom: 10px;
+    margin-top: 20px;
+}
+
+.undertitletwo {
+    font-size: 16px;
+    color: #333;
+    margin-right: 10px;
+    font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.inputContainertwo {
+    display: flex;
+    align-items: center;
+    border: 1px solid #e5e5e5;
+    border-radius: 5px;
+    padding: 10px;
+    background-color: #fff;
+    width: 100%;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.inputFieldtwo {
+    border: none;
+    outline: none;
+    font-size: 16px;
+    color: #333;
+    width: 90%;
+    background-color: transparent;
+}
+
+
+.label {
+    margin-left: 10px;
+    vertical-align: middle;
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+    color: #333;
+}
+
+.submitButtontwo {
+    background-color: #365CF5;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background-color 0.3s ease;
+    width: 100%;
+}
+
+.messageboxthree {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    background-color: white;
+    width: 550px;
+    height: 325px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 30px;
+    font-weight: 500;
+    margin-bottom: 40px;
+}
+
+.title {
+    font-size: 25px;
+    font-weight: 500;
+    margin-bottom: 30px;
+    font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.undertitle {
+    margin-bottom: 10px;
+}
+
+.input {
+    background-color: #F7F7F7;
+    border-radius: 5px;
+    border: 1px solid #E5E5E5;
+    width: 100%;
+    height: 100px;
+    padding: 10px;
+    font-size: 16px;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    transition: border-color 0.3s ease;
+    resize: none;
+}
+
+.input:focus {
+    border-color: #365CF5;
+    background-color: white;
+    outline: none;
+}
+
+.submitButton {
+    background-color: #365CF5;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background-color 0.3s ease;
+    width: 100%;
+}
+
+.submitButton:hover {
+    background-color: #2b4ec9;
+}
+
+.submitButtontwo {
+    background-color: #365CF5;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background-color 0.3s ease;
+    width: 100%;
+}
+
+.submitButton {
+    background-color: #365cf5;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+    font-size: 16px;
+}
+
+.submitButton:hover {
+    background-color: #2b4ec9;
+}
+
+
+@media (max-width: 1200px) {
+    .main {
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+    }
+
+    .settings {
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+    }
+
+
+
+    .settings {
+        display: flex;
+        width: 100%;
+        max-width: 1200px;
+        min-width: 0px;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .columnblock {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+
+    }
+
+    .messagebox,
+    .messageboxtwo,
+    .messageboxthree,
+    .messageboxfour,
+    .messageboxfive {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        background-color: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        padding: 20px;
+        font-weight: 500;
+        margin-bottom: 40px;
+        width: 100%;
+        height: auto;
+    }
+
+    .gifttitle {
+        font-size: 18px;
+    }
+
+    .label {
+        padding: 0;
+        margin: 0;
+        margin-top: 10px;
+    }
+
+    .messagebox,
+    .messageboxtwo,
+    .messageboxthree,
+    .messageboxfour,
+    .messageboxfive {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        background-color: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        padding: 30px;
+        font-weight: 500;
+        margin-bottom: 40px;
+        width: 100%;
+        height: auto;
+    }
+
+    .messagebox,
+    .messageboxtwo,
+    .messageboxthree,
+    .messageboxfour,
+    .messageboxfive {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        background-color: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        padding: 20px;
+        font-weight: 500;
+        margin-bottom: 40px;
+        width: 100%;
+        height: auto;
+    }
+
+    .title {
+        font-size: 18px;
+        
+    }
+
+}

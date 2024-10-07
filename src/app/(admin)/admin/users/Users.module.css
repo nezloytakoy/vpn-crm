@@ -367,7 +367,6 @@ input:checked+.slider:hover {
     font-family: "Plus Jakarta Sans", sans-serif;
     text-align: right;
     width: 60px;
-    /* Adjust as needed */
 }
 
 .percentageSliderContainer {

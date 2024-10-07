@@ -107,11 +107,12 @@ function AdminSidebar() {
                     </ul>
                 </nav>
             </div>
-
-            <div className={styles.blueSquare}>
-                <FaCog className={styles.gearIcon} />
-                AI
-            </div>
+            <Link href="/admin/ai" className={styles.navLink} onClick={handleLinkClick}>
+                <div className={styles.blueSquare}>
+                    <FaCog className={styles.gearIcon} />
+                    AI
+                </div>
+            </Link>
         </div>
     );
 }
