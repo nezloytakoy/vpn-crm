@@ -2,11 +2,8 @@ import { Bot } from "grammy";
 
 const bot = new Bot(process.env.TELEGRAM_USER_BOT_TOKEN!);
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
-    const body = await request.json();
-    // Если userId не нужен, просто удаляем эту строку:
-    // const { userId } = body;
 
     const title = "Оплата через Звезды Telegram";
     const description = "Оплата за товар через звезды Telegram.";
