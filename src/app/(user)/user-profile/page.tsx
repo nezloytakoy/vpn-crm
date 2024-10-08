@@ -101,15 +101,15 @@ const WaveComponent = () => {
                             setSubscriptionType(t('only_ai'));
                             break;
                         default:
-                            setSubscriptionType(t('subscription')); // FREE подписка
+                            setSubscriptionType(t('subscription'));
                             break;
                     }
                 }
 
-                setAssistantRequests(requestsData.assistantRequests || 0); // Устанавливаем значение из базы
+                setAssistantRequests(requestsData.assistantRequests || 0);
             } catch (error) {
                 console.error('Ошибка при получении данных:', error);
-                setSubscriptionType(t('subscription')); // Отображаем FREE подписку в случае ошибки
+                setSubscriptionType(t('subscription'));
             }
         };
 

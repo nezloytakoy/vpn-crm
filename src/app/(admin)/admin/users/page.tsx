@@ -29,9 +29,9 @@ function Page() {
     const [checkboxesNotifications, setCheckboxesNotifications] = useState<boolean[]>([false, false, false, false]);
 
 
-    const [inputValuesAssistant, setInputValuesAssistant] = useState<string[]>(['60', '120', '180', '240']);
+    const [inputValuesAssistant, setInputValuesAssistant] = useState<string[]>(['5', '14', '30', '3']);
 
-    
+
 
 
     const [inputValuesAI, setInputValuesAI] = useState<string[]>(['60', '120', '180', '240']);
@@ -279,10 +279,11 @@ function Page() {
                                             onChange={() => handleCheckboxChangeNotifications(index)}
                                         />
                                         <span className={styles.animatedCheckbox}></span>
-                                        <span>{`Категория пользователей №${index + 1}`}</span>
+                                        <span>{index === 3 ? 'Только AI' : `AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}</span>
                                     </label>
                                 ))}
                             </div>
+
                             <h1 className={styles.undertitle}>Форма для сообщения</h1>
                             <textarea className={styles.input} placeholder="Сообщение" />
                             <button className={styles.submitButton}>Отправить</button>
@@ -293,7 +294,7 @@ function Page() {
                             {inputValuesAssistant.map((value, index) => (
                                 <div key={index}>
                                     <h1 className={styles.undertitletwo}>
-                                        {`Введите количество для категории пользователей №${index + 1}`}
+                                        {index === 3 ? 'Только AI' : `Введите количество для категории AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}
                                     </h1>
                                     <div className={styles.inputContainertwo}>
                                         <input
@@ -307,11 +308,13 @@ function Page() {
                                     </div>
                                 </div>
                             ))}
+
                             <button className={styles.submitButtontwo}>Подтвердить</button>
                         </div>
                         <div className={styles.messagebox}>
                             <h1 className={styles.gifttitle}>Процент от приглашенных пользователей</h1>
                             <div className={styles.percentageHeader}>
+
                                 <h1 className={styles.undertitletwo}>Выберите процент</h1>
                                 <div className={styles.percentageDisplay}>{percentage}%</div>
                             </div>
@@ -328,17 +331,12 @@ function Page() {
                             </div>
                             <button className={styles.submitButton}>Подтвердить</button>
                         </div>
-                    </div>
-
-
-                    <div className={styles.columnblock}>
-
                         <div className={styles.messagebox}>
-                            <h1 className={styles.gifttitle}>Количество запросов к ИИ</h1>
-                            {inputValuesAI.map((value, index) => (
+                            <h1 className={styles.gifttitle}>Стоимость тарифов</h1>
+                            {inputValuesAssistant.map((value, index) => (
                                 <div key={index}>
                                     <h1 className={styles.undertitletwo}>
-                                        {`Введите количество для категории пользователей №${index + 1}`}
+                                        {index === 3 ? 'Только AI' : `Стоимость тарифа AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}
                                     </h1>
                                     <div className={styles.inputContainertwo}>
                                         <input
@@ -346,12 +344,41 @@ function Page() {
                                             className={styles.inputFieldtwo}
                                             placeholder={value}
                                             value={value}
-                                            onChange={(e) => handleInputChangeAI(index, e.target.value)}
+                                            onChange={(e) => handleInputChangeAssistant(index, e.target.value)}
+                                        />
+                                        <span className={styles.label}>$</span>
+                                    </div>
+                                </div>
+                            ))}
+
+                            <button className={styles.submitButtontwo}>Подтвердить</button>
+                        </div>
+
+                    </div>
+
+
+                    <div className={styles.columnblock}>
+
+                        <div className={styles.messagebox}>
+                            <h1 className={styles.gifttitle}>Количество запросов к ИИ</h1>
+                            {inputValuesAssistant.map((value, index) => (
+                                <div key={index}>
+                                    <h1 className={styles.undertitletwo}>
+                                        {index === 3 ? 'Только AI' : `Введите количество для категории AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}
+                                    </h1>
+                                    <div className={styles.inputContainertwo}>
+                                        <input
+                                            type="text"
+                                            className={styles.inputFieldtwo}
+                                            placeholder={value}
+                                            value={value}
+                                            onChange={(e) => handleInputChangeAssistant(index, e.target.value)}
                                         />
                                         <span className={styles.label}>Запросов</span>
                                     </div>
                                 </div>
                             ))}
+
                             <button className={styles.submitButtontwo}>Подтвердить</button>
                         </div>
 
@@ -378,7 +405,7 @@ function Page() {
                                             onChange={() => handleCheckboxChangeVoiceAI(index)}
                                         />
                                         <span className={styles.animatedCheckbox}></span>
-                                        <span>{`Категория пользователей №${index + 1}`}</span>
+                                        <span>{index === 3 ? 'Только AI' : `AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}</span>
                                     </label>
                                 ))}
                             </div>
@@ -395,15 +422,15 @@ function Page() {
                                 <span className={styles.label}>Разрешить отправку голосовых сообщений ассистенту</span>
                             </div>
                             <div className={styles.checkboxContainer}>
-                                {checkboxesVoiceAssistant.map((checked, index) => (
+                                {checkboxesVoiceAI.map((checked, index) => (
                                     <label key={index} className={styles.checkboxLabel}>
                                         <input
                                             type="checkbox"
                                             checked={checked}
-                                            onChange={() => handleCheckboxChangeVoiceAssistant(index)}
+                                            onChange={() => handleCheckboxChangeVoiceAI(index)}
                                         />
                                         <span className={styles.animatedCheckbox}></span>
-                                        <span>{`Категория пользователей №${index + 1}`}</span>
+                                        <span>{index === 3 ? 'Только AI' : `AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}</span>
                                     </label>
                                 ))}
                             </div>
@@ -420,15 +447,15 @@ function Page() {
                                 <span className={styles.label}>Разрешить отправку видео ассистенту</span>
                             </div>
                             <div className={styles.checkboxContainer}>
-                                {checkboxesVideoAssistant.map((checked, index) => (
+                                {checkboxesVoiceAI.map((checked, index) => (
                                     <label key={index} className={styles.checkboxLabel}>
                                         <input
                                             type="checkbox"
                                             checked={checked}
-                                            onChange={() => handleCheckboxChangeVideoAssistant(index)}
+                                            onChange={() => handleCheckboxChangeVoiceAI(index)}
                                         />
                                         <span className={styles.animatedCheckbox}></span>
-                                        <span>{`Категория пользователей №${index + 1}`}</span>
+                                        <span>{index === 3 ? 'Только AI' : `AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}</span>
                                     </label>
                                 ))}
                             </div>
@@ -445,21 +472,22 @@ function Page() {
                                 <span className={styles.label}>Разрешить отправку файлов ассистенту</span>
                             </div>
                             <div className={styles.checkboxContainer}>
-                                {checkboxesFileAssistant.map((checked, index) => (
+                                {checkboxesVoiceAI.map((checked, index) => (
                                     <label key={index} className={styles.checkboxLabel}>
                                         <input
                                             type="checkbox"
                                             checked={checked}
-                                            onChange={() => handleCheckboxChangeFileAssistant(index)}
+                                            onChange={() => handleCheckboxChangeVoiceAI(index)}
                                         />
                                         <span className={styles.animatedCheckbox}></span>
-                                        <span>{`Категория пользователей №${index + 1}`}</span>
+                                        <span>{index === 3 ? 'Только AI' : `AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}</span>
                                     </label>
                                 ))}
                             </div>
 
                             <button className={styles.submitButtonthree}>Подтвердить</button>
                         </div>
+
                     </div>
                 </div>
             </div>
