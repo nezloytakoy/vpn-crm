@@ -2,10 +2,11 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export async function POST(request: Request) {
+export async function GET(request: Request) {
     try {
-        const body = await request.json();
-        const { telegramId } = body; // Получаем telegramId из запроса
+        // Извлекаем query-параметры из URL
+        const url = new URL(request.url);
+        const telegramId = url.searchParams.get('telegramId'); // Получаем telegramId из query-параметра
 
         if (!telegramId) {
             return new Response(JSON.stringify({ error: 'Telegram ID is required.' }), {
