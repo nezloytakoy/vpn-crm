@@ -43,7 +43,7 @@ model Invitation {
 
 
 model Assistant {
-  telegramId BigInt   @id @unique  // Telegram ID и id одновременно
+  telegramId BigInt   @id @unique 
   role       String   @default("assistant")
   isWorking  Boolean  @default(false)
   isBusy     Boolean  @default(false)
@@ -51,7 +51,7 @@ model Assistant {
   joinedAt   DateTime @default(now())
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  requests   AssistantRequest[]  // Связь с запросами
+  requests   AssistantRequest[] 
 }
 
 enum SubscriptionType {
@@ -63,7 +63,7 @@ enum SubscriptionType {
 }
 
 model User {
-  telegramId             BigInt   @id @unique  // Telegram ID и id одновременно
+  telegramId             BigInt   @id @unique 
   username               String?
   referralCount          Int      @default(0)
   subscriptionType       SubscriptionType  @default(FREE)
@@ -74,13 +74,13 @@ model User {
   isActiveAIChat         Boolean  @default(false)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
-  conversations          Conversation[]    // Связь с разговорами
-  requests               AssistantRequest[] // Связь с запросами ассистента
+  conversations          Conversation[]   
+  requests               AssistantRequest[]
 }
 
 model Conversation {
   id          BigInt   @id @default(autoincrement())  
-  user        User     @relation(fields: [userId], references: [telegramId])  // Связь через telegramId пользователя
+  user        User     @relation(fields: [userId], references: [telegramId])
   userId      BigInt   
   messages    Json     @default("[]")  // Храним сообщения в формате JSON
   createdAt   DateTime @default(now())
@@ -89,9 +89,9 @@ model Conversation {
 
 model AssistantRequest {
   id          BigInt   @id @default(autoincrement())  
-  user        User     @relation(fields: [userId], references: [telegramId])  // Связь через telegramId пользователя
+  user        User     @relation(fields: [userId], references: [telegramId])
   userId      BigInt   
-  assistant   Assistant @relation(fields: [assistantId], references: [telegramId])  // Связь через telegramId ассистента
+  assistant   Assistant @relation(fields: [assistantId], references: [telegramId])
   assistantId BigInt    
   message     String
   status      RequestStatus @default(PENDING)

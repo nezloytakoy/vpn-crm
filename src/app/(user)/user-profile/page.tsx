@@ -38,8 +38,8 @@ const WaveComponent = () => {
     const [buttonText, setButtonText] = useState('');
     const [telegramUsername, setTelegramUsername] = useState(''); 
     const [fontSize, setFontSize] = useState('24px');
-    const [subscriptionType, setSubscriptionType] = useState<string>(t('subscription')); // Тип подписки по умолчанию
-    const [error, setError] = useState<string | null>(null);
+    const [subscriptionType, setSubscriptionType] = useState<string>(t('subscription'));
+    const [assistantRequests, setAssistantRequests] = useState<number>(0); // Для отображения количества запросов к ассистенту
 
     useEffect(() => {
         const userLang = window?.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
@@ -69,20 +69,25 @@ const WaveComponent = () => {
         sendLogToTelegram(`Detected language: ${userLang || 'en'}`);
         sendLogToTelegram(`Username: ${displayName}`);
 
-        // Запрос к API для получения текущей подписки
-        const fetchSubscription = async () => {
+        // Запрос к API для получения текущей подписки и количества запросов к ассистенту
+        const fetchData = async () => {
             try {
                 if (!telegramId) {
                     throw new Error('Telegram ID не найден');
                 }
-                const response = await fetch(`/api/get-subscription?telegramId=${telegramId}`);
-                if (!response.ok) {
-                    throw new Error('Ошибка при получении подписки');
+                
+                const subscriptionResponse = await fetch(`/api/get-subscription?telegramId=${telegramId}`);
+                const requestsResponse = await fetch(`/api/get-requests?telegramId=${telegramId}`); // Предполагаемый API для запросов
+
+                if (!subscriptionResponse.ok || !requestsResponse.ok) {
+                    throw new Error('Ошибка при получении данных');
                 }
 
-                const data = await response.json();
-                if (data.subscriptionType) {
-                    switch (data.subscriptionType) {
+                const subscriptionData = await subscriptionResponse.json();
+                const requestsData = await requestsResponse.json();
+
+                if (subscriptionData.subscriptionType) {
+                    switch (subscriptionData.subscriptionType) {
                         case 'FIRST':
                             setSubscriptionType(t('ai_5_hours'));
                             break;
@@ -100,13 +105,15 @@ const WaveComponent = () => {
                             break;
                     }
                 }
+
+                setAssistantRequests(requestsData.assistantRequests || 0); // Устанавливаем значение из базы
             } catch (error) {
-                console.error('Ошибка при получении подписки:', error);
-                setError('Ошибка при получении подписки');
+                console.error('Ошибка при получении данных:', error);
+                setSubscriptionType(t('subscription')); // Отображаем FREE подписку в случае ошибки
             }
         };
 
-        fetchSubscription();
+        fetchData();
     }, []);
 
     const handleButtonClick = (text: string) => {
@@ -145,19 +152,15 @@ const WaveComponent = () => {
                                 height={130}
                                 className={styles.avatar}
                             />
-                            <p className={styles.name} style={{ fontSize }}>{telegramUsername}</p> {/* Изменяем шрифт в зависимости от длины имени */}
+                            <p className={styles.name} style={{ fontSize }}>{telegramUsername}</p>
                         </div>
                     </div>
                 </div>
             </div>
             <div className={styles.backbotom}>
                 <div className={styles.backbotom}>
-                    {error ? (
-                        <p className={styles.error}>{error}</p> // Выводим ошибку, если есть
-                    ) : (
-                        <p className={styles.time}>{subscriptionType}</p> // Выводим текущий тип подписки
-                    )}
-                    <p className={styles.time}>{t('time')}</p>
+                    <p className={styles.time}>{subscriptionType}</p>
+                    <p className={styles.time}>{t('time')}: {assistantRequests} hours</p> {/* Отображаем количество запросов к ассистенту */}
                     <div className={styles.parent}>
                         <div className={styles.leftblock} onClick={() => handleButtonClick(t('only_ai'))}>
                             <Image
@@ -209,6 +212,7 @@ const WaveComponent = () => {
                                 alt="avatar"
                                 width={80}
                                 height={80}
+                                className={styles.ai}
                             />
                             <p className={styles.aitext}>{t('referral')}</p>
                         </Link>
