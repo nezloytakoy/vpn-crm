@@ -38,6 +38,7 @@ const WaveComponent = () => {
     const [buttonText, setButtonText] = useState('');
     const [telegramUsername, setTelegramUsername] = useState(''); 
     const [fontSize, setFontSize] = useState('24px');
+    const [subscriptionType, setSubscriptionType] = useState<string>(t('subscription')); // Тип подписки по умолчанию
 
     useEffect(() => {
         const userLang = window?.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
@@ -55,7 +56,6 @@ const WaveComponent = () => {
         const displayName = username ? `@${username}` : `${firstName || ''} ${lastName || ''}`.trim();
         setTelegramUsername(displayName || 'Guest');
 
-
         if (displayName.length > 12) {
             setFontSize('19px');
         } else if (displayName.length > 8) {
@@ -66,6 +66,37 @@ const WaveComponent = () => {
 
         sendLogToTelegram(`Detected language: ${userLang || 'en'}`);
         sendLogToTelegram(`Username: ${displayName}`);
+
+        // Запрос к API для получения текущей подписки
+        const fetchSubscription = async () => {
+            try {
+                const response = await fetch('/api/get-subscription'); // Ваш API для получения подписки
+                const data = await response.json();
+                if (data.subscriptionType) {
+                    switch (data.subscriptionType) {
+                        case 'FIRST':
+                            setSubscriptionType(t('ai_5_hours'));
+                            break;
+                        case 'SECOND':
+                            setSubscriptionType(t('ai_14_hours'));
+                            break;
+                        case 'THIRD':
+                            setSubscriptionType(t('ai_30_hours'));
+                            break;
+                        case 'FOURTH':
+                            setSubscriptionType(t('only_ai'));
+                            break;
+                        default:
+                            setSubscriptionType(t('subscription')); // FREE подписка
+                            break;
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка при получении подписки:', error);
+            }
+        };
+
+        fetchSubscription();
     }, []);
 
     const handleButtonClick = (text: string) => {
@@ -111,7 +142,7 @@ const WaveComponent = () => {
             </div>
             <div className={styles.backbotom}>
                 <div className={styles.backbotom}>
-                    <p className={styles.time}>{t('subscription')}</p>
+                    <p className={styles.time}>{subscriptionType}</p> {/* Выводим текущий тип подписки */}
                     <p className={styles.time}>{t('time')}</p>
                     <div className={styles.parent}>
                         <div className={styles.leftblock} onClick={() => handleButtonClick(t('only_ai'))}>
