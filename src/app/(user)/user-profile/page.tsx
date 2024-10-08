@@ -160,7 +160,7 @@ const WaveComponent = () => {
             <div className={styles.backbotom}>
                 <div className={styles.backbotom}>
                     <p className={styles.time}>{subscriptionType}</p>
-                    <p className={styles.time}>{t('time')}: {assistantRequests} hours</p> {/* Отображаем количество запросов к ассистенту */}
+                    <p className={styles.time}>{t('time')}: {assistantRequests} {t('requests')}</p> {/* Отображаем количество запросов к ассистенту */}
                     <div className={styles.parent}>
                         <div className={styles.leftblock} onClick={() => handleButtonClick(t('only_ai'))}>
                             <Image

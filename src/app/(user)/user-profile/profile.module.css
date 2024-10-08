@@ -123,6 +123,7 @@
     color: white;
     text-align: center;
     font-size: 14px;
+    width: 80px;
 }
 
 .section {
@@ -154,6 +155,11 @@
     width: 70px;
 }
 
+.aitext {
+    font-size: 13px;
+    text-align: center;
+    width: 100px;
+}
 
 
 
