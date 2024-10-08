@@ -7,12 +7,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Popup from './../../../components/Popup/Popup';
 import { useTranslation } from 'react-i18next';
-import i18n from '../../../i18n'; // Импортируем настройки i18n
+import i18n from '../../../i18n';
 
-// Функция для отправки логов в Telegram
 const sendLogToTelegram = async (message: string) => {
-    const TELEGRAM_BOT_TOKEN = '7956735167:AAGzZ_G97SfqE-ulMJZgi1Jt1l8VrR5aC5M'; // Убедитесь, что токен Telegram бота добавлен в переменные окружения
-    const CHAT_ID = '5829159515'; // ID пользователя, которому отправляем логи
+    const TELEGRAM_BOT_TOKEN = '7956735167:AAGzZ_G97SfqE-ulMJZgi1Jt1l8VrR5aC5M';
+    const CHAT_ID = '5829159515';
 
     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
     const body = {
@@ -37,30 +36,39 @@ const WaveComponent = () => {
     const { t } = useTranslation();
     const [isPopupVisible, setPopupVisible] = useState(false);
     const [buttonText, setButtonText] = useState('');
+    const [telegramUsername, setTelegramUsername] = useState(''); 
 
     useEffect(() => {
-        // Получение языка пользователя через Telegram WebApp SDK
         const userLang = window?.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
 
         if (userLang === 'ru') {
-            i18n.changeLanguage('ru'); // Переключаем язык на русский
+            i18n.changeLanguage('ru');
         } else {
-            i18n.changeLanguage('en'); // По умолчанию — английский
+            i18n.changeLanguage('en');
         }
 
-        // Отправляем лог о выбранном языке в Telegram
+    
+        const username = window?.Telegram?.WebApp?.initDataUnsafe?.user?.username;
+        const firstName = window?.Telegram?.WebApp?.initDataUnsafe?.user?.first_name;
+        const lastName = window?.Telegram?.WebApp?.initDataUnsafe?.user?.last_name;
+
+   
+        const displayName = username ? `@${username}` : `${firstName || ''} ${lastName || ''}`.trim();
+
+        setTelegramUsername(displayName || 'Guest'); 
         sendLogToTelegram(`Detected language: ${userLang || 'en'}`);
+        sendLogToTelegram(`Username: ${displayName}`);
     }, []);
 
     const handleButtonClick = (text: string) => {
         setButtonText(text);
         setPopupVisible(true);
-        sendLogToTelegram(`Button clicked: ${text}`); // Отправляем лог при клике по кнопке
+        sendLogToTelegram(`Button clicked: ${text}`);
     };
 
     const handleClosePopup = () => {
         setPopupVisible(false);
-        sendLogToTelegram(`Popup closed`); // Логируем закрытие попапа
+        sendLogToTelegram(`Popup closed`);
     };
 
     return (
@@ -79,7 +87,7 @@ const WaveComponent = () => {
                 />
                 <div className={styles.topbotom}>
                     <div className={styles.greetings}>
-                        {t('greeting')}, {/* Переводим текст */}
+                        {t('greeting')},
                         <div className={styles.avatarbox}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg"
@@ -88,15 +96,15 @@ const WaveComponent = () => {
                                 height={130}
                                 className={styles.avatar}
                             />
-                            <p className={styles.name}> John Doe </p>
+                            <p className={styles.name}>{telegramUsername}</p> {/* Отображаем ник или имя пользователя */}
                         </div>
                     </div>
                 </div>
             </div>
             <div className={styles.backbotom}>
                 <div className={styles.backbotom}>
-                    <p className={styles.time}>{t('subscription')}</p> {/* Переводим текст */}
-                    <p className={styles.time}>{t('time')}</p> {/* Переводим текст */}
+                    <p className={styles.time}>{t('subscription')}</p>
+                    <p className={styles.time}>{t('time')}</p>
                     <div className={styles.parent}>
 
                         <div className={styles.leftblock} onClick={() => handleButtonClick(t('only_ai'))}>
@@ -107,7 +115,7 @@ const WaveComponent = () => {
                                 height={90}
                                 className={styles.ai}
                             />
-                            <p className={styles.text}>{t('only_ai')}</p> {/* Переводим текст */}
+                            <p className={styles.text}>{t('only_ai')}</p>
                         </div>
 
                         <div className={styles.centerblock} onClick={() => handleButtonClick(t('ai_5_hours'))}>
@@ -118,7 +126,7 @@ const WaveComponent = () => {
                                 height={100}
                                 className={styles.ai}
                             />
-                            <p className={styles.text}>{t('ai_5_hours')}</p> {/* Переводим текст */}
+                            <p className={styles.text}>{t('ai_5_hours')}</p>
                         </div>
 
                         <div className={styles.rightblock} onClick={() => handleButtonClick(t('ai_14_hours'))}>
@@ -129,7 +137,7 @@ const WaveComponent = () => {
                                 height={105}
                                 className={styles.ai}
                             />
-                            <p className={styles.text}>{t('ai_14_hours')}</p> {/* Переводим текст */}
+                            <p className={styles.text}>{t('ai_14_hours')}</p>
                         </div>
                     </div>
 
@@ -143,7 +151,7 @@ const WaveComponent = () => {
                                 height={80}
                                 className={styles.ai}
                             />
-                            <p className={styles.aitext}>{t('ai_30_hours')}</p> {/* Переводим текст */}
+                            <p className={styles.aitext}>{t('ai_30_hours')}</p>
                         </div>
 
                         <Link href="/referal-page" className={styles.block}>
@@ -154,7 +162,7 @@ const WaveComponent = () => {
                                 height={80}
                                 className={styles.ai}
                             />
-                            <p className={styles.aitext}>{t('referral')}</p> {/* Переводим текст */}
+                            <p className={styles.aitext}>{t('referral')}</p>
                         </Link>
                     </div>
                 </div>
