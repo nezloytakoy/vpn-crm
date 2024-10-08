@@ -39,6 +39,7 @@ const WaveComponent = () => {
     const [telegramUsername, setTelegramUsername] = useState(''); 
     const [fontSize, setFontSize] = useState('24px');
     const [subscriptionType, setSubscriptionType] = useState<string>(t('subscription')); // Тип подписки по умолчанию
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const userLang = window?.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
@@ -52,6 +53,7 @@ const WaveComponent = () => {
         const username = window?.Telegram?.WebApp?.initDataUnsafe?.user?.username;
         const firstName = window?.Telegram?.WebApp?.initDataUnsafe?.user?.first_name;
         const lastName = window?.Telegram?.WebApp?.initDataUnsafe?.user?.last_name;
+        const telegramId = window?.Telegram?.WebApp?.initDataUnsafe?.user?.id;
 
         const displayName = username ? `@${username}` : `${firstName || ''} ${lastName || ''}`.trim();
         setTelegramUsername(displayName || 'Guest');
@@ -70,7 +72,14 @@ const WaveComponent = () => {
         // Запрос к API для получения текущей подписки
         const fetchSubscription = async () => {
             try {
-                const response = await fetch('/api/get-subscription'); // Ваш API для получения подписки
+                if (!telegramId) {
+                    throw new Error('Telegram ID не найден');
+                }
+                const response = await fetch(`/api/get-subscription?telegramId=${telegramId}`);
+                if (!response.ok) {
+                    throw new Error('Ошибка при получении подписки');
+                }
+
                 const data = await response.json();
                 if (data.subscriptionType) {
                     switch (data.subscriptionType) {
@@ -93,6 +102,7 @@ const WaveComponent = () => {
                 }
             } catch (error) {
                 console.error('Ошибка при получении подписки:', error);
+                setError('Ошибка при получении подписки');
             }
         };
 
@@ -142,7 +152,11 @@ const WaveComponent = () => {
             </div>
             <div className={styles.backbotom}>
                 <div className={styles.backbotom}>
-                    <p className={styles.time}>{subscriptionType}</p> {/* Выводим текущий тип подписки */}
+                    {error ? (
+                        <p className={styles.error}>{error}</p> // Выводим ошибку, если есть
+                    ) : (
+                        <p className={styles.time}>{subscriptionType}</p> // Выводим текущий тип подписки
+                    )}
                     <p className={styles.time}>{t('time')}</p>
                     <div className={styles.parent}>
                         <div className={styles.leftblock} onClick={() => handleButtonClick(t('only_ai'))}>
@@ -195,7 +209,6 @@ const WaveComponent = () => {
                                 alt="avatar"
                                 width={80}
                                 height={80}
-                                className={styles.ai}
                             />
                             <p className={styles.aitext}>{t('referral')}</p>
                         </Link>
