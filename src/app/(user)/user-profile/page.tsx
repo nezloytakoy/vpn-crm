@@ -37,6 +37,7 @@ const WaveComponent = () => {
     const [isPopupVisible, setPopupVisible] = useState(false);
     const [buttonText, setButtonText] = useState('');
     const [telegramUsername, setTelegramUsername] = useState(''); 
+    const [fontSize, setFontSize] = useState('24px');
 
     useEffect(() => {
         const userLang = window?.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
@@ -47,15 +48,22 @@ const WaveComponent = () => {
             i18n.changeLanguage('en');
         }
 
-    
         const username = window?.Telegram?.WebApp?.initDataUnsafe?.user?.username;
         const firstName = window?.Telegram?.WebApp?.initDataUnsafe?.user?.first_name;
         const lastName = window?.Telegram?.WebApp?.initDataUnsafe?.user?.last_name;
 
-   
         const displayName = username ? `@${username}` : `${firstName || ''} ${lastName || ''}`.trim();
+        setTelegramUsername(displayName || 'Guest');
 
-        setTelegramUsername(displayName || 'Guest'); 
+
+        if (displayName.length > 12) {
+            setFontSize('18px');
+        } else if (displayName.length > 8) {
+            setFontSize('20px');
+        } else {
+            setFontSize('24px');
+        }
+
         sendLogToTelegram(`Detected language: ${userLang || 'en'}`);
         sendLogToTelegram(`Username: ${displayName}`);
     }, []);
@@ -96,7 +104,7 @@ const WaveComponent = () => {
                                 height={130}
                                 className={styles.avatar}
                             />
-                            <p className={styles.name}>{telegramUsername}</p> {/* Отображаем ник или имя пользователя */}
+                            <p className={styles.name} style={{ fontSize }}>{telegramUsername}</p> {/* Изменяем шрифт в зависимости от длины имени */}
                         </div>
                     </div>
                 </div>
@@ -106,7 +114,6 @@ const WaveComponent = () => {
                     <p className={styles.time}>{t('subscription')}</p>
                     <p className={styles.time}>{t('time')}</p>
                     <div className={styles.parent}>
-
                         <div className={styles.leftblock} onClick={() => handleButtonClick(t('only_ai'))}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-JV9mpH87gcyosXasiIjyWSapEkqbaQ.png"
@@ -117,7 +124,6 @@ const WaveComponent = () => {
                             />
                             <p className={styles.text}>{t('only_ai')}</p>
                         </div>
-
                         <div className={styles.centerblock} onClick={() => handleButtonClick(t('ai_5_hours'))}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-three-cGoXQPamKncukOKvfhxY8Gwhd4xKpO.png"
@@ -128,7 +134,6 @@ const WaveComponent = () => {
                             />
                             <p className={styles.text}>{t('ai_5_hours')}</p>
                         </div>
-
                         <div className={styles.rightblock} onClick={() => handleButtonClick(t('ai_14_hours'))}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/GIU%20AMA%20255-02-kdT58Hckjc871B2UsslUF7ZrAg9SAi.png"
@@ -142,7 +147,6 @@ const WaveComponent = () => {
                     </div>
 
                     <div className={styles.section}>
-
                         <div className={styles.block} onClick={() => handleButtonClick(t('ai_30_hours'))}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-FlMUqahx2zNkY322YXOHKnGKchz1wT.gif"
