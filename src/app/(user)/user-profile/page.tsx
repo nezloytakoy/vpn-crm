@@ -36,7 +36,7 @@ const WaveComponent = () => {
     const { t } = useTranslation();
     const [isPopupVisible, setPopupVisible] = useState(false);
     const [buttonText, setButtonText] = useState('');
-    const [telegramUsername, setTelegramUsername] = useState(''); 
+    const [telegramUsername, setTelegramUsername] = useState('');
     const [fontSize, setFontSize] = useState('24px');
     const [subscriptionType, setSubscriptionType] = useState<string>(t('subscription'));
     const [assistantRequests, setAssistantRequests] = useState<number>(0); // Для отображения количества запросов к ассистенту
@@ -69,15 +69,14 @@ const WaveComponent = () => {
         sendLogToTelegram(`Detected language: ${userLang || 'en'}`);
         sendLogToTelegram(`Username: ${displayName}`);
 
-        // Запрос к API для получения текущей подписки и количества запросов к ассистенту
         const fetchData = async () => {
             try {
                 if (!telegramId) {
                     throw new Error('Telegram ID не найден');
                 }
-                
+
                 const subscriptionResponse = await fetch(`/api/get-subscription?telegramId=${telegramId}`);
-                const requestsResponse = await fetch(`/api/get-requests?telegramId=${telegramId}`); // Предполагаемый API для запросов
+                const requestsResponse = await fetch(`/api/get-requests?telegramId=${telegramId}`);
 
                 if (!subscriptionResponse.ok || !requestsResponse.ok) {
                     throw new Error('Ошибка при получении данных');
@@ -114,7 +113,8 @@ const WaveComponent = () => {
         };
 
         fetchData();
-    }, []);
+    }, [t]);  // Add 't' to the dependency array
+
 
     const handleButtonClick = (text: string) => {
         setButtonText(text);

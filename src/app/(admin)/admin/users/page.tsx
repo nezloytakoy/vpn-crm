@@ -92,25 +92,12 @@ function Page() {
         setCheckboxesVoiceAssistant(newToggleState ? [true, true, true, true] : [false, false, false, false]);
     };
 
-    const handleCheckboxChangeVoiceAssistant = (index: number) => {
-        const updatedCheckboxes = [...checkboxesVoiceAssistant];
-        updatedCheckboxes[index] = !updatedCheckboxes[index];
-        setCheckboxesVoiceAssistant(updatedCheckboxes);
-        setIsToggledVoiceAssistant(updatedCheckboxes.every((checkbox) => checkbox));
-    };
 
 
     const handleToggleChangeVideoAssistant = () => {
         const newToggleState = !isToggledVideoAssistant;
         setIsToggledVideoAssistant(newToggleState);
         setCheckboxesVideoAssistant(newToggleState ? [true, true, true, true] : [false, false, false, false]);
-    };
-
-    const handleCheckboxChangeVideoAssistant = (index: number) => {
-        const updatedCheckboxes = [...checkboxesVideoAssistant];
-        updatedCheckboxes[index] = !updatedCheckboxes[index];
-        setCheckboxesVideoAssistant(updatedCheckboxes);
-        setIsToggledVideoAssistant(updatedCheckboxes.every((checkbox) => checkbox));
     };
 
 
@@ -120,12 +107,6 @@ function Page() {
         setCheckboxesFileAssistant(newToggleState ? [true, true, true, true] : [false, false, false, false]);
     };
 
-    const handleCheckboxChangeFileAssistant = (index: number) => {
-        const updatedCheckboxes = [...checkboxesFileAssistant];
-        updatedCheckboxes[index] = !updatedCheckboxes[index];
-        setCheckboxesFileAssistant(updatedCheckboxes);
-        setIsToggledFileAssistant(updatedCheckboxes.every((checkbox) => checkbox));
-    };
 
 
     const handleInputChangeAssistant = (index: number, value: string) => {
@@ -134,12 +115,6 @@ function Page() {
         setInputValuesAssistant(updatedValues);
     };
 
-
-    const handleInputChangeAI = (index: number, value: string) => {
-        const updatedValues = [...inputValuesAI];
-        updatedValues[index] = value;
-        setInputValuesAI(updatedValues);
-    };
 
     const sliderStyle = {
         background: `linear-gradient(to right, #365CF5 0%, #365CF5 ${percentage}%, #e5e5e5 ${percentage}%, #e5e5e5 100%)`,
