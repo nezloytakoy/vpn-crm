@@ -1,19 +1,20 @@
-"use client"
+"use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Wave from 'react-wavify';
 import styles from './referal.module.css';
 import Image from 'next/image';
 import Link from 'next/link';
-
+import { useTranslation } from 'react-i18next';
+import i18n from '../../../i18n';
 
 interface PopupProps {
     isVisible: boolean;
     onClose: () => void;
 }
 
-
 const Popup: React.FC<PopupProps> = ({ isVisible, onClose }) => {
+    const { t } = useTranslation();
     const [isClosing, setIsClosing] = useState(false);
 
     const handleClose = () => {
@@ -41,19 +42,30 @@ const Popup: React.FC<PopupProps> = ({ isVisible, onClose }) => {
                         height={150}
                     />
                 </div>
-                <p>Запрос на вывод отправлен;<br />сĸоро
-                    с вами свяжется поддержĸа</p>
+                <p>{t('withdraw_request')}</p>
                 <button className={styles.confirmButton} onClick={handleClose}>
-                    <Link href="/user-profile">Вернуться к профилю</Link>
+                    <Link href="/user-profile">{t('return_profile')}</Link>
                 </button>
             </div>
         </div>
     );
 };
 
-
 function Page() {
+    const { t } = useTranslation();
     const [isPopupVisible, setPopupVisible] = useState(false);
+
+    useEffect(() => {
+        // Определяем язык пользователя через Telegram WebApp API
+        const userLang = window?.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
+
+        // Меняем язык в зависимости от Telegram интерфейса пользователя
+        if (userLang === 'ru') {
+            i18n.changeLanguage('ru'); // Устанавливаем русский язык
+        } else {
+            i18n.changeLanguage('en'); // Устанавливаем английский язык по умолчанию
+        }
+    }, []);
 
     const showPopup = () => {
         setPopupVisible(true);
@@ -79,7 +91,7 @@ function Page() {
                 />
                 <div className={styles.topbotom}>
                     <div className={styles.greetings}>
-                        Рефералы
+                        {t('referrals')}
                         <div className={styles.avatarbox}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg"
@@ -108,7 +120,7 @@ function Page() {
                             </div>
                             <div className={styles.textbox}>
                                 <p className={styles.num}>20$</p>
-                                <p className={styles.text}>Бонусы</p>
+                                <p className={styles.text}>{t('bonus')}</p>
                             </div>
                         </div>
                         <div className={styles.firstone}>
@@ -123,7 +135,7 @@ function Page() {
                             </div>
                             <div className={styles.textbox}>
                                 <p className={styles.num}>10$</p>
-                                <p className={styles.text}>Доступно</p>
+                                <p className={styles.text}>{t('available')}</p>
                             </div>
                         </div>
                         <div className={styles.firstone}>
@@ -138,13 +150,13 @@ function Page() {
                             </div>
                             <div className={styles.textbox}>
                                 <p className={styles.num}>2</p>
-                                <p className={styles.text}>Приглашено</p>
+                                <p className={styles.text}>{t('invited')}</p>
                             </div>
                         </div>
                     </div>
                     <div className={styles.buttonsContainer}>
-                        <div className={styles.button}>Сгенерировать ссылку</div>
-                        <div className={styles.button} onClick={showPopup}>Вывести</div>
+                        <div className={styles.button}>{t('generate_link')}</div>
+                        <div className={styles.button} onClick={showPopup}>{t('withdraw')}</div>
                     </div>
                 </div>
             </div>

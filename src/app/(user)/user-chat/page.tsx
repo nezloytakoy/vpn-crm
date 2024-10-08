@@ -122,7 +122,7 @@ function Page() {
           />
           <div className={styles.topbotom}>
             <div className={styles.greetings}>
-              {t('chatSettings')} {/* Переводим текст */}
+              {t('chat_settings')} {/* Переводим текст */}
               <div className={styles.avatarbox}>
                 <Image
                   src="https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg"
@@ -143,7 +143,7 @@ function Page() {
             width={200}
             height={200}
           />
-          <p className={styles.info}>{t('usingAI')}</p> {/* Переводим текст */}
+          <p className={styles.info}>{t('current_assistant_info')}</p>
           <div className={styles.buttonblock}>
             <div className={styles.button} onClick={handleAssistantClick}>
               <Image

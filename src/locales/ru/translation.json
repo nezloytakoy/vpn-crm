@@ -10,7 +10,7 @@
     "chat_settings": "Настройки чата",
     "assistant": "Ассистент",
     "ai": "Искусственный Интеллект",
-    "current_assistant_info": "В данный момент вы используете ИИ в качестве ассистента.",
+    "current_assistant_info": "В ДАННЫЙ МОМЕНТ ВЫ ИСПОЛЬЗУЕТЕ ИИ В КАЧЕСТВЕ АССИСТЕНТА.",
     "assistant_button": "Ассистент",
     "ai_button": "ИИ",
     "error_telegram_api": "Telegram WebApp API недоступен.",
@@ -18,6 +18,15 @@
     "error_server_response": "Не удалось выполнить запрос к серверу.",
     "error_unknown": "Произошла неизвестная ошибка.",
     "error_functionality": "Эта функция доступна только внутри приложения Telegram.",
-    "error_dialog_initiation": "Произошла ошибка при запуске диалога с ИИ."
+    "error_dialog_initiation": "Произошла ошибка при запуске диалога с ИИ.",
+    
+    "referrals": "Рефералы",
+    "bonus": "Бонусы",
+    "available": "Доступно",
+    "invited": "Приглашено",
+    "generate_link": "Сгенерировать ссылку",
+    "withdraw": "Вывести",
+    "withdraw_request": "Запрос на вывод отправлен; с вами свяжется поддержка",
+    "return_profile": "Вернуться к профилю"
   }
   
