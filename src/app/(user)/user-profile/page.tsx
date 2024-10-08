@@ -57,11 +57,11 @@ const WaveComponent = () => {
 
 
         if (displayName.length > 12) {
-            setFontSize('18px');
+            setFontSize('19px');
         } else if (displayName.length > 8) {
-            setFontSize('20px');
+            setFontSize('21px');
         } else {
-            setFontSize('24px');
+            setFontSize('25px');
         }
 
         sendLogToTelegram(`Detected language: ${userLang || 'en'}`);
