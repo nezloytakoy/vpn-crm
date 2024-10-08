@@ -5,9 +5,22 @@ import styles from "./chat.module.css";
 import Image from 'next/image';
 import Wave from 'react-wavify';
 import Script from 'next/script';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../../i18n'; // Импорт i18n для управления переводами
 
 function Page() {
+  const { t } = useTranslation();
+
   useEffect(() => {
+    // Получение языка пользователя через Telegram WebApp SDK
+    const userLang = window?.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
+
+    if (userLang === 'ru') {
+      i18n.changeLanguage('ru'); // Переключаем язык на русский
+    } else {
+      i18n.changeLanguage('en'); // По умолчанию — английский
+    }
+
     if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
       window.Telegram.WebApp.ready();
     } else {
@@ -21,7 +34,7 @@ function Page() {
         const currentUserId = window.Telegram.WebApp.initDataUnsafe.user?.id;
         console.log('Текущий userId:', currentUserId);
         if (!currentUserId) {
-          throw new Error('Не удалось получить идентификатор пользователя.');
+          throw new Error(t('errorNoUserId')); // Переводим текст
         }
 
         const response = await fetch('/api/request-assistant', {
@@ -34,7 +47,7 @@ function Page() {
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to call server route.');
+          throw new Error(errorData.error || t('errorServerRoute')); // Переводим текст
         }
 
         const data = await response.json();
@@ -43,13 +56,13 @@ function Page() {
       } catch (error) {
         console.error('Ошибка:', error);
         if (error instanceof Error) {
-          alert('Произошла ошибка: ' + error.message);
+          alert(t('errorOccurred') + error.message); // Переводим текст
         } else {
-          alert('Произошла неизвестная ошибка.');
+          alert(t('unknownError')); // Переводим текст
         }
       }
     } else {
-      alert('Эта функция доступна только внутри приложения Telegram.');
+      alert(t('onlyInApp')); // Переводим текст
     }
   };
 
@@ -59,7 +72,7 @@ function Page() {
         const currentUserId = window.Telegram.WebApp.initDataUnsafe.user?.id;
         console.log('Текущий userId:', currentUserId);
         if (!currentUserId) {
-          throw new Error('Не удалось получить идентификатор пользователя.');
+          throw new Error(t('errorNoUserId')); // Переводим текст
         }
 
         const response = await fetch('/api/initiate-ai-dialog', {
@@ -72,7 +85,7 @@ function Page() {
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to call server route.');
+          throw new Error(errorData.error || t('errorServerRoute')); // Переводим текст
         }
 
         const data = await response.json();
@@ -81,13 +94,13 @@ function Page() {
       } catch (error) {
         console.error('Ошибка:', error);
         if (error instanceof Error) {
-          alert('Произошла ошибка: ' + error.message);
+          alert(t('errorOccurred') + error.message); // Переводим текст
         } else {
-          alert('Произошла неизвестная ошибка.');
+          alert(t('unknownError')); // Переводим текст
         }
       }
     } else {
-      alert('Эта функция доступна только внутри приложения Telegram.');
+      alert(t('onlyInApp')); // Переводим текст
     }
   };
 
@@ -109,7 +122,7 @@ function Page() {
           />
           <div className={styles.topbotom}>
             <div className={styles.greetings}>
-              Настройки чата
+              {t('chatSettings')} {/* Переводим текст */}
               <div className={styles.avatarbox}>
                 <Image
                   src="https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg"
@@ -130,7 +143,7 @@ function Page() {
             width={200}
             height={200}
           />
-          <p className={styles.info}>В ДАННЫЙ МОМЕНТ ВЫ ИСПОЛЬЗУЕТЕ AI КАК АССИСТЕНТА.</p>
+          <p className={styles.info}>{t('usingAI')}</p> {/* Переводим текст */}
           <div className={styles.buttonblock}>
             <div className={styles.button} onClick={handleAssistantClick}>
               <Image
@@ -140,7 +153,7 @@ function Page() {
                 height={70}
                 className={styles.ai}
               />
-              <p className={styles.text}>Ассистент</p>
+              <p className={styles.text}>{t('assistant')}</p> {/* Переводим текст */}
               <div className={styles.void}></div>
             </div>
             <div className={styles.button} onClick={handleAIClick}>
@@ -151,7 +164,7 @@ function Page() {
                 height={70}
                 className={styles.ai}
               />
-              <p className={styles.text}>AI</p>
+              <p className={styles.text}>{t('ai')}</p> {/* Переводим текст */}
               <div className={styles.void}></div>
             </div>
           </div>
