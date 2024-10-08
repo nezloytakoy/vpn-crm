@@ -9,7 +9,7 @@
     "referral": "Реферальная программа",
     "chat_settings": "Настройки чата",
     "assistant": "Ассистент",
-    "ai": "Искусственный Интеллект",
+    "ai": "ИИ",
     "current_assistant_info": "В ДАННЫЙ МОМЕНТ ВЫ ИСПОЛЬЗУЕТЕ ИИ В КАЧЕСТВЕ АССИСТЕНТА.",
     "assistant_button": "Ассистент",
     "ai_button": "ИИ",
@@ -19,7 +19,6 @@
     "error_unknown": "Произошла неизвестная ошибка.",
     "error_functionality": "Эта функция доступна только внутри приложения Telegram.",
     "error_dialog_initiation": "Произошла ошибка при запуске диалога с ИИ.",
-    
     "referrals": "Рефералы",
     "bonus": "Бонусы",
     "available": "Доступно",
@@ -27,6 +26,16 @@
     "generate_link": "Сгенерировать ссылку",
     "withdraw": "Вывести",
     "withdraw_request": "Запрос на вывод отправлен; с вами свяжется поддержка",
-    "return_profile": "Вернуться к профилю"
+    "return_profile": "Вернуться к профилю",
+    "payment_methods": "Способы оплаты",
+    "to_pay": "К оплате: 5$",
+    "rubles": "Рубли",
+    "telegram_stars": "Звезды Telegram",
+    "ton_coin": "TON coin",
+    "usdt": "USDT",
+    "continue": "Продолжить",
+    "loading": "Загрузка...",
+    "invoice_error": "Ошибка создания инвойса",
+    "invoice_creation_failed": "Не удалось создать инвойс. Попробуйте снова позже."
   }
   
