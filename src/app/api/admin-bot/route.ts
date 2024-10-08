@@ -1,7 +1,7 @@
 import { Bot, InlineKeyboard, webhookCallback, Context } from 'grammy'; 
 import { PrismaClient } from '@prisma/client';
 
-// Боты для пользователей, ассистентов и модераторов
+
 const userBot = new Bot(process.env.TELEGRAM_USER_BOT_TOKEN!);
 const supportBot = new Bot(process.env.TELEGRAM_SUPPORT_BOT_TOKEN!);
 const adminBot = new Bot(process.env.TELEGRAM_ADMIN_BOT_TOKEN!);
@@ -10,15 +10,66 @@ const prisma = new PrismaClient();
 
 const moderatorState: { [moderatorId: number]: { state: string, targetId?: string } } = {};
 
-// Команда /start с проверкой токена и добавлением Telegram ID
+
+const translations = {
+  en: {
+    welcome: "👋 Welcome, now you have moderator privileges.",
+    invalid_link: "The link is invalid or has already been used.",
+    moderator_bot: "👋 This is a bot for moderators!",
+    command_error: "Error: Could not process the command. Please try again.",
+    user_id_prompt: "Enter the user ID (9 digits).",
+    assistant_id_prompt: "Enter the assistant ID (9 digits).",
+    id_invalid: "The ID must be 9 digits. Please try again.",
+    message_prompt: "Write your message.",
+    message_sent: "Message sent successfully.",
+    message_send_error: "Error sending the message. Please check the ID.",
+    arbitration_list: "List of current arbitrations.",
+    unknown_command: "I don't understand you.",
+    message_user: "Message to user",
+    message_assistant: "Message to assistant",
+    menu: "Main Menu",
+  },
+  ru: {
+    welcome: "👋 Добро пожаловать, теперь у вас есть полномочия модератора.",
+    invalid_link: "Неверная или уже использованная ссылка.",
+    moderator_bot: "👋 Это бот для модераторов!",
+    command_error: "Ошибка: не удалось обработать команду. Попробуйте снова.",
+    user_id_prompt: "Введите ID пользователя (9 цифр).",
+    assistant_id_prompt: "Введите ID ассистента (9 цифр).",
+    id_invalid: "ID должен состоять из 9 цифр. Попробуйте снова.",
+    message_prompt: "Напишите ваше сообщение.",
+    message_sent: "Сообщение успешно отправлено.",
+    message_send_error: "Ошибка при отправке сообщения. Проверьте ID.",
+    arbitration_list: "Список текущих арбитражей.",
+    unknown_command: "Я вас не понимаю.",
+    message_user: "Сообщение пользователю",
+    message_assistant: "Сообщение ассистенту",
+    menu: "Главное меню",
+  },
+};
+
+
+function getTranslation(lang: 'ru' | 'en', key: keyof typeof translations['en']): string {
+  return translations[lang][key] || translations['en'][key];
+}
+
+
+function detectUserLanguage(ctx: Context): 'ru' | 'en' {
+  const langCode = ctx.from?.language_code;
+  return langCode === 'ru' ? 'ru' : 'en';
+}
+
+
 adminBot.command('start', async (ctx) => {
+  const lang = detectUserLanguage(ctx);
+
   if (ctx.from?.id) {
     const moderator = await prisma.moderator.findFirst({
       where: { telegramId: BigInt(ctx.from.id) },
     });
 
     if (moderator) {
-      await showModeratorMenu(ctx);
+      await showModeratorMenu(ctx, lang);
     } else if (ctx.message?.text) {
       const args = ctx.message.text.split(' ');
       if (args.length > 1) {
@@ -37,84 +88,82 @@ adminBot.command('start', async (ctx) => {
             data: { telegramId: BigInt(ctx.from.id) },
           });
 
-          await ctx.reply(`👋 Добро пожаловать, ${ctx.from.username}! Теперь у вас есть полномочия модератора.`);
-          await showModeratorMenu(ctx);
+          await ctx.reply(getTranslation(lang, 'welcome'));
+          await showModeratorMenu(ctx, lang);
         } else {
-          await ctx.reply('Неверная или уже использованная ссылка.');
+          await ctx.reply(getTranslation(lang, 'invalid_link'));
         }
       } else {
-        await ctx.reply('👋 Это бот для модераторов!');
+        await ctx.reply(getTranslation(lang, 'moderator_bot'));
       }
     } else {
-      await ctx.reply('Ошибка: не удалось обработать команду. Попробуйте снова.');
+      await ctx.reply(getTranslation(lang, 'command_error'));
     }
   } else {
-    await ctx.reply('Ошибка: невозможно определить пользователя.');
+    await ctx.reply(getTranslation(lang, 'command_error'));
   }
 });
 
-// Функция для отображения меню модератора
-async function showModeratorMenu(ctx: Context) {
-  const keyboard = new InlineKeyboard()
-    .text('💬 Сообщение пользователю', 'message_user')
-    .row()
-    .text('👨‍💻 Сообщение ассистенту', 'message_assistant')
-    .row()
-    .text('⚖️ Текущие арбитражи', 'current_arbitrations');
 
-  await ctx.reply('📋 Меню:', { reply_markup: keyboard });
+async function showModeratorMenu(ctx: Context, lang: 'ru' | 'en') {
+  const keyboard = new InlineKeyboard()
+    .text('💬 ' + getTranslation(lang, 'message_user'), 'message_user')
+    .row()
+    .text('👨‍💻 ' + getTranslation(lang, 'message_assistant'), 'message_assistant')
+    .row()
+    .text('⚖️ ' + getTranslation(lang, 'arbitration_list'), 'current_arbitrations');
+
+  await ctx.reply(getTranslation(lang, 'menu'), { reply_markup: keyboard });
 }
 
-// Обработка нажатий на кнопки
+
 adminBot.callbackQuery('message_user', async (ctx) => {
+  const lang = detectUserLanguage(ctx);
   await ctx.answerCallbackQuery();
   moderatorState[ctx.from.id] = { state: 'awaiting_user_id' };
-  await ctx.reply('Введите ID пользователя (9 цифр).');
+  await ctx.reply(getTranslation(lang, 'user_id_prompt'));
 });
 
 adminBot.callbackQuery('message_assistant', async (ctx) => {
+  const lang = detectUserLanguage(ctx);
   await ctx.answerCallbackQuery();
   moderatorState[ctx.from.id] = { state: 'awaiting_assistant_id' };
-  await ctx.reply('Введите ID ассистента (9 цифр).');
+  await ctx.reply(getTranslation(lang, 'assistant_id_prompt'));
 });
 
-// Обработка текстовых сообщений модератора
+
 adminBot.on('message:text', async (ctx) => {
+  const lang = detectUserLanguage(ctx);
   const modId = ctx.from?.id;
   if (!modId) {
-    await ctx.reply('Ошибка: невозможно определить пользователя.');
+    await ctx.reply(getTranslation(lang, 'command_error'));
     return;
   }
 
   const currentState = moderatorState[modId]?.state;
 
   if (!currentState) {
-    // Если состояние неизвестно
-    await ctx.reply('Я вас не понимаю.');
+    await ctx.reply(getTranslation(lang, 'unknown_command'));
     return;
   }
 
-  // Проверка ID пользователя или ассистента
   if (currentState === 'awaiting_user_id' || currentState === 'awaiting_assistant_id') {
     const id = ctx.message.text;
 
-    // Проверяем, что ID состоит из 9 цифр и является числом
-    if (!/^\d{9}$/.test(id)) { // Проверка, что ID состоит из 9 цифр
-      await ctx.reply('ID должен состоять из 9 цифр. Попробуйте снова.');
+    if (!/^\d{9}$/.test(id)) {
+      await ctx.reply(getTranslation(lang, 'id_invalid'));
       return;
     }
 
-    // Сохраняем ID пользователя или ассистента
     moderatorState[modId].targetId = id;
 
-    // Теперь определим, для пользователя или ассистента мы ожидаем сообщение
     if (currentState === 'awaiting_user_id') {
-      moderatorState[modId].state = 'awaiting_message_user'; // Обновляем состояние для пользователя
+      moderatorState[modId].state = 'awaiting_message_user';
     } else {
-      moderatorState[modId].state = 'awaiting_message_assistant'; // Обновляем состояние для ассистента
+      moderatorState[modId].state = 'awaiting_message_assistant';
     }
 
-    await ctx.reply('Напишите ваше сообщение.');
+    await ctx.reply(getTranslation(lang, 'message_prompt'));
   } else if (currentState === 'awaiting_message_user' || currentState === 'awaiting_message_assistant') {
     const targetId = moderatorState[modId]?.targetId;
 
@@ -122,30 +171,27 @@ adminBot.on('message:text', async (ctx) => {
       const targetMessage = `Сообщение от модератора:\n\n${ctx.message.text}`;
       try {
         if (currentState === 'awaiting_message_user') {
-          // Отправляем сообщение пользователю через userBot
           await userBot.api.sendMessage(Number(targetId), targetMessage);
         } else if (currentState === 'awaiting_message_assistant') {
-          // Отправляем сообщение ассистенту через supportBot
           await supportBot.api.sendMessage(Number(targetId), targetMessage);
         }
-        await ctx.reply('Сообщение успешно отправлено.');
+        await ctx.reply(getTranslation(lang, 'message_sent'));
       } catch (error) {
-        console.error('Ошибка при отправке сообщения:', error); // Логирование ошибки
-        await ctx.reply('Ошибка при отправке сообщения. Проверьте ID.');
+        console.error('Ошибка при отправке сообщения:', error);
+        await ctx.reply(getTranslation(lang, 'message_send_error'));
       }
-    } else {
-      await ctx.reply('Не удалось определить целевой ID.');
     }
-    delete moderatorState[modId]; // Сбрасываем состояние модератора после отправки
+    delete moderatorState[modId];
   } else {
-    await ctx.reply('Я вас не понимаю.');
+    await ctx.reply(getTranslation(lang, 'unknown_command'));
   }
 });
 
 adminBot.callbackQuery('current_arbitrations', async (ctx) => {
+  const lang = detectUserLanguage(ctx);
   await ctx.answerCallbackQuery();
-  await ctx.reply('Список текущих арбитражей.');
+  await ctx.reply(getTranslation(lang, 'arbitration_list'));
 });
 
-// Webhook для Next.js
+
 export const POST = webhookCallback(adminBot, 'std/http');
