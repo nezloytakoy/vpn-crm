@@ -234,10 +234,16 @@ bot.command('end_work', async (ctx) => {
 
 bot.on('message', async (ctx) => {
   try {
+    // Проверяем, является ли сообщение командой
+    if (ctx.message?.text?.startsWith('/')) {
+      return; // Не обрабатываем команды как текстовые сообщения
+    }
+
     if (!ctx.from?.id) {
       await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
       return;
     }
+
     const telegramId = BigInt(ctx.from.id);
     const activeRequest = await prisma.assistantRequest.findFirst({
       where: {
@@ -246,21 +252,25 @@ bot.on('message', async (ctx) => {
       },
       include: { user: true },
     });
+
     if (!activeRequest) {
       await ctx.reply(getTranslation(detectUserLanguage(ctx), 'no_active_requests'));
       return;
     }
+
     const assistantMessage = ctx.message?.text;
     if (!assistantMessage) {
       await ctx.reply(getTranslation(detectUserLanguage(ctx), 'send_message_error'));
       return;
     }
+
     await sendTelegramMessageToUser(activeRequest.user.telegramId.toString(), assistantMessage);
   } catch (error) {
     console.error('Ошибка при пересылке сообщения пользователю:', error);
     await ctx.reply('Произошла ошибка при пересылке сообщения. Пожалуйста, попробуйте еще раз.');
   }
 });
+
 
 
 
@@ -331,8 +341,6 @@ bot.command('open_arbitration', async (ctx) => {
       },
     });
 
-
-
     // Отправляем сообщение ассистенту и пользователю
     await ctx.reply('Для решения спорной ситуации приглашен модератор.');
     await sendTelegramMessageToUser(
@@ -344,7 +352,7 @@ bot.command('open_arbitration', async (ctx) => {
     const moderators = await prisma.moderator.findMany({
       where: {
         telegramId: {
-          not: null, // Убедиться, что у модератора есть telegramId
+          not: null, // Убедиться, что у модераторов есть telegramId
         },
       },
     });
@@ -363,6 +371,7 @@ bot.command('open_arbitration', async (ctx) => {
     await ctx.reply('⚠️ Произошла ошибка при открытии арбитража. Пожалуйста, попробуйте еще раз.');
   }
 });
+
 
 // Функция для отправки сообщений пользователю
 async function sendTelegramMessageToUser(chatId: string, text: string) {
