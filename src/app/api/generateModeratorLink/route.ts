@@ -6,10 +6,10 @@ const prisma = new PrismaClient();
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { login, password, role } = body; // Принимаем роль из запроса
+    const { login, password } = body; // Убираем роль из запроса
 
-    if (!login || !password || !role) {
-      return new Response(JSON.stringify({ message: 'Логин, пароль и роль обязательны' }), {
+    if (!login || !password) {
+      return new Response(JSON.stringify({ message: 'Логин и пароль обязательны' }), {
         status: 400,
       });
     }
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
         login,       // Логин для модератора
         password,    // Пароль для модератора
         token: inviteToken,  // Уникальный токен приглашения
-        role,        // Роль (например, "moderator")
+        role: 'moderator',   // Роль явно задаём как "moderator"
         link: `https://t.me/vpn_srm_adminbot?start=invite_${inviteToken}`,  // Ссылка для приглашения
       },
     });
