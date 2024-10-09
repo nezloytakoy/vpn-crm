@@ -1,44 +1,46 @@
-import { PrismaClient } from '@prisma/client';
-import { nanoid } from 'nanoid';
+import { PrismaClient } from '@prisma/client'; 
+import { nanoid } from 'nanoid'; // Для генерации уникальных токенов
 
 const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { login, password } = body;
+    const { login, password, role } = body; // Принимаем роль из запроса
 
-    if (!login || !password) {
-      return new Response(JSON.stringify({ message: 'Логин и пароль обязательны' }), {
+    if (!login || !password || !role) {
+      return new Response(JSON.stringify({ message: 'Логин, пароль и роль обязательны' }), {
         status: 400,
       });
     }
 
     // Проверяем, не занят ли уже логин
-    const existingModerator = await prisma.moderator.findUnique({
-      where: { login },
+    const existingInvitation = await prisma.invitation.findFirst({
+      where: { login }, // Используем findFirst для поиска по login
     });
 
-    if (existingModerator) {
+    if (existingInvitation) {
       return new Response(JSON.stringify({ message: 'Логин уже используется' }), {
         status: 400,
       });
     }
 
-    // Генерируем уникальный токен приглашения
+    // Генерируем уникальный inviteToken
     const inviteToken = nanoid(10);
 
-    // Сохраняем запись приглашения в базу
+    // Сохраняем данные в таблице приглашений с логином, паролем и токеном приглашения
     await prisma.invitation.create({
       data: {
-        link: `https://t.me/vpn_srm_adminbot?start=invite_${inviteToken}`,
-        token: inviteToken,
-        role: 'moderator',
+        login,       // Логин для модератора
+        password,    // Пароль для модератора
+        token: inviteToken,  // Уникальный токен приглашения
+        role,        // Роль (например, "moderator")
+        link: `https://t.me/vpn_srm_adminbot?start=invite_${inviteToken}`,  // Ссылка для приглашения
       },
     });
 
-    // Возвращаем сгенерированную ссылку
-    const inviteLink = `https://t.me/vpn_srm_adminbot?start=invite_${inviteToken}`;
+    // Генерируем ссылку на бота для модераторов
+    const inviteLink = `https://t.me/vpn_srm_adminbot?start=invite_${inviteToken}`; // Используем токен в ссылке
 
     return new Response(JSON.stringify({ link: inviteLink }), {
       status: 200,

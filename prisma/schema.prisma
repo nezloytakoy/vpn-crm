@@ -36,9 +36,12 @@ model Invitation {
   token     String   @unique
   role      String
   used      Boolean  @default(false)
+  login     String?  // Логин для модераторов (необязательное поле)
+  password  String?  // Пароль для модераторов (необязательное поле)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
 
 model Assistant {
   telegramId BigInt   @id @unique 
