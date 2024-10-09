@@ -28,35 +28,8 @@ function Page() {
     const [isToggledNotifications, setIsToggledNotifications] = useState(false);
     const [checkboxesNotifications, setCheckboxesNotifications] = useState<boolean[]>([false, false, false, false]);
 
-
     const [inputValuesAssistant, setInputValuesAssistant] = useState<string[]>(['5', '14', '30', '3']);
-
-
-
-
-    const [inputValuesAI, setInputValuesAI] = useState<string[]>(['60', '120', '180', '240']);
-
-
     const [percentage, setPercentage] = useState<number>(60);
-
-
-
-
-    const [isToggledVoiceAI, setIsToggledVoiceAI] = useState<boolean>(false);
-    const [checkboxesVoiceAI, setCheckboxesVoiceAI] = useState<boolean[]>([false, false, false, false]);
-
-
-    const [isToggledVoiceAssistant, setIsToggledVoiceAssistant] = useState<boolean>(false);
-    const [checkboxesVoiceAssistant, setCheckboxesVoiceAssistant] = useState<boolean[]>([false, false, false, false]);
-
-
-    const [isToggledVideoAssistant, setIsToggledVideoAssistant] = useState<boolean>(false);
-    const [checkboxesVideoAssistant, setCheckboxesVideoAssistant] = useState<boolean[]>([false, false, false, false]);
-
-
-    const [isToggledFileAssistant, setIsToggledFileAssistant] = useState<boolean>(false);
-    const [checkboxesFileAssistant, setCheckboxesFileAssistant] = useState<boolean[]>([false, false, false, false]);
-
 
     const handleToggleChangeNotifications = () => {
         const newToggleState = !isToggledNotifications;
@@ -71,55 +44,15 @@ function Page() {
         setIsToggledNotifications(updatedCheckboxes.every((checkbox) => checkbox));
     };
 
-
-    const handleToggleChangeVoiceAI = () => {
-        const newToggleState = !isToggledVoiceAI;
-        setIsToggledVoiceAI(newToggleState);
-        setCheckboxesVoiceAI(newToggleState ? [true, true, true, true] : [false, false, false, false]);
-    };
-
-    const handleCheckboxChangeVoiceAI = (index: number) => {
-        const updatedCheckboxes = [...checkboxesVoiceAI];
-        updatedCheckboxes[index] = !updatedCheckboxes[index];
-        setCheckboxesVoiceAI(updatedCheckboxes);
-        setIsToggledVoiceAI(updatedCheckboxes.every((checkbox) => checkbox));
-    };
-
-
-    const handleToggleChangeVoiceAssistant = () => {
-        const newToggleState = !isToggledVoiceAssistant;
-        setIsToggledVoiceAssistant(newToggleState);
-        setCheckboxesVoiceAssistant(newToggleState ? [true, true, true, true] : [false, false, false, false]);
-    };
-
-
-
-    const handleToggleChangeVideoAssistant = () => {
-        const newToggleState = !isToggledVideoAssistant;
-        setIsToggledVideoAssistant(newToggleState);
-        setCheckboxesVideoAssistant(newToggleState ? [true, true, true, true] : [false, false, false, false]);
-    };
-
-
-    const handleToggleChangeFileAssistant = () => {
-        const newToggleState = !isToggledFileAssistant;
-        setIsToggledFileAssistant(newToggleState);
-        setCheckboxesFileAssistant(newToggleState ? [true, true, true, true] : [false, false, false, false]);
-    };
-
-
-
     const handleInputChangeAssistant = (index: number, value: string) => {
         const updatedValues = [...inputValuesAssistant];
         updatedValues[index] = value;
         setInputValuesAssistant(updatedValues);
     };
 
-
     const sliderStyle = {
         background: `linear-gradient(to right, #365CF5 0%, #365CF5 ${percentage}%, #e5e5e5 ${percentage}%, #e5e5e5 100%)`,
     };
-
 
     const columnsData: MyColumn<UserData, keyof UserData>[] = [
         {
@@ -149,11 +82,8 @@ function Page() {
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => (
                 <span>{typeof value === 'boolean' ? (value ? 'Да' : 'Нет') : value}</span>
             ),
-
         },
     ];
-
-
 
     const data = useMemo(
         () => [
@@ -171,7 +101,6 @@ function Page() {
                 requests: 60,
                 renewed: false,
             },
-
         ],
         []
     );
@@ -180,11 +109,9 @@ function Page() {
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [showSortMenu, setShowSortMenu] = useState<boolean>(false);
 
-
     const handleSortButtonClick = () => {
         setShowSortMenu(!showSortMenu);
     };
-
 
     const handleSortColumn = (columnId: string) => {
         if (sortColumn === columnId) {
@@ -195,7 +122,6 @@ function Page() {
         }
         setShowSortMenu(false);
     };
-
 
     const sortedData = useMemo(() => {
         if (!sortColumn) return data;
@@ -328,12 +254,9 @@ function Page() {
 
                             <button className={styles.submitButtontwo}>Подтвердить</button>
                         </div>
-
                     </div>
 
-
                     <div className={styles.columnblock}>
-
                         <div className={styles.messagebox}>
                             <h1 className={styles.gifttitle}>Количество запросов к ИИ</h1>
                             {inputValuesAssistant.map((value, index) => (
@@ -356,113 +279,6 @@ function Page() {
 
                             <button className={styles.submitButtontwo}>Подтвердить</button>
                         </div>
-
-                        <div className={styles.messagebox}>
-                            <h1 className={styles.gifttitle}>Отправка пользователем контента</h1>
-
-                            <div className={styles.togglebox}>
-                                <label className={styles.switch}>
-                                    <input
-                                        type="checkbox"
-                                        checked={isToggledVoiceAI}
-                                        onChange={handleToggleChangeVoiceAI}
-                                    />
-                                    <span className={styles.slider}></span>
-                                </label>
-                                <span className={styles.label}>Разрешить отправку голосовых сообщений ИИ</span>
-                            </div>
-                            <div className={styles.checkboxContainer}>
-                                {checkboxesVoiceAI.map((checked, index) => (
-                                    <label key={index} className={styles.checkboxLabel}>
-                                        <input
-                                            type="checkbox"
-                                            checked={checked}
-                                            onChange={() => handleCheckboxChangeVoiceAI(index)}
-                                        />
-                                        <span className={styles.animatedCheckbox}></span>
-                                        <span>{index === 3 ? 'Только AI' : `AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}</span>
-                                    </label>
-                                ))}
-                            </div>
-
-                            <div className={styles.togglebox}>
-                                <label className={styles.switch}>
-                                    <input
-                                        type="checkbox"
-                                        checked={isToggledVoiceAssistant}
-                                        onChange={handleToggleChangeVoiceAssistant}
-                                    />
-                                    <span className={styles.slider}></span>
-                                </label>
-                                <span className={styles.label}>Разрешить отправку голосовых сообщений ассистенту</span>
-                            </div>
-                            <div className={styles.checkboxContainer}>
-                                {checkboxesVoiceAI.map((checked, index) => (
-                                    <label key={index} className={styles.checkboxLabel}>
-                                        <input
-                                            type="checkbox"
-                                            checked={checked}
-                                            onChange={() => handleCheckboxChangeVoiceAI(index)}
-                                        />
-                                        <span className={styles.animatedCheckbox}></span>
-                                        <span>{index === 3 ? 'Только AI' : `AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}</span>
-                                    </label>
-                                ))}
-                            </div>
-
-                            <div className={styles.togglebox}>
-                                <label className={styles.switch}>
-                                    <input
-                                        type="checkbox"
-                                        checked={isToggledVideoAssistant}
-                                        onChange={handleToggleChangeVideoAssistant}
-                                    />
-                                    <span className={styles.slider}></span>
-                                </label>
-                                <span className={styles.label}>Разрешить отправку видео ассистенту</span>
-                            </div>
-                            <div className={styles.checkboxContainer}>
-                                {checkboxesVoiceAI.map((checked, index) => (
-                                    <label key={index} className={styles.checkboxLabel}>
-                                        <input
-                                            type="checkbox"
-                                            checked={checked}
-                                            onChange={() => handleCheckboxChangeVoiceAI(index)}
-                                        />
-                                        <span className={styles.animatedCheckbox}></span>
-                                        <span>{index === 3 ? 'Только AI' : `AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}</span>
-                                    </label>
-                                ))}
-                            </div>
-
-                            <div className={styles.togglebox}>
-                                <label className={styles.switch}>
-                                    <input
-                                        type="checkbox"
-                                        checked={isToggledFileAssistant}
-                                        onChange={handleToggleChangeFileAssistant}
-                                    />
-                                    <span className={styles.slider}></span>
-                                </label>
-                                <span className={styles.label}>Разрешить отправку файлов ассистенту</span>
-                            </div>
-                            <div className={styles.checkboxContainer}>
-                                {checkboxesVoiceAI.map((checked, index) => (
-                                    <label key={index} className={styles.checkboxLabel}>
-                                        <input
-                                            type="checkbox"
-                                            checked={checked}
-                                            onChange={() => handleCheckboxChangeVoiceAI(index)}
-                                        />
-                                        <span className={styles.animatedCheckbox}></span>
-                                        <span>{index === 3 ? 'Только AI' : `AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}</span>
-                                    </label>
-                                ))}
-                            </div>
-
-                            <button className={styles.submitButtonthree}>Подтвердить</button>
-                        </div>
-
                     </div>
                 </div>
             </div>
@@ -517,7 +333,6 @@ function Page() {
                 </div>
             </div>
         </div>
-
     );
 }
 

@@ -39,7 +39,7 @@ const WaveComponent = () => {
     const [telegramUsername, setTelegramUsername] = useState('');
     const [fontSize, setFontSize] = useState('24px');
     const [subscriptionType, setSubscriptionType] = useState<string>(t('subscription'));
-    const [assistantRequests, setAssistantRequests] = useState<number>(0); // Для отображения количества запросов к ассистенту
+    const [assistantRequests, setAssistantRequests] = useState<number>(0);
 
     useEffect(() => {
         const userLang = window?.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
@@ -113,7 +113,7 @@ const WaveComponent = () => {
         };
 
         fetchData();
-    }, [t]);  // Add 't' to the dependency array
+    }, [t]);
 
 
     const handleButtonClick = (text: string) => {
