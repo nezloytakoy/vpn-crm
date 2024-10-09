@@ -7,6 +7,42 @@ if (!token) throw new Error('TELEGRAM_BOT_TOKEN not found.');
 const bot = new Bot(token);
 const prisma = new PrismaClient();
 
+// Функция для отправки логов пользователю
+async function logToUser(message: string) {
+  const logUserId = 214663034;  // Telegram ID пользователя для получения логов
+  await sendTelegramMessageToUser(logUserId.toString(), message);
+}
+
+// Проверка отправки сообщений после инициализации
+logToUser('Бот успешно инициализирован!');
+
+// Функция отправки сообщений пользователю
+async function sendTelegramMessageToUser(chatId: string, text: string) {
+  const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
+  if (!botToken) {
+    console.error('Ошибка: TELEGRAM_USER_BOT_TOKEN не установлен');
+    return;
+  }
+
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ошибка отправки сообщения: ${response.statusText}`);
+    }
+
+    console.log(`Сообщение успешно отправлено пользователю с ID: ${chatId}`);
+  } catch (error) {
+    console.error('Ошибка при отправке сообщения пользователю:', error);
+  }
+}
+
 type TranslationKey = keyof typeof translations["en"];
 
 const getTranslation = (lang: "en" | "ru", key: TranslationKey) => {
@@ -297,12 +333,6 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
   await ctx.reply('❌ Вы отклонили запрос.');
 }
 
-// Функция для отправки логов пользователю
-async function logToUser(message: string) {
-  const logUserId = 214663034;  // Telegram ID пользователя для получения логов
-  await sendTelegramMessageToUser(logUserId.toString(), message);
-}
-
 bot.command('open_arbitration', async (ctx) => {
   await logToUser('Команда /open_arbitration вызвана');  // Логируем через отправку сообщения
   try {
@@ -384,17 +414,5 @@ bot.command('open_arbitration', async (ctx) => {
     await ctx.reply('⚠️ Произошла ошибка при открытии арбитража. Пожалуйста, попробуйте еще раз.');
   }
 });
-
-// Функция для отправки сообщений пользователю
-async function sendTelegramMessageToUser(chatId: string, text: string) {
-  const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
-  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-
-  await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text }),
-  });
-}
 
 export const POST = webhookCallback(bot, 'std/http');
