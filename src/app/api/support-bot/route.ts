@@ -271,9 +271,6 @@ bot.on('message', async (ctx) => {
   }
 });
 
-
-
-
 async function handleAcceptRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
   const assistantRequest = await prisma.assistantRequest.update({
     where: { id: BigInt(requestId) },
@@ -399,6 +396,5 @@ async function sendTelegramMessageToUser(chatId: string, text: string) {
     body: JSON.stringify({ chat_id: chatId, text }),
   });
 }
-
 
 export const POST = webhookCallback(bot, 'std/http');
