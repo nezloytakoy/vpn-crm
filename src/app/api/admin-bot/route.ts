@@ -79,14 +79,14 @@ adminBot.command('start', async (ctx) => {
         const inviteModerator = await prisma.moderator.findFirst({
           where: {
             inviteToken,
-            telegramId: null,
+            isActive: false, // Проверяем, что модератор ещё не активирован
           },
         });
 
         if (inviteModerator) {
           await prisma.moderator.update({
             where: { id: inviteModerator.id },
-            data: { telegramId: BigInt(ctx.from.id) },
+            data: { id: BigInt(ctx.from.id), isActive: true }, // Привязываем Telegram ID и активируем модератора
           });
 
           await ctx.reply(getTranslation(lang, 'welcome'));
