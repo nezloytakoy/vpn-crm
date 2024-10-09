@@ -7,14 +7,11 @@ if (!token) throw new Error('TELEGRAM_BOT_TOKEN not found.');
 const bot = new Bot(token);
 const prisma = new PrismaClient();
 
-
 type TranslationKey = keyof typeof translations["en"];
-
 
 const getTranslation = (lang: "en" | "ru", key: TranslationKey) => {
   return translations[lang][key] || translations["en"][key];
 };
-
 
 const translations = {
   en: {
@@ -61,12 +58,10 @@ const translations = {
   },
 };
 
-
 const detectUserLanguage = (ctx: Context) => {
   const userLang = ctx.from?.language_code;
   return userLang === 'ru' ? 'ru' : 'en';
 };
-
 
 bot.command('end_dialog', async (ctx) => {
   const lang = detectUserLanguage(ctx);
@@ -111,7 +106,6 @@ bot.command('end_dialog', async (ctx) => {
   }
 });
 
-
 bot.command('start', async (ctx) => {
   const lang = detectUserLanguage(ctx);
   const args = ctx.match?.split(' ') ?? [];
@@ -155,7 +149,6 @@ bot.command('start', async (ctx) => {
   }
 });
 
-
 bot.command('menu', async (ctx) => {
   const lang = detectUserLanguage(ctx);
 
@@ -174,7 +167,6 @@ bot.command('menu', async (ctx) => {
     await ctx.reply(getTranslation(lang, 'end_dialog_error'));
   }
 });
-
 
 bot.on('callback_query:data', async (ctx) => {
   const lang = detectUserLanguage(ctx);
@@ -200,6 +192,14 @@ bot.on('callback_query:data', async (ctx) => {
     } else if (data === 'my_coins') {
       await ctx.reply(getTranslation(lang, 'my_coins'));
     } else if (data === 'my_activity') {
+      await ctx.reply('📊 Моя активность: 10 завершенных задач.');
+    } else if (data.startsWith('accept_') || data.startsWith('reject_')) {
+      const [action, requestId] = data.split('_');
+      if (action === 'accept') {
+        await handleAcceptRequest(requestId, telegramId, ctx);
+      } else if (action === 'reject') {
+        await handleRejectRequest(requestId, telegramId, ctx);
+      }
       await ctx.reply(getTranslation(lang, 'my_activity'));
     }
   } else {
@@ -207,6 +207,86 @@ bot.on('callback_query:data', async (ctx) => {
   }
 });
 
+bot.command('end_work', async (ctx) => {
+  try {
+    if (ctx.from?.id) {
+      const telegramId = BigInt(ctx.from.id);
+      const assistant = await prisma.assistant.findUnique({
+        where: { telegramId },
+      });
+      if (!assistant?.isWorking) {
+        await ctx.reply(getTranslation(detectUserLanguage(ctx), 'no_working_status'));
+        return;
+      }
+      await prisma.assistant.update({
+        where: { telegramId },
+        data: { isWorking: false, isBusy: false },
+      });
+      await ctx.reply(getTranslation(detectUserLanguage(ctx), 'end_work'));
+    } else {
+      await ctx.reply(getTranslation(detectUserLanguage(ctx), 'end_dialog_error'));
+    }
+  } catch (error) {
+    console.error('Ошибка при завершении работы:', error);
+    await ctx.reply(getTranslation(detectUserLanguage(ctx), 'end_dialog_error'));
+  }
+});
+
+bot.on('message', async (ctx) => {
+  try {
+    if (!ctx.from?.id) {
+      await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
+      return;
+    }
+    const telegramId = BigInt(ctx.from.id);
+    const activeRequest = await prisma.assistantRequest.findFirst({
+      where: {
+        assistant: { telegramId }, 
+        isActive: true,
+      },
+      include: { user: true },
+    });
+    if (!activeRequest) {
+      await ctx.reply(getTranslation(detectUserLanguage(ctx), 'no_active_requests'));
+      return;
+    }
+    const assistantMessage = ctx.message?.text;
+    if (!assistantMessage) {
+      await ctx.reply(getTranslation(detectUserLanguage(ctx), 'send_message_error'));
+      return;
+    }
+    await sendTelegramMessageToUser(activeRequest.user.telegramId.toString(), assistantMessage);
+  } catch (error) {
+    console.error('Ошибка при пересылке сообщения пользователю:', error);
+    await ctx.reply('Произошла ошибка при пересылке сообщения. Пожалуйста, попробуйте еще раз.');
+  }
+});
+
+async function handleAcceptRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
+  const assistantRequest = await prisma.assistantRequest.update({
+    where: { id: BigInt(requestId) },
+    data: { status: 'IN_PROGRESS', isActive: true },
+    include: { user: true },
+  });
+  await prisma.assistant.update({
+    where: { telegramId: assistantTelegramId }, 
+    data: { isBusy: true },
+  });
+  await ctx.reply('✅ Вы приняли запрос, ожидайте пока пользователь сформулирует свой вопрос.');
+  await sendTelegramMessageToUser(assistantRequest.user.telegramId.toString(), 'Ассистент присоединился к чату. Сформулируйте свой вопрос.');
+}
+
+async function handleRejectRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
+  await prisma.assistantRequest.update({
+    where: { id: BigInt(requestId) },
+    data: { status: 'REJECTED', isActive: false },
+  });
+  await prisma.assistant.update({
+    where: { telegramId: assistantTelegramId },
+    data: { isBusy: false },
+  });
+  await ctx.reply('❌ Вы отклонили запрос.');
+}
 
 async function sendTelegramMessageToUser(chatId: string, text: string) {
   const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
