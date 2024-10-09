@@ -330,10 +330,10 @@ bot.command('problem', async (ctx) => {
       }
     }
   } catch (error) {
-
     const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-    await ctx.reply('⚠️ Произошла ошибка при открытии арбитража. Пожалуйста, попробуйте еще раз.');
+    await ctx.reply(`⚠️ Произошла ошибка при открытии арбитража: ${errorMessage}. Пожалуйста, попробуйте еще раз.`);
   }
+  
 });
 
 bot.on('message', async (ctx) => {

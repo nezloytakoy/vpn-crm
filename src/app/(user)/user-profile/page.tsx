@@ -43,21 +43,21 @@ const WaveComponent = () => {
 
     useEffect(() => {
         const userLang = window?.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
-
+    
         if (userLang === 'ru') {
             i18n.changeLanguage('ru');
         } else {
             i18n.changeLanguage('en');
         }
-
+    
         const username = window?.Telegram?.WebApp?.initDataUnsafe?.user?.username;
         const firstName = window?.Telegram?.WebApp?.initDataUnsafe?.user?.first_name;
         const lastName = window?.Telegram?.WebApp?.initDataUnsafe?.user?.last_name;
         const telegramId = window?.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-
+    
         const displayName = username ? `@${username}` : `${firstName || ''} ${lastName || ''}`.trim();
         setTelegramUsername(displayName || 'Guest');
-
+    
         if (displayName.length > 12) {
             setFontSize('19px');
         } else if (displayName.length > 8) {
@@ -65,56 +65,59 @@ const WaveComponent = () => {
         } else {
             setFontSize('25px');
         }
-
+    
         sendLogToTelegram(`Detected language: ${userLang || 'en'}`);
         sendLogToTelegram(`Username: ${displayName}`);
-
+    
         const fetchData = async () => {
             try {
                 if (!telegramId) {
                     throw new Error('Telegram ID не найден');
                 }
-
+    
                 const subscriptionResponse = await fetch(`/api/get-subscription?telegramId=${telegramId}`);
                 const requestsResponse = await fetch(`/api/get-requests?telegramId=${telegramId}`);
-
+    
                 if (!subscriptionResponse.ok || !requestsResponse.ok) {
                     throw new Error('Ошибка при получении данных');
                 }
-
+    
                 const subscriptionData = await subscriptionResponse.json();
                 const requestsData = await requestsResponse.json();
-
-                if (subscriptionData.subscriptionType) {
-                    switch (subscriptionData.subscriptionType) {
-                        case 'FIRST':
-                            setSubscriptionType(t('ai_5_hours'));
-                            break;
-                        case 'SECOND':
-                            setSubscriptionType(t('ai_14_hours'));
-                            break;
-                        case 'THIRD':
-                            setSubscriptionType(t('ai_30_hours'));
-                            break;
-                        case 'FOURTH':
-                            setSubscriptionType(t('only_ai'));
-                            break;
-                        default:
-                            setSubscriptionType(t('subscription'));
-                            break;
-                    }
-                }
-
+    
+                // Сохранение данных без использования `t` здесь
                 setAssistantRequests(requestsData.assistantRequests || 0);
+                setSubscriptionType(subscriptionData.subscriptionType || 'subscription');
             } catch (error) {
                 console.error('Ошибка при получении данных:', error);
-                setSubscriptionType(t('subscription'));
+                setSubscriptionType('subscription');
             }
         };
-
+    
         fetchData();
     }, []);
-
+    
+    useEffect(() => {
+        // Обновление текста после смены языка
+        switch (subscriptionType) {
+            case 'FIRST':
+                setSubscriptionType(t('ai_5_hours'));
+                break;
+            case 'SECOND':
+                setSubscriptionType(t('ai_14_hours'));
+                break;
+            case 'THIRD':
+                setSubscriptionType(t('ai_30_hours'));
+                break;
+            case 'FOURTH':
+                setSubscriptionType(t('only_ai'));
+                break;
+            default:
+                setSubscriptionType(t('subscription'));
+                break;
+        }
+    }, [t, subscriptionType]);  // Зависящий от перевода эффект
+    
 
     const handleButtonClick = (text: string) => {
         setButtonText(text);
