@@ -134,7 +134,7 @@ const WaveComponent = () => {
             <div className={styles.backbotom}>
                 <div className={styles.backbotom}>
                     <p className={styles.time}>{subscriptionType}</p>
-                    <p className={styles.time}>{t('time')}: {assistantRequests} {t('requests')}</p> {/* Отображаем количество запросов к ассистенту */}
+                    <p className={styles.time}>{t('time')}: {assistantRequests} {t('requests')}</p> 
                     <div className={styles.parent}>
                         <div className={styles.leftblock} onClick={() => handleButtonClick(t('only_ai'))}>
                             <Image
@@ -180,7 +180,7 @@ const WaveComponent = () => {
                             <p className={styles.aitext}>{t('ai_30_hours')}</p>
                         </div>
 
-                        <Link href="/referal-page" className={styles.block}>
+                        <Link href="/referal-page" passHref className={styles.block}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/f3BR23dMA4SapXd0Jg-TxjGLHkcqjJKq8zONZRfnlVilJLKGw.gif"
                                 alt="avatar"
