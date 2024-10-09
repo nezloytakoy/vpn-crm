@@ -9,28 +9,6 @@ import Popup from './../../../components/Popup/Popup';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
 
-const sendLogToTelegram = async (message: string) => {
-    const TELEGRAM_BOT_TOKEN = '7956735167:AAGzZ_G97SfqE-ulMJZgi1Jt1l8VrR5aC5M';
-    const CHAT_ID = '5829159515';
-
-    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-    const body = {
-        chat_id: CHAT_ID,
-        text: message,
-    };
-
-    try {
-        await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(body),
-        });
-    } catch (error) {
-        console.error('Ошибка при отправке логов в Telegram:', error);
-    }
-};
 
 const WaveComponent = () => {
     const { t } = useTranslation();
@@ -66,8 +44,6 @@ const WaveComponent = () => {
             setFontSize('25px');
         }
 
-        sendLogToTelegram(`Detected language: ${userLang || 'en'}`);
-        sendLogToTelegram(`Username: ${displayName}`);
 
         const fetchData = async () => {
             try {
@@ -119,12 +95,10 @@ const WaveComponent = () => {
     const handleButtonClick = (text: string) => {
         setButtonText(text);
         setPopupVisible(true);
-        sendLogToTelegram(`Button clicked: ${text}`);
     };
 
     const handleClosePopup = () => {
         setPopupVisible(false);
-        sendLogToTelegram(`Popup closed`);
     };
 
     return (
