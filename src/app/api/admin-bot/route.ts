@@ -1,4 +1,4 @@
-import { Bot, InlineKeyboard, webhookCallback, Context } from 'grammy'; 
+import { Bot, InlineKeyboard, webhookCallback, Context } from 'grammy';
 import { PrismaClient } from '@prisma/client';
 
 
@@ -65,8 +65,9 @@ adminBot.command('start', async (ctx) => {
 
   if (ctx.from?.id) {
     const moderator = await prisma.moderator.findFirst({
-      where: { telegramId: BigInt(ctx.from.id) },
+      where: { id: BigInt(ctx.from.id) },
     });
+
 
     if (moderator) {
       await showModeratorMenu(ctx, lang);
