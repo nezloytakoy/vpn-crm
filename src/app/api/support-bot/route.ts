@@ -268,72 +268,7 @@ bot.command('end_work', async (ctx) => {
   }
 });
 
-bot.on('message', async (ctx) => {
-  try {
-    // Проверяем, является ли сообщение командой
-    if (ctx.message?.text?.startsWith('/')) {
-      return; // Не обрабатываем команды как текстовые сообщения
-    }
-
-    if (!ctx.from?.id) {
-      await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
-      return;
-    }
-
-    const telegramId = BigInt(ctx.from.id);
-    const activeRequest = await prisma.assistantRequest.findFirst({
-      where: {
-        assistant: { telegramId },
-        isActive: true,
-      },
-      include: { user: true },
-    });
-
-    if (!activeRequest) {
-      await ctx.reply(getTranslation(detectUserLanguage(ctx), 'no_active_requests'));
-      return;
-    }
-
-    const assistantMessage = ctx.message?.text;
-    if (!assistantMessage) {
-      await ctx.reply(getTranslation(detectUserLanguage(ctx), 'send_message_error'));
-      return;
-    }
-
-    await sendTelegramMessageToUser(activeRequest.user.telegramId.toString(), assistantMessage);
-  } catch (error) {
-    console.error('Ошибка при пересылке сообщения пользователю:', error);
-    await ctx.reply('Произошла ошибка при пересылке сообщения. Пожалуйста, попробуйте еще раз.');
-  }
-});
-
-async function handleAcceptRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
-  const assistantRequest = await prisma.assistantRequest.update({
-    where: { id: BigInt(requestId) },
-    data: { status: 'IN_PROGRESS', isActive: true },
-    include: { user: true },
-  });
-  await prisma.assistant.update({
-    where: { telegramId: assistantTelegramId },
-    data: { isBusy: true },
-  });
-  await ctx.reply('✅ Вы приняли запрос, ожидайте пока пользователь сформулирует свой вопрос.');
-  await sendTelegramMessageToUser(assistantRequest.user.telegramId.toString(), 'Ассистент присоединился к чату. Сформулируйте свой вопрос.');
-}
-
-async function handleRejectRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
-  await prisma.assistantRequest.update({
-    where: { id: BigInt(requestId) },
-    data: { status: 'REJECTED', isActive: false },
-  });
-  await prisma.assistant.update({
-    where: { telegramId: assistantTelegramId },
-    data: { isBusy: false },
-  });
-  await ctx.reply('❌ Вы отклонили запрос.');
-}
-
-bot.command('open_arbitration', async (ctx) => {
+bot.command('problem', async (ctx) => {
   await logToUser('Команда /open_arbitration вызвана');  // Логируем через отправку сообщения
   try {
     if (!ctx.from?.id) {
@@ -414,5 +349,72 @@ bot.command('open_arbitration', async (ctx) => {
     await ctx.reply('⚠️ Произошла ошибка при открытии арбитража. Пожалуйста, попробуйте еще раз.');
   }
 });
+
+bot.on('message', async (ctx) => {
+  try {
+    // Проверяем, является ли сообщение командой
+    if (ctx.message?.text?.startsWith('/')) {
+      return; // Не обрабатываем команды как текстовые сообщения
+    }
+
+    if (!ctx.from?.id) {
+      await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
+      return;
+    }
+
+    const telegramId = BigInt(ctx.from.id);
+    const activeRequest = await prisma.assistantRequest.findFirst({
+      where: {
+        assistant: { telegramId },
+        isActive: true,
+      },
+      include: { user: true },
+    });
+
+    if (!activeRequest) {
+      await ctx.reply(getTranslation(detectUserLanguage(ctx), 'no_active_requests'));
+      return;
+    }
+
+    const assistantMessage = ctx.message?.text;
+    if (!assistantMessage) {
+      await ctx.reply(getTranslation(detectUserLanguage(ctx), 'send_message_error'));
+      return;
+    }
+
+    await sendTelegramMessageToUser(activeRequest.user.telegramId.toString(), assistantMessage);
+  } catch (error) {
+    console.error('Ошибка при пересылке сообщения пользователю:', error);
+    await ctx.reply('Произошла ошибка при пересылке сообщения. Пожалуйста, попробуйте еще раз.');
+  }
+});
+
+async function handleAcceptRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
+  const assistantRequest = await prisma.assistantRequest.update({
+    where: { id: BigInt(requestId) },
+    data: { status: 'IN_PROGRESS', isActive: true },
+    include: { user: true },
+  });
+  await prisma.assistant.update({
+    where: { telegramId: assistantTelegramId },
+    data: { isBusy: true },
+  });
+  await ctx.reply('✅ Вы приняли запрос, ожидайте пока пользователь сформулирует свой вопрос.');
+  await sendTelegramMessageToUser(assistantRequest.user.telegramId.toString(), 'Ассистент присоединился к чату. Сформулируйте свой вопрос.');
+}
+
+async function handleRejectRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
+  await prisma.assistantRequest.update({
+    where: { id: BigInt(requestId) },
+    data: { status: 'REJECTED', isActive: false },
+  });
+  await prisma.assistant.update({
+    where: { telegramId: assistantTelegramId },
+    data: { isBusy: false },
+  });
+  await ctx.reply('❌ Вы отклонили запрос.');
+}
+
+
 
 export const POST = webhookCallback(bot, 'std/http');
