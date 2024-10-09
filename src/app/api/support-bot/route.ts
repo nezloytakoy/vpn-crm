@@ -241,7 +241,7 @@ bot.on('message', async (ctx) => {
     const telegramId = BigInt(ctx.from.id);
     const activeRequest = await prisma.assistantRequest.findFirst({
       where: {
-        assistant: { telegramId }, 
+        assistant: { telegramId },
         isActive: true,
       },
       include: { user: true },
@@ -262,6 +262,8 @@ bot.on('message', async (ctx) => {
   }
 });
 
+
+
 async function handleAcceptRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
   const assistantRequest = await prisma.assistantRequest.update({
     where: { id: BigInt(requestId) },
@@ -269,7 +271,7 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
     include: { user: true },
   });
   await prisma.assistant.update({
-    where: { telegramId: assistantTelegramId }, 
+    where: { telegramId: assistantTelegramId },
     data: { isBusy: true },
   });
   await ctx.reply('✅ Вы приняли запрос, ожидайте пока пользователь сформулирует свой вопрос.');
@@ -288,6 +290,81 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
   await ctx.reply('❌ Вы отклонили запрос.');
 }
 
+bot.command('open_arbitration', async (ctx) => {
+  try {
+    if (!ctx.from?.id) {
+      await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
+      return;
+    }
+
+    const telegramId = BigInt(ctx.from.id);
+    const assistant = await prisma.assistant.findUnique({
+      where: { telegramId },
+    });
+
+    if (!assistant) {
+      await ctx.reply('Ошибка: ассистент не найден.');
+      return;
+    }
+
+    const activeRequest = await prisma.assistantRequest.findFirst({
+      where: {
+        assistant: { telegramId },
+        isActive: true,
+      },
+      include: { user: true },
+    });
+
+    if (!activeRequest) {
+      await ctx.reply('⚠️ У вас нет активных запросов.');
+      return;
+    }
+
+    // Создаем запись в таблице Arbitration
+    await prisma.arbitration.create({
+      data: {
+        userId: activeRequest.userId,
+        assistantId: telegramId,
+        moderatorId: null,  // Указываем как null, так как модератор еще не назначен
+        reason: 'Открытие арбитража ассистентом',
+        status: 'PENDING',
+      },
+    });
+
+
+
+    // Отправляем сообщение ассистенту и пользователю
+    await ctx.reply('Для решения спорной ситуации приглашен модератор.');
+    await sendTelegramMessageToUser(
+      activeRequest.user.telegramId.toString(),
+      'Для решения спорной ситуации приглашен модератор.'
+    );
+
+    // Получаем всех модераторов с telegramId
+    const moderators = await prisma.moderator.findMany({
+      where: {
+        telegramId: {
+          not: null, // Убедиться, что у модератора есть telegramId
+        },
+      },
+    });
+
+    // Отправляем сообщение всем модераторам с telegramId
+    for (const moderator of moderators) {
+      if (moderator.telegramId) {
+        await sendTelegramMessageToUser(
+          moderator.telegramId.toString(),
+          'Для решения спорной ситуации приглашен модератор. Проверьте арбитраж.'
+        );
+      }
+    }
+  } catch (error) {
+    console.error('Ошибка при открытии арбитража:', error);
+    await ctx.reply('⚠️ Произошла ошибка при открытии арбитража. Пожалуйста, попробуйте еще раз.');
+  }
+});
+
+// Функция для отправки сообщений пользователю
 async function sendTelegramMessageToUser(chatId: string, text: string) {
   const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
@@ -298,5 +375,6 @@ async function sendTelegramMessageToUser(chatId: string, text: string) {
     body: JSON.stringify({ chat_id: chatId, text }),
   });
 }
+
 
 export const POST = webhookCallback(bot, 'std/http');

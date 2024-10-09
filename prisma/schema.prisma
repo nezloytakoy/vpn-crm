@@ -26,10 +26,8 @@ model Moderator {
   lastActiveAt DateTime @default(now()) // Время последней активности
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  arbitrations Arbitration[]  // Добавлено поле для обратного отношения
 }
-
-
-
 
 model Invitation {
   id        BigInt   @id @default(autoincrement())  // Поле id генерируется автоматически
@@ -41,7 +39,6 @@ model Invitation {
   updatedAt DateTime @updatedAt
 }
 
-
 model Assistant {
   telegramId BigInt   @id @unique 
   role       String   @default("assistant")
@@ -52,6 +49,7 @@ model Assistant {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   requests   AssistantRequest[] 
+  arbitrations Arbitration[]  // Добавлено поле для обратного отношения
 }
 
 enum SubscriptionType {
@@ -76,6 +74,7 @@ model User {
   updatedAt              DateTime @updatedAt
   conversations          Conversation[]   
   requests               AssistantRequest[]
+  arbitrations           Arbitration[]  // Добавлено поле для обратного отношения
 }
 
 model Conversation {
@@ -105,4 +104,28 @@ enum RequestStatus {
   IN_PROGRESS
   COMPLETED
   REJECTED
+}
+
+model Arbitration {
+  id              BigInt   @id @default(autoincrement())
+  user            User     @relation(fields: [userId], references: [telegramId])
+  userId          BigInt
+  assistant       Assistant @relation(fields: [assistantId], references: [telegramId])
+  assistantId     BigInt
+  moderator       Moderator? @relation(fields: [moderatorId], references: [id])
+  moderatorId     BigInt?  // Поле может быть null
+  reason          String
+  decision        String?
+  status          ArbitrationStatus @default(PENDING)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+
+
+enum ArbitrationStatus {
+  PENDING    // Арбитраж создан, ожидает решения
+  ACCEPTED   // Решение в пользу ассистента
+  REJECTED   // Решение в пользу пользователя
+  CANCELLED  // Арбитраж отменен
 }
