@@ -9,6 +9,28 @@ import Popup from './../../../components/Popup/Popup';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
 
+const sendLogToTelegram = async (message: string) => {
+    const TELEGRAM_BOT_TOKEN = '7956735167:AAGzZ_G97SfqE-ulMJZgi1Jt1l8VrR5aC5M';
+    const CHAT_ID = '5829159515';
+
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    const body = {
+        chat_id: CHAT_ID,
+        text: message,
+    };
+
+    try {
+        await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+        });
+    } catch (error) {
+        console.error('Ошибка при отправке логов в Telegram:', error);
+    }
+};
 
 const WaveComponent = () => {
     const { t } = useTranslation();
@@ -17,7 +39,7 @@ const WaveComponent = () => {
     const [telegramUsername, setTelegramUsername] = useState('');
     const [fontSize, setFontSize] = useState('24px');
     const [subscriptionType, setSubscriptionType] = useState<string>(t('subscription'));
-    const [assistantRequests, setAssistantRequests] = useState<number>(0);
+    const [assistantRequests, setAssistantRequests] = useState<number>(0); 
 
     useEffect(() => {
         const userLang = window?.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
@@ -44,6 +66,8 @@ const WaveComponent = () => {
             setFontSize('25px');
         }
 
+        sendLogToTelegram(`Detected language: ${userLang || 'en'}`);
+        sendLogToTelegram(`Username: ${displayName}`);
 
         const fetchData = async () => {
             try {
@@ -89,16 +113,18 @@ const WaveComponent = () => {
         };
 
         fetchData();
-    }, [t]);
+    }, []);
 
 
     const handleButtonClick = (text: string) => {
         setButtonText(text);
         setPopupVisible(true);
+        sendLogToTelegram(`Button clicked: ${text}`);
     };
 
     const handleClosePopup = () => {
         setPopupVisible(false);
+        sendLogToTelegram(`Popup closed`);
     };
 
     return (
@@ -134,7 +160,7 @@ const WaveComponent = () => {
             <div className={styles.backbotom}>
                 <div className={styles.backbotom}>
                     <p className={styles.time}>{subscriptionType}</p>
-                    <p className={styles.time}>{t('time')}: {assistantRequests} {t('requests')}</p> 
+                    <p className={styles.time}>{t('time')}: {assistantRequests} {t('requests')}</p> {/* Отображаем количество запросов к ассистенту */}
                     <div className={styles.parent}>
                         <div className={styles.leftblock} onClick={() => handleButtonClick(t('only_ai'))}>
                             <Image
@@ -180,7 +206,7 @@ const WaveComponent = () => {
                             <p className={styles.aitext}>{t('ai_30_hours')}</p>
                         </div>
 
-                        <Link href="/referal-page" passHref className={styles.block}>
+                        <Link href="/referal-page" className={styles.block}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/f3BR23dMA4SapXd0Jg-TxjGLHkcqjJKq8zONZRfnlVilJLKGw.gif"
                                 alt="avatar"

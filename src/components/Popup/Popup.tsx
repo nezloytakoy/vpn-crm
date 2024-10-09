@@ -40,7 +40,7 @@ const Popup: React.FC<PopupProps> = ({ isVisible, onClose, buttonText }) => {
                 <p className={styles.poptitle}>{`${buttonText}`}</p>
                 <p className={styles.poptext}>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum</p>
                 <button className={styles.confirmButton} onClick={handleClose}>
-                    <Link href="/payment-methods">5$ оплатить</Link> {/* Ссылка на страницу оплаты */}
+                    <Link href="/payment-methods">5$ оплатить</Link>
                 </button>
             </div>
         </div>

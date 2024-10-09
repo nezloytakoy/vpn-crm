@@ -16,10 +16,10 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: 'en', // Язык по умолчанию
-    fallbackLng: 'en', // Резервный язык
+    lng: 'en',
+    fallbackLng: 'en',
     interpolation: {
-      escapeValue: false // React сам экранирует значения
+      escapeValue: false
     }
   });
 
