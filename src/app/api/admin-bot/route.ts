@@ -15,8 +15,8 @@ const translations = {
     invalid_link: "The link is invalid or has already been used.",
     moderator_bot: "👋 This is a bot for moderators!",
     command_error: "Error: Could not process the command. Please try again.",
-    user_id_prompt: "Enter the user ID (9 digits).",
-    assistant_id_prompt: "Enter the assistant ID (9 digits).",
+    user_id_prompt: "Enter the user ID",
+    assistant_id_prompt: "Enter the assistant ID",
     id_invalid: "The ID must be 9 digits. Please try again.",
     message_prompt: "Write your message.",
     message_sent: "Message sent successfully.",
@@ -32,8 +32,8 @@ const translations = {
     invalid_link: "Неверная или уже использованная ссылка.",
     moderator_bot: "👋 Это бот для модераторов!",
     command_error: "Ошибка: не удалось обработать команду. Попробуйте снова.",
-    user_id_prompt: "Введите ID пользователя (9 цифр).",
-    assistant_id_prompt: "Введите ID ассистента (9 цифр).",
+    user_id_prompt: "Введите ID пользователя",
+    assistant_id_prompt: "Введите ID ассистента",
     id_invalid: "ID должен состоять из 9 цифр. Попробуйте снова.",
     message_prompt: "Напишите ваше сообщение.",
     message_sent: "Сообщение успешно отправлено.",
@@ -54,6 +54,28 @@ function detectUserLanguage(ctx: Context): 'ru' | 'en' {
   const langCode = ctx.from?.language_code;
   return langCode === 'ru' ? 'ru' : 'en';
 }
+
+adminBot.command('menu', async (ctx) => {
+  const lang = detectUserLanguage(ctx);
+
+  if (ctx.from?.id) {
+    // Проверяем, является ли пользователь модератором
+    const moderator = await prisma.moderator.findFirst({
+      where: { id: BigInt(ctx.from.id) },
+    });
+
+    if (moderator) {
+      // Если пользователь модератор, показываем меню
+      await showModeratorMenu(ctx, lang);
+    } else {
+      // Если пользователь не модератор, выводим сообщение об ошибке
+      await ctx.reply(getTranslation(lang, 'command_error'));
+    }
+  } else {
+    await ctx.reply(getTranslation(lang, 'command_error'));
+  }
+});
+
 
 adminBot.command('start', async (ctx) => {
   const lang = detectUserLanguage(ctx);
