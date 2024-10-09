@@ -157,7 +157,8 @@ adminBot.on('message:text', async (ctx) => {
   if (currentState === 'awaiting_user_id' || currentState === 'awaiting_assistant_id') {
     const id = ctx.message.text;
 
-    if (!/^\d{9}$/.test(id)) {
+    // Изменяем регулярное выражение для проверки ID длиной от 9 до 10 цифр
+    if (!/^\d{9,10}$/.test(id)) {
       await ctx.reply(getTranslation(lang, 'id_invalid'));
       return;
     }
@@ -193,6 +194,7 @@ adminBot.on('message:text', async (ctx) => {
     await ctx.reply(getTranslation(lang, 'unknown_command'));
   }
 });
+
 
 adminBot.callbackQuery('current_arbitrations', async (ctx) => {
   const lang = detectUserLanguage(ctx);
