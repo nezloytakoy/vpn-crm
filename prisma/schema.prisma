@@ -16,18 +16,18 @@ model Admin {
 }
 
 model Moderator {
-  id           BigInt   @id @default(autoincrement())
+  id           BigInt   @id @default(autoincrement()) @unique // Основной ID также используется как Telegram ID
   login        String   @unique
   password     String
-  telegramId   BigInt?  @unique  // Telegram ID модератора (необязательное поле)
   inviteToken  String?  @unique  // Сделано необязательным
   role         String   @default("moderator") // Роль по умолчанию "модератор"
   isActive     Boolean  @default(true) // Флаг активности модератора
   lastActiveAt DateTime @default(now()) // Время последней активности
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  arbitrations Arbitration[]  // Добавлено поле для обратного отношения
+  arbitrations Arbitration[]  // Поле для обратного отношения
 }
+
 
 model Invitation {
   id        BigInt   @id @default(autoincrement())  // Поле id генерируется автоматически
