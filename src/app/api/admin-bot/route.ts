@@ -1,7 +1,6 @@
 import { Bot, InlineKeyboard, webhookCallback, Context } from 'grammy';
 import { PrismaClient } from '@prisma/client';
 
-
 const userBot = new Bot(process.env.TELEGRAM_USER_BOT_TOKEN!);
 const supportBot = new Bot(process.env.TELEGRAM_SUPPORT_BOT_TOKEN!);
 const adminBot = new Bot(process.env.TELEGRAM_ADMIN_BOT_TOKEN!);
@@ -9,7 +8,6 @@ const adminBot = new Bot(process.env.TELEGRAM_ADMIN_BOT_TOKEN!);
 const prisma = new PrismaClient();
 
 const moderatorState: { [moderatorId: number]: { state: string, targetId?: string } } = {};
-
 
 const translations = {
   en: {
@@ -48,47 +46,58 @@ const translations = {
   },
 };
 
-
 function getTranslation(lang: 'ru' | 'en', key: keyof typeof translations['en']): string {
   return translations[lang][key] || translations['en'][key];
 }
-
 
 function detectUserLanguage(ctx: Context): 'ru' | 'en' {
   const langCode = ctx.from?.language_code;
   return langCode === 'ru' ? 'ru' : 'en';
 }
 
-
 adminBot.command('start', async (ctx) => {
   const lang = detectUserLanguage(ctx);
 
   if (ctx.from?.id) {
-    const moderator = await prisma.moderator.findFirst({
-      where: { id: BigInt(ctx.from.id) },
-    });
-
-
-    if (moderator) {
-      await showModeratorMenu(ctx, lang);
-    } else if (ctx.message?.text) {
+    // Проверка приглашения через токен
+    if (ctx.message?.text) {
       const args = ctx.message.text.split(' ');
       if (args.length > 1) {
         const inviteToken = args[1].replace('invite_', '');
 
-        const inviteModerator = await prisma.moderator.findFirst({
+        // Ищем токен в таблице Invitation
+        const invitation = await prisma.invitation.findFirst({
           where: {
-            inviteToken,
-            isActive: false, // Проверяем, что модератор ещё не активирован
+            token: inviteToken,
+            used: false, // Проверяем, что токен ещё не использован
+            role: 'moderator', // Убеждаемся, что это приглашение для модератора
           },
         });
 
-        if (inviteModerator) {
-          await prisma.moderator.update({
-            where: { id: inviteModerator.id },
-            data: { id: BigInt(ctx.from.id), isActive: true }, // Привязываем Telegram ID и активируем модератора
+        if (invitation) {
+          // Проверяем, что логин не является null
+          if (!invitation.login) {
+            return new Response(JSON.stringify({ message: 'Логин отсутствует в приглашении' }), {
+              status: 400,
+            });
+          }
+
+          // Переносим данные из таблицы Invitation в таблицу Moderator
+          await prisma.moderator.create({
+            data: {
+              login: invitation.login, // Логин из приглашения
+              password: invitation.password || 'defaultPassword', // Пароль из приглашения или стандартный
+              id: BigInt(ctx.from.id), // Telegram ID модератора
+            },
           });
 
+          // Обновляем статус приглашения как использованное
+          await prisma.invitation.update({
+            where: { id: invitation.id },
+            data: { used: true },
+          });
+
+          // Приветственное сообщение и меню для модератора
           await ctx.reply(getTranslation(lang, 'welcome'));
           await showModeratorMenu(ctx, lang);
         } else {
@@ -105,7 +114,6 @@ adminBot.command('start', async (ctx) => {
   }
 });
 
-
 async function showModeratorMenu(ctx: Context, lang: 'ru' | 'en') {
   const keyboard = new InlineKeyboard()
     .text('💬 ' + getTranslation(lang, 'message_user'), 'message_user')
@@ -116,7 +124,6 @@ async function showModeratorMenu(ctx: Context, lang: 'ru' | 'en') {
 
   await ctx.reply(getTranslation(lang, 'menu'), { reply_markup: keyboard });
 }
-
 
 adminBot.callbackQuery('message_user', async (ctx) => {
   const lang = detectUserLanguage(ctx);
@@ -131,7 +138,6 @@ adminBot.callbackQuery('message_assistant', async (ctx) => {
   moderatorState[ctx.from.id] = { state: 'awaiting_assistant_id' };
   await ctx.reply(getTranslation(lang, 'assistant_id_prompt'));
 });
-
 
 adminBot.on('message:text', async (ctx) => {
   const lang = detectUserLanguage(ctx);
@@ -193,6 +199,5 @@ adminBot.callbackQuery('current_arbitrations', async (ctx) => {
   await ctx.answerCallbackQuery();
   await ctx.reply(getTranslation(lang, 'arbitration_list'));
 });
-
 
 export const POST = webhookCallback(adminBot, 'std/http');
