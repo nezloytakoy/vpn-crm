@@ -380,7 +380,7 @@ bot.on('callback_query:data', async (ctx) => {
 
 
 // Функция отправки сообщений модератору
-async function sendTelegramMessageToModerator(chatId: string, text: string) {
+async function sendTelegramMessageToModerator(chatId: string, text: string, arbitrationId: bigint) {
   const botToken = process.env.TELEGRAM_ADMIN_BOT_TOKEN;
   if (!botToken) {
     console.error('Ошибка: TELEGRAM_ADMIN_BOT_TOKEN не установлен');
@@ -393,7 +393,20 @@ async function sendTelegramMessageToModerator(chatId: string, text: string) {
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text }),
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: 'Рассмотреть',
+                callback_data: `review_${arbitrationId.toString()}`,
+              },
+            ],
+          ],
+        },
+      }),
     });
 
     if (!response.ok) {
@@ -405,6 +418,7 @@ async function sendTelegramMessageToModerator(chatId: string, text: string) {
     console.error('Ошибка при отправке сообщения модератору:', error);
   }
 }
+
 
 // Обработчик команды /problem
 bot.command('problem', async (ctx) => {
@@ -437,46 +451,48 @@ bot.command('problem', async (ctx) => {
       return;
     }
 
-    await prisma.arbitration.create({
-      data: {
-        userId: activeRequest.userId,
-        assistantId: telegramId,
-        moderatorId: null,
-        reason: 'Открытие арбитража ассистентом',
-        status: 'PENDING',
-      },
-    });
+    // После создания арбитража сохраняем его ID
+const arbitration = await prisma.arbitration.create({
+  data: {
+    userId: activeRequest.userId,
+    assistantId: telegramId,
+    moderatorId: null,
+    reason: 'Открытие арбитража ассистентом',
+    status: 'PENDING',
+  },
+});
 
-    await ctx.reply('Для решения спорной ситуации приглашен модератор.');
-    await sendTelegramMessageToUser(
-      activeRequest.user.telegramId.toString(),
-      'Для решения спорной ситуации приглашен модератор.'
-    );
+await ctx.reply('Для решения спорной ситуации приглашен модератор.');
+await sendTelegramMessageToUser(
+  activeRequest.user.telegramId.toString(),
+  'Для решения спорной ситуации приглашен модератор.'
+);
 
-    // Получаем время, которое на один час меньше текущего
-    const oneHourAgo = subHours(new Date(), 1);
+// Получаем время, которое на один час меньше текущего
+const oneHourAgo = subHours(new Date(), 1);
 
-    // Ищем модераторов, которые были активны в последний час
-    const moderators = await prisma.moderator.findMany({
-      where: {
-        lastActiveAt: {
-          gte: oneHourAgo,
-        },
-      },
-    });
+// Ищем модераторов, которые были активны в последний час
+const moderators = await prisma.moderator.findMany({
+  where: {
+    lastActiveAt: {
+      gte: oneHourAgo,
+    },
+  },
+});
 
-    if (moderators.length === 0) {
-      await ctx.reply('Нет активных модераторов.');
-      return;
-    }
+if (moderators.length === 0) {
+  await ctx.reply('Нет активных модераторов.');
+  return;
+}
 
-    // Отправляем сообщение модераторам через бота для модераторов
-    for (const moderator of moderators) {
-      await sendTelegramMessageToModerator(
-        moderator.id.toString(),
-        'Для решения спорной ситуации приглашен модератор. Проверьте арбитраж.'
-      );
-    }
+// Отправляем сообщение модераторам через бота для модераторов
+for (const moderator of moderators) {
+  await sendTelegramMessageToModerator(
+    moderator.id.toString(), // Используем telegramId модератора
+    'Для решения спорной ситуации приглашен модератор. Проверьте арбитраж.',
+    arbitration.id // Передаем ID арбитража
+  );
+}
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
     await ctx.reply(`⚠️ Произошла ошибка при открытии арбитража: ${errorMessage}. Пожалуйста, попробуйте еще раз.`);
