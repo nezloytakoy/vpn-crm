@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   });
 
   // Проверка пароля для администратора или модератора
-  let user = admin || moderator;
+  const user = admin || moderator;
   let isCorrectPassword = false;
 
   if (admin) {
