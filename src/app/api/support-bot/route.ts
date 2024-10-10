@@ -8,6 +8,8 @@ if (!token) throw new Error('TELEGRAM_BOT_TOKEN not found.');
 const bot = new Bot(token);
 const prisma = new PrismaClient();
 
+
+
 async function handleRejectRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
   try {
     // Обновляем статус запроса как "Отклонено" и деактивируем его
@@ -377,7 +379,34 @@ bot.on('callback_query:data', async (ctx) => {
 });
 
 
-// Пример обработчика команды открытия арбитража, остальное аналогично
+// Функция отправки сообщений модератору
+async function sendTelegramMessageToModerator(chatId: string, text: string) {
+  const botToken = process.env.TELEGRAM_ADMIN_BOT_TOKEN;
+  if (!botToken) {
+    console.error('Ошибка: TELEGRAM_ADMIN_BOT_TOKEN не установлен');
+    return;
+  }
+
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ошибка отправки сообщения модератору: ${response.statusText}`);
+    }
+
+    console.log(`Сообщение успешно отправлено модератору с ID: ${chatId}`);
+  } catch (error) {
+    console.error('Ошибка при отправке сообщения модератору:', error);
+  }
+}
+
+// Обработчик команды /problem
 bot.command('problem', async (ctx) => {
   try {
     if (!ctx.from?.id) {
@@ -387,7 +416,7 @@ bot.command('problem', async (ctx) => {
 
     const telegramId = BigInt(ctx.from.id);
     const assistant = await prisma.assistant.findUnique({
-      where: { telegramId: telegramId }, // Используем id
+      where: { telegramId: telegramId },
     });
 
     if (!assistant) {
@@ -397,7 +426,7 @@ bot.command('problem', async (ctx) => {
 
     const activeRequest = await prisma.assistantRequest.findFirst({
       where: {
-        assistant: { telegramId: telegramId }, // Используем id
+        assistant: { telegramId: telegramId },
         isActive: true,
       },
       include: { user: true },
@@ -431,7 +460,7 @@ bot.command('problem', async (ctx) => {
     const moderators = await prisma.moderator.findMany({
       where: {
         lastActiveAt: {
-          gte: oneHourAgo, // Модераторы, активные за последний час
+          gte: oneHourAgo,
         },
       },
     });
@@ -441,9 +470,10 @@ bot.command('problem', async (ctx) => {
       return;
     }
 
+    // Отправляем сообщение модераторам через бота для модераторов
     for (const moderator of moderators) {
-      await sendTelegramMessageToUser(
-        moderator.id.toString(), // Используем id для отправки сообщений модератору
+      await sendTelegramMessageToModerator(
+        moderator.id.toString(),
         'Для решения спорной ситуации приглашен модератор. Проверьте арбитраж.'
       );
     }

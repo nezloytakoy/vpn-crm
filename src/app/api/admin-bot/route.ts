@@ -1,7 +1,6 @@
 import { Bot, InlineKeyboard, webhookCallback, Context } from 'grammy';
 import { PrismaClient } from '@prisma/client';
 
-
 const userBot = new Bot(process.env.TELEGRAM_USER_BOT_TOKEN!);
 const supportBot = new Bot(process.env.TELEGRAM_SUPPORT_BOT_TOKEN!);
 const adminBot = new Bot(process.env.TELEGRAM_ADMIN_BOT_TOKEN!);
@@ -163,18 +162,10 @@ async function showModeratorMenu(ctx: Context, lang: 'ru' | 'en') {
 
 adminBot.callbackQuery('message_user', async (ctx) => {
   const lang = detectUserLanguage(ctx);
-
-  // Обновляем поле lastActiveAt для модератора
-  await prisma.moderator.update({
-    where: { id: BigInt(ctx.from.id) },
-    data: { lastActiveAt: new Date() },
-  });
-
   await ctx.answerCallbackQuery();
   moderatorState[ctx.from.id] = { state: 'awaiting_user_id' };
   await ctx.reply(getTranslation(lang, 'user_id_prompt'));
 });
-
 
 adminBot.callbackQuery('message_assistant', async (ctx) => {
   const lang = detectUserLanguage(ctx);
