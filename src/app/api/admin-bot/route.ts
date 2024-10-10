@@ -263,32 +263,13 @@ adminBot.command('end_arbitration', async (ctx) => {
       return;
     }
 
-    // Обновляем статус арбитража на 'COMPLETED'
-    await prisma.arbitration.update({
-      where: { id: arbitration.id },
-      data: { status: 'COMPLETED' as ArbitrationStatus },
-    });
+    // Отправляем модератору сообщение с кнопками для выбора победителя
+    const keyboard = new InlineKeyboard()
+      .text('Пользователь', `arbitration_decision_user_${arbitration.id}`)
+      .row()
+      .text('Ассистент', `arbitration_decision_assistant_${arbitration.id}`);
 
-    // Обновляем статус ассистента, чтобы он мог принимать новые запросы
-    await prisma.assistant.update({
-      where: { telegramId: arbitration.assistant.telegramId },
-      data: { isBusy: false },
-    });
-
-    // Отправляем подтверждение модератору
-    await ctx.reply('Арбитраж завершён.');
-
-    // Уведомляем пользователя
-    await sendMessageToUser(
-      arbitration.user.telegramId.toString(),
-      'Арбитраж завершён модератором.'
-    );
-
-    // Уведомляем ассистента
-    await sendMessageToAssistant(
-      arbitration.assistant.telegramId.toString(),
-      'Арбитраж завершён модератором.'
-    );
+    await ctx.reply('Кто прав?', { reply_markup: keyboard });
 
   } catch (error) {
     console.error('Ошибка при завершении арбитража:', error);
@@ -296,27 +277,147 @@ adminBot.command('end_arbitration', async (ctx) => {
   }
 });
 
+
 adminBot.on('callback_query:data', async (ctx) => {
   const data = ctx.callbackQuery.data;
 
-  if (data && data.startsWith('review_')) {
-    await ctx.answerCallbackQuery(); // Подтверждаем получение колбэка
+  if (data) {
+    if (data.startsWith('review_')) {
+      await ctx.answerCallbackQuery(); // Подтверждаем получение колбэка
 
-    const arbitrationId = BigInt(data.split('_')[1]);
-    const moderatorTelegramId = BigInt(ctx.from?.id || 0);
+      const arbitrationId = BigInt(data.split('_')[1]);
+      const moderatorTelegramId = BigInt(ctx.from?.id || 0);
 
-    if (!moderatorTelegramId) {
-      await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
-      return;
-    }
+      if (!moderatorTelegramId) {
+        await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
+        return;
+      }
 
-    try {
-      // Обновляем запись арбитража: назначаем модератора и устанавливаем статус 'IN_PROGRESS'
-      const arbitration = await prisma.arbitration.update({
-        where: { id: arbitrationId },
-        data: {
-          moderatorId: moderatorTelegramId,
-          status: 'IN_PROGRESS' as ArbitrationStatus,
+      try {
+        // Обновляем запись арбитража: назначаем модератора и устанавливаем статус 'IN_PROGRESS'
+        const arbitration = await prisma.arbitration.update({
+          where: { id: arbitrationId },
+          data: {
+            moderatorId: moderatorTelegramId,
+            status: 'IN_PROGRESS' as ArbitrationStatus,
+          },
+          include: {
+            user: true,
+            assistant: true,
+          },
+        });
+
+        // Отправляем сообщения модератору, пользователю и ассистенту
+        await ctx.reply('Вы присоединились к обсуждению. Все сообщения будут пересылаться между участниками.');
+
+        await sendMessageToUser(
+          arbitration.user.telegramId.toString(),
+          'Модератор присоединился к обсуждению. Опишите свою проблему.'
+        );
+
+        await sendMessageToAssistant(
+          arbitration.assistant.telegramId.toString(),
+          'Модератор присоединился к обсуждению. Опишите свою проблему.'
+        );
+
+      } catch (error) {
+        console.error('Ошибка при обработке арбитража:', error);
+        await ctx.reply('Произошла ошибка при обработке арбитража.');
+      }
+    } else if (data.startsWith('arbitration_decision_')) {
+      await ctx.answerCallbackQuery();
+
+      const parts = data.split('_');
+      const decision = parts[2]; // 'user' или 'assistant'
+      const arbitrationId = BigInt(parts[3]);
+      const moderatorTelegramId = BigInt(ctx.from?.id || 0);
+
+      if (!moderatorTelegramId) {
+        await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
+        return;
+      }
+
+      try {
+        // Находим арбитраж
+        const arbitration = await prisma.arbitration.findFirst({
+          where: {
+            id: arbitrationId,
+            moderatorId: moderatorTelegramId,
+            status: 'IN_PROGRESS' as ArbitrationStatus,
+          },
+          include: {
+            user: true,
+            assistant: true,
+          },
+        });
+
+        if (!arbitration) {
+          await ctx.reply('Арбитраж не найден или уже завершен.');
+          return;
+        }
+
+        // Определяем новый статус арбитража и решение
+        let newStatus: ArbitrationStatus;
+        let decisionText = '';
+
+        if (decision === 'user') {
+          newStatus = 'REJECTED' as ArbitrationStatus; // Решение в пользу пользователя
+          decisionText = 'USER';
+        } else if (decision === 'assistant') {
+          newStatus = 'ACCEPTED' as ArbitrationStatus; // Решение в пользу ассистента
+          decisionText = 'ASSISTANT';
+        } else {
+          await ctx.reply('Неверное решение.');
+          return;
+        }
+
+        // Обновляем арбитраж
+        await prisma.arbitration.update({
+          where: { id: arbitration.id },
+          data: {
+            status: newStatus,
+            decision: decisionText,
+          },
+        });
+
+        // Обновляем статус ассистента
+        await prisma.assistant.update({
+          where: { telegramId: arbitration.assistant.telegramId },
+          data: { isBusy: false },
+        });
+
+        // Отправляем подтверждение модератору
+        await ctx.reply('Арбитраж завершён.');
+
+        // Уведомляем участников
+        let userMessage = '';
+        let assistantMessage = '';
+
+        if (decision === 'user') {
+          userMessage = 'Арбитраж завершён в вашу пользу.';
+          assistantMessage = 'Арбитраж завершён в пользу пользователя.';
+        } else {
+          userMessage = 'Арбитраж завершён в пользу ассистента.';
+          assistantMessage = 'Арбитраж завершён в вашу пользу.';
+        }
+
+        await sendMessageToUser(arbitration.user.telegramId.toString(), userMessage);
+
+        await sendMessageToAssistant(arbitration.assistant.telegramId.toString(), assistantMessage);
+
+      } catch (error) {
+        console.error('Ошибка при обработке решения арбитража:', error);
+        await ctx.reply('Произошла ошибка при обработке решения арбитража.');
+      }
+    } else if (data === 'current_arbitrations') {
+      // Обработка кнопки "Список текущих арбитражей"
+      const lang = detectUserLanguage(ctx);
+      await ctx.answerCallbackQuery();
+
+      // Получаем список текущих арбитражей со статусом 'PENDING'
+      const arbitrations = await prisma.arbitration.findMany({
+        where: {
+          status: 'PENDING' as ArbitrationStatus,
         },
         include: {
           user: true,
@@ -324,25 +425,26 @@ adminBot.on('callback_query:data', async (ctx) => {
         },
       });
 
-      // Отправляем сообщения модератору, пользователю и ассистенту
-      await ctx.reply('Вы присоединились к обсуждению. Все сообщения будут пересылаться между участниками.');
+      if (arbitrations.length === 0) {
+        await ctx.reply('Нет текущих арбитражей.');
+        return;
+      }
 
-      await sendMessageToUser(
-        arbitration.user.telegramId.toString(),
-        'Модератор присоединился к обсуждению. Опишите свою проблему.'
-      );
+      // Формируем сообщение со списком арбитражей и кнопками для рассмотрения
+      for (const arbitration of arbitrations) {
+        const message = `Арбитраж ID: ${arbitration.id}\nПользователь: ${arbitration.user.telegramId}\nАссистент: ${arbitration.assistant.telegramId}\nПричина: ${arbitration.reason}`;
+        const keyboard = new InlineKeyboard().text('Рассмотреть', `review_${arbitration.id.toString()}`);
 
-      await sendMessageToAssistant(
-        arbitration.assistant.telegramId.toString(),
-        'Модератор присоединился к обсуждению. Опишите свою проблему.'
-      );
-
-    } catch (error) {
-      console.error('Ошибка при обработке арбитража:', error);
-      await ctx.reply('Произошла ошибка при обработке арбитража.');
+        await ctx.reply(message, { reply_markup: keyboard });
+      }
+    } else {
+      // Обработка неизвестных callback_data
+      await ctx.answerCallbackQuery();
+      await ctx.reply('Неизвестная команда. Пожалуйста, используйте меню для выбора действия.');
     }
   }
 });
+
 
 adminBot.on('message', async (ctx) => {
   const moderatorTelegramId = BigInt(ctx.from?.id || 0);
