@@ -1,6 +1,7 @@
 import { Bot, webhookCallback } from 'grammy';
 import OpenAI from 'openai';
 import { PrismaClient } from '@prisma/client';
+import { ArbitrationStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -19,17 +20,44 @@ const userConversations = new Map<bigint, ChatMessage[]>();
 
 async function sendMessageToAssistant(chatId: string, text: string) {
   const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
+  if (!botToken) {
+    console.error('Ошибка: TELEGRAM_SUPPORT_BOT_TOKEN не установлен');
+    return;
+  }
+
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
-  await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text,
-    }),
-  });
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text }),
+    });
+  } catch (error) {
+    console.error('Ошибка при отправке сообщения ассистенту:', error);
+  }
 }
+
+async function sendMessageToModerator(chatId: string, text: string) {
+  const botToken = process.env.TELEGRAM_ADMIN_BOT_TOKEN;
+  if (!botToken) {
+    console.error('Ошибка: TELEGRAM_ADMIN_BOT_TOKEN не установлен');
+    return;
+  }
+
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text }),
+    });
+  } catch (error) {
+    console.error('Ошибка при отправке сообщения модератору:', error);
+  }
+}
+
 
 type TranslationKey =
   | 'start_message'
@@ -211,6 +239,8 @@ bot.command('start', async (ctx) => {
   }
 });
 
+
+
 bot.on('message', async (ctx) => {
   try {
     const languageCode = ctx.from?.language_code || 'en';
@@ -228,8 +258,8 @@ bot.on('message', async (ctx) => {
       return;
     }
 
-    // Fetch user and activeRequest simultaneously
-    const [user, activeRequest] = await Promise.all([
+    // Одновременное получение пользователя, активного запроса и арбитража
+    const [user, activeRequest, arbitration] = await Promise.all([
       prisma.user.findUnique({
         where: { telegramId },
       }),
@@ -240,6 +270,16 @@ bot.on('message', async (ctx) => {
         },
         include: { assistant: true },
       }),
+      prisma.arbitration.findFirst({
+        where: {
+          userId: telegramId,
+          status: 'IN_PROGRESS' as ArbitrationStatus,
+        },
+        include: {
+          assistant: true,
+          moderator: true,
+        },
+      }),
     ]);
 
     if (!user) {
@@ -247,8 +287,23 @@ bot.on('message', async (ctx) => {
       return;
     }
 
-    if (user.isActiveAIChat) {
-      // Handle AI chat mode
+    if (arbitration) {
+      // Если есть активный арбитраж, пересылаем сообщение ассистенту и модератору
+      const messageToSend = `Пользователь:\n${userMessage}`;
+
+      // Отправляем сообщение ассистенту
+      await sendMessageToAssistant(arbitration.assistant.telegramId.toString(), messageToSend);
+
+      // Отправляем сообщение модератору, если он назначен
+      if (arbitration.moderator) {
+        await sendMessageToModerator(arbitration.moderator.id.toString(), messageToSend);
+      }
+
+      // Можно уведомить пользователя, что сообщение отправлено
+      // await ctx.reply('Ваше сообщение было отправлено в арбитраж.');
+
+    } else if (user.isActiveAIChat) {
+      // Обработка режима общения с ИИ
       const messages: ChatMessage[] = userConversations.get(telegramId) || [
         { role: 'system', content: 'You are a helpful assistant.' },
       ];
@@ -282,11 +337,11 @@ bot.on('message', async (ctx) => {
         await ctx.reply(getTranslation(languageCode, 'ai_no_response'));
       }
     } else if (activeRequest) {
-      // Handle active assistant request
+      // Обработка активного запроса к ассистенту
       await sendMessageToAssistant(activeRequest.assistant.telegramId.toString(), userMessage);
     } else {
-      // No active dialog
-      await ctx.reply('You have no active dialogs. Use /start to begin.');
+      // Нет активного диалога
+      await ctx.reply('У вас нет активных диалогов. Используйте /start, чтобы начать.');
     }
   } catch (error) {
     console.error('Ошибка при обработке сообщения:', error);
@@ -294,5 +349,6 @@ bot.on('message', async (ctx) => {
     await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
   }
 });
+
 
 export const POST = webhookCallback(bot, 'std/http');
