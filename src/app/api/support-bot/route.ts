@@ -227,6 +227,9 @@ bot.command('start', async (ctx) => {
 bot.command('menu', async (ctx) => {
   const lang = detectUserLanguage(ctx);
 
+  // Логируем данные ctx.from
+  console.log("Context 'from':", ctx.from);
+
   try {
     // Проверяем, что ctx.from существует
     if (!ctx.from?.id) {
@@ -239,13 +242,12 @@ bot.command('menu', async (ctx) => {
       where: { telegramId: BigInt(ctx.from.id) },
     });
 
-    // Если пользователь не ассистент, выводим сообщение об ошибке
     if (!assistant) {
       await ctx.reply(getTranslation(lang, 'end_dialog_error'));
       return;
     }
 
-    // Если пользователь ассистент, выводим меню
+    // Отображаем меню, если пользователь ассистент
     await ctx.reply(getTranslation(lang, 'menu_message'), {
       reply_markup: {
         inline_keyboard: [
