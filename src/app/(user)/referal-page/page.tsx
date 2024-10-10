@@ -9,263 +9,304 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
 
 interface PopupProps {
-    isVisible: boolean;
-    onClose: () => void;
+  isVisible: boolean;
+  onClose: () => void;
 }
 
 const Popup: React.FC<PopupProps> = ({ isVisible, onClose }) => {
-    const { t } = useTranslation();
-    const [isClosing, setIsClosing] = useState(false);
+  const { t } = useTranslation();
+  const [isClosing, setIsClosing] = useState(false);
 
-    const handleClose = () => {
-        setIsClosing(true);
-        setTimeout(() => {
-            setIsClosing(false);
-            onClose();
-        }, 400);
-    };
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onClose();
+    }, 400);
+  };
 
-    if (!isVisible && !isClosing) return null;
+  if (!isVisible && !isClosing) return null;
 
-    return (
-        <div className={`${styles.popupOverlay} ${isClosing ? styles.fadeOutOverlay : ''}`}>
-            <div className={`${styles.popupContent} ${isClosing ? styles.slideDown : styles.slideUp}`}>
-                <div className={styles.popupHeader}>
-                    <div></div>
-                    <button onClick={handleClose} className={styles.closeButton}>✖</button>
-                </div>
-                <div className={styles.logobox}>
-                    <Image
-                        src="https://92eaarerohohicw5.public.blob.vercel-storage.com/784312486488Credit_Card-avyq19EwaUxOPBuU53pZPUTnoK8QhB.gif"
-                        alt="avatar"
-                        width={150}
-                        height={150}
-                    />
-                </div>
-                <p>{t('withdraw_request')}</p>
-                <button className={styles.confirmButton} onClick={handleClose}>
-                    <Link href="/user-profile">{t('return_profile')}</Link>
-                </button>
-            </div>
+  return (
+    <div className={`${styles.popupOverlay} ${isClosing ? styles.fadeOutOverlay : ''}`}>
+      <div className={`${styles.popupContent} ${isClosing ? styles.slideDown : styles.slideUp}`}>
+        <div className={styles.popupHeader}>
+          <div></div>
+          <button onClick={handleClose} className={styles.closeButton}>✖</button>
         </div>
-    );
+        <div className={styles.logobox}>
+          <Image
+            src="https://92eaarerohohicw5.public.blob.vercel-storage.com/784312486488Credit_Card-avyq19EwaUxOPBuU53pZPUTnoK8QhB.gif"
+            alt="avatar"
+            width={150}
+            height={150}
+          />
+        </div>
+        <p>{t('withdraw_request')}</p>
+        <button className={styles.confirmButton} onClick={handleClose}>
+          <Link href="/user-profile">{t('return_profile')}</Link>
+        </button>
+      </div>
+    </div>
+  );
 };
 
 function Page() {
-    const { t } = useTranslation();
-    const [isPopupVisible, setPopupVisible] = useState(false);
-    const [telegramUsername, setTelegramUsername] = useState('');
-    const [fontSize, setFontSize] = useState('24px');
-    const [referralLink, setReferralLink] = useState<string | null>(null);
-    const [isGenerating, setIsGenerating] = useState(false);
+  const { t } = useTranslation();
+  const [isPopupVisible, setPopupVisible] = useState(false);
+  const [telegramUsername, setTelegramUsername] = useState('');
+  const [fontSize, setFontSize] = useState('24px');
+  const [referralLink, setReferralLink] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
-    useEffect(() => {
-        // Проверяем, что Telegram WebApp API доступен
-        if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
-            window.Telegram.WebApp.ready();
+  useEffect(() => {
+    // Проверяем, что Telegram WebApp API доступен
+    if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.ready();
 
-            // Получаем язык пользователя через Telegram WebApp SDK
-            const userLang = window.Telegram.WebApp.initDataUnsafe?.user?.language_code;
+      // Получаем язык пользователя через Telegram WebApp SDK
+      const userLang = window.Telegram.WebApp.initDataUnsafe?.user?.language_code;
 
-            // Меняем язык в зависимости от Telegram интерфейса пользователя
-            if (userLang === 'ru') {
-                i18n.changeLanguage('ru'); // Устанавливаем русский язык
-            } else {
-                i18n.changeLanguage('en'); // Устанавливаем английский язык по умолчанию
-            }
+      // Меняем язык в зависимости от Telegram интерфейса пользователя
+      if (userLang === 'ru') {
+        i18n.changeLanguage('ru'); // Устанавливаем русский язык
+      } else {
+        i18n.changeLanguage('en'); // Устанавливаем английский язык по умолчанию
+      }
 
-            // Получаем данные пользователя
-            const username = window.Telegram.WebApp.initDataUnsafe?.user?.username;
-            const firstName = window.Telegram.WebApp.initDataUnsafe?.user?.first_name;
-            const lastName = window.Telegram.WebApp.initDataUnsafe?.user?.last_name;
+      // Получаем данные пользователя
+      const username = window.Telegram.WebApp.initDataUnsafe?.user?.username;
+      const firstName = window.Telegram.WebApp.initDataUnsafe?.user?.first_name;
+      const lastName = window.Telegram.WebApp.initDataUnsafe?.user?.last_name;
 
-            const displayName = username ? `@${username}` : `${firstName || ''} ${lastName || ''}`.trim();
-            setTelegramUsername(displayName || 'Guest');
+      const displayName = username ? `@${username}` : `${firstName || ''} ${lastName || ''}`.trim();
+      setTelegramUsername(displayName || 'Guest');
 
-            // Настраиваем размер шрифта в зависимости от длины имени пользователя
-            if (displayName.length > 12) {
-                setFontSize('19px');
-            } else if (displayName.length > 8) {
-                setFontSize('21px');
-            } else {
-                setFontSize('25px');
-            }
-        } else {
-            console.error('Telegram WebApp API недоступен.');
-            // Устанавливаем значения по умолчанию
-            i18n.changeLanguage('en');
-            setTelegramUsername('Guest');
+      // Настраиваем размер шрифта в зависимости от длины имени пользователя
+      if (displayName.length > 12) {
+        setFontSize('19px');
+      } else if (displayName.length > 8) {
+        setFontSize('21px');
+      } else {
+        setFontSize('25px');
+      }
+    } else {
+      console.error('Telegram WebApp API недоступен.');
+      // Устанавливаем значения по умолчанию
+      i18n.changeLanguage('en');
+      setTelegramUsername('Guest');
+    }
+  }, []);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isCopied) {
+      timer = setTimeout(() => {
+        setIsCopied(false);
+      }, 3000); // Сбрасываем состояние через 3 секунды
+    }
+    return () => clearTimeout(timer);
+  }, [isCopied]);
+
+  const showPopup = () => {
+    setPopupVisible(true);
+  };
+
+  const hidePopup = () => {
+    setPopupVisible(false);
+  };
+
+  const generateReferralLink = async () => {
+    if (window.Telegram && window.Telegram.WebApp) {
+      try {
+        setIsGenerating(true);
+
+        const currentUserId = window.Telegram.WebApp.initDataUnsafe.user?.id;
+        if (!currentUserId) {
+          throw new Error('Не удалось получить идентификатор пользователя.');
         }
-    }, []);
 
-    const showPopup = () => {
-        setPopupVisible(true);
-    };
+        const response = await fetch('/api/generate-referral-link', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: currentUserId }),
+        });
 
-    const hidePopup = () => {
-        setPopupVisible(false);
-    };
+        const data = await response.json();
 
-    const generateReferralLink = async () => {
-        if (window.Telegram && window.Telegram.WebApp) {
-            try {
-                setIsGenerating(true);
-
-                const currentUserId = window.Telegram.WebApp.initDataUnsafe.user?.id;
-                if (!currentUserId) {
-                    throw new Error('Не удалось получить идентификатор пользователя.');
-                }
-
-                const response = await fetch('/api/generate-referral-link', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ userId: currentUserId }),
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    setReferralLink(data.referralLink);
-                } else {
-                    alert(data.error || 'Ошибка при генерации реферальной ссылки.');
-                }
-            } catch (error) {
-                console.error('Ошибка при генерации реферальной ссылки:', error);
-                alert('Произошла ошибка при генерации реферальной ссылки.');
-            } finally {
-                setIsGenerating(false);
-            }
+        if (response.ok) {
+          setReferralLink(data.referralLink);
         } else {
-            alert('Telegram WebApp API недоступен.');
+          alert(data.error || 'Ошибка при генерации реферальной ссылки.');
         }
-    };
+      } catch (error) {
+        console.error('Ошибка при генерации реферальной ссылки:', error);
+        alert('Произошла ошибка при генерации реферальной ссылки.');
+      } finally {
+        setIsGenerating(false);
+      }
+    } else {
+      alert('Telegram WebApp API недоступен.');
+    }
+  };
 
-    return (
-        <div>
-            <div style={{ position: 'relative', height: '250px', overflow: 'hidden' }}>
-                <Wave
-                    fill="white"
-                    paused={false}
-                    options={{
-                        height: 10,
-                        amplitude: 20,
-                        speed: 0.15,
-                        points: 3,
-                    }}
-                    style={{ position: 'absolute', bottom: '-70px', width: '100%' }}
-                />
-                <div className={styles.topbotom}>
-                    <div className={styles.greetings}>
-                        {t('referrals')}
-                        <div className={styles.avatarbox}>
-                            <Image
-                                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg"
-                                alt="avatar"
-                                width={110}
-                                height={110}
-                                className={styles.avatar}
-                            />
-                            <p className={styles.name} style={{ fontSize }}>{telegramUsername}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div className={styles.backbotom}>
-                <div className={styles.infobox}>
-                    <div className={styles.first}>
-                        <div className={styles.firstone}>
-                            <div className={styles.imgbox}>
-                                <Image
-                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/6oj028KO84eNmPGxQv%20(1)%20(1)-i0oy2JG3MdnKbKy6h46dOwiUyPIwrF.gif"
-                                    alt="bonus"
-                                    width={60}
-                                    height={60}
-                                    className={styles.ai}
-                                />
-                            </div>
-                            <div className={styles.textbox}>
-                                <p className={styles.num}>20$</p>
-                                <p className={styles.text}>{t('bonus')}</p>
-                            </div>
-                        </div>
-                        <div className={styles.firstone}>
-                            <div className={styles.imgbox}>
-                                <Image
-                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/9JY5i2T09d5oy2e62y-gcOJX1nhOJYe2s3RSXvGzQV4g9mH7t.gif"
-                                    alt="available"
-                                    width={130}
-                                    height={130}
-                                    className={styles.ai}
-                                />
-                            </div>
-                            <div className={styles.textbox}>
-                                <p className={styles.num}>10$</p>
-                                <p className={styles.text}>{t('available')}</p>
-                            </div>
-                        </div>
-                        <div className={styles.firstone}>
-                            <div className={styles.imgbox}>
-                                <Image
-                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/8c6L0g2Bl3CW1844BR-pLPUnTBWwuagzbZjfGSQToP9RP23nm.gif"
-                                    alt="invited"
-                                    width={80}
-                                    height={80}
-                                    className={styles.ai}
-                                />
-                            </div>
-                            <div className={styles.textbox}>
-                                <p className={styles.num}>2</p>
-                                <p className={styles.text}>{t('invited')}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className={styles.buttonsContainer}>
-                        <div
-                            className={`${styles.button} ${referralLink ? styles.generatedButton : ''}`}
-                            onClick={!isGenerating ? generateReferralLink : undefined}
-                            style={{
-                                backgroundColor: referralLink ? 'green' : undefined,
-                                opacity: isGenerating ? 0.6 : 1,
-                                cursor: isGenerating ? 'not-allowed' : 'pointer',
-                            }}
-                        >
-                            {isGenerating
-                                ? t('generating')
-                                : referralLink
-                                ? t('link_generated')
-                                : t('generate_link')}
-                        </div>
-                        <div className={styles.button} onClick={showPopup}>{t('withdraw')}</div>
-                    </div>
-                    {referralLink && (
-                        <div className={styles.referralLinkContainer}>
-                            <p>{t('your_referral_link')}:</p>
-                            <input
-                                type="text"
-                                value={referralLink}
-                                readOnly
-                                onClick={(e) => (e.target as HTMLInputElement).select()}
-                                className={styles.referralLinkInput}
-                            />
-                            <button
-                                className={styles.copyButton}
-                                onClick={() => {
-                                    navigator.clipboard.writeText(referralLink);
-                                    alert(t('link_copied'));
-                                }}
-                            >
-                                {t('copy_link')}
-                            </button>
-                        </div>
-                    )}
-                </div>
-            </div>
+  const copyToClipboard = () => {
+    if (referralLink) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(referralLink)
+          .then(() => {
+            setIsCopied(true);
+          })
+          .catch((err) => {
+            console.error('Ошибка при копировании в буфер обмена: ', err);
+            alert('Не удалось скопировать ссылку.');
+          });
+      } else {
+        // Альтернативный метод для старых браузеров
+        const textArea = document.createElement('textarea');
+        textArea.value = referralLink;
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          const successful = document.execCommand('copy');
+          if (successful) {
+            setIsCopied(true);
+          } else {
+            alert('Не удалось скопировать ссылку.');
+          }
+        } catch (err) {
+          console.error('Ошибка при копировании в буфер обмена: ', err);
+          alert('Не удалось скопировать ссылку.');
+        }
+        document.body.removeChild(textArea);
+      }
+    }
+  };
 
-            <Popup isVisible={isPopupVisible} onClose={hidePopup} />
+  return (
+    <div>
+      <div style={{ position: 'relative', height: '250px', overflow: 'hidden' }}>
+        <Wave
+          fill="white"
+          paused={false}
+          options={{
+            height: 10,
+            amplitude: 20,
+            speed: 0.15,
+            points: 3,
+          }}
+          style={{ position: 'absolute', bottom: '-70px', width: '100%' }}
+        />
+        <div className={styles.topbotom}>
+          <div className={styles.greetings}>
+            {t('referrals')}
+            <div className={styles.avatarbox}>
+              <Image
+                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg"
+                alt="avatar"
+                width={110}
+                height={110}
+                className={styles.avatar}
+              />
+              <p className={styles.name} style={{ fontSize }}>{telegramUsername}</p>
+            </div>
+          </div>
         </div>
-    );
+      </div>
+      <div className={styles.backbotom}>
+        <div className={styles.infobox}>
+          <div className={styles.first}>
+            <div className={styles.firstone}>
+              <div className={styles.imgbox}>
+                <Image
+                  src="https://92eaarerohohicw5.public.blob.vercel-storage.com/6oj028KO84eNmPGxQv%20(1)%20(1)-i0oy2JG3MdnKbKy6h46dOwiUyPIwrF.gif"
+                  alt="bonus"
+                  width={60}
+                  height={60}
+                  className={styles.ai}
+                />
+              </div>
+              <div className={styles.textbox}>
+                <p className={styles.num}>20$</p>
+                <p className={styles.text}>{t('bonus')}</p>
+              </div>
+            </div>
+            <div className={styles.firstone}>
+              <div className={styles.imgbox}>
+                <Image
+                  src="https://92eaarerohohicw5.public.blob.vercel-storage.com/9JY5i2T09d5oy2e62y-gcOJX1nhOJYe2s3RSXvGzQV4g9mH7t.gif"
+                  alt="available"
+                  width={130}
+                  height={130}
+                  className={styles.ai}
+                />
+              </div>
+              <div className={styles.textbox}>
+                <p className={styles.num}>10$</p>
+                <p className={styles.text}>{t('available')}</p>
+              </div>
+            </div>
+            <div className={styles.firstone}>
+              <div className={styles.imgbox}>
+                <Image
+                  src="https://92eaarerohohicw5.public.blob.vercel-storage.com/8c6L0g2Bl3CW1844BR-pLPUnTBWwuagzbZjfGSQToP9RP23nm.gif"
+                  alt="invited"
+                  width={80}
+                  height={80}
+                  className={styles.ai}
+                />
+              </div>
+              <div className={styles.textbox}>
+                <p className={styles.num}>2</p>
+                <p className={styles.text}>{t('invited')}</p>
+              </div>
+            </div>
+          </div>
+          <div className={styles.buttonsContainer}>
+            <div
+              className={styles.button}
+              onClick={!isGenerating ? generateReferralLink : undefined}
+              style={{
+                opacity: isGenerating ? 0.6 : 1,
+                cursor: isGenerating ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {isGenerating
+                ? t('generating')
+                : referralLink
+                ? t('link_generated')
+                : t('generate_link')}
+            </div>
+            <div className={styles.button} onClick={showPopup}>{t('withdraw')}</div>
+          </div>
+          {referralLink && (
+            <div className={styles.referralLinkContainer}>
+              <p>{t('your_referral_link')}:</p>
+              <input
+                type="text"
+                value={referralLink}
+                readOnly
+                onClick={(e) => (e.target as HTMLInputElement).select()}
+                className={styles.referralLinkInput}
+              />
+              <button
+                className={`${styles.copyButton} ${isCopied ? styles.copiedButton : ''}`}
+                onClick={copyToClipboard}
+              >
+                {isCopied ? t('link_copied') : t('copy_link')}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Popup isVisible={isPopupVisible} onClose={hidePopup} />
+    </div>
+  );
 }
 
 export default Page;
