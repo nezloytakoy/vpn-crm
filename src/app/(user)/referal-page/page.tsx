@@ -100,6 +100,7 @@ function Page() {
         setPopupVisible(false);
     };
 
+
     const generateReferralLink = async () => {
         if (window.Telegram && window.Telegram.WebApp) {
             try {
@@ -174,10 +175,18 @@ function Page() {
                     <div className={styles.buttonsContainer}>
                         <div
                             className={`${styles.button} ${referralLink ? styles.generatedButton : ''}`}
-                            onClick={generateReferralLink}
-                            style={{ backgroundColor: referralLink ? 'green' : undefined }}
+                            onClick={!isGenerating ? generateReferralLink : undefined}
+                            style={{
+                                backgroundColor: referralLink ? 'green' : undefined,
+                                opacity: isGenerating ? 0.6 : 1,
+                                cursor: isGenerating ? 'not-allowed' : 'pointer',
+                            }}
                         >
-                            {referralLink ? t('link_generated') : t('generate_link')}
+                            {isGenerating
+                                ? t('generating')
+                                : referralLink
+                                    ? t('link_generated')
+                                    : t('generate_link')}
                         </div>
                         <div className={styles.button} onClick={showPopup}>{t('withdraw')}</div>
                     </div>
