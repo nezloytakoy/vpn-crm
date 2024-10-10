@@ -254,8 +254,7 @@ bot.command('menu', async (ctx) => {
     });
 
     if (!assistant) {
-      await ctx.reply(getTranslation(lang, 'end_dialog_error'));
-      await sendLogToUser('Ошибка: Пользователь не найден в базе ассистентов');
+      await sendLogToUser('Вы не являетесь ассистентом');
       return;
     }
 
