@@ -2,11 +2,12 @@ import { PrismaClient } from '@prisma/client';
 import fetch from 'node-fetch';
 
 const prisma = new PrismaClient();
-// Пример объекта translations
+
 const translations = {
     en: {
         userIdRequired: 'UserId is required',
         userNotFound: 'User not found',
+        activeRequestExists: 'You already have an active request with an assistant.',
         requestReceived: 'Your request has been received. Please wait while an assistant contacts you.',
         noAssistantsAvailable: 'No assistants available',
         requestSent: 'The request has been sent to the assistant.',
@@ -19,6 +20,7 @@ const translations = {
     ru: {
         userIdRequired: 'Требуется UserId',
         userNotFound: 'Пользователь не найден',
+        activeRequestExists: 'У вас уже есть активный запрос с ассистентом.',
         requestReceived: 'Ваш запрос получен. Ожидайте, пока с вами свяжется ассистент.',
         noAssistantsAvailable: 'Нет доступных ассистентов',
         requestSent: 'Запрос отправлен ассистенту.',
@@ -30,24 +32,20 @@ const translations = {
     }
 };
 
-// Функция получения перевода
 function getTranslation(lang: "en" | "ru", key: keyof typeof translations["en"]) {
     return translations[lang][key] || translations["en"][key];
 }
 
-// Функция для определения языка пользователя (например, по запросу или другим критериям)
 function detectLanguage(): "en" | "ru" {
-    // Логика определения языка пользователя (например, по заголовкам запроса)
-    return "en"; // Пример: возвращаем английский по умолчанию
+    return "en"; // Определение языка пользователя
 }
 
-// Основная логика обработки запроса с локализацией
 export async function POST(request: Request) {
     try {
         const body = await request.json();
         const { userId } = body;
 
-        const lang = detectLanguage(); // Определяем язык
+        const lang = detectLanguage(); 
 
         if (!userId) {
             return new Response(JSON.stringify({ error: getTranslation(lang, 'userIdRequired') }), {
@@ -67,6 +65,21 @@ export async function POST(request: Request) {
         if (!userExists) {
             return new Response(JSON.stringify({ error: getTranslation(lang, 'userNotFound') }), {
                 status: 404,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        // Проверка на наличие активного запроса
+        const activeRequest = await prisma.assistantRequest.findFirst({
+            where: {
+                userId: userIdBigInt,
+                isActive: true, // Проверяем активный статус запроса
+            },
+        });
+
+        if (activeRequest) {
+            return new Response(JSON.stringify({ message: getTranslation(lang, 'activeRequestExists') }), {
+                status: 200,
                 headers: { 'Content-Type': 'application/json' },
             });
         }
@@ -103,7 +116,7 @@ export async function POST(request: Request) {
                 assistantId: selectedAssistant.telegramId,
                 message: getTranslation(lang, 'assistantRequestMessage'),
                 status: 'PENDING',
-                isActive: false,
+                isActive: true,
             },
         });
 
@@ -129,7 +142,7 @@ export async function POST(request: Request) {
     }
 }
 
-// Обновим и другие вспомогательные функции, чтобы использовать локализацию
+// Вспомогательные функции остались без изменений
 async function sendTelegramMessageToUser(chatId: string, text: string) {
     const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
     const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
