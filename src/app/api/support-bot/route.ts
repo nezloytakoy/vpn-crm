@@ -147,6 +147,54 @@ bot.command('end_dialog', async (ctx) => {
 
     const telegramId = BigInt(ctx.from.id);
 
+    // Ищем активный запрос, связанный с ассистентом
+    const activeRequest = await prisma.assistantRequest.findFirst({
+      where: {
+        assistant: { telegramId: telegramId }, // telegramId ассистента
+        isActive: true,
+      },
+      include: { user: true },
+    });
+
+    if (!activeRequest) {
+      await ctx.reply(getTranslation(lang, 'no_active_requests'));
+      return;
+    }
+
+    // Обновляем статус запроса как завершённый
+    await prisma.assistantRequest.update({
+      where: { id: activeRequest.id },
+      data: { status: 'COMPLETED', isActive: false },
+    });
+
+    // Обновляем статус ассистента
+    await prisma.assistant.update({
+      where: { telegramId: telegramId }, // telegramId ассистента
+      data: { isBusy: false },
+    });
+
+    await ctx.reply(getTranslation(lang, 'dialog_closed'));
+
+    // Отправляем сообщение пользователю
+    await sendTelegramMessageToUser(activeRequest.user.telegramId.toString(), getTranslation(lang, 'assistant_finished_dialog'));
+  } catch (error) {
+    console.error('Ошибка при завершении диалога:', error);
+    await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+  }
+});
+
+
+bot.command('end_dialog', async (ctx) => {
+  const lang = detectUserLanguage(ctx);
+
+  try {
+    if (!ctx.from?.id) {
+      await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+      return;
+    }
+
+    const telegramId = BigInt(ctx.from.id);
+
     const activeRequest = await prisma.assistantRequest.findFirst({
       where: {
         assistant: {
