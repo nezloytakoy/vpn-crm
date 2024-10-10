@@ -21,7 +21,7 @@ model Moderator {
   password     String
   inviteToken  String?  @unique  // Поле приглашения необязательное
   role         String   @default("moderator") // Роль по умолчанию "модератор"
-  isActive     Boolean  @default(false) // Флаг активности модератора, по умолчанию false
+  isActive     Boolean  @default(true) // Флаг активности модератора, по умолчанию false
   lastActiveAt DateTime @default(now()) // Время последней активности
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

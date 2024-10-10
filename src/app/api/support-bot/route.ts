@@ -136,17 +136,8 @@ const detectUserLanguage = (ctx: Context) => {
   return userLang === 'ru' ? 'ru' : 'en';
 };
 
-bot.command('end_dialog', async (ctx) => {
-  const lang = detectUserLanguage(ctx);
-
+async function endActiveDialog(telegramId: bigint, lang: "en" | "ru", ctx: Context) {
   try {
-    if (!ctx.from?.id) {
-      await ctx.reply(getTranslation(lang, 'end_dialog_error'));
-      return;
-    }
-
-    const telegramId = BigInt(ctx.from.id);
-
     // Ищем активный запрос, связанный с ассистентом
     const activeRequest = await prisma.assistantRequest.findFirst({
       where: {
@@ -181,9 +172,10 @@ bot.command('end_dialog', async (ctx) => {
     console.error('Ошибка при завершении диалога:', error);
     await ctx.reply(getTranslation(lang, 'end_dialog_error'));
   }
-});
+}
 
 
+// Команда end_dialog
 bot.command('end_dialog', async (ctx) => {
   const lang = detectUserLanguage(ctx);
 
@@ -194,40 +186,49 @@ bot.command('end_dialog', async (ctx) => {
     }
 
     const telegramId = BigInt(ctx.from.id);
-
-    const activeRequest = await prisma.assistantRequest.findFirst({
-      where: {
-        assistant: {
-          telegramId: telegramId, // Правильный способ проверки ID ассистента
-        },
-        isActive: true,
-      },
-      include: { user: true },
-    });
-
-    if (!activeRequest) {
-      await ctx.reply(getTranslation(lang, 'no_active_requests'));
-      return;
-    }
-
-    await prisma.assistantRequest.update({
-      where: { id: activeRequest.id },
-      data: { status: 'COMPLETED', isActive: false },
-    });
-
-    await prisma.assistant.update({
-      where: { telegramId: telegramId }, // Используем id вместо telegramId
-      data: { isBusy: false },
-    });
-
-    await ctx.reply(getTranslation(lang, 'dialog_closed'));
-
-    await sendTelegramMessageToUser(activeRequest.user.telegramId.toString(), getTranslation(lang, 'assistant_finished_dialog'));
+    await endActiveDialog(telegramId, lang, ctx);
   } catch (error) {
     console.error('Error ending dialog:', error);
     await ctx.reply(getTranslation(lang, 'end_dialog_error'));
   }
 });
+
+// Команда end_work
+bot.command('end_work', async (ctx) => {
+  try {
+    if (!ctx.from?.id) {
+      await ctx.reply(getTranslation(detectUserLanguage(ctx), 'end_dialog_error'));
+      return;
+    }
+
+    const telegramId = BigInt(ctx.from.id);
+    const lang = detectUserLanguage(ctx);
+
+    // Завершаем активный диалог, если есть
+    await endActiveDialog(telegramId, lang, ctx);
+
+    // Проверяем, работает ли ассистент
+    const assistant = await prisma.assistant.findUnique({
+      where: { telegramId: telegramId }, // Используем id вместо telegramId
+    });
+    if (!assistant?.isWorking) {
+      await ctx.reply(getTranslation(lang, 'no_working_status'));
+      return;
+    }
+
+    // Обновляем статус работы ассистента
+    await prisma.assistant.update({
+      where: { telegramId: telegramId },
+      data: { isWorking: false, isBusy: false },
+    });
+
+    await ctx.reply(getTranslation(lang, 'end_work'));
+  } catch (error) {
+    console.error('Ошибка при завершении работы:', error);
+    await ctx.reply(getTranslation(detectUserLanguage(ctx), 'end_dialog_error'));
+  }
+});
+
 
 bot.command('start', async (ctx) => {
   const lang = detectUserLanguage(ctx);
@@ -372,30 +373,6 @@ bot.on('callback_query:data', async (ctx) => {
   }
 });
 
-bot.command('end_work', async (ctx) => {
-  try {
-    if (ctx.from?.id) {
-      const telegramId = BigInt(ctx.from.id);
-      const assistant = await prisma.assistant.findUnique({
-        where: { telegramId: telegramId }, // Используем id вместо telegramId
-      });
-      if (!assistant?.isWorking) {
-        await ctx.reply(getTranslation(detectUserLanguage(ctx), 'no_working_status'));
-        return;
-      }
-      await prisma.assistant.update({
-        where: { telegramId: telegramId }, // Используем id вместо telegramId
-        data: { isWorking: false, isBusy: false },
-      });
-      await ctx.reply(getTranslation(detectUserLanguage(ctx), 'end_work'));
-    } else {
-      await ctx.reply(getTranslation(detectUserLanguage(ctx), 'end_dialog_error'));
-    }
-  } catch (error) {
-    console.error('Ошибка при завершении работы:', error);
-    await ctx.reply(getTranslation(detectUserLanguage(ctx), 'end_dialog_error'));
-  }
-});
 
 // Пример обработчика команды открытия арбитража, остальное аналогично
 bot.command('problem', async (ctx) => {
