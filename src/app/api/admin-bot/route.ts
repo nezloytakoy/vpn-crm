@@ -1,5 +1,5 @@
 import { Bot, InlineKeyboard, webhookCallback, Context } from 'grammy';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, ArbitrationStatus } from '@prisma/client';
 
 const userBot = new Bot(process.env.TELEGRAM_USER_BOT_TOKEN!);
 const supportBot = new Bot(process.env.TELEGRAM_SUPPORT_BOT_TOKEN!);
@@ -160,6 +160,47 @@ async function showModeratorMenu(ctx: Context, lang: 'ru' | 'en') {
   await ctx.reply(getTranslation(lang, 'menu'), { reply_markup: keyboard });
 }
 
+async function sendMessageToUser(chatId: string, text: string) {
+  const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
+  if (!botToken) {
+    console.error('Ошибка: TELEGRAM_USER_BOT_TOKEN не установлен');
+    return;
+  }
+
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text }),
+    });
+  } catch (error) {
+    console.error('Ошибка при отправке сообщения пользователю:', error);
+  }
+}
+
+async function sendMessageToAssistant(chatId: string, text: string) {
+  const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
+  if (!botToken) {
+    console.error('Ошибка: TELEGRAM_SUPPORT_BOT_TOKEN не установлен');
+    return;
+  }
+
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text }),
+    });
+  } catch (error) {
+    console.error('Ошибка при отправке сообщения ассистенту:', error);
+  }
+}
+
+
 adminBot.callbackQuery('message_user', async (ctx) => {
   const lang = detectUserLanguage(ctx);
   await ctx.answerCallbackQuery();
@@ -172,6 +213,54 @@ adminBot.callbackQuery('message_assistant', async (ctx) => {
   await ctx.answerCallbackQuery();
   moderatorState[ctx.from.id] = { state: 'awaiting_assistant_id' };
   await ctx.reply(getTranslation(lang, 'assistant_id_prompt'));
+});
+
+adminBot.on('callback_query:data', async (ctx) => {
+  const data = ctx.callbackQuery.data;
+
+  if (data && data.startsWith('review_')) {
+    await ctx.answerCallbackQuery(); // Acknowledge the callback
+
+    const arbitrationId = BigInt(data.split('_')[1]);
+    const moderatorTelegramId = BigInt(ctx.from?.id || 0);
+
+    if (!moderatorTelegramId) {
+      await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
+      return;
+    }
+
+    try {
+      // Update the arbitration record to assign the moderator and set status to IN_PROGRESS
+      const arbitration = await prisma.arbitration.update({
+        where: { id: arbitrationId },
+        data: {
+          moderatorId: moderatorTelegramId,
+          status: ArbitrationStatus.IN_PROGRESS,
+        },
+        include: {
+          user: true,
+          assistant: true,
+        },
+      });
+
+      // Send messages to the moderator, user, and assistant
+      await ctx.reply('Вы присоединились к обсуждению, ожидайте пока участники опишут проблему.');
+
+      await sendMessageToUser(
+        arbitration.userId.toString(),
+        'Модератор присоединился к обсуждению. Опишите свою проблему.'
+      );
+
+      await sendMessageToAssistant(
+        arbitration.assistantId.toString(),
+        'Модератор присоединился к обсуждению. Опишите свою проблему.'
+      );
+
+    } catch (error) {
+      console.error('Ошибка при обработке арбитража:', error);
+      await ctx.reply('Произошла ошибка при обработке арбитража.');
+    }
+  }
 });
 
 adminBot.on('message:text', async (ctx) => {
