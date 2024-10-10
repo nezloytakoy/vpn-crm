@@ -411,7 +411,6 @@ adminBot.on('callback_query:data', async (ctx) => {
       }
     } else if (data === 'current_arbitrations') {
       // Обработка кнопки "Список текущих арбитражей"
-      const lang = detectUserLanguage(ctx);
       await ctx.answerCallbackQuery();
 
       // Получаем список текущих арбитражей со статусом 'PENDING'
