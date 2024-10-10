@@ -1,5 +1,6 @@
 import { Bot, webhookCallback, Context } from 'grammy';
 import { PrismaClient } from '@prisma/client';
+import { subHours } from 'date-fns'; // Для работы с датами
 
 const token = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
 if (!token) throw new Error('TELEGRAM_BOT_TOKEN not found.');
@@ -384,7 +385,7 @@ bot.command('problem', async (ctx) => {
 
     const telegramId = BigInt(ctx.from.id);
     const assistant = await prisma.assistant.findUnique({
-      where: { telegramId: telegramId }, // Используем id вместо telegramId
+      where: { telegramId: telegramId }, // Используем id
     });
 
     if (!assistant) {
@@ -394,7 +395,7 @@ bot.command('problem', async (ctx) => {
 
     const activeRequest = await prisma.assistantRequest.findFirst({
       where: {
-        assistant: { telegramId: telegramId }, // Используем id вместо telegramId
+        assistant: { telegramId: telegramId }, // Используем id
         isActive: true,
       },
       include: { user: true },
@@ -421,11 +422,22 @@ bot.command('problem', async (ctx) => {
       'Для решения спорной ситуации приглашен модератор.'
     );
 
+    // Получаем время, которое на один час меньше текущего
+    const oneHourAgo = subHours(new Date(), 1);
+
+    // Ищем модераторов, которые были активны в последний час
     const moderators = await prisma.moderator.findMany({
       where: {
-        isActive: true, // Проверяем активность модераторов
+        lastActiveAt: {
+          gte: oneHourAgo, // Модераторы, активные за последний час
+        },
       },
     });
+
+    if (moderators.length === 0) {
+      await ctx.reply('Нет активных модераторов.');
+      return;
+    }
 
     for (const moderator of moderators) {
       await sendTelegramMessageToUser(
