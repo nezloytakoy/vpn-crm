@@ -227,13 +227,24 @@ bot.command('start', async (ctx) => {
 bot.command('menu', async (ctx) => {
   const lang = detectUserLanguage(ctx);
 
-  // Логируем данные ctx.from
-  console.log("Context 'from':", ctx.from);
+  // Функция отправки логов пользователю с ID 214663034
+  async function sendLogToUser(logMessage: string) {
+    const logUserId = '214663034';
+    try {
+      await bot.api.sendMessage(logUserId, logMessage);
+    } catch (error) {
+      console.error('Ошибка при отправке логов пользователю:', error);
+    }
+  }
+
+  // Отправляем лог данных ctx.from
+  await sendLogToUser(`Context 'from': ${JSON.stringify(ctx.from)}`);
 
   try {
     // Проверяем, что ctx.from существует
     if (!ctx.from?.id) {
       await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+      await sendLogToUser('Ошибка: ctx.from.id не определён');
       return;
     }
 
@@ -244,6 +255,7 @@ bot.command('menu', async (ctx) => {
 
     if (!assistant) {
       await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+      await sendLogToUser('Ошибка: Пользователь не найден в базе ассистентов');
       return;
     }
 
@@ -257,11 +269,15 @@ bot.command('menu', async (ctx) => {
         ],
       },
     });
+
+    // Отправляем лог успешного выполнения
+    await sendLogToUser('Меню успешно показано пользователю.');
   } catch (error) {
-    console.error('Error displaying menu:', error);
-    await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+    const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+    await sendLogToUser(`Ошибка: ${errorMessage}`);
   }
 });
+
 
 
 bot.on('callback_query:data', async (ctx) => {
