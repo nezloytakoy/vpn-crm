@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import styles from "./chat.module.css";
 import Image from 'next/image';
 import Wave from 'react-wavify';
@@ -23,6 +23,43 @@ function Page() {
 
     if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
       window.Telegram.WebApp.ready();
+    } else {
+      console.error('Telegram WebApp API недоступен.');
+    }
+  }, []);
+
+  const [telegramUsername, setTelegramUsername] = useState('');
+  const [fontSize, setFontSize] = useState('24px');
+
+  useEffect(() => {
+    // Проверяем, что Telegram WebApp API доступен
+    if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.ready();
+
+      // Получение языка пользователя через Telegram WebApp SDK
+      const userLang = window.Telegram.WebApp.initDataUnsafe?.user?.language_code;
+
+      if (userLang === 'ru') {
+        i18n.changeLanguage('ru'); // Переключаем язык на русский
+      } else {
+        i18n.changeLanguage('en'); // По умолчанию — английский
+      }
+
+      const username = window.Telegram.WebApp.initDataUnsafe?.user?.username;
+      const firstName = window.Telegram.WebApp.initDataUnsafe?.user?.first_name;
+      const lastName = window.Telegram.WebApp.initDataUnsafe?.user?.last_name;
+
+      const displayName = username ? `@${username}` : `${firstName || ''} ${lastName || ''}`.trim();
+      setTelegramUsername(displayName || 'Guest');
+
+      // Настраиваем размер шрифта в зависимости от длины имени пользователя
+      if (displayName.length > 12) {
+        setFontSize('19px');
+      } else if (displayName.length > 8) {
+        setFontSize('21px');
+      } else {
+        setFontSize('25px');
+      }
     } else {
       console.error('Telegram WebApp API недоступен.');
     }
@@ -131,7 +168,7 @@ function Page() {
                   height={110}
                   className={styles.avatar}
                 />
-                <p className={styles.name}> John Doe </p>
+                <p className={styles.name} style={{ fontSize }}>{telegramUsername}</p>
               </div>
             </div>
           </div>
