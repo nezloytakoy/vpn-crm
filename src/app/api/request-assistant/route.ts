@@ -2,41 +2,77 @@ import { PrismaClient } from '@prisma/client';
 import fetch from 'node-fetch';
 
 const prisma = new PrismaClient();
+// Пример объекта translations
+const translations = {
+    en: {
+        userIdRequired: 'UserId is required',
+        userNotFound: 'User not found',
+        requestReceived: 'Your request has been received. Please wait while an assistant contacts you.',
+        noAssistantsAvailable: 'No assistants available',
+        requestSent: 'The request has been sent to the assistant.',
+        serverError: 'Server Error',
+        assistantRequestMessage: 'User request for conversation',
+        accept: 'Accept',
+        reject: 'Reject',
+        logMessage: 'userIdBigInt before creating AssistantRequest',
+    },
+    ru: {
+        userIdRequired: 'Требуется UserId',
+        userNotFound: 'Пользователь не найден',
+        requestReceived: 'Ваш запрос получен. Ожидайте, пока с вами свяжется ассистент.',
+        noAssistantsAvailable: 'Нет доступных ассистентов',
+        requestSent: 'Запрос отправлен ассистенту.',
+        serverError: 'Ошибка сервера',
+        assistantRequestMessage: 'Запрос пользователя на разговор',
+        accept: 'Принять',
+        reject: 'Отклонить',
+        logMessage: 'userIdBigInt перед созданием AssistantRequest',
+    }
+};
 
+// Функция получения перевода
+function getTranslation(lang: "en" | "ru", key: keyof typeof translations["en"]) {
+    return translations[lang][key] || translations["en"][key];
+}
+
+// Функция для определения языка пользователя (например, по запросу или другим критериям)
+function detectLanguage(): "en" | "ru" {
+    // Логика определения языка пользователя (например, по заголовкам запроса)
+    return "en"; // Пример: возвращаем английский по умолчанию
+}
+
+// Основная логика обработки запроса с локализацией
 export async function POST(request: Request) {
     try {
         const body = await request.json();
         const { userId } = body;
 
+        const lang = detectLanguage(); // Определяем язык
+
         if (!userId) {
-            return new Response(JSON.stringify({ error: 'userId is required' }), {
+            return new Response(JSON.stringify({ error: getTranslation(lang, 'userIdRequired') }), {
                 status: 400,
                 headers: { 'Content-Type': 'application/json' },
             });
         }
 
-        // Преобразуем userId из строки в BigInt, так как telegramId и id теперь одно и то же
         const userIdBigInt = BigInt(userId);
 
-        // Логирование
-        await sendLogToTelegram(`userIdBigInt перед созданием AssistantRequest: ${userIdBigInt}`);
+        await sendLogToTelegram(getTranslation(lang, 'logMessage'));
 
-        // Проверяем, существует ли пользователь с данным userId (telegramId)
         const userExists = await prisma.user.findUnique({
-            where: { telegramId: userIdBigInt }, // Telegram ID используется как id
+            where: { telegramId: userIdBigInt },
         });
 
         if (!userExists) {
-            return new Response(JSON.stringify({ error: 'Пользователь не найден.' }), {
+            return new Response(JSON.stringify({ error: getTranslation(lang, 'userNotFound') }), {
                 status: 404,
                 headers: { 'Content-Type': 'application/json' },
             });
         }
 
-        // Отправляем сообщение пользователю в Telegram (используем telegramId для отправки сообщений)
-        await sendTelegramMessageToUser(userIdBigInt.toString(), 'Ваш запрос получен. Ожидайте, пока с вами свяжется ассистент.');
+        await sendTelegramMessageToUser(userIdBigInt.toString(), getTranslation(lang, 'requestReceived'));
 
-        // Ищем доступных ассистентов
         const availableAssistants = await prisma.assistant.findMany({
             where: {
                 isWorking: true,
@@ -48,7 +84,7 @@ export async function POST(request: Request) {
         });
 
         if (availableAssistants.length === 0) {
-            return new Response(JSON.stringify({ message: 'Нет доступных ассистентов' }), {
+            return new Response(JSON.stringify({ message: getTranslation(lang, 'noAssistantsAvailable') }), {
                 status: 200,
                 headers: { 'Content-Type': 'application/json' },
             });
@@ -56,47 +92,44 @@ export async function POST(request: Request) {
 
         const selectedAssistant = availableAssistants[0];
 
-        // Обновляем состояние ассистента (используем telegramId как id)
         await prisma.assistant.update({
             where: { telegramId: selectedAssistant.telegramId },
             data: { isBusy: true },
         });
 
-        // Создаем запрос ассистента
         const assistantRequest = await prisma.assistantRequest.create({
             data: {
-                userId: userIdBigInt,  // telegramId пользователя как userId
-                assistantId: selectedAssistant.telegramId,  // telegramId ассистента как assistantId
-                message: 'Запрос пользователя на разговор',
+                userId: userIdBigInt,
+                assistantId: selectedAssistant.telegramId,
+                message: getTranslation(lang, 'assistantRequestMessage'),
                 status: 'PENDING',
                 isActive: false,
             },
         });
 
-        // Отправляем сообщение ассистенту с кнопками (Telegram ID ассистента)
         await sendTelegramMessageWithButtons(
-            selectedAssistant.telegramId.toString(),  // Преобразуем telegramId в строку для отправки в Telegram API
-            'Поступил запрос от пользователя',
+            selectedAssistant.telegramId.toString(),
+            getTranslation(lang, 'assistantRequestMessage'),
             [
-                { text: 'Принять', callback_data: `accept_${assistantRequest.id}` },
-                { text: 'Отклонить', callback_data: `reject_${assistantRequest.id}` },
+                { text: getTranslation(lang, 'accept'), callback_data: `accept_${assistantRequest.id}` },
+                { text: getTranslation(lang, 'reject'), callback_data: `reject_${assistantRequest.id}` },
             ]
         );
 
-        return new Response(JSON.stringify({ message: 'Запрос отправлен ассистенту.' }), {
+        return new Response(JSON.stringify({ message: getTranslation(lang, 'requestSent') }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
         });
     } catch (error) {
         console.error('Ошибка:', error);
-        return new Response(JSON.stringify({ error: 'Server Error' }), {
+        return new Response(JSON.stringify({ error: getTranslation(detectLanguage(), 'serverError') }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' },
         });
     }
 }
 
-// Функция отправки сообщения пользователю через Telegram
+// Обновим и другие вспомогательные функции, чтобы использовать локализацию
 async function sendTelegramMessageToUser(chatId: string, text: string) {
     const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
     const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
@@ -113,7 +146,6 @@ async function sendTelegramMessageToUser(chatId: string, text: string) {
     });
 }
 
-// Функция отправки сообщения ассистенту с кнопками через Telegram
 async function sendTelegramMessageWithButtons(chatId: string, text: string, buttons: TelegramButton[]) {
     const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
     const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
@@ -133,10 +165,9 @@ async function sendTelegramMessageWithButtons(chatId: string, text: string, butt
     });
 }
 
-// Функция отправки логов в Telegram пользователю с ID 5829159515
 async function sendLogToTelegram(message: string) {
     const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
-    const chatId = '5829159515'; // ID пользователя, которому будут отправлены логи
+    const chatId = '5829159515';
     const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
     await fetch(url, {
