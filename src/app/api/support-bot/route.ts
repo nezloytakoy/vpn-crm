@@ -8,6 +8,17 @@ if (!token) throw new Error('TELEGRAM_SUPPORT_BOT_TOKEN not found.');
 const bot = new Bot(token);
 const prisma = new PrismaClient();
 
+interface MessageData {
+  chat_id: string;
+  text: string;
+  reply_markup?: {
+    inline_keyboard: Array<Array<{
+      text: string;
+      callback_data: string;
+    }>>;
+  };
+}
+
 // Функция отправки сообщений пользователю
 async function sendTelegramMessageToUser(chatId: string, text: string) {
   const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
@@ -35,7 +46,6 @@ async function sendTelegramMessageToUser(chatId: string, text: string) {
   }
 }
 
-// Функция отправки сообщений модератору
 async function sendTelegramMessageToModerator(chatId: string, text: string, arbitrationId?: bigint) {
   const botToken = process.env.TELEGRAM_ADMIN_BOT_TOKEN;
   if (!botToken) {
@@ -46,7 +56,7 @@ async function sendTelegramMessageToModerator(chatId: string, text: string, arbi
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
   try {
-    const messageData: any = {
+    const messageData: MessageData = {
       chat_id: chatId,
       text,
     };
@@ -81,26 +91,8 @@ async function sendTelegramMessageToModerator(chatId: string, text: string, arbi
   }
 }
 
-// Функция отправки сообщений ассистенту (если потребуется)
-async function sendTelegramMessageToAssistant(chatId: string, text: string) {
-  const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
-  if (!botToken) {
-    console.error('Ошибка: TELEGRAM_SUPPORT_BOT_TOKEN не установлен');
-    return;
-  }
 
-  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
-  try {
-    await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text }),
-    });
-  } catch (error) {
-    console.error('Ошибка при отправке сообщения ассистенту:', error);
-  }
-}
 
 type TranslationKey = keyof typeof translations["en"];
 

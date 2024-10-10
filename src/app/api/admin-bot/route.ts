@@ -210,7 +210,6 @@ adminBot.callbackQuery('message_assistant', async (ctx) => {
 });
 
 adminBot.callbackQuery('current_arbitrations', async (ctx) => {
-  const lang = detectUserLanguage(ctx);
   await ctx.answerCallbackQuery();
 
   // Получаем список текущих арбитражей со статусом 'PENDING'
@@ -299,7 +298,6 @@ adminBot.command('end_arbitration', async (ctx) => {
 
 adminBot.on('callback_query:data', async (ctx) => {
   const data = ctx.callbackQuery.data;
-  const lang = detectUserLanguage(ctx);
 
   if (data && data.startsWith('review_')) {
     await ctx.answerCallbackQuery(); // Подтверждаем получение колбэка
@@ -347,7 +345,6 @@ adminBot.on('callback_query:data', async (ctx) => {
 });
 
 adminBot.on('message', async (ctx) => {
-  const lang = detectUserLanguage(ctx);
   const moderatorTelegramId = BigInt(ctx.from?.id || 0);
 
   if (!moderatorTelegramId) {
