@@ -75,7 +75,7 @@ adminBot.command('menu', async (ctx) => {
     await ctx.reply(getTranslation(lang, 'command_error'));
   }
 });
-
+``
 
 adminBot.command('start', async (ctx) => {
   const lang = detectUserLanguage(ctx);
