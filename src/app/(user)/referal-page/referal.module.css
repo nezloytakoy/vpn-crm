@@ -202,6 +202,37 @@
   animation: neon-glow 0.8s infinite alternate;
 }
 
+.generatedButton {
+  background-color: green;
+}
+
+.referralLinkContainer {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.referralLinkInput {
+  width: 80%;
+  padding: 10px;
+  font-size: 16px;
+  margin-top: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.copyButton {
+  margin-top: 10px;
+  padding: 10px 20px;
+  background-color: #007aff;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.copyButton:hover {
+  background-color: #0051c7;
+}
 
 @keyframes neon-glow {
   0% {
