@@ -1,12 +1,13 @@
 import { PrismaClient } from '@prisma/client'; 
 import { nanoid } from 'nanoid'; // Для генерации уникальных токенов
+import bcrypt from 'bcryptjs'; // Подключаем bcryptjs
 
 const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { login, password } = body; // Убираем роль из запроса
+    const { login, password } = body;
 
     if (!login || !password) {
       return new Response(JSON.stringify({ message: 'Логин и пароль обязательны' }), {
@@ -25,14 +26,17 @@ export async function POST(req: Request) {
       });
     }
 
+    // Хешируем пароль перед сохранением
+    const hashedPassword = bcrypt.hashSync(password, 10); // Хешируем с использованием "соли" 10
+
     // Генерируем уникальный inviteToken
     const inviteToken = nanoid(10);
 
-    // Сохраняем данные в таблице приглашений с логином, паролем и токеном приглашения
+    // Сохраняем данные в таблице приглашений с логином, хешированным паролем и токеном приглашения
     await prisma.invitation.create({
       data: {
         login,       // Логин для модератора
-        password,    // Пароль для модератора
+        password: hashedPassword,    // Хешированный пароль для модератора
         token: inviteToken,  // Уникальный токен приглашения
         role: 'moderator',   // Роль явно задаём как "moderator"
         link: `https://t.me/vpn_srm_adminbot?start=invite_${inviteToken}`,  // Ссылка для приглашения
