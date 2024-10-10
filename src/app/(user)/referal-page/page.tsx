@@ -8,7 +8,6 @@ import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
 
-
 interface PopupProps {
   isVisible: boolean;
   onClose: () => void;
@@ -53,182 +52,130 @@ const Popup: React.FC<PopupProps> = ({ isVisible, onClose }) => {
   };
   
 
-function Page() {
-  const { t } = useTranslation();
-  const [isPopupVisible, setPopupVisible] = useState(false);
-  const [telegramUsername, setTelegramUsername] = useState('');
-  const [fontSize, setFontSize] = useState('24px');
-  const [referralLink, setReferralLink] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
-
-  useEffect(() => {
-    // Проверяем, что Telegram WebApp API доступен
-    if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.ready();
-
-      // Получаем язык пользователя через Telegram WebApp SDK
-      const userLang = window.Telegram.WebApp.initDataUnsafe?.user?.language_code;
-
-      // Меняем язык в зависимости от Telegram интерфейса пользователя
-      if (userLang === 'ru') {
-        i18n.changeLanguage('ru'); // Устанавливаем русский язык
-      } else {
-        i18n.changeLanguage('en'); // Устанавливаем английский язык по умолчанию
-      }
-
-      // Получаем данные пользователя
-      const username = window.Telegram.WebApp.initDataUnsafe?.user?.username;
-      const firstName = window.Telegram.WebApp.initDataUnsafe?.user?.first_name;
-      const lastName = window.Telegram.WebApp.initDataUnsafe?.user?.last_name;
-
-      const displayName = username ? `@${username}` : `${firstName || ''} ${lastName || ''}`.trim();
-      setTelegramUsername(displayName || 'Guest');
-
-      // Настраиваем размер шрифта в зависимости от длины имени пользователя
-      if (displayName.length > 12) {
-        setFontSize('19px');
-      } else if (displayName.length > 8) {
-        setFontSize('21px');
-      } else {
-        setFontSize('25px');
-      }
-    } else {
-      console.error('Telegram WebApp API недоступен.');
-      // Устанавливаем значения по умолчанию
-      i18n.changeLanguage('en');
-      setTelegramUsername('Guest');
-    }
-  }, []);
-
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (isCopied) {
-      timer = setTimeout(() => {
-        setIsCopied(false);
-      }, 3000); // Сбрасываем состояние через 3 секунды
-    }
-    return () => clearTimeout(timer);
-  }, [isCopied]);
-
-  const showPopup = () => {
-    setPopupVisible(true);
-  };
-
-  const hidePopup = () => {
-    setPopupVisible(false);
-  };
-
-  const generateReferralLink = async () => {
-    if (window.Telegram && window.Telegram.WebApp) {
-      try {
-        setIsGenerating(true);
-
-        const currentUserId = window.Telegram.WebApp.initDataUnsafe.user?.id;
-        if (!currentUserId) {
-          throw new Error('Не удалось получить идентификатор пользователя.');
-        }
-
-        const response = await fetch('/api/generate-referral-link', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId: currentUserId }),
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          setReferralLink(data.referralLink);
-        } else {
-          alert(data.error || 'Ошибка при генерации реферальной ссылки.');
-        }
-      } catch (error) {
-        console.error('Ошибка при генерации реферальной ссылки:', error);
-        alert('Произошла ошибка при генерации реферальной ссылки.');
-      } finally {
-        setIsGenerating(false);
-      }
-    } else {
-      alert('Telegram WebApp API недоступен.');
-    }
-  };
-
-  const copyToClipboard = () => {
-    if (referralLink) {
-      if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.setClipboardText) {
-        window.Telegram.WebApp.setClipboardText(referralLink);
-        setIsCopied(true);
-      } else if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(referralLink)
-          .then(() => {
-            setIsCopied(true);
-          })
-          .catch((err) => {
-            console.error('Ошибка при копировании в буфер обмена: ', err);
-            alert('Не удалось скопировать ссылку.');
-          });
-      } else {
-        // Альтернативный метод для старых браузеров
-        const textArea = document.createElement('textarea');
-        textArea.value = referralLink;
-        textArea.style.position = 'fixed'; // Предотвращает прокрутку страницы на iOS
-        textArea.style.top = '0';
-        textArea.style.left = '0';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        try {
-          const successful = document.execCommand('copy');
-          if (successful) {
-            setIsCopied(true);
-          } else {
-            alert('Не удалось скопировать ссылку.');
-          }
-        } catch (err) {
-          console.error('Ошибка при копировании в буфер обмена: ', err);
-          alert('Не удалось скопировать ссылку.');
-        }
-        document.body.removeChild(textArea);
-      }
-    }
-  };
+  function Page() {
+    const { t } = useTranslation();
+    const [isPopupVisible, setPopupVisible] = useState(false);
+    const [telegramUsername, setTelegramUsername] = useState('');
+    const [fontSize, setFontSize] = useState('24px');
+    const [referralLink, setReferralLink] = useState<string | null>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
   
-
-  return (
-    <div>
-      <div style={{ position: 'relative', height: '250px', overflow: 'hidden' }}>
-        <Wave
-          fill="white"
-          paused={false}
-          options={{
-            height: 10,
-            amplitude: 20,
-            speed: 0.15,
-            points: 3,
-          }}
-          style={{ position: 'absolute', bottom: '-70px', width: '100%' }}
-        />
-        <div className={styles.topbotom}>
-          <div className={styles.greetings}>
-            {t('referrals')}
-            <div className={styles.avatarbox}>
-              <Image
-                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg"
-                alt="avatar"
-                width={110}
-                height={110}
-                className={styles.avatar}
-              />
-              <p className={styles.name} style={{ fontSize }}>{telegramUsername}</p>
+    useEffect(() => {
+      // Проверяем, что Telegram WebApp API доступен
+      if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.ready();
+  
+        // Получаем язык пользователя через Telegram WebApp SDK
+        const userLang = window.Telegram.WebApp.initDataUnsafe?.user?.language_code;
+  
+        // Меняем язык в зависимости от Telegram интерфейса пользователя
+        if (userLang === 'ru') {
+          i18n.changeLanguage('ru'); // Устанавливаем русский язык
+        } else {
+          i18n.changeLanguage('en'); // Устанавливаем английский язык по умолчанию
+        }
+  
+        // Получаем данные пользователя
+        const username = window.Telegram.WebApp.initDataUnsafe?.user?.username;
+        const firstName = window.Telegram.WebApp.initDataUnsafe?.user?.first_name;
+        const lastName = window.Telegram.WebApp.initDataUnsafe?.user?.last_name;
+  
+        const displayName = username ? `@${username}` : `${firstName || ''} ${lastName || ''}`.trim();
+        setTelegramUsername(displayName || 'Guest');
+  
+        // Настраиваем размер шрифта в зависимости от длины имени пользователя
+        if (displayName.length > 12) {
+          setFontSize('19px');
+        } else if (displayName.length > 8) {
+          setFontSize('21px');
+        } else {
+          setFontSize('25px');
+        }
+      } else {
+        console.error('Telegram WebApp API недоступен.');
+        // Устанавливаем значения по умолчанию
+        i18n.changeLanguage('en');
+        setTelegramUsername('Guest');
+      }
+    }, []);
+  
+    const showPopup = () => {
+      setPopupVisible(true);
+    };
+  
+    const hidePopup = () => {
+      setPopupVisible(false);
+    };
+  
+    const generateReferralLink = async () => {
+      if (window.Telegram && window.Telegram.WebApp) {
+        try {
+          setIsGenerating(true);
+  
+          const currentUserId = window.Telegram.WebApp.initDataUnsafe.user?.id;
+          if (!currentUserId) {
+            throw new Error('Не удалось получить идентификатор пользователя.');
+          }
+  
+          const response = await fetch('/api/generate-referral-link', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId: currentUserId }),
+          });
+  
+          const data = await response.json();
+  
+          if (response.ok) {
+            setReferralLink(data.referralLink);
+          } else {
+            alert(data.error || 'Ошибка при генерации реферальной ссылки.');
+          }
+        } catch (error) {
+          console.error('Ошибка при генерации реферальной ссылки:', error);
+          alert('Произошла ошибка при генерации реферальной ссылки.');
+        } finally {
+          setIsGenerating(false);
+        }
+      } else {
+        alert('Telegram WebApp API недоступен.');
+      }
+    };
+  
+    return (
+      <div>
+        <div style={{ position: 'relative', height: '250px', overflow: 'hidden' }}>
+          <Wave
+            fill="white"
+            paused={false}
+            options={{
+              height: 10,
+              amplitude: 20,
+              speed: 0.15,
+              points: 3,
+            }}
+            style={{ position: 'absolute', bottom: '-70px', width: '100%' }}
+          />
+          <div className={styles.topbotom}>
+            <div className={styles.greetings}>
+              {t('referrals')}
+              <div className={styles.avatarbox}>
+                <Image
+                  src="https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg"
+                  alt="avatar"
+                  width={110}
+                  height={110}
+                  className={styles.avatar}
+                />
+                <p className={styles.name} style={{ fontSize }}>{telegramUsername}</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <div className={styles.backbotom}>
-        <div className={styles.infobox}>
-          <div className={styles.first}>
+        <div className={styles.backbotom}>
+          <div className={styles.infobox}>
+            <div className={styles.first}>
             <div className={styles.firstone}>
               <div className={styles.imgbox}>
                 <Image
@@ -299,15 +246,10 @@ function Page() {
                 type="text"
                 value={referralLink}
                 readOnly
-                onClick={(e) => (e.target as HTMLInputElement).select()}
+                onFocus={(e) => e.target.select()}
                 className={styles.referralLinkInput}
               />
-              <button
-                className={`${styles.copyButton} ${isCopied ? styles.copiedButton : ''}`}
-                onClick={copyToClipboard}
-              >
-                {isCopied ? t('link_copied') : t('copy_link')}
-              </button>
+              <p className={styles.copyInstruction}>{t('long_press_to_copy')}</p>
             </div>
           )}
         </div>

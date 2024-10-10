@@ -248,6 +248,12 @@
   background-color: green; /* Зеленый цвет после копирования */
 }
 
+.copyInstruction {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #666;
+}
+
 @keyframes slide-up {
   from {
     transform: translateY(100%);

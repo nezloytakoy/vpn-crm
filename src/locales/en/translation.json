@@ -42,6 +42,7 @@
   "generating": "Generating...",
   "your_referral_link": "Your referral link",
   "copy_link": "Copy link",
-  "link_copied": "Link copied"
+  "link_copied": "Link copied",
+  "long_press_to_copy": "Long press to copy the link"
 
 }
