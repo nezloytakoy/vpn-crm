@@ -45,7 +45,7 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
 
     await ctx.reply('✅ Вы приняли запрос, ожидайте пока пользователь сформулирует свой вопрос. Для того чтобы пригласить модератора для решения спорной ситуации, используйте команду /problem');
 
-    await sendTelegramMessageToUser(assistantRequest.user.telegramId.toString(), 'Ассистент присоединился к чату. Сформулируйте свой вопрос.');
+    await sendTelegramMessageToUser(assistantRequest.user.telegramId.toString(), 'Ассистент присоединился к чату. Сформулируйте свой вопрос. Для того чтобы пригласить модератора для решения спорной ситуации, используйте команду /problem');
   } catch (error) {
     console.error('Ошибка при принятии запроса:', error);
     await ctx.reply('❌ Произошла ошибка при принятии запроса.');

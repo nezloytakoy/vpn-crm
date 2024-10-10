@@ -59,6 +59,12 @@ adminBot.command('menu', async (ctx) => {
   const lang = detectUserLanguage(ctx);
 
   if (ctx.from?.id) {
+    // Обновляем поле lastActiveAt для модератора
+    await prisma.moderator.update({
+      where: { id: BigInt(ctx.from.id) },
+      data: { lastActiveAt: new Date() },
+    });
+
     // Проверяем, является ли пользователь модератором
     const moderator = await prisma.moderator.findFirst({
       where: { id: BigInt(ctx.from.id) },
@@ -77,10 +83,17 @@ adminBot.command('menu', async (ctx) => {
 });
 
 
+
 adminBot.command('start', async (ctx) => {
   const lang = detectUserLanguage(ctx);
 
   if (ctx.from?.id) {
+    // Обновляем поле lastActiveAt для модератора
+    await prisma.moderator.update({
+      where: { id: BigInt(ctx.from.id) },
+      data: { lastActiveAt: new Date() },
+    });
+
     // Проверка приглашения через токен
     if (ctx.message?.text) {
       const args = ctx.message.text.split(' ');
@@ -97,7 +110,6 @@ adminBot.command('start', async (ctx) => {
         });
 
         if (invitation) {
-          // Проверяем, что логин не является null
           if (!invitation.login) {
             return new Response(JSON.stringify({ message: 'Логин отсутствует в приглашении' }), {
               status: 400,
@@ -136,6 +148,7 @@ adminBot.command('start', async (ctx) => {
   }
 });
 
+
 async function showModeratorMenu(ctx: Context, lang: 'ru' | 'en') {
   const keyboard = new InlineKeyboard()
     .text('💬 ' + getTranslation(lang, 'message_user'), 'message_user')
@@ -149,10 +162,18 @@ async function showModeratorMenu(ctx: Context, lang: 'ru' | 'en') {
 
 adminBot.callbackQuery('message_user', async (ctx) => {
   const lang = detectUserLanguage(ctx);
+
+  // Обновляем поле lastActiveAt для модератора
+  await prisma.moderator.update({
+    where: { id: BigInt(ctx.from.id) },
+    data: { lastActiveAt: new Date() },
+  });
+
   await ctx.answerCallbackQuery();
   moderatorState[ctx.from.id] = { state: 'awaiting_user_id' };
   await ctx.reply(getTranslation(lang, 'user_id_prompt'));
 });
+
 
 adminBot.callbackQuery('message_assistant', async (ctx) => {
   const lang = detectUserLanguage(ctx);
