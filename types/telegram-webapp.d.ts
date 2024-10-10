@@ -13,6 +13,10 @@ interface Telegram {
 }
 
 interface TelegramWebApp {
+  setClipboardText(text: string): void;
+}
+
+interface TelegramWebApp {
   initData: string;
   initDataUnsafe: TelegramWebAppInitDataUnsafe;
   version: string;

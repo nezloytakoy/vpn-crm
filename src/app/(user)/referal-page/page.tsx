@@ -8,48 +8,50 @@ import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
 
+
 interface PopupProps {
   isVisible: boolean;
   onClose: () => void;
 }
 
 const Popup: React.FC<PopupProps> = ({ isVisible, onClose }) => {
-  const { t } = useTranslation();
-  const [isClosing, setIsClosing] = useState(false);
-
-  const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      setIsClosing(false);
-      onClose();
-    }, 400);
-  };
-
-  if (!isVisible && !isClosing) return null;
-
-  return (
-    <div className={`${styles.popupOverlay} ${isClosing ? styles.fadeOutOverlay : ''}`}>
-      <div className={`${styles.popupContent} ${isClosing ? styles.slideDown : styles.slideUp}`}>
-        <div className={styles.popupHeader}>
-          <div></div>
-          <button onClick={handleClose} className={styles.closeButton}>✖</button>
+    const { t } = useTranslation();
+    const [isClosing, setIsClosing] = useState(false);
+  
+    const handleClose = () => {
+      setIsClosing(true);
+      setTimeout(() => {
+        setIsClosing(false);
+        onClose();
+      }, 400);
+    };
+  
+    if (!isVisible && !isClosing) return null;
+  
+    return (
+      <div className={`${styles.popupOverlay} ${isClosing ? styles.fadeOutOverlay : ''}`}>
+        <div className={`${styles.popupContent} ${isClosing ? styles.slideDown : styles.slideUp}`}>
+          <div className={styles.popupHeader}>
+            <div></div>
+            <button onClick={handleClose} className={styles.closeButton}>✖</button>
+          </div>
+          <div className={styles.logobox}>
+            <Image
+              src="https://92eaarerohohicw5.public.blob.vercel-storage.com/784312486488Credit_Card-avyq19EwaUxOPBuU53pZPUTnoK8QhB.gif"
+              alt="avatar"
+              width={150}
+              height={150}
+            />
+          </div>
+          <p>{t('withdraw_request')}</p>
+          <button className={styles.confirmButton} onClick={handleClose}>
+            <Link href="/user-profile">{t('return_profile')}</Link>
+          </button>
         </div>
-        <div className={styles.logobox}>
-          <Image
-            src="https://92eaarerohohicw5.public.blob.vercel-storage.com/784312486488Credit_Card-avyq19EwaUxOPBuU53pZPUTnoK8QhB.gif"
-            alt="avatar"
-            width={150}
-            height={150}
-          />
-        </div>
-        <p>{t('withdraw_request')}</p>
-        <button className={styles.confirmButton} onClick={handleClose}>
-          <Link href="/user-profile">{t('return_profile')}</Link>
-        </button>
       </div>
-    </div>
-  );
-};
+    );
+  };
+  
 
 function Page() {
   const { t } = useTranslation();
@@ -155,7 +157,10 @@ function Page() {
 
   const copyToClipboard = () => {
     if (referralLink) {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
+      if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.setClipboardText) {
+        window.Telegram.WebApp.setClipboardText(referralLink);
+        setIsCopied(true);
+      } else if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(referralLink)
           .then(() => {
             setIsCopied(true);
@@ -168,6 +173,9 @@ function Page() {
         // Альтернативный метод для старых браузеров
         const textArea = document.createElement('textarea');
         textArea.value = referralLink;
+        textArea.style.position = 'fixed'; // Предотвращает прокрутку страницы на iOS
+        textArea.style.top = '0';
+        textArea.style.left = '0';
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
@@ -186,6 +194,7 @@ function Page() {
       }
     }
   };
+  
 
   return (
     <div>
