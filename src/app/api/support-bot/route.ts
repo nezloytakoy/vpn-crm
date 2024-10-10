@@ -228,6 +228,24 @@ bot.command('menu', async (ctx) => {
   const lang = detectUserLanguage(ctx);
 
   try {
+    // Проверяем, что ctx.from существует
+    if (!ctx.from?.id) {
+      await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+      return;
+    }
+
+    // Проверяем, является ли пользователь ассистентом
+    const assistant = await prisma.assistant.findUnique({
+      where: { telegramId: BigInt(ctx.from.id) },
+    });
+
+    // Если пользователь не ассистент, выводим сообщение об ошибке
+    if (!assistant) {
+      await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+      return;
+    }
+
+    // Если пользователь ассистент, выводим меню
     await ctx.reply(getTranslation(lang, 'menu_message'), {
       reply_markup: {
         inline_keyboard: [
@@ -242,6 +260,7 @@ bot.command('menu', async (ctx) => {
     await ctx.reply(getTranslation(lang, 'end_dialog_error'));
   }
 });
+
 
 bot.on('callback_query:data', async (ctx) => {
   const lang = detectUserLanguage(ctx);
