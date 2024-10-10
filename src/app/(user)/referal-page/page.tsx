@@ -56,6 +56,8 @@ function Page() {
     const [isPopupVisible, setPopupVisible] = useState(false);
     const [telegramUsername, setTelegramUsername] = useState('');
     const [fontSize, setFontSize] = useState('24px');
+    const [referralLink, setReferralLink] = useState<string | null>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
 
     useEffect(() => {
         // Проверяем, что Telegram WebApp API доступен
@@ -102,6 +104,42 @@ function Page() {
 
     const hidePopup = () => {
         setPopupVisible(false);
+    };
+
+    const generateReferralLink = async () => {
+        if (window.Telegram && window.Telegram.WebApp) {
+            try {
+                setIsGenerating(true);
+
+                const currentUserId = window.Telegram.WebApp.initDataUnsafe.user?.id;
+                if (!currentUserId) {
+                    throw new Error('Не удалось получить идентификатор пользователя.');
+                }
+
+                const response = await fetch('/api/generate-referral-link', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ userId: currentUserId }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    setReferralLink(data.referralLink);
+                } else {
+                    alert(data.error || 'Ошибка при генерации реферальной ссылки.');
+                }
+            } catch (error) {
+                console.error('Ошибка при генерации реферальной ссылки:', error);
+                alert('Произошла ошибка при генерации реферальной ссылки.');
+            } finally {
+                setIsGenerating(false);
+            }
+        } else {
+            alert('Telegram WebApp API недоступен.');
+        }
     };
 
     return (
@@ -184,9 +222,44 @@ function Page() {
                         </div>
                     </div>
                     <div className={styles.buttonsContainer}>
-                        <div className={styles.button}>{t('generate_link')}</div>
+                        <div
+                            className={`${styles.button} ${referralLink ? styles.generatedButton : ''}`}
+                            onClick={!isGenerating ? generateReferralLink : undefined}
+                            style={{
+                                backgroundColor: referralLink ? 'green' : undefined,
+                                opacity: isGenerating ? 0.6 : 1,
+                                cursor: isGenerating ? 'not-allowed' : 'pointer',
+                            }}
+                        >
+                            {isGenerating
+                                ? t('generating')
+                                : referralLink
+                                ? t('link_generated')
+                                : t('generate_link')}
+                        </div>
                         <div className={styles.button} onClick={showPopup}>{t('withdraw')}</div>
                     </div>
+                    {referralLink && (
+                        <div className={styles.referralLinkContainer}>
+                            <p>{t('your_referral_link')}:</p>
+                            <input
+                                type="text"
+                                value={referralLink}
+                                readOnly
+                                onClick={(e) => (e.target as HTMLInputElement).select()}
+                                className={styles.referralLinkInput}
+                            />
+                            <button
+                                className={styles.copyButton}
+                                onClick={() => {
+                                    navigator.clipboard.writeText(referralLink);
+                                    alert(t('link_copied'));
+                                }}
+                            >
+                                {t('copy_link')}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
