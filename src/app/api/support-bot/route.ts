@@ -108,6 +108,7 @@ const translations = {
     reject_request: "❌ You have rejected the request.",
     send_message_error: "Please send a text message.",
     no_user_requests: "⚠️ You have no active user requests.",
+    error_processing_message: "An error occurred while processing your message. Please try again later.",
   },
   ru: {
     end_dialog_error: "Ошибка: не удалось получить ваш идентификатор Telegram.",
@@ -129,6 +130,7 @@ const translations = {
     reject_request: "❌ Вы отклонили запрос.",
     send_message_error: "Пожалуйста, отправьте текстовое сообщение.",
     no_user_requests: "⚠️ У вас нет активных запросов пользователей.",
+    error_processing_message: "Произошла ошибка при обработке вашего сообщения. Пожалуйста, попробуйте еще раз позже.",
   },
 };
 
@@ -450,5 +452,48 @@ bot.command('problem', async (ctx) => {
     await ctx.reply(`⚠️ Произошла ошибка при открытии арбитража: ${errorMessage}. Пожалуйста, попробуйте еще раз.`);
   }
 });
+
+bot.on('message', async (ctx) => {
+  try {
+    const lang = detectUserLanguage(ctx);
+
+    if (!ctx.from?.id) {
+      await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+      return;
+    }
+
+    const assistantTelegramId = BigInt(ctx.from.id);
+    const assistantMessage = ctx.message?.text;
+
+    if (!assistantMessage) {
+      await ctx.reply(getTranslation(lang, 'send_message_error'));
+      return;
+    }
+
+    // Ищем активный запрос, связанный с ассистентом
+    const activeRequest = await prisma.assistantRequest.findFirst({
+      where: {
+        assistant: { telegramId: assistantTelegramId },
+        isActive: true,
+      },
+      include: { user: true },
+    });
+
+    if (!activeRequest) {
+      await ctx.reply(getTranslation(lang, 'no_user_requests'));
+      return;
+    }
+
+    // Отправляем сообщение пользователю
+    await sendTelegramMessageToUser(
+      activeRequest.user.telegramId.toString(),
+      assistantMessage
+    );
+  } catch (error) {
+    console.error('Ошибка при обработке сообщения от ассистента:', error);
+    await ctx.reply(getTranslation(detectUserLanguage(ctx), 'error_processing_message'));
+  }
+});
+
 
 export const POST = webhookCallback(bot, 'std/http');
