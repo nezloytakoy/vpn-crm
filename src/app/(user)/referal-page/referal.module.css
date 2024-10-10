@@ -254,6 +254,39 @@
   color: #666;
 }
 
+.referralContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.referralLinkInput {
+  width: 80%;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.copyInstruction {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #aaa;
+}
+
+.popupHeader h2 {
+  margin: 0;
+  font-size: 24px;
+  color: white;
+}
+
+.popupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 @keyframes slide-up {
   from {
     transform: translateY(100%);

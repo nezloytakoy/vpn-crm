@@ -50,11 +50,53 @@ const Popup: React.FC<PopupProps> = ({ isVisible, onClose }) => {
       </div>
     );
   };
+
+  interface ReferralPopupProps {
+    isVisible: boolean;
+    onClose: () => void;
+    referralLink: string;
+  }
   
+  const ReferralPopup: React.FC<ReferralPopupProps> = ({ isVisible, onClose, referralLink }) => {
+    const { t } = useTranslation();
+    const [isClosing, setIsClosing] = useState(false);
+  
+    const handleClose = () => {
+      setIsClosing(true);
+      setTimeout(() => {
+        setIsClosing(false);
+        onClose();
+      }, 400);
+    };
+  
+    if (!isVisible && !isClosing) return null;
+  
+    return (
+      <div className={`${styles.popupOverlay} ${isClosing ? styles.fadeOutOverlay : ''}`}>
+        <div className={`${styles.popupContent} ${isClosing ? styles.slideDown : styles.slideUp}`}>
+          <div className={styles.popupHeader}>
+            <h2>{t('your_referral_link')}</h2>
+            <button onClick={handleClose} className={styles.closeButton}>✖</button>
+          </div>
+          <div className={styles.referralContent}>
+            <input
+              type="text"
+              value={referralLink}
+              readOnly
+              onFocus={(e) => e.target.select()}
+              className={styles.referralLinkInput}
+            />
+            <p className={styles.copyInstruction}>{t('long_press_to_copy')}</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   function Page() {
     const { t } = useTranslation();
     const [isPopupVisible, setPopupVisible] = useState(false);
+    const [isReferralPopupVisible, setReferralPopupVisible] = useState(false);
     const [telegramUsername, setTelegramUsername] = useState('');
     const [fontSize, setFontSize] = useState('24px');
     const [referralLink, setReferralLink] = useState<string | null>(null);
@@ -107,6 +149,10 @@ const Popup: React.FC<PopupProps> = ({ isVisible, onClose }) => {
       setPopupVisible(false);
     };
   
+    const closeReferralPopup = () => {
+      setReferralPopupVisible(false);
+    };
+  
     const generateReferralLink = async () => {
       if (window.Telegram && window.Telegram.WebApp) {
         try {
@@ -129,6 +175,7 @@ const Popup: React.FC<PopupProps> = ({ isVisible, onClose }) => {
   
           if (response.ok) {
             setReferralLink(data.referralLink);
+            setReferralPopupVisible(true); // Открываем попап после генерации ссылки
           } else {
             alert(data.error || 'Ошибка при генерации реферальной ссылки.');
           }
@@ -176,88 +223,34 @@ const Popup: React.FC<PopupProps> = ({ isVisible, onClose }) => {
         <div className={styles.backbotom}>
           <div className={styles.infobox}>
             <div className={styles.first}>
-            <div className={styles.firstone}>
-              <div className={styles.imgbox}>
-                <Image
-                  src="https://92eaarerohohicw5.public.blob.vercel-storage.com/6oj028KO84eNmPGxQv%20(1)%20(1)-i0oy2JG3MdnKbKy6h46dOwiUyPIwrF.gif"
-                  alt="bonus"
-                  width={60}
-                  height={60}
-                  className={styles.ai}
-                />
-              </div>
-              <div className={styles.textbox}>
-                <p className={styles.num}>20$</p>
-                <p className={styles.text}>{t('bonus')}</p>
-              </div>
+              {/* Ваши блоки с информацией */}
             </div>
-            <div className={styles.firstone}>
-              <div className={styles.imgbox}>
-                <Image
-                  src="https://92eaarerohohicw5.public.blob.vercel-storage.com/9JY5i2T09d5oy2e62y-gcOJX1nhOJYe2s3RSXvGzQV4g9mH7t.gif"
-                  alt="available"
-                  width={130}
-                  height={130}
-                  className={styles.ai}
-                />
+            <div className={styles.buttonsContainer}>
+              <div
+                className={styles.button}
+                onClick={!isGenerating ? generateReferralLink : undefined}
+                style={{
+                  opacity: isGenerating ? 0.6 : 1,
+                  cursor: isGenerating ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {isGenerating
+                  ? t('generating')
+                  : t('generate_link')}
               </div>
-              <div className={styles.textbox}>
-                <p className={styles.num}>10$</p>
-                <p className={styles.text}>{t('available')}</p>
-              </div>
-            </div>
-            <div className={styles.firstone}>
-              <div className={styles.imgbox}>
-                <Image
-                  src="https://92eaarerohohicw5.public.blob.vercel-storage.com/8c6L0g2Bl3CW1844BR-pLPUnTBWwuagzbZjfGSQToP9RP23nm.gif"
-                  alt="invited"
-                  width={80}
-                  height={80}
-                  className={styles.ai}
-                />
-              </div>
-              <div className={styles.textbox}>
-                <p className={styles.num}>2</p>
-                <p className={styles.text}>{t('invited')}</p>
-              </div>
+              <div className={styles.button} onClick={showPopup}>{t('withdraw')}</div>
             </div>
           </div>
-          <div className={styles.buttonsContainer}>
-            <div
-              className={styles.button}
-              onClick={!isGenerating ? generateReferralLink : undefined}
-              style={{
-                opacity: isGenerating ? 0.6 : 1,
-                cursor: isGenerating ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {isGenerating
-                ? t('generating')
-                : referralLink
-                ? t('link_generated')
-                : t('generate_link')}
-            </div>
-            <div className={styles.button} onClick={showPopup}>{t('withdraw')}</div>
-          </div>
-          {referralLink && (
-            <div className={styles.referralLinkContainer}>
-              <p>{t('your_referral_link')}:</p>
-              <input
-                type="text"
-                value={referralLink}
-                readOnly
-                onFocus={(e) => e.target.select()}
-                className={styles.referralLinkInput}
-              />
-              <p className={styles.copyInstruction}>{t('long_press_to_copy')}</p>
-            </div>
-          )}
         </div>
+  
+        <Popup isVisible={isPopupVisible} onClose={hidePopup} />
+        <ReferralPopup
+          isVisible={isReferralPopupVisible}
+          onClose={closeReferralPopup}
+          referralLink={referralLink || ''}
+        />
       </div>
-
-      <Popup isVisible={isPopupVisible} onClose={hidePopup} />
-    </div>
-  );
-}
-
-export default Page;
+    );
+  }
+  
+  export default Page;
