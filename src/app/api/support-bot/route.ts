@@ -286,8 +286,21 @@ bot.on('callback_query:data', async (ctx) => {
     const telegramId = BigInt(ctx.from.id);
     const data = ctx.callbackQuery?.data;
 
+    if (data.startsWith('accept_') || data.startsWith('reject_')) {
+      const [action, requestId] = data.split('_');
+
+      if (action === 'accept') {
+        await handleAcceptRequest(requestId, telegramId, ctx);
+      } else if (action === 'reject') {
+        await handleRejectRequest(requestId, telegramId, ctx);
+      }
+
+      // Завершаем обработку здесь, чтобы "📊 Моя активность" не отправлялась
+      return;
+    }
+
     if (data === 'start_work') {
-      const assistant = await prisma.assistant.findUnique({ where: { telegramId: telegramId } }); // Используем id вместо telegramId
+      const assistant = await prisma.assistant.findUnique({ where: { telegramId: telegramId } });
 
       if (assistant?.isWorking) {
         await ctx.reply(getTranslation(lang, 'already_working'));
@@ -295,23 +308,16 @@ bot.on('callback_query:data', async (ctx) => {
       }
 
       await prisma.assistant.update({
-        where: { telegramId: telegramId }, // Используем id вместо telegramId
+        where: { telegramId: telegramId },
         data: { isWorking: true, isBusy: false },
       });
 
       await ctx.reply(getTranslation(lang, 'work_started'));
+      return;
     } else if (data === 'my_coins') {
       await ctx.reply(getTranslation(lang, 'my_coins'));
     } else if (data === 'my_activity') {
       await ctx.reply('📊 Моя активность: 10 завершенных задач.');
-    } else if (data.startsWith('accept_') || data.startsWith('reject_')) {
-      const [action, requestId] = data.split('_');
-      if (action === 'accept') {
-        await handleAcceptRequest(requestId, telegramId, ctx);
-      } else if (action === 'reject') {
-        await handleRejectRequest(requestId, telegramId, ctx);
-      }
-      await ctx.reply(getTranslation(lang, 'my_activity'));
     }
   } else {
     await ctx.reply(getTranslation(lang, 'end_dialog_error'));
