@@ -54,16 +54,46 @@ const Popup: React.FC<PopupProps> = ({ isVisible, onClose }) => {
 function Page() {
     const { t } = useTranslation();
     const [isPopupVisible, setPopupVisible] = useState(false);
+    const [telegramUsername, setTelegramUsername] = useState('');
+    const [fontSize, setFontSize] = useState('24px');
 
     useEffect(() => {
-        // Определяем язык пользователя через Telegram WebApp API
-        const userLang = window?.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
+        // Проверяем, что Telegram WebApp API доступен
+        if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
+            // Инициализируем WebApp
+            window.Telegram.WebApp.ready();
 
-        // Меняем язык в зависимости от Telegram интерфейса пользователя
-        if (userLang === 'ru') {
-            i18n.changeLanguage('ru'); // Устанавливаем русский язык
+            // Получаем язык пользователя через Telegram WebApp SDK
+            const userLang = window.Telegram.WebApp.initDataUnsafe?.user?.language_code;
+
+            // Меняем язык в зависимости от Telegram интерфейса пользователя
+            if (userLang === 'ru') {
+                i18n.changeLanguage('ru'); // Устанавливаем русский язык
+            } else {
+                i18n.changeLanguage('en'); // Устанавливаем английский язык по умолчанию
+            }
+
+            // Получаем данные пользователя
+            const username = window.Telegram.WebApp.initDataUnsafe?.user?.username;
+            const firstName = window.Telegram.WebApp.initDataUnsafe?.user?.first_name;
+            const lastName = window.Telegram.WebApp.initDataUnsafe?.user?.last_name;
+
+            const displayName = username ? `@${username}` : `${firstName || ''} ${lastName || ''}`.trim();
+            setTelegramUsername(displayName || 'Guest');
+
+            // Настраиваем размер шрифта в зависимости от длины имени пользователя
+            if (displayName.length > 12) {
+                setFontSize('19px');
+            } else if (displayName.length > 8) {
+                setFontSize('21px');
+            } else {
+                setFontSize('25px');
+            }
         } else {
-            i18n.changeLanguage('en'); // Устанавливаем английский язык по умолчанию
+            console.error('Telegram WebApp API недоступен.');
+            // Вы можете установить язык по умолчанию, если Telegram WebApp недоступен
+            i18n.changeLanguage('en');
+            setTelegramUsername('Guest');
         }
     }, []);
 
@@ -100,7 +130,7 @@ function Page() {
                                 height={110}
                                 className={styles.avatar}
                             />
-                            <p className={styles.name}> John Doe </p>
+                            <p className={styles.name} style={{ fontSize }}>{telegramUsername}</p>
                         </div>
                     </div>
                 </div>
