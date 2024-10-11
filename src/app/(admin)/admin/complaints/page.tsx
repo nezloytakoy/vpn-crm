@@ -1,9 +1,16 @@
-"use client"
-
 import React, { useEffect, useState } from 'react';
 import { Column } from 'react-table';
 import styles from './Complaints.module.css';
 import Table from '@/components/Table/Table';
+
+interface Complaint {
+  id: bigint;
+  reason: string;
+  userId: bigint;
+  userNickname: string | null;
+  assistantId: bigint;
+  assistantNickname: string | null;
+}
 
 interface ComplaintData {
   complaint: string;
@@ -26,10 +33,10 @@ function App() {
           throw new Error('Ошибка получения жалоб');
         }
 
-        const complaintsData = await response.json();
+        const complaintsData: Complaint[] = await response.json(); // Указываем тип для данных
 
         // Форматируем данные для таблицы
-        const formattedData = complaintsData.map((complaint: any) => ({
+        const formattedData = complaintsData.map((complaint) => ({
           complaint: complaint.reason,
           user: complaint.userNickname || `ID: ${complaint.userId}`,
           userId: complaint.userId.toString(),
