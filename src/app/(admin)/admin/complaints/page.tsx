@@ -6,11 +6,11 @@ import styles from './Complaints.module.css';
 import Table from '@/components/Table/Table';
 
 interface Complaint {
-  id: BigInt; // Изменено на BigInt
+  id: bigint; // Изменено на примитивный тип bigint
   reason: string;
-  userId: BigInt;
+  userId: bigint;
   userNickname: string | null;
-  assistantId: BigInt;
+  assistantId: bigint;
   assistantNickname: string | null;
 }
 
@@ -25,7 +25,7 @@ interface ComplaintData {
 function App() {
   const [data, setData] = useState<ComplaintData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null); // Добавлено состояние для ошибок
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Функция для получения данных из API
@@ -41,17 +41,17 @@ function App() {
         // Форматируем данные для таблицы
         const formattedData = complaintsData.map((complaint) => ({
           complaint: complaint.reason,
-          user: complaint.userNickname || `ID: ${complaint.userId.toString()}`, // Преобразуем BigInt в строку
-          userId: complaint.userId.toString(), // Преобразуем BigInt в строку
-          assistant: complaint.assistantNickname || `ID: ${complaint.assistantId.toString()}`, // Преобразуем BigInt в строку
-          assistantId: complaint.assistantId.toString(), // Преобразуем BigInt в строку
+          user: complaint.userNickname || `ID: ${complaint.userId.toString()}`, // Преобразуем bigint в строку
+          userId: complaint.userId.toString(), // Преобразуем bigint в строку
+          assistant: complaint.assistantNickname || `ID: ${complaint.assistantId.toString()}`, // Преобразуем bigint в строку
+          assistantId: complaint.assistantId.toString(), // Преобразуем bigint в строку
         }));
 
         setData(formattedData); // Обновляем состояние данными
         setLoading(false); // Отключаем загрузку после получения данных
       } catch (error) {
         console.error('Ошибка при получении данных:', error);
-        setError('Не удалось загрузить жалобы. Пожалуйста, попробуйте снова позже.'); // Устанавливаем сообщение об ошибке
+        setError('Не удалось загрузить жалобы. Пожалуйста, попробуйте снова позже.');
       }
     };
 
@@ -93,11 +93,11 @@ function App() {
   );
 
   if (loading) {
-    return <div>Загрузка данных...</div>; // Индикатор загрузки
+    return <div>Загрузка данных...</div>;
   }
 
   if (error) {
-    return <div className={styles.error}>{error}</div>; // Сообщение об ошибке
+    return <div className={styles.error}>{error}</div>;
   }
 
   return (
