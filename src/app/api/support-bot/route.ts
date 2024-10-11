@@ -478,11 +478,17 @@ bot.command('problem', async (ctx) => {
       return;
     }
 
-    // Создаём новый арбитраж
+    // Получаем никнеймы пользователя и ассистента
+    const userNickname = activeRequest.user.username || null;
+    const assistantNickname = ctx.from.username || null;
+
+    // Создаём новый арбитраж с сохранением никнеймов
     const arbitration = await prisma.arbitration.create({
       data: {
         userId: activeRequest.userId,
+        userNickname, // Сохраняем никнейм пользователя
         assistantId: telegramId,
+        assistantNickname, // Сохраняем никнейм ассистента
         moderatorId: null,
         reason: 'Открытие арбитража ассистентом',
         status: 'PENDING' as ArbitrationStatus,
@@ -525,6 +531,7 @@ bot.command('problem', async (ctx) => {
     await ctx.reply(`⚠️ Произошла ошибка при открытии арбитража: ${errorMessage}. Пожалуйста, попробуйте еще раз.`);
   }
 });
+
 
 // Обработчик входящих сообщений от ассистента
 bot.on('message', async (ctx) => {
