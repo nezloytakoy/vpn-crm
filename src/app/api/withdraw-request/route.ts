@@ -12,7 +12,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Неверные данные для запроса' }, { status: 400 });
     }
 
-    // Добавляем новый запрос на вывод в базу данных
     const withdrawalRequest = await prisma.withdrawalRequest.create({
       data: {
         userId: BigInt(userId),
