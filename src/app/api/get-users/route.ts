@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 const prisma = new PrismaClient()
 
-export default async function GET() {
+export async function GET() {
 
     try {
         const usersData = await prisma.user.findMany({
