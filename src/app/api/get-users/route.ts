@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 const prisma = new PrismaClient()
 
 export async function GET() {
-
     try {
         const usersData = await prisma.user.findMany({
             select: {
@@ -14,21 +13,21 @@ export async function GET() {
                 assistantRequests: true,
                 hasUpdatedSubscription: true
             }
+        });
 
-        })
-
-        const serializedUsers = (await usersData).map(user => ({
+        // Возвращаем данные без преобразования в строки
+        const serializedUsers = usersData.map(user => ({
             username: user.username,
-            referralCount: user.referralCount.toString(),
+            referralCount: user.referralCount, // оставляем как есть
             subscriptionType: user.subscriptionType,
-            assistantRequests: user.assistantRequests.toString(),
+            assistantRequests: user.assistantRequests, // оставляем как есть
             hasUpdatedSubscription: user.hasUpdatedSubscription,
-        }))
+        }));
 
         return NextResponse.json(serializedUsers);
 
     } catch (error) {
-        console.log(error)
+        console.log(error);
         return NextResponse.json({ error: 'Не удалось получить данные' }, { status: 500 });
     }
 }
