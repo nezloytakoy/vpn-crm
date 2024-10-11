@@ -214,11 +214,55 @@ bot.command('start', async (ctx) => {
     const telegramId = BigInt(ctx.from.id);
     const username = ctx.from.username || null;
 
-    await prisma.user.upsert({
+    // Проверяем, передан ли реферальный код
+    const referralCode = ctx.message?.text?.split(' ')[1]; // Извлекаем реферальный код из команды /start
+    let referrerId: bigint | null = null;
+
+    if (referralCode && referralCode.startsWith('ref_')) {
+      const code = referralCode.replace('ref_', '');
+
+      // Находим запись реферальной ссылки
+      const referral = await prisma.referral.findUnique({
+        where: { code },
+      });
+
+      if (referral) {
+        referrerId = referral.userId; // Сохраняем ID пользователя, который пригласил
+      } else {
+        await ctx.reply('Неверный реферальный код.');
+        return;
+      }
+    }
+
+    // Регистрация или обновление информации о пользователе
+    const newUser = await prisma.user.upsert({
       where: { telegramId },
       update: { username },
-      create: { telegramId, username },
+      create: {
+        telegramId,
+        username,
+      },
     });
+
+    // Если есть referrerId и referralCode, увеличиваем счетчик рефералов и создаем запись в таблице Referral
+    if (referrerId && referralCode) {
+      await prisma.user.update({
+        where: { telegramId: referrerId },
+        data: {
+          referralCount: { increment: 1 }, // Увеличиваем счетчик рефералов у пригласившего пользователя
+        },
+      });
+
+      // Создаем реферальную запись, связывая пригласившего и приглашенного пользователей
+      await prisma.referral.create({
+        data: {
+          userId: referrerId, // ID пригласившего
+          referredUserId: newUser.telegramId, // ID приглашенного
+          code: referralCode, // Код реферальной ссылки
+          link: `https://t.me/vpn_srm_userbot?start=ref_${referralCode}`, // Статическая ссылка с именем бота
+        },
+      });
+    }
 
     await ctx.reply(getTranslation(languageCode, 'start_message'), {
       reply_markup: {

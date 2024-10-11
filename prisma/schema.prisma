@@ -49,7 +49,7 @@ model Assistant {
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   requests     AssistantRequest[]
-  arbitrations Arbitration[] // Добавлено поле для обратного отношения
+  arbitrations Arbitration[] // Поле для обратного отношения
 }
 
 enum SubscriptionType {
@@ -64,6 +64,8 @@ model User {
   telegramId             BigInt             @id @unique
   username               String?
   referralCount          Int                @default(0)
+  referrer               Referral[]         @relation("Referrer") // Обратное отношение к `Referral`
+  referredUsers          Referral[]         @relation("Referred") // Обратное отношение для приглашенных
   subscriptionType       SubscriptionType   @default(FREE)
   hasUpdatedSubscription Boolean            @default(false)
   totalRequests          Int                @default(0)
@@ -74,18 +76,25 @@ model User {
   updatedAt              DateTime           @updatedAt
   conversations          Conversation[]
   requests               AssistantRequest[]
-  arbitrations           Arbitration[] // Добавлено поле для обратного отношения
-  referrals              Referral[]
+  arbitrations           Arbitration[]      // Поле для обратного отношения
 }
 
 model Referral {
-  id        BigInt   @id @default(autoincrement())
-  user      User     @relation(fields: [userId], references: [telegramId])
-  userId    BigInt   @unique // Добавлено @unique
-  code      String   @unique
-  link      String
-  createdAt DateTime @default(now())
+  id             BigInt   @id @default(autoincrement())
+  
+  // Отношение к пользователю, который создал реферальную ссылку
+  user           User     @relation("Referrer", fields: [userId], references: [telegramId]) 
+  userId         BigInt
+
+  // Отношение к пользователю, который использовал реферальную ссылку
+  referredUser   User?    @relation("Referred", fields: [referredUserId], references: [telegramId]) 
+  referredUserId BigInt?  @unique
+
+  code           String   @unique
+  link           String
+  createdAt      DateTime @default(now())
 }
+
 model Conversation {
   id        BigInt   @id @default(autoincrement())
   user      User     @relation(fields: [userId], references: [telegramId])

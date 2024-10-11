@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     const referralCode = nanoid(10);
 
     // Формируем реферальную ссылку
-    const botUsername = 'YourBotUsername'; // Замените на имя вашего бота
+    const botUsername = 'vpn_srm_userbot'; // Замените на имя вашего бота
     const referralLink = `https://t.me/${botUsername}?start=ref_${referralCode}`;
 
     // Сохраняем реферальную ссылку в базе данных
