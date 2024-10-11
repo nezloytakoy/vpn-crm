@@ -161,7 +161,7 @@ function Page() {
 
             setReferralCount(ReferralData.referralCount || 0)
         } catch(error) {
-
+            console.log('Не удалось получить данные:', error)
         }
     }
 

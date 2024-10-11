@@ -44,6 +44,7 @@ export async function GET(request: Request) {
         })
 
     } catch (error) {
+        console.log('Ошибка при получении запросов:', error)
         return NextResponse.json(
             { error: 'Ошибка получения данных' },
             { status: 500 }
