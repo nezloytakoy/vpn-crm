@@ -14,9 +14,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Проверяем, существует ли уже реферальная ссылка для данного пользователя
-    const existingReferral = await prisma.referral.findUnique({
+    const existingReferral = await prisma.referral.findFirst({
       where: {
-        userId: BigInt(userId),
+        userId: BigInt(userId), // Используем findFirst вместо findUnique
       },
     });
 
