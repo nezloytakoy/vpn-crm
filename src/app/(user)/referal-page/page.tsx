@@ -75,7 +75,7 @@ const ReferralPopup: React.FC<ReferralPopupProps> = ({ isVisible, onClose, refer
     <div className={`${styles.popupOverlay} ${isClosing ? styles.fadeOutOverlay : ''}`}>
       <div className={`${styles.popupContent} ${isClosing ? styles.slideDown : styles.slideUp}`}>
         <div className={styles.popupHeader}>
-          <h2>{t('your_referral_link')}</h2>
+          <h2 className={styles.title}>{t('your_referral_link')}</h2>
           <button onClick={handleClose} className={styles.closeButton}>✖</button>
         </div>
         <div className={styles.referralContent}>

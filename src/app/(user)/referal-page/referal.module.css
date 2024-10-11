@@ -287,6 +287,10 @@
   align-items: center;
 }
 
+.title {
+  margin-top: 50px;
+}
+
 @keyframes slide-up {
   from {
     transform: translateY(100%);
