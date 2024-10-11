@@ -39,16 +39,20 @@ function App() {
         const complaintsData: Complaint[] = await response.json(); // Указываем тип для данных
 
         // Форматируем данные для таблицы
-        const formattedData = complaintsData.map((complaint) => ({
+        const formattedData: ComplaintData[] = complaintsData.map((complaint) => ({
           complaint: complaint.reason,
           user: complaint.userNickname
             ? `@${complaint.userNickname}` // Добавляем "@" перед ником пользователя
             : `ID: ${complaint.userId.toString()}`, 
-          userId: `https://t.me/${complaint.userNickname || complaint.userId.toString()}`, // Создаем ссылку на пользователя
+          userId: complaint.userNickname 
+            ? `https://t.me/${complaint.userNickname}` 
+            : complaint.userId.toString(),
           assistant: complaint.assistantNickname
             ? `@${complaint.assistantNickname}` // Добавляем "@" перед ником ассистента
             : `ID: ${complaint.assistantId.toString()}`,
-          assistantId: `https://t.me/${complaint.assistantNickname || complaint.assistantId.toString()}`, // Создаем ссылку на ассистента
+          assistantId: complaint.assistantNickname 
+            ? `https://t.me/${complaint.assistantNickname}` 
+            : complaint.assistantId.toString(),
         }));
 
         setData(formattedData); // Обновляем состояние данными
@@ -62,15 +66,7 @@ function App() {
     fetchComplaints();
   }, []);
 
-  const columns = React.useMemo<
-    Column<{
-      complaint: string;
-      user: string;
-      userId: string;
-      assistant: string;
-      assistantId: string;
-    }>[]
-  >(
+  const columns = React.useMemo<Column<ComplaintData>[]>(
     () => [
       {
         Header: 'Жалоба',
@@ -80,19 +76,37 @@ function App() {
         Header: 'Пользователь',
         accessor: 'user',
         Cell: ({ row }) => (
-          <a href={row.original.userId} target="_blank" rel="noopener noreferrer">
+          <a
+            href={row.original.userId}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.link} // Добавляем стили
+          >
             {row.original.user}
           </a>
-        ), // Делаем ссылку на пользователя
+        ),
+      },
+      {
+        Header: 'ID Пользователя',
+        accessor: 'userId',
       },
       {
         Header: 'Ассистент',
         accessor: 'assistant',
         Cell: ({ row }) => (
-          <a href={row.original.assistantId} target="_blank" rel="noopener noreferrer">
+          <a
+            href={row.original.assistantId}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.link} // Добавляем стили
+          >
             {row.original.assistant}
           </a>
-        ), // Делаем ссылку на ассистента
+        ),
+      },
+      {
+        Header: 'ID Ассистента',
+        accessor: 'assistantId',
       },
     ],
     []

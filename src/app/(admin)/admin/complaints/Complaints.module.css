@@ -58,5 +58,17 @@
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     width: 100%;
   }
+
+  .link {
+    color: blue; /* Синий цвет для ссылки */
+    text-decoration: underline; /* Подчеркивание */
+    transition: color 0.3s ease, text-decoration-color 0.3s ease; /* Анимация при наведении */
+  }
+  
+  .link:hover {
+    color: darkblue; /* Изменение цвета при наведении */
+    text-decoration-color: darkblue; /* Анимация подчеркивания */
+  }
+  
   
   
