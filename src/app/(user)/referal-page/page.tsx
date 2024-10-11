@@ -13,6 +13,41 @@ interface PopupProps {
   onClose: () => void;
 }
 
+const handleWithdraw = async () => {
+    if (window.Telegram && window.Telegram.WebApp) {
+      try {
+        const currentUserId = window.Telegram.WebApp.initDataUnsafe.user?.id;
+        if (!currentUserId) {
+          throw new Error('Не удалось получить идентификатор пользователя.');
+        }
+  
+        // Пример суммы вывода
+        const amountToWithdraw = 100;
+  
+        const response = await fetch('/api/withdraw-request', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: currentUserId, amount: amountToWithdraw }),
+        });
+  
+        const data = await response.json();
+  
+        if (response.ok) {
+          alert(`Запрос на вывод успешно отправлен, ID запроса: ${data.requestId}`);
+        } else {
+          alert(data.error || 'Ошибка при отправке запроса на вывод.');
+        }
+      } catch (error) {
+        console.error('Ошибка при отправке запроса на вывод:', error);
+        alert('Произошла ошибка при отправке запроса на вывод.');
+      }
+    } else {
+      alert('Telegram WebApp API недоступен.');
+    }
+  };
+
 const Popup: React.FC<PopupProps> = ({ isVisible, onClose }) => {
   const { t } = useTranslation();
   const [isClosing, setIsClosing] = useState(false);
@@ -169,9 +204,10 @@ function Page() {
       fetchData();
     }, []);
 
-    
+
   const showPopup = () => {
     setPopupVisible(true);
+    handleWithdraw()
   };
 
   const hidePopup = () => {

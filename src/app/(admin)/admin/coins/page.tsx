@@ -69,7 +69,7 @@ export default function Page() {
         <div className={styles.tableWrapper}>
           <div className={styles.header}>
             <h3>
-              Запросы на распределение коинов <span>({data.length})</span>
+              Запросы на вывод <span>({data.length})</span>
             </h3>
           </div>
           <Table columns={columns} data={data} />
