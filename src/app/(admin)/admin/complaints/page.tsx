@@ -1,105 +1,49 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Column } from 'react-table';
 import styles from './Complaints.module.css';
 import Table from '@/components/Table/Table';
 
+interface ComplaintData {
+  complaint: string;
+  user: string;
+  userId: string;
+  assistant: string;
+  assistantId: string;
+}
+
 function App() {
-  const data = React.useMemo(
-    () => [
-      {
-        complaint: 'Номер 213',
-        user: '@username',
-        userId: '2332323232',
-        assistant: '@username',
-        assistantId: '2332323232',
-      },
-      {
-        complaint: 'Номер 213',
-        user: '@username',
-        userId: '2332323232',
-        assistant: '@username',
-        assistantId: '2332323232',
-      },
-      {
-        complaint: 'Номер 213',
-        user: '@username',
-        userId: '2332323232',
-        assistant: '@username',
-        assistantId: '2332323232',
-      },
-      {
-        complaint: 'Номер 213',
-        user: '@username',
-        userId: '2332323232',
-        assistant: '@username',
-        assistantId: '2332323232',
-      },
-      {
-        complaint: 'Номер 213',
-        user: '@username',
-        userId: '2332323232',
-        assistant: '@username',
-        assistantId: '2332323232',
-      },
-      {
-        complaint: 'Номер 213',
-        user: '@username',
-        userId: '2332323232',
-        assistant: '@username',
-        assistantId: '2332323232',
-      },
-      {
-        complaint: 'Номер 213',
-        user: '@username',
-        userId: '2332323232',
-        assistant: '@username',
-        assistantId: '2332323232',
-      },
-      {
-        complaint: 'Номер 213',
-        user: '@username',
-        userId: '2332323232',
-        assistant: '@username',
-        assistantId: '2332323232',
-      },
-      {
-        complaint: 'Номер 213',
-        user: '@username',
-        userId: '2332323232',
-        assistant: '@username',
-        assistantId: '2332323232',
-      },
-      {
-        complaint: 'Номер 213',
-        user: '@username',
-        userId: '2332323232',
-        assistant: '@username',
-        assistantId: '2332323232',
-      },
-      {
-        complaint: 'Номер 213',
-        user: '@username',
-        userId: '2332323232',
-        assistant: '@username',
-        assistantId: '2332323232',
-      },
-      {
-        complaint: 'Номер 213',
-        user: '@username',
-        userId: '2332323232',
-        assistant: '@username',
-        assistantId: '2332323232',
-      },
-      {
-        complaint: 'Номер 213',
-        user: '@username',
-        userId: '2332323232',
-        assistant: '@username',
-        assistantId: '2332323232',
-      },
-    ],
-    []
-  );
+  const [data, setData] = useState<ComplaintData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Функция для получения данных из API
+    const fetchComplaints = async () => {
+      try {
+        const response = await fetch('/api/get-complaints'); // Запрос к API
+        if (!response.ok) {
+          throw new Error('Ошибка получения жалоб');
+        }
+
+        const complaintsData = await response.json();
+
+        // Форматируем данные для таблицы
+        const formattedData = complaintsData.map((complaint: any) => ({
+          complaint: complaint.reason,
+          user: complaint.userNickname || `ID: ${complaint.userId}`,
+          userId: complaint.userId.toString(),
+          assistant: complaint.assistantNickname || `ID: ${complaint.assistantId}`,
+          assistantId: complaint.assistantId.toString(),
+        }));
+
+        setData(formattedData); // Обновляем состояние данными
+        setLoading(false); // Отключаем загрузку после получения данных
+      } catch (error) {
+        console.error('Ошибка при получении данных:', error);
+      }
+    };
+
+    fetchComplaints();
+  }, []);
 
   const columns = React.useMemo<
     Column<{
@@ -113,27 +57,31 @@ function App() {
     () => [
       {
         Header: 'Жалоба',
-        accessor: 'complaint' as const,
+        accessor: 'complaint',
       },
       {
         Header: 'Пользователь',
-        accessor: 'user' as const,
+        accessor: 'user',
       },
       {
         Header: '',
-        accessor: 'userId' as const,
+        accessor: 'userId',
       },
       {
         Header: 'Ассистент',
-        accessor: 'assistant' as const,
+        accessor: 'assistant',
       },
       {
         Header: '',
-        accessor: 'assistantId' as const,
+        accessor: 'assistantId',
       },
     ],
     []
   );
+
+  if (loading) {
+    return <div>Загрузка данных...</div>;
+  }
 
   return (
     <div className={styles.main}>

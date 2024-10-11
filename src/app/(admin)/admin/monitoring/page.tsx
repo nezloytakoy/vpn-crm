@@ -91,7 +91,7 @@ const Monitoring: React.FC = () => {
         accessor: 'denied',
       },
       {
-        Header: 'Текущие',
+        Header: 'Текущие жалобы',
         accessor: 'current',
       },
       {
