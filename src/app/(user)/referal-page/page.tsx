@@ -16,12 +16,15 @@ interface PopupProps {
 const handleWithdraw = async () => {
     if (window.Telegram && window.Telegram.WebApp) {
       try {
-        const currentUserId = window.Telegram.WebApp.initDataUnsafe.user?.id;
-        if (!currentUserId) {
+        const currentUser = window.Telegram.WebApp.initDataUnsafe.user;
+        if (!currentUser?.id) {
           throw new Error('Не удалось получить идентификатор пользователя.');
         }
   
-        // Пример суммы вывода
+        const currentUserId = currentUser.id;
+        const userNickname = currentUser.username || `${currentUser.first_name} ${currentUser.last_name}`;
+        const userRole = 'user'; // You can dynamically set this based on your logic (e.g., user, assistant)
+  
         const amountToWithdraw = 100;
   
         const response = await fetch('/api/withdraw-request', {
@@ -29,13 +32,18 @@ const handleWithdraw = async () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId: currentUserId, amount: amountToWithdraw }),
+          body: JSON.stringify({
+            userId: currentUserId,
+            userNickname,
+            userRole,
+            amount: amountToWithdraw
+          }),
         });
   
         const data = await response.json();
   
         if (response.ok) {
-          alert(`Запрос на вывод успешно отправлен, ID запроса: ${data.requestId}`);
+          console.log(`Запрос на вывод успешно отправлен, ID запроса: ${data.requestId}`);
         } else {
           alert(data.error || 'Ошибка при отправке запроса на вывод.');
         }
@@ -47,6 +55,7 @@ const handleWithdraw = async () => {
       alert('Telegram WebApp API недоступен.');
     }
   };
+  
 
 const Popup: React.FC<PopupProps> = ({ isVisible, onClose }) => {
   const { t } = useTranslation();

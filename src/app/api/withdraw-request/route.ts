@@ -6,9 +6,10 @@ const prisma = new PrismaClient();
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { userId, amount } = body;
+    const { userId, amount, userNickname, userRole } = body;
 
-    if (!userId || !amount || amount <= 0) {
+    // Проверяем, что все данные корректны
+    if (!userId || !amount || amount <= 0 || !userNickname || !userRole) {
       return NextResponse.json({ error: 'Неверные данные для запроса' }, { status: 400 });
     }
 
@@ -16,6 +17,8 @@ export async function POST(req: NextRequest) {
     const withdrawalRequest = await prisma.withdrawalRequest.create({
       data: {
         userId: BigInt(userId),
+        userNickname: userNickname,
+        userRole: userRole, // Указываем роль пользователя (например, "user" или "assistant")
         amount: parseFloat(amount),
       },
     });
