@@ -6,7 +6,7 @@ import styles from './Complaints.module.css';
 import Table from '@/components/Table/Table';
 
 interface Complaint {
-  id: bigint; // Изменено на примитивный тип bigint
+  id: bigint; 
   reason: string;
   userId: bigint;
   userNickname: string | null;
@@ -41,10 +41,14 @@ function App() {
         // Форматируем данные для таблицы
         const formattedData = complaintsData.map((complaint) => ({
           complaint: complaint.reason,
-          user: complaint.userNickname || `ID: ${complaint.userId.toString()}`, // Преобразуем bigint в строку
-          userId: complaint.userId.toString(), // Преобразуем bigint в строку
-          assistant: complaint.assistantNickname || `ID: ${complaint.assistantId.toString()}`, // Преобразуем bigint в строку
-          assistantId: complaint.assistantId.toString(), // Преобразуем bigint в строку
+          user: complaint.userNickname
+            ? `@${complaint.userNickname}` // Добавляем "@" перед ником пользователя
+            : `ID: ${complaint.userId.toString()}`, 
+          userId: `https://t.me/${complaint.userNickname || complaint.userId.toString()}`, // Создаем ссылку на пользователя
+          assistant: complaint.assistantNickname
+            ? `@${complaint.assistantNickname}` // Добавляем "@" перед ником ассистента
+            : `ID: ${complaint.assistantId.toString()}`,
+          assistantId: `https://t.me/${complaint.assistantNickname || complaint.assistantId.toString()}`, // Создаем ссылку на ассистента
         }));
 
         setData(formattedData); // Обновляем состояние данными
@@ -75,18 +79,20 @@ function App() {
       {
         Header: 'Пользователь',
         accessor: 'user',
-      },
-      {
-        Header: '',
-        accessor: 'userId',
+        Cell: ({ row }) => (
+          <a href={row.original.userId} target="_blank" rel="noopener noreferrer">
+            {row.original.user}
+          </a>
+        ), // Делаем ссылку на пользователя
       },
       {
         Header: 'Ассистент',
         accessor: 'assistant',
-      },
-      {
-        Header: '',
-        accessor: 'assistantId',
+        Cell: ({ row }) => (
+          <a href={row.original.assistantId} target="_blank" rel="noopener noreferrer">
+            {row.original.assistant}
+          </a>
+        ), // Делаем ссылку на ассистента
       },
     ],
     []
