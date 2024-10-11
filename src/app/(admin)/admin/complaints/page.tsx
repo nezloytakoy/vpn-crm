@@ -6,12 +6,12 @@ import styles from './Complaints.module.css';
 import Table from '@/components/Table/Table';
 
 interface Complaint {
-  id: bigint; 
+  id: string;
   reason: string;
-  userId: bigint;
-  userNickname: string | null;
-  assistantId: bigint;
-  assistantNickname: string | null;
+  userId: string;
+  userNickname: string;
+  assistantId: string;
+  assistantNickname: string;
 }
 
 interface ComplaintData {
@@ -41,18 +41,10 @@ function App() {
         // Форматируем данные для таблицы
         const formattedData: ComplaintData[] = complaintsData.map((complaint) => ({
           complaint: complaint.reason,
-          user: complaint.userNickname
-            ? `@${complaint.userNickname}` // Добавляем "@" перед ником пользователя
-            : `ID: ${complaint.userId.toString()}`, 
-          userId: complaint.userNickname 
-            ? `https://t.me/${complaint.userNickname}` 
-            : complaint.userId.toString(),
-          assistant: complaint.assistantNickname
-            ? `@${complaint.assistantNickname}` // Добавляем "@" перед ником ассистента
-            : `ID: ${complaint.assistantId.toString()}`,
-          assistantId: complaint.assistantNickname 
-            ? `https://t.me/${complaint.assistantNickname}` 
-            : complaint.assistantId.toString(),
+          user: `@${complaint.userNickname}`, // Ник пользователя с собачкой
+          userId: complaint.userId, // Отображаем просто ID пользователя
+          assistant: `@${complaint.assistantNickname}`, // Ник ассистента с собачкой
+          assistantId: complaint.assistantId, // Отображаем просто ID ассистента
         }));
 
         setData(formattedData); // Обновляем состояние данными
@@ -77,7 +69,7 @@ function App() {
         accessor: 'user',
         Cell: ({ row }) => (
           <a
-            href={row.original.userId}
+            href={`https://t.me/${row.original.user}`} // Ссылка на профиль пользователя в Telegram
             target="_blank"
             rel="noopener noreferrer"
             className={styles.link} // Добавляем стили
@@ -88,14 +80,14 @@ function App() {
       },
       {
         Header: 'ID Пользователя',
-        accessor: 'userId',
+        accessor: 'userId', // ID отображается как обычный текст
       },
       {
         Header: 'Ассистент',
         accessor: 'assistant',
         Cell: ({ row }) => (
           <a
-            href={row.original.assistantId}
+            href={`https://t.me/${row.original.assistant}`} // Ссылка на профиль ассистента в Telegram
             target="_blank"
             rel="noopener noreferrer"
             className={styles.link} // Добавляем стили
@@ -106,7 +98,7 @@ function App() {
       },
       {
         Header: 'ID Ассистента',
-        accessor: 'assistantId',
+        accessor: 'assistantId', // ID отображается как обычный текст
       },
     ],
     []
