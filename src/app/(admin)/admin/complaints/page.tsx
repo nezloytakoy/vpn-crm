@@ -83,7 +83,7 @@ function App() {
         accessor: 'userId', // ID отображается как обычный текст
       },
       {
-        Header: 'Ассистент',
+        Header: 'Роль',
         accessor: 'assistant',
         Cell: ({ row }) => (
           <a

@@ -1,68 +1,78 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Column } from 'react-table';
 import Table from '@/components/Table/Table';
 import styles from './Coins.module.css';
 
-interface CoinDistributionData {
-  assistant: string;
-  quantity: number;
-  date: string;
-  username: string;
+interface WithdrawsData {
   id: string;
+  userId: string;
+  userNickname: string;
+  userRole: string;
+  amount: string;
+  status: string;
 }
 
-// Пример данных для таблицы
-const data: CoinDistributionData[] = [
-  {
-    assistant: 'Ассистент N1',
-    quantity: 24,
-    date: '21/12/24',
-    username: '@username',
-    id: '2332323232',
-  },
-  {
-    assistant: 'Ассистент N2',
-    quantity: 12,
-    date: '22/12/24',
-    username: '@username',
-    id: '2332323232',
-  },
-  {
-    assistant: 'Ассистент N3',
-    quantity: 44,
-    date: '23/12/24',
-    username: '@username',
-    id: '2332323232',
-  },
-];
-
-// Определение колонок
-const columns: Array<Column<CoinDistributionData>> = [
-  {
-    Header: 'Ассистент',
-    accessor: 'assistant',
-  },
-  {
-    Header: 'Количество',
-    accessor: 'quantity',
-  },
-  {
-    Header: 'Дата',
-    accessor: 'date',
-  },
-  {
-    Header: '', // Пустой заголовок для юзернейма
-    accessor: 'username',
-  },
-  {
-    Header: '', // Пустой заголовок для ID
-    accessor: 'id',
-  },
-];
-
 export default function Page() {
+  const [data, setData] = useState<WithdrawsData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Загружаем данные о выводах при монтировании компонента
+  useEffect(() => {
+    const fetchWithdraws = async () => {
+      try {
+        const response = await fetch('/api/get-withdraw-requests');
+
+        if (!response.ok) {
+          throw new Error('Ошибка получения данных');
+        }
+
+        const withdrawsData: WithdrawsData[] = await response.json();
+        setData(withdrawsData);
+      } catch (error) {
+        setError('Не удалось загрузить данные.');
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWithdraws();
+  }, []);
+
+  const columns: Column<WithdrawsData>[] = [
+    {
+      Header: 'ID',
+      accessor: 'id',
+    },
+    {
+      Header: 'Никнейм пользователя',
+      accessor: 'userNickname',
+    },
+    {
+      Header: 'Роль',
+      accessor: 'userRole',
+    },
+    {
+      Header: 'Сумма',
+      accessor: 'amount',
+    },
+    {
+      Header: 'Статус',
+      accessor: 'status',
+    },
+  ];
+
+  if (loading) {
+    return <div>Загрузка данных...</div>;
+  }
+
+  if (error) {
+    return <div>{error}</div>;
+  }
+
   return (
     <div className={styles.main}>
       <div className={styles.tablebox}>
