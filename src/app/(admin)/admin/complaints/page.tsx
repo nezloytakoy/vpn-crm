@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React, { useEffect, useState } from 'react';
 import { Column } from 'react-table';
@@ -6,11 +6,11 @@ import styles from './Complaints.module.css';
 import Table from '@/components/Table/Table';
 
 interface Complaint {
-  id: bigint;
+  id: BigInt; // Изменено на BigInt
   reason: string;
-  userId: bigint;
+  userId: BigInt;
   userNickname: string | null;
-  assistantId: bigint;
+  assistantId: BigInt;
   assistantNickname: string | null;
 }
 
@@ -25,6 +25,7 @@ interface ComplaintData {
 function App() {
   const [data, setData] = useState<ComplaintData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null); // Добавлено состояние для ошибок
 
   useEffect(() => {
     // Функция для получения данных из API
@@ -40,16 +41,17 @@ function App() {
         // Форматируем данные для таблицы
         const formattedData = complaintsData.map((complaint) => ({
           complaint: complaint.reason,
-          user: complaint.userNickname || `ID: ${complaint.userId}`,
-          userId: complaint.userId.toString(),
-          assistant: complaint.assistantNickname || `ID: ${complaint.assistantId}`,
-          assistantId: complaint.assistantId.toString(),
+          user: complaint.userNickname || `ID: ${complaint.userId.toString()}`, // Преобразуем BigInt в строку
+          userId: complaint.userId.toString(), // Преобразуем BigInt в строку
+          assistant: complaint.assistantNickname || `ID: ${complaint.assistantId.toString()}`, // Преобразуем BigInt в строку
+          assistantId: complaint.assistantId.toString(), // Преобразуем BigInt в строку
         }));
 
         setData(formattedData); // Обновляем состояние данными
         setLoading(false); // Отключаем загрузку после получения данных
       } catch (error) {
         console.error('Ошибка при получении данных:', error);
+        setError('Не удалось загрузить жалобы. Пожалуйста, попробуйте снова позже.'); // Устанавливаем сообщение об ошибке
       }
     };
 
@@ -91,7 +93,11 @@ function App() {
   );
 
   if (loading) {
-    return <div>Загрузка данных...</div>;
+    return <div>Загрузка данных...</div>; // Индикатор загрузки
+  }
+
+  if (error) {
+    return <div className={styles.error}>{error}</div>; // Сообщение об ошибке
   }
 
   return (

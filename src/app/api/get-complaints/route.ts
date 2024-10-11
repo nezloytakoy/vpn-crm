@@ -11,9 +11,9 @@ export async function GET() {
         id: true,
         reason: true,  // Жалоба (причина арбитража)
         userId: true,
-        userNickname: true,
+        userNickname: true, // Может быть null
         assistantId: true,
-        assistantNickname: true,
+        assistantNickname: true, // Может быть null
       },
     });
 
@@ -22,9 +22,9 @@ export async function GET() {
       id: complaint.id.toString(),
       reason: complaint.reason,
       userId: complaint.userId.toString(),
-      userNickname: complaint.userNickname,
+      userNickname: complaint.userNickname || 'Неизвестно', // Обрабатываем null
       assistantId: complaint.assistantId.toString(),
-      assistantNickname: complaint.assistantNickname,
+      assistantNickname: complaint.assistantNickname || 'Неизвестно', // Обрабатываем null
     }));
 
     // Возвращаем данные в формате JSON
