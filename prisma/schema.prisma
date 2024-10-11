@@ -156,7 +156,7 @@ model WithdrawalRequest {
   userNickname String?
   userRole     String   @default("user") // Add a default value
   amount       Float
-  status       String   @default("PENDING")
+  status       String   @default("Требует рассмотрения")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
