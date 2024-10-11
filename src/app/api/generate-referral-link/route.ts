@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 
 // Функция для отправки сообщений в Telegram
 const sendLogToTelegram = async (message: string) => {
-  const telegramToken = process.env.TELEGRAM_BOT_TOKEN; // Убедитесь, что у вас настроен правильный токен бота
+  const telegramToken = process.env.TELEGRAM_USER_BOT_TOKEN; // Убедитесь, что у вас настроен правильный токен бота
   const chatId = 5829159515; // ID пользователя в Telegram
   const url = `https://api.telegram.org/bot${telegramToken}/sendMessage`;
 
