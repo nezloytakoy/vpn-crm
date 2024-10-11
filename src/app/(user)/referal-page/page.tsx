@@ -102,6 +102,7 @@ function Page() {
   const [fontSize, setFontSize] = useState('24px');
   const [referralLink, setReferralLink] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [ReferralCount, setReferralCount] = useState<number>(0);
 
   useEffect(() => {
     // Проверяем, что Telegram WebApp API доступен
@@ -140,6 +141,31 @@ function Page() {
       i18n.changeLanguage('en');
       setTelegramUsername('Guest');
     }
+
+    const telegramId = window?.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+
+    const fetchData = async () => {
+        try {
+
+            if (!telegramId) {
+                throw new Error('Не удалось получить telegram id')
+            }
+
+            const referralsResponse =  await fetch(`api/get-referrals?telegramId=${telegramId}`);
+
+            if (!referralsResponse.ok) {
+                throw new Error('Ошибка получения данных')
+            }
+
+            const ReferralData = await referralsResponse.json();
+
+            setReferralCount(ReferralData.referralCount || 0)
+        } catch(error) {
+
+        }
+    }
+
+    fetchData()
   }, []);
 
   const showPopup = () => {
@@ -266,7 +292,7 @@ function Page() {
                 />
               </div>
               <div className={styles.textbox}>
-                <p className={styles.num}>2</p>
+                <p className={styles.num}>{ReferralCount}</p>
                 <p className={styles.text}>{t('invited')}</p>
               </div>
             </div>
