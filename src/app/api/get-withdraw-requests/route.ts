@@ -13,6 +13,7 @@ export async function GET() {
                 userId: true,
                 userNickname: true,
                 userRole: true,
+                status: true,
                 amount: true,
             }
         })
@@ -22,6 +23,7 @@ export async function GET() {
             userId: withdraw.userId.toString(),
             userNickname: withdraw.userNickname,
             userRole: withdraw.userRole,
+            status: withdraw.status,
             amount: withdraw.amount.toString(),
         }))
 
