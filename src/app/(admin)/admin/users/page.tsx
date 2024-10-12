@@ -6,11 +6,11 @@ import Table from '@/components/Table/Table';
 import { Column, CellProps } from 'react-table';
 
 interface UserData {
-    nickname: string;
-    referrals: number;
-    subscription: string;
-    requests: number;
-    renewed: boolean;
+    username: string;
+    referralCount: number;
+    subscriptionType: string;
+    assistantRequests: number;
+    hasUpdatedSubscription: boolean;
 }
 
 type MyColumn<T extends object, K extends keyof T> = {
@@ -131,34 +131,34 @@ function Page() {
     const columnsData: MyColumn<UserData, keyof UserData>[] = [
         {
             Header: 'Ник пользователя',
-            accessor: 'nickname',
-            id: 'nickname',
+            accessor: 'username',  // Должен совпадать с именем поля из API
+            id: 'username',
         },
         {
             Header: 'Количество рефералов',
-            accessor: 'referrals',
-            id: 'referrals',
+            accessor: 'referralCount',  // Должен совпадать с именем поля из API
+            id: 'referralCount',
         },
         {
             Header: 'Подписка',
-            accessor: 'subscription',
-            id: 'subscription',
+            accessor: 'subscriptionType',  // Должен совпадать с именем поля из API
+            id: 'subscriptionType',
         },
         {
             Header: 'Количество запросов',
-            accessor: 'requests',
-            id: 'requests',
+            accessor: 'assistantRequests',  // Должен совпадать с именем поля из API
+            id: 'assistantRequests',
         },
         {
             Header: 'Обновлено',
-            accessor: 'renewed',
-            id: 'renewed',
+            accessor: 'hasUpdatedSubscription',  // Должен совпадать с именем поля из API
+            id: 'hasUpdatedSubscription',
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => (
                 <span>{typeof value === 'boolean' ? (value ? 'Да' : 'Нет') : value}</span>
             ),
-
         },
     ];
+
 
 
 
