@@ -48,7 +48,7 @@ const WaveComponent = () => {
     const [price, setPrice] = useState<number>(0);
     const [telegramUsername, setTelegramUsername] = useState('');
     const [fontSize, setFontSize] = useState('24px');
-    const [subscriptionType, setSubscriptionType] = useState<string | null>(null); // null by default
+    // const [subscriptionType, setSubscriptionType] = useState<string | null>(null); // null by default
     const [assistantRequests, setAssistantRequests] = useState<number>(0);
 
     const [tariffs, setTariffs] = useState<{ [key: string]: number }>({});
@@ -103,12 +103,12 @@ const WaveComponent = () => {
 
                 // Устанавливаем тип подписки напрямую из API без изменения позже
                 setAssistantRequests(requestsData.assistantRequests || 0);
-                const subType = subscriptionData.subscriptionType?.toUpperCase();
-                setSubscriptionType(subType || 'SUBSCRIPTION_NOT_FOUND'); // Устанавливаем начальное значение один раз
+                // const subType = subscriptionData.subscriptionType?.toUpperCase();
+                // setSubscriptionType(subType || 'SUBSCRIPTION_NOT_FOUND'); // Устанавливаем начальное значение один раз
 
             } catch (error) {
                 console.error('Ошибка при получении данных:', error);
-                setSubscriptionType('SUBSCRIPTION_NOT_FOUND');
+                // setSubscriptionType('SUBSCRIPTION_NOT_FOUND');
                 await sendLogToTelegram(`Error fetching subscription or requests: ${error}`);
             }
         };
