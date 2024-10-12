@@ -162,26 +162,6 @@ function Page() {
 
 
 
-    const data = useMemo(
-        () => [
-            {
-                nickname: 'User1',
-                referrals: 5,
-                subscription: 'Premium',
-                requests: 120,
-                renewed: true,
-            },
-            {
-                nickname: 'User2',
-                referrals: 2,
-                subscription: 'Basic',
-                requests: 60,
-                renewed: false,
-            },
-
-        ],
-        []
-    );
 
     const [sortColumn, setSortColumn] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
