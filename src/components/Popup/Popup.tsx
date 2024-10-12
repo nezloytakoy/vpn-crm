@@ -7,7 +7,7 @@ interface PopupProps {
     isVisible: boolean;
     onClose: () => void;
     buttonText: string;
-    price: number; // проп для цены
+    price: number | undefined; // проп для цены может быть undefined
 }
 
 const sendLogToTelegram = async (message: string) => {
@@ -69,8 +69,12 @@ const Popup: React.FC<PopupProps> = ({ isVisible, onClose, buttonText, price }) 
                 </div>
                 <p className={styles.poptitle}>{`${buttonText}`}</p>
                 <p className={styles.poptext}>Lorem ipsum dolor sit amet, consectetur adipiscing elit...</p>
+                
+                {/* Условный рендеринг для отображения цены или многоточий */}
                 <button className={styles.confirmButton} onClick={handleClose}>
-                    <Link href={`/payment-methods?price=${price}`}>{`${buttonText}`}</Link> {/* Передаем цену через параметр */}
+                    <Link href={`/payment-methods?price=${price !== undefined ? price : '...'}`}>
+                        {`Оплатить - ${price !== undefined ? `${price}$` : '...'}`}
+                    </Link> 
                 </button>
             </div>
         </div>

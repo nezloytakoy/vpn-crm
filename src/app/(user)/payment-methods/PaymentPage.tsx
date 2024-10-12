@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation'; // Use useSearchParams instead of useRouter
+import { useSearchParams } from 'next/navigation';
 import Wave from 'react-wavify';
 import styles from './Payment.module.css';
 import Image from 'next/image';
@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 
 function PaymentPage() {
   const { t } = useTranslation();
-  const searchParams = useSearchParams(); // Access query params
+  const searchParams = useSearchParams();
   const [selectedMethod, setSelectedMethod] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [telegramUsername, setTelegramUsername] = useState('');
@@ -20,10 +20,9 @@ function PaymentPage() {
   const [userId, setUserId] = useState<number | null>(null);
   const [price, setPrice] = useState<number>(0); // Состояние для цены тарифа
 
-  // Проверяем, что код выполняется на клиенте
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const queryPrice = searchParams.get('price'); // Используем searchParams.get вместо router.query
+      const queryPrice = searchParams.get('price');
       if (queryPrice) {
         setPrice(Number(queryPrice));
       }
@@ -77,12 +76,13 @@ function PaymentPage() {
           throw new Error(t('errorNoUserId'));
         }
 
+        // Передаём цену в долларах
         const response = await fetch('/api/telegram-invoice', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId: userId }),
+          body: JSON.stringify({ userId: userId, priceInDollars: price }), // Передаём цену
         });
 
         const data = await response.json();
@@ -232,7 +232,7 @@ function PaymentPage() {
           </div>
 
           <button
-            className={`${styles.continueButton} ${selectedMethod === null ? styles.disabledButton : ''}`}
+            className={`${styles.continueButton} ${selectedMethod === null || isLoading ? styles.disabledButton : ''}`}
             disabled={selectedMethod === null || isLoading}
             onClick={handleContinue}
           >
