@@ -1,7 +1,5 @@
-"use client";
-
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router'; // Импортируем useRouter для получения параметров
+import { useRouter } from 'next/router';
 import Wave from 'react-wavify';
 import styles from './Payment.module.css';
 import Image from 'next/image';
@@ -18,8 +16,9 @@ function PaymentPage() {
   const [userId, setUserId] = useState<number | null>(null);
   const [price, setPrice] = useState<number>(0); // Состояние для цены тарифа
 
+  // Проверяем, что код выполняется на клиенте
   useEffect(() => {
-    if (router.isReady) {
+    if (typeof window !== 'undefined' && router.isReady) {
       const queryPrice = router.query.price;
       if (queryPrice) {
         setPrice(Number(queryPrice)); // Преобразуем в число и сохраняем в состоянии
