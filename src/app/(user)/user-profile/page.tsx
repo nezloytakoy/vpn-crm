@@ -109,7 +109,7 @@ const WaveComponent = () => {
     useEffect(() => {
         const fetchTariffs = async () => {
             try {
-                const response = await fetch('/api/get-tariffs');
+                const response = await fetch('/api/tarrifs');
                 if (!response.ok) {
                     throw new Error('Ошибка при получении тарифов');
                 }
