@@ -32,6 +32,13 @@ const sendLogToTelegram = async (message: string) => {
     }
 };
 
+const tariffMapping: { [key: string]: string } = {
+    'only_ai': 'Только AI',
+    'ai_5_hours': 'AI + 5 запросов ассистенту',
+    'ai_14_hours': 'AI + 14 запросов ассистенту',
+    'ai_30_hours': 'AI + 30 запросов ассистенту',
+};
+
 const WaveComponent = () => {
     const { t } = useTranslation();
     const [isPopupVisible, setPopupVisible] = useState(false);
@@ -102,35 +109,30 @@ const WaveComponent = () => {
     useEffect(() => {
         const fetchTariffs = async () => {
             try {
-                const response = await fetch('/api/tarrifs');
+                const response = await fetch('/api/get-tariffs');
                 if (!response.ok) {
                     throw new Error('Ошибка при получении тарифов');
                 }
                 const data = await response.json();
-                
-                // Отправляем тарифы в Telegram для логирования
-                await sendLogToTelegram(`Tariffs data: ${JSON.stringify(data)}`);
-    
-                // Предполагаем, что API возвращает массив тарифов с именами и ценами
+
+                // Логирование полученных данных
+                console.log('Tariffs data from API:', data);
+
+                // Маппинг данных для создания объекта тарифов
                 const tariffsMap: { [key: string]: number } = {};
-                data.forEach((tariff: { name: string, price: number }) => {
-                    tariffsMap[tariff.name] = tariff.price;
+                data.forEach((tariff: { name: string, price: string }) => {
+                    tariffsMap[tariff.name] = Number(tariff.price); // Преобразуем цену в число
                 });
                 setTariffs(tariffsMap);
             } catch (error) {
                 console.error('Ошибка при получении тарифов:', error);
-                
-                // Приведение ошибки к типу Error для безопасного использования message
-                const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-    
-                // Логируем ошибку в Telegram
-                await sendLogToTelegram(`Error fetching tariffs: ${errorMessage}`);
             }
         };
-    
+
         fetchTariffs();
     }, []);
-    
+
+
 
     useEffect(() => {
         // Обновление текста после смены языка
@@ -201,7 +203,7 @@ const WaveComponent = () => {
                     <p className={styles.time}>{t('time')}: {assistantRequests} {t('requests')}</p> {/* Отображаем количество запросов к ассистенту */}
                     <div className={styles.parent}>
                         <div className={styles.buttons}>
-                            <div className={styles.leftblock} onClick={() => handleButtonClick(t('only_ai'), tariffs['only_ai'])}>
+                            <div className={styles.leftblock} onClick={() => handleButtonClick(t('only_ai'), tariffs[tariffMapping['only_ai']])}>
                                 <Image
                                     src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-JV9mpH87gcyosXasiIjyWSapEkqbaQ.png"
                                     alt="avatar"
@@ -212,7 +214,7 @@ const WaveComponent = () => {
                                 <p className={styles.text}>{t('only_ai')}</p>
                             </div>
 
-                            <div className={styles.centerblock} onClick={() => handleButtonClick(t('ai_5_hours'), tariffs['ai_5_hours'])}>
+                            <div className={styles.centerblock} onClick={() => handleButtonClick(t('ai_5_hours'), tariffs[tariffMapping['ai_5_hours']])}>
                                 <Image
                                     src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-three-cGoXQPamKncukOKvfhxY8Gwhd4xKpO.png"
                                     alt="avatar"
@@ -223,7 +225,7 @@ const WaveComponent = () => {
                                 <p className={styles.text}>{t('ai_5_hours')}</p>
                             </div>
 
-                            <div className={styles.rightblock} onClick={() => handleButtonClick(t('ai_14_hours'), tariffs['ai_14_hours'])}>
+                            <div className={styles.rightblock} onClick={() => handleButtonClick(t('ai_14_hours'), tariffs[tariffMapping['ai_14_hours']])}>
                                 <Image
                                     src="https://92eaarerohohicw5.public.blob.vercel-storage.com/GIU%20AMA%20255-02-kdT58Hckjc871B2UsslUF7ZrAg9SAi.png"
                                     alt="avatar"
@@ -235,7 +237,7 @@ const WaveComponent = () => {
                             </div>
                         </div>
                         <div className={styles.section}>
-                            <div className={styles.block} onClick={() => handleButtonClick(t('ai_30_hours'), tariffs['ai_30_hours'])}>
+                            <div className={styles.block} onClick={() => handleButtonClick(t('ai_30_hours'), tariffs[tariffMapping['ai_30_hours']])}>
                                 <Image
                                     src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-FlMUqahx2zNkY322YXOHKnGKchz1wT.gif"
                                     alt="avatar"
