@@ -39,25 +39,27 @@ const WaveComponent = () => {
     const [telegramUsername, setTelegramUsername] = useState('');
     const [fontSize, setFontSize] = useState('24px');
     const [subscriptionType, setSubscriptionType] = useState<string>(t('subscription'));
-    const [assistantRequests, setAssistantRequests] = useState<number>(0); 
+    const [assistantRequests, setAssistantRequests] = useState<number>(0);
+
+    const [tariffs, setTariffs] = useState<{ [key: string]: number }>({});
 
     useEffect(() => {
         const userLang = window?.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
-    
+
         if (userLang === 'ru') {
             i18n.changeLanguage('ru');
         } else {
             i18n.changeLanguage('en');
         }
-    
+
         const username = window?.Telegram?.WebApp?.initDataUnsafe?.user?.username;
         const firstName = window?.Telegram?.WebApp?.initDataUnsafe?.user?.first_name;
         const lastName = window?.Telegram?.WebApp?.initDataUnsafe?.user?.last_name;
         const telegramId = window?.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-    
+
         const displayName = username ? `@${username}` : `${firstName || ''} ${lastName || ''}`.trim();
         setTelegramUsername(displayName || 'Guest');
-    
+
         if (displayName.length > 12) {
             setFontSize('19px');
         } else if (displayName.length > 8) {
@@ -65,26 +67,26 @@ const WaveComponent = () => {
         } else {
             setFontSize('25px');
         }
-    
+
         sendLogToTelegram(`Detected language: ${userLang || 'en'}`);
         sendLogToTelegram(`Username: ${displayName}`);
-    
+
         const fetchData = async () => {
             try {
                 if (!telegramId) {
                     throw new Error('Telegram ID не найден');
                 }
-    
+
                 const subscriptionResponse = await fetch(`/api/get-subscription?telegramId=${telegramId}`);
                 const requestsResponse = await fetch(`/api/get-requests?telegramId=${telegramId}`);
-    
+
                 if (!subscriptionResponse.ok || !requestsResponse.ok) {
                     throw new Error('Ошибка при получении данных');
                 }
-    
+
                 const subscriptionData = await subscriptionResponse.json();
                 const requestsData = await requestsResponse.json();
-    
+
                 // Сохранение данных без использования `t` здесь
                 setAssistantRequests(requestsData.assistantRequests || 0);
                 setSubscriptionType(subscriptionData.subscriptionType || 'subscription');
@@ -93,10 +95,32 @@ const WaveComponent = () => {
                 setSubscriptionType('subscription');
             }
         };
-    
+
         fetchData();
     }, []);
-    
+
+    useEffect(() => {
+        const fetchTariffs = async () => {
+            try {
+                const response = await fetch('/api/get-tariffs');
+                if (!response.ok) {
+                    throw new Error('Ошибка при получении тарифов');
+                }
+                const data = await response.json();
+                // Предполагаем, что API возвращает массив тарифов с именами и ценами
+                const tariffsMap: { [key: string]: number } = {};
+                data.forEach((tariff: { name: string, price: number }) => {
+                    tariffsMap[tariff.name] = tariff.price;
+                });
+                setTariffs(tariffsMap);
+            } catch (error) {
+                console.error('Ошибка при получении тарифов:', error);
+            }
+        };
+
+        fetchTariffs();
+    }, []);
+
     useEffect(() => {
         // Обновление текста после смены языка
         switch (subscriptionType) {
@@ -117,10 +141,10 @@ const WaveComponent = () => {
                 break;
         }
     }, [t, subscriptionType]);  // Зависящий от перевода эффект
-    
 
-    const handleButtonClick = (text: string) => {
-        setButtonText(text);
+
+    const handleButtonClick = (text: string, price: number) => {
+        setButtonText(`${text} - ${price}$`); // Обновляем текст кнопки с ценой
         setPopupVisible(true);
         sendLogToTelegram(`Button clicked: ${text}`);
     };
@@ -165,7 +189,7 @@ const WaveComponent = () => {
                     <p className={styles.time}>{subscriptionType}</p>
                     <p className={styles.time}>{t('time')}: {assistantRequests} {t('requests')}</p> {/* Отображаем количество запросов к ассистенту */}
                     <div className={styles.parent}>
-                        <div className={styles.leftblock} onClick={() => handleButtonClick(t('only_ai'))}>
+                        <div className={styles.leftblock} onClick={() => handleButtonClick(t('only_ai'), tariffs['only_ai'])}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-JV9mpH87gcyosXasiIjyWSapEkqbaQ.png"
                                 alt="avatar"
@@ -175,7 +199,8 @@ const WaveComponent = () => {
                             />
                             <p className={styles.text}>{t('only_ai')}</p>
                         </div>
-                        <div className={styles.centerblock} onClick={() => handleButtonClick(t('ai_5_hours'))}>
+
+                        <div className={styles.centerblock} onClick={() => handleButtonClick(t('ai_5_hours'), tariffs['ai_5_hours'])}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-three-cGoXQPamKncukOKvfhxY8Gwhd4xKpO.png"
                                 alt="avatar"
@@ -185,7 +210,8 @@ const WaveComponent = () => {
                             />
                             <p className={styles.text}>{t('ai_5_hours')}</p>
                         </div>
-                        <div className={styles.rightblock} onClick={() => handleButtonClick(t('ai_14_hours'))}>
+
+                        <div className={styles.rightblock} onClick={() => handleButtonClick(t('ai_14_hours'), tariffs['ai_14_hours'])}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/GIU%20AMA%20255-02-kdT58Hckjc871B2UsslUF7ZrAg9SAi.png"
                                 alt="avatar"
@@ -195,37 +221,42 @@ const WaveComponent = () => {
                             />
                             <p className={styles.text}>{t('ai_14_hours')}</p>
                         </div>
-                    </div>
 
-                    <div className={styles.section}>
-                        <div className={styles.block} onClick={() => handleButtonClick(t('ai_30_hours'))}>
-                            <Image
-                                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-FlMUqahx2zNkY322YXOHKnGKchz1wT.gif"
-                                alt="avatar"
-                                width={80}
-                                height={80}
-                                className={styles.ai}
-                            />
-                            <p className={styles.aitext}>{t('ai_30_hours')}</p>
+                        <div className={styles.section}>
+                            <div className={styles.block} onClick={() => handleButtonClick(t('ai_30_hours'), tariffs['ai_30_hours'])}>
+                                <Image
+                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-FlMUqahx2zNkY322YXOHKnGKchz1wT.gif"
+                                    alt="avatar"
+                                    width={80}
+                                    height={80}
+                                    className={styles.ai}
+                                />
+                                <p className={styles.aitext}>{t('ai_30_hours')}</p>
+                            </div>
+
+                            <Link href="/referal-page" className={styles.block}>
+                                <Image
+                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/f3BR23dMA4SapXd0Jg-TxjGLHkcqjJKq8zONZRfnlVilJLKGw.gif"
+                                    alt="avatar"
+                                    width={80}
+                                    height={80}
+                                    className={styles.ai}
+                                />
+                                <p className={styles.aitext}>{t('referral')}</p>
+                            </Link>
                         </div>
-
-                        <Link href="/referal-page" className={styles.block}>
-                            <Image
-                                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/f3BR23dMA4SapXd0Jg-TxjGLHkcqjJKq8zONZRfnlVilJLKGw.gif"
-                                alt="avatar"
-                                width={80}
-                                height={80}
-                                className={styles.ai}
-                            />
-                            <p className={styles.aitext}>{t('referral')}</p>
-                        </Link>
                     </div>
                 </div>
-            </div>
 
-            {isPopupVisible && (
-                <Popup isVisible={isPopupVisible} onClose={handleClosePopup} buttonText={buttonText} />
-            )}
+                {isPopupVisible && (
+                    <Popup
+                        isVisible={isPopupVisible}
+                        onClose={handleClosePopup}
+                        buttonText={buttonText}
+                        price={tariffs[buttonText]}  // Передаем цену в Popup
+                    />
+                )}
+            </div>
         </div>
     );
 };

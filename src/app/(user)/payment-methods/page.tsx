@@ -1,37 +1,43 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router'; // Импортируем useRouter для получения параметров
 import Wave from 'react-wavify';
 import styles from './Payment.module.css';
 import Image from 'next/image';
-import { useTranslation } from 'react-i18next'; // Импортируем хук локализации
-import i18n from '../../../i18n'; // Импортируем i18n для управления переводами
+import { useTranslation } from 'react-i18next';
+import i18n from '../../../i18n';
 
 function PaymentPage() {
-  const { t } = useTranslation(); // Используем хук локализации
+  const { t } = useTranslation();
+  const router = useRouter();
   const [selectedMethod, setSelectedMethod] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [telegramUsername, setTelegramUsername] = useState(''); // Состояние для имени пользователя
-  const [fontSize, setFontSize] = useState('24px'); // Состояние для размера шрифта
-  const [userId, setUserId] = useState<number | null>(null); // Состояние для userId
+  const [telegramUsername, setTelegramUsername] = useState('');
+  const [fontSize, setFontSize] = useState('24px');
+  const [userId, setUserId] = useState<number | null>(null);
+  const [price, setPrice] = useState<number>(0); // Состояние для цены тарифа
+
+  // Извлекаем параметр цены из URL
+  useEffect(() => {
+    const queryPrice = router.query.price;
+    if (queryPrice) {
+      setPrice(Number(queryPrice)); // Преобразуем в число и сохраняем в состоянии
+    }
+  }, [router.query.price]);
 
   useEffect(() => {
-    // Проверяем, что Telegram WebApp API доступен
     if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
-      // Инициализируем WebApp
       window.Telegram.WebApp.ready();
 
-      // Получаем язык пользователя через Telegram WebApp SDK
       const userLang = window.Telegram.WebApp.initDataUnsafe?.user?.language_code;
 
-      // Меняем язык в зависимости от Telegram интерфейса пользователя
       if (userLang === 'ru') {
-        i18n.changeLanguage('ru'); // Устанавливаем русский язык
+        i18n.changeLanguage('ru');
       } else {
-        i18n.changeLanguage('en'); // Устанавливаем английский язык по умолчанию
+        i18n.changeLanguage('en');
       }
 
-      // Получаем данные пользователя
       const username = window.Telegram.WebApp.initDataUnsafe?.user?.username;
       const firstName = window.Telegram.WebApp.initDataUnsafe?.user?.first_name;
       const lastName = window.Telegram.WebApp.initDataUnsafe?.user?.last_name;
@@ -41,7 +47,6 @@ function PaymentPage() {
       setTelegramUsername(displayName || 'Guest');
       setUserId(telegramId || null);
 
-      // Настраиваем размер шрифта в зависимости от длины имени пользователя
       if (displayName.length > 12) {
         setFontSize('19px');
       } else if (displayName.length > 8) {
@@ -51,7 +56,6 @@ function PaymentPage() {
       }
     } else {
       console.error('Telegram WebApp API недоступен.');
-      // Вы можете установить язык по умолчанию, если Telegram WebApp недоступен
       i18n.changeLanguage('en');
       setTelegramUsername('Guest');
     }
@@ -62,25 +66,23 @@ function PaymentPage() {
   };
 
   const handleContinue = async () => {
-    if (selectedMethod === 1) { // Звезды Telegram
+    if (selectedMethod === 1) {
       setIsLoading(true);
       try {
         if (!userId) {
-          throw new Error(t('errorNoUserId')); // Переводим текст
+          throw new Error(t('errorNoUserId'));
         }
 
-        // Отправляем запрос на создание инвойса
         const response = await fetch('/api/telegram-invoice', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId: userId }), // Используем реальный ID пользователя
+          body: JSON.stringify({ userId: userId }),
         });
 
         const data = await response.json();
         if (response.ok) {
-          // Перенаправляем пользователя на ссылку оплаты
           window.open(data.invoiceLink, '_blank');
         } else {
           alert(data.message || t('invoice_error'));
@@ -129,7 +131,7 @@ function PaymentPage() {
         </div>
       </div>
       <div className={styles.content}>
-        <p className={styles.title}>{t('to_pay')}</p>
+        <p className={styles.title}>{t('to_pay')}: {price}$</p> {/* Отображаем стоимость тарифа */}
         <div className={styles.methodbox}>
           <div
             className={`${styles.method} ${selectedMethod === 0 ? styles.selectedMethod : ''}`}

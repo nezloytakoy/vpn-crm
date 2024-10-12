@@ -7,9 +7,10 @@ interface PopupProps {
     isVisible: boolean;
     onClose: () => void;
     buttonText: string;
+    price: number; // проп для цены
 }
 
-const Popup: React.FC<PopupProps> = ({ isVisible, onClose, buttonText }) => {
+const Popup: React.FC<PopupProps> = ({ isVisible, onClose, buttonText, price }) => {
     const [isClosing, setIsClosing] = useState(false);
 
     const handleClose = () => {
@@ -38,9 +39,9 @@ const Popup: React.FC<PopupProps> = ({ isVisible, onClose, buttonText }) => {
                     />
                 </div>
                 <p className={styles.poptitle}>{`${buttonText}`}</p>
-                <p className={styles.poptext}>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum</p>
+                <p className={styles.poptext}>Lorem ipsum dolor sit amet, consectetur adipiscing elit...</p>
                 <button className={styles.confirmButton} onClick={handleClose}>
-                    <Link href="/payment-methods">5$ оплатить</Link>
+                    <Link href={`/payment-methods?price=${price}`}>{`${buttonText}`}</Link> {/* Передаем цену через параметр */}
                 </button>
             </div>
         </div>
