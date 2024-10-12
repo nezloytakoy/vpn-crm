@@ -142,7 +142,6 @@ function PaymentPage() {
         </div>
         <div className={styles.content}>
           <p className={styles.title}>{t('to_pay')}: {price}$</p> {/* Отображаем стоимость тарифа */}
-          <p className={styles.subtitle}>{t('tariff')}: {tariffName}</p> {/* Отображаем название тарифа */}
           <div className={styles.methodbox}>
             <div
               className={`${styles.method} ${selectedMethod === 0 ? styles.selectedMethod : ''}`}
