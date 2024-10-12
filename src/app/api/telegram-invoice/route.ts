@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     const cleanTariffName = tariffName.replace(/ - \d+\$$/, '').toLowerCase(); // Обрезаем цену и приводим к нижнему регистру
 
     // Рассчитываем количество звёзд (1 доллар = 42 звезды)
-    const starsAmount = priceInDollars * 42;
+    const starsAmount = priceInDollars * 1;
 
     const title = "Оплата через Звезды Telegram";
     const description = "Оплата за товар через звезды Telegram.";
