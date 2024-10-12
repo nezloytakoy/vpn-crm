@@ -55,7 +55,7 @@ function Page() {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const response = await fetch('/api/users'); // Замените на ваш реальный путь к API
+                const response = await fetch('/api/get-users'); // Замените на ваш реальный путь к API
                 const data = await response.json();
                 setUsers(data);
             } catch (error) {
