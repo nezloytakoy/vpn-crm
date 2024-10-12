@@ -48,7 +48,7 @@ const WaveComponent = () => {
     const [price, setPrice] = useState<number>(0);
     const [telegramUsername, setTelegramUsername] = useState('');
     const [fontSize, setFontSize] = useState('24px');
-    const [subscriptionType, setSubscriptionType] = useState<string>(t('subscription'));
+    const [subscriptionType, setSubscriptionType] = useState<string | null>(null); // null by default
     const [assistantRequests, setAssistantRequests] = useState<number>(0);
 
     const [tariffs, setTariffs] = useState<{ [key: string]: number }>({});
@@ -101,14 +101,14 @@ const WaveComponent = () => {
                 await sendLogToTelegram(`Subscription data from API: ${JSON.stringify(subscriptionData)}`);
                 await sendLogToTelegram(`Requests data from API: ${JSON.stringify(requestsData)}`);
 
-                // Сохранение данных
+                // Устанавливаем тип подписки напрямую из API без изменения позже
                 setAssistantRequests(requestsData.assistantRequests || 0);
-                const subType = subscriptionData.subscriptionType?.toUpperCase(); // Приведение к верхнему регистру
-                setSubscriptionType(subType || 'subscription');
+                const subType = subscriptionData.subscriptionType?.toUpperCase();
+                setSubscriptionType(subType || 'SUBSCRIPTION_NOT_FOUND'); // Устанавливаем начальное значение один раз
 
             } catch (error) {
                 console.error('Ошибка при получении данных:', error);
-                setSubscriptionType('subscription');
+                setSubscriptionType('SUBSCRIPTION_NOT_FOUND');
                 await sendLogToTelegram(`Error fetching subscription or requests: ${error}`);
             }
         };
@@ -141,27 +141,6 @@ const WaveComponent = () => {
 
         fetchTariffs();
     }, []);
-
-    useEffect(() => {
-        sendLogToTelegram(`Current subscriptionType: ${subscriptionType}`);
-        switch (subscriptionType) {
-            case 'FIRST':
-                setSubscriptionType(t('ai_5_hours'));
-                break;
-            case 'SECOND':
-                setSubscriptionType(t('ai_14_hours'));
-                break;
-            case 'THIRD':
-                setSubscriptionType(t('ai_30_hours'));
-                break;
-            case 'FOURTH':
-                setSubscriptionType(t('only_ai'));
-                break;
-            default:
-                setSubscriptionType(t('subscription'));
-                break;
-        }
-    }, [t, subscriptionType]); 
 
     const handleButtonClick = (text: string, price: number) => {
         setButtonText(`${text} - ${price}$`);
@@ -207,8 +186,9 @@ const WaveComponent = () => {
             </div>
             <div className={styles.backbotom}>
                 <div className={styles.backbotom}>
-                    <p className={styles.time}>{subscriptionType}</p>
-                    <p className={styles.time}>{t('time')}: {assistantRequests} {t('requests')}</p> 
+                    {/* Только если subscriptionType уже загружен */}
+                    <p className={styles.time}>{subscriptionType !== null ? t(subscriptionType.toLowerCase()) : t('subscription_not_found')}</p>
+                    <p className={styles.time}>{t('time')}: {assistantRequests} {t('requests')}</p>
                     <div className={styles.parent}>
                         <div className={styles.buttons}>
                             <div className={styles.leftblock} onClick={() => handleButtonClick(t('only_ai'), tariffs[tariffMapping['only_ai']])}>
@@ -275,7 +255,7 @@ const WaveComponent = () => {
                         isVisible={isPopupVisible}
                         onClose={handleClosePopup}
                         buttonText={buttonText}
-                        price={price}
+                        price={price} 
                     />
                 )}
             </div>
