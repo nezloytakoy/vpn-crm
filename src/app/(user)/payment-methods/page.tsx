@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import { useSearchParams } from 'next/navigation'; // Use useSearchParams instead of useRouter
 import Wave from 'react-wavify';
 import styles from './Payment.module.css';
 import Image from 'next/image';
@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 
 function PaymentPage() {
   const { t } = useTranslation();
-  const router = useRouter();
+  const searchParams = useSearchParams(); // Access query params
   const [selectedMethod, setSelectedMethod] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [telegramUsername, setTelegramUsername] = useState('');
@@ -22,13 +22,13 @@ function PaymentPage() {
 
   // Проверяем, что код выполняется на клиенте
   useEffect(() => {
-    if (typeof window !== 'undefined' && router.isReady) {
-      const queryPrice = router.query.price;
+    if (typeof window !== 'undefined') {
+      const queryPrice = searchParams.get('price');
       if (queryPrice) {
         setPrice(Number(queryPrice));
       }
     }
-  }, [router.isReady, router.query.price]);
+  }, [searchParams]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {

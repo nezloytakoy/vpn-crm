@@ -189,39 +189,40 @@ const WaveComponent = () => {
                     <p className={styles.time}>{subscriptionType}</p>
                     <p className={styles.time}>{t('time')}: {assistantRequests} {t('requests')}</p> {/* Отображаем количество запросов к ассистенту */}
                     <div className={styles.parent}>
-                        <div className={styles.leftblock} onClick={() => handleButtonClick(t('only_ai'), tariffs['only_ai'])}>
-                            <Image
-                                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-JV9mpH87gcyosXasiIjyWSapEkqbaQ.png"
-                                alt="avatar"
-                                width={90}
-                                height={90}
-                                className={styles.ai}
-                            />
-                            <p className={styles.text}>{t('only_ai')}</p>
-                        </div>
+                        <div className={styles.buttons}>
+                            <div className={styles.leftblock} onClick={() => handleButtonClick(t('only_ai'), tariffs['only_ai'])}>
+                                <Image
+                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-JV9mpH87gcyosXasiIjyWSapEkqbaQ.png"
+                                    alt="avatar"
+                                    width={90}
+                                    height={90}
+                                    className={styles.ai}
+                                />
+                                <p className={styles.text}>{t('only_ai')}</p>
+                            </div>
 
-                        <div className={styles.centerblock} onClick={() => handleButtonClick(t('ai_5_hours'), tariffs['ai_5_hours'])}>
-                            <Image
-                                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-three-cGoXQPamKncukOKvfhxY8Gwhd4xKpO.png"
-                                alt="avatar"
-                                width={100}
-                                height={100}
-                                className={styles.ai}
-                            />
-                            <p className={styles.text}>{t('ai_5_hours')}</p>
-                        </div>
+                            <div className={styles.centerblock} onClick={() => handleButtonClick(t('ai_5_hours'), tariffs['ai_5_hours'])}>
+                                <Image
+                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-three-cGoXQPamKncukOKvfhxY8Gwhd4xKpO.png"
+                                    alt="avatar"
+                                    width={100}
+                                    height={100}
+                                    className={styles.ai}
+                                />
+                                <p className={styles.text}>{t('ai_5_hours')}</p>
+                            </div>
 
-                        <div className={styles.rightblock} onClick={() => handleButtonClick(t('ai_14_hours'), tariffs['ai_14_hours'])}>
-                            <Image
-                                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/GIU%20AMA%20255-02-kdT58Hckjc871B2UsslUF7ZrAg9SAi.png"
-                                alt="avatar"
-                                width={90}
-                                height={105}
-                                className={styles.ai}
-                            />
-                            <p className={styles.text}>{t('ai_14_hours')}</p>
+                            <div className={styles.rightblock} onClick={() => handleButtonClick(t('ai_14_hours'), tariffs['ai_14_hours'])}>
+                                <Image
+                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/GIU%20AMA%20255-02-kdT58Hckjc871B2UsslUF7ZrAg9SAi.png"
+                                    alt="avatar"
+                                    width={90}
+                                    height={105}
+                                    className={styles.ai}
+                                />
+                                <p className={styles.text}>{t('ai_14_hours')}</p>
+                            </div>
                         </div>
-
                         <div className={styles.section}>
                             <div className={styles.block} onClick={() => handleButtonClick(t('ai_30_hours'), tariffs['ai_30_hours'])}>
                                 <Image

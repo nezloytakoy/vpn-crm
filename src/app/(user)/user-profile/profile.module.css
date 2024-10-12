@@ -60,6 +60,15 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-direction: column;
+}
+
+.buttons {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
 }
 
 @keyframes pulse-border {
@@ -102,6 +111,8 @@
     align-items: center;
     justify-content: center;
     flex-direction: column;
+    margin-left: 10px;
+    margin-right: 10px;
 }
 
 .rightblock {
