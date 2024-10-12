@@ -7,7 +7,9 @@ export async function POST(request: Request) {
     const { priceInDollars } = await request.json(); // Получаем цену в долларах из тела запроса
 
     // Рассчитываем количество звёзд
-    const starsAmount = priceInDollars * 42;
+    // const starsAmount = priceInDollars * 42;
+
+    const starsAmount = priceInDollars * 1;
 
     const title = "Оплата через Звезды Telegram";
     const description = "Оплата за товар через звезды Telegram.";
