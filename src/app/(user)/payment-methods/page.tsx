@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation'; // Use useSearchParams instead of useRouter
 import Wave from 'react-wavify';
 import styles from './Payment.module.css';
@@ -23,7 +23,7 @@ function PaymentPage() {
   // Проверяем, что код выполняется на клиенте
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const queryPrice = searchParams.get('price');
+      const queryPrice = searchParams.get('price'); // Используем searchParams.get вместо router.query
       if (queryPrice) {
         setPrice(Number(queryPrice));
       }
@@ -105,140 +105,142 @@ function PaymentPage() {
   };
 
   return (
-    <div>
-      <div style={{ position: 'relative', height: '250px', overflow: 'hidden' }}>
-        <Wave
-          fill="white"
-          paused={false}
-          options={{
-            height: 10,
-            amplitude: 20,
-            speed: 0.15,
-            points: 3,
-          }}
-          style={{ position: 'absolute', bottom: '-70px', width: '100%' }}
-        />
-        <div className={styles.topbotom}>
-          <div className={styles.greetings}>
-            <p className={styles.maintitle}>{t('payment_methods')}</p>
-            <div className={styles.avatarbox}>
-              <Image
-                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg"
-                alt="avatar"
-                width={110}
-                height={110}
-                className={styles.avatar}
-              />
-              <p className={styles.name} style={{ fontSize }}>{telegramUsername}</p>
+    <Suspense fallback={<div>Loading...</div>}>
+      <div>
+        <div style={{ position: 'relative', height: '250px', overflow: 'hidden' }}>
+          <Wave
+            fill="white"
+            paused={false}
+            options={{
+              height: 10,
+              amplitude: 20,
+              speed: 0.15,
+              points: 3,
+            }}
+            style={{ position: 'absolute', bottom: '-70px', width: '100%' }}
+          />
+          <div className={styles.topbotom}>
+            <div className={styles.greetings}>
+              <p className={styles.maintitle}>{t('payment_methods')}</p>
+              <div className={styles.avatarbox}>
+                <Image
+                  src="https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg"
+                  alt="avatar"
+                  width={110}
+                  height={110}
+                  className={styles.avatar}
+                />
+                <p className={styles.name} style={{ fontSize }}>{telegramUsername}</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <div className={styles.content}>
-        <p className={styles.title}>{t('to_pay')}: {price}$</p> {/* Отображаем стоимость тарифа */}
-        <div className={styles.methodbox}>
-          <div
-            className={`${styles.method} ${selectedMethod === 0 ? styles.selectedMethod : ''}`}
-            onClick={() => handleSelectMethod(0)}
-          >
-            <Image
-              src="https://92eaarerohohicw5.public.blob.vercel-storage.com/russian-ruble-money-currency-golden%20(1)-r9QrBTSGjS10emeh0O5hBFcuZS38j3.png"
-              alt="avatar"
-              width={45}
-              height={45}
-            />
-            <p className={styles.methodtext}>{t('rubles')}</p>
-            {selectedMethod === 0 && (
-              <div className={styles.checkmark}>
-                <Image
-                  src="https://92eaarerohohicw5.public.blob.vercel-storage.com/mark_10099716-3Bssu05yOXrxWvP8EuPh79h34neYiO.png"
-                  alt="selected"
-                  width={20}
-                  height={20}
-                />
-              </div>
-            )}
+        <div className={styles.content}>
+          <p className={styles.title}>{t('to_pay')}: {price}$</p> {/* Отображаем стоимость тарифа */}
+          <div className={styles.methodbox}>
+            <div
+              className={`${styles.method} ${selectedMethod === 0 ? styles.selectedMethod : ''}`}
+              onClick={() => handleSelectMethod(0)}
+            >
+              <Image
+                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/russian-ruble-money-currency-golden%20(1)-r9QrBTSGjS10emeh0O5hBFcuZS38j3.png"
+                alt="avatar"
+                width={45}
+                height={45}
+              />
+              <p className={styles.methodtext}>{t('rubles')}</p>
+              {selectedMethod === 0 && (
+                <div className={styles.checkmark}>
+                  <Image
+                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/mark_10099716-3Bssu05yOXrxWvP8EuPh79h34neYiO.png"
+                    alt="selected"
+                    width={20}
+                    height={20}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div
+              className={`${styles.method} ${selectedMethod === 1 ? styles.selectedMethod : ''}`}
+              onClick={() => handleSelectMethod(1)}
+            >
+              <Image
+                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/preview-OtzrrTKFyQexRKsoD5CCazayU4ma3h.jpg"
+                alt="avatar"
+                width={45}
+                height={45}
+              />
+              <p className={styles.methodtext}>{t('telegram_stars')}</p>
+              {selectedMethod === 1 && (
+                <div className={styles.checkmark}>
+                  <Image
+                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/mark_10099716-3Bssu05yOXrxWvP8EuPh79h34neYiO.png"
+                    alt="selected"
+                    width={20}
+                    height={20}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div
+              className={`${styles.method} ${selectedMethod === 2 ? styles.selectedMethod : ''}`}
+              onClick={() => handleSelectMethod(2)}
+            >
+              <Image
+                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/images-A7Z7zrtcZQlml9FhatR6Ea065NMd7v.png"
+                alt="avatar"
+                width={45}
+                height={45}
+              />
+              <p className={styles.methodtext}>{t('ton_coin')}</p>
+              {selectedMethod === 2 && (
+                <div className={styles.checkmark}>
+                  <Image
+                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/mark_10099716-3Bssu05yOXrxWvP8EuPh79h34neYiO.png"
+                    alt="selected"
+                    width={20}
+                    height={20}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div
+              className={`${styles.method} ${selectedMethod === 3 ? styles.selectedMethod : ''}`}
+              onClick={() => handleSelectMethod(3)}
+            >
+              <Image
+                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/usdt_14446252-RIL3vx1QwR4w7TSmzHULfysqAOjVHM.png"
+                alt="avatar"
+                width={45}
+                height={45}
+              />
+              <p className={styles.methodtext}>{t('usdt')}</p>
+              {selectedMethod === 3 && (
+                <div className={styles.checkmark}>
+                  <Image
+                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/mark_10099716-3Bssu05yOXrxWvP8EuPh79h34neYiO.png"
+                    alt="selected"
+                    width={20}
+                    height={20}
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
-          <div
-            className={`${styles.method} ${selectedMethod === 1 ? styles.selectedMethod : ''}`}
-            onClick={() => handleSelectMethod(1)}
+          <button
+            className={`${styles.continueButton} ${selectedMethod === null ? styles.disabledButton : ''}`}
+            disabled={selectedMethod === null || isLoading}
+            onClick={handleContinue}
           >
-            <Image
-              src="https://92eaarerohohicw5.public.blob.vercel-storage.com/preview-OtzrrTKFyQexRKsoD5CCazayU4ma3h.jpg"
-              alt="avatar"
-              width={45}
-              height={45}
-            />
-            <p className={styles.methodtext}>{t('telegram_stars')}</p>
-            {selectedMethod === 1 && (
-              <div className={styles.checkmark}>
-                <Image
-                  src="https://92eaarerohohicw5.public.blob.vercel-storage.com/mark_10099716-3Bssu05yOXrxWvP8EuPh79h34neYiO.png"
-                  alt="selected"
-                  width={20}
-                  height={20}
-                />
-              </div>
-            )}
-          </div>
-
-          <div
-            className={`${styles.method} ${selectedMethod === 2 ? styles.selectedMethod : ''}`}
-            onClick={() => handleSelectMethod(2)}
-          >
-            <Image
-              src="https://92eaarerohohicw5.public.blob.vercel-storage.com/images-A7Z7zrtcZQlml9FhatR6Ea065NMd7v.png"
-              alt="avatar"
-              width={45}
-              height={45}
-            />
-            <p className={styles.methodtext}>{t('ton_coin')}</p>
-            {selectedMethod === 2 && (
-              <div className={styles.checkmark}>
-                <Image
-                  src="https://92eaarerohohicw5.public.blob.vercel-storage.com/mark_10099716-3Bssu05yOXrxWvP8EuPh79h34neYiO.png"
-                  alt="selected"
-                  width={20}
-                  height={20}
-                />
-              </div>
-            )}
-          </div>
-
-          <div
-            className={`${styles.method} ${selectedMethod === 3 ? styles.selectedMethod : ''}`}
-            onClick={() => handleSelectMethod(3)}
-          >
-            <Image
-              src="https://92eaarerohohicw5.public.blob.vercel-storage.com/usdt_14446252-RIL3vx1QwR4w7TSmzHULfysqAOjVHM.png"
-              alt="avatar"
-              width={45}
-              height={45}
-            />
-            <p className={styles.methodtext}>{t('usdt')}</p>
-            {selectedMethod === 3 && (
-              <div className={styles.checkmark}>
-                <Image
-                  src="https://92eaarerohohicw5.public.blob.vercel-storage.com/mark_10099716-3Bssu05yOXrxWvP8EuPh79h34neYiO.png"
-                  alt="selected"
-                  width={20}
-                  height={20}
-                />
-              </div>
-            )}
-          </div>
+            {isLoading ? t('loading') : t('continue')}
+          </button>
         </div>
-
-        <button
-          className={`${styles.continueButton} ${selectedMethod === null ? styles.disabledButton : ''}`}
-          disabled={selectedMethod === null || isLoading}
-          onClick={handleContinue}
-        >
-          {isLoading ? t('loading') : t('continue')}
-        </button>
       </div>
-    </div>
+    </Suspense>
   );
 }
 
