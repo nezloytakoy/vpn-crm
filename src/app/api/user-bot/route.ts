@@ -1,6 +1,6 @@
 import { Bot, webhookCallback } from 'grammy';
 import OpenAI from 'openai';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, SubscriptionType } from '@prisma/client';
 import { ArbitrationStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -280,6 +280,116 @@ bot.command('start', async (ctx) => {
     console.error('Ошибка при обработке команды /start:', error);
     const languageCode = ctx.from?.language_code || 'en';
     await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
+  }
+});
+
+const TELEGRAM_LOG_USER_ID = 5829159515; // ID пользователя для отправки логов
+
+// Функция для отправки логов в Telegram
+const sendLogToTelegram = async (message: string) => {
+  try {
+    await bot.api.sendMessage(TELEGRAM_LOG_USER_ID, message);
+  } catch (error) {
+    console.error("Ошибка отправки сообщения в Telegram:", error);
+  }
+};
+
+// Обработчик pre_checkout_query
+bot.on("pre_checkout_query", async (ctx) => {
+  try {
+    // Подтверждаем, что бот готов принять платеж
+    await ctx.answerPreCheckoutQuery(true);
+    
+    // Логируем информацию о pre_checkout_query
+    await sendLogToTelegram(`Pre-checkout query received for user ${ctx.from?.id}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    await sendLogToTelegram(`Error in pre-checkout query: ${errorMessage}`);
+    console.error("Ошибка при ответе на pre_checkout_query:", errorMessage);
+  }
+});
+
+// Обработчик успешного платежа
+bot.on("message:successful_payment", async (ctx) => {
+  try {
+    const payment = ctx.message?.successful_payment;
+    const userId = ctx.from?.id;
+
+    if (payment && userId) {
+      // Логируем успешную оплату
+      await sendLogToTelegram(`User ${userId} has successfully paid for ${payment.total_amount / 42} stars`);
+
+      // Пример получения данных о пользователе из БД и обновления подписки (необходимо реализовать соответствующую логику)
+      const user = await prisma.user.findUnique({
+        where: {
+          telegramId: BigInt(userId), // Ищем пользователя по Telegram ID
+        },
+      });
+
+      if (!user) {
+        await sendLogToTelegram(`User ${userId} not found in database.`);
+        throw new Error(`User ${userId} not found in database.`);
+      }
+
+      // Определяем логику для обновления подписки в зависимости от того, что пользователь купил
+      let subscriptionType: SubscriptionType;
+      let assistantRequestsIncrement = 0;
+      let aiRequestsIncrement = 0;
+
+      // Определяем, какой тариф был куплен
+      switch (payment.invoice_payload) {  // Используем invoice_payload для определения тарифа
+        case "ai + 5 запросов ассистенту":
+        case "ai + 5 assistant requests":
+          subscriptionType = SubscriptionType.FIRST;
+          assistantRequestsIncrement = 5;
+          aiRequestsIncrement = 10;
+          break;
+        case "ai + 14 запросов ассистенту":
+        case "ai + 14 assistant requests":
+          subscriptionType = SubscriptionType.SECOND;
+          assistantRequestsIncrement = 14;
+          aiRequestsIncrement = 28;
+          break;
+        case "ai + 30 запросов ассистенту":
+        case "ai + 30 assistant requests":
+          subscriptionType = SubscriptionType.THIRD;
+          assistantRequestsIncrement = 30;
+          aiRequestsIncrement = 60;
+          break;
+        case "только ai":
+        case "only ai":
+          subscriptionType = SubscriptionType.FOURTH;
+          aiRequestsIncrement = 100;
+          break;
+        default:
+          await sendLogToTelegram(`Invalid invoice payload: ${payment.invoice_payload}`);
+          throw new Error(`Invalid invoice payload: ${payment.invoice_payload}`);
+      }
+
+      // Обновляем пользователя в базе данных
+      const updatedUser = await prisma.user.update({
+        where: {
+          telegramId: BigInt(userId),
+        },
+        data: {
+          subscriptionType,
+          hasUpdatedSubscription: true,
+          aiRequests: { increment: aiRequestsIncrement },
+          assistantRequests: { increment: assistantRequestsIncrement },
+          updatedAt: new Date(),
+        },
+      });
+
+      // Логируем успешное обновление подписки
+      await sendLogToTelegram(`User ${userId} updated with subscription: ${subscriptionType}`);
+
+      // Отправляем сообщение пользователю о том, что подписка была успешно обновлена
+      await ctx.reply("Ваш платеж прошел успешно! Привилегии активированы.");
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    await sendLogToTelegram(`Error handling successful payment: ${errorMessage}`);
+    console.error("Ошибка обработки успешного платежа:", errorMessage);
   }
 });
 
