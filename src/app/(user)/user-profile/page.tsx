@@ -187,7 +187,7 @@ const WaveComponent = () => {
             <div className={styles.backbotom}>
                 <div className={styles.backbotom}>
                     {/* Только если subscriptionType уже загружен */}
-                    <p className={styles.time}>{subscriptionType !== null ? t(subscriptionType.toLowerCase()) : t('subscription_not_found')}</p>
+                    <p className={styles.time}>Подписка: {subscriptionType !== null ? t(subscriptionType.toLowerCase()) : t('...')}</p>
                     <p className={styles.time}>{t('time')}: {assistantRequests} {t('requests')}</p>
                     <div className={styles.parent}>
                         <div className={styles.buttons}>
