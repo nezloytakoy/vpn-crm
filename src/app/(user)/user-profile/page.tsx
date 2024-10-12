@@ -107,6 +107,10 @@ const WaveComponent = () => {
                     throw new Error('Ошибка при получении тарифов');
                 }
                 const data = await response.json();
+                
+                // Отправляем тарифы в Telegram для логирования
+                await sendLogToTelegram(`Tariffs data: ${JSON.stringify(data)}`);
+    
                 // Предполагаем, что API возвращает массив тарифов с именами и ценами
                 const tariffsMap: { [key: string]: number } = {};
                 data.forEach((tariff: { name: string, price: number }) => {
@@ -115,11 +119,18 @@ const WaveComponent = () => {
                 setTariffs(tariffsMap);
             } catch (error) {
                 console.error('Ошибка при получении тарифов:', error);
+                
+                // Приведение ошибки к типу Error для безопасного использования message
+                const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+    
+                // Логируем ошибку в Telegram
+                await sendLogToTelegram(`Error fetching tariffs: ${errorMessage}`);
             }
         };
-
+    
         fetchTariffs();
     }, []);
+    
 
     useEffect(() => {
         // Обновление текста после смены языка
