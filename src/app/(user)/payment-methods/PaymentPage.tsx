@@ -19,12 +19,17 @@ function PaymentPage() {
   const [fontSize, setFontSize] = useState('24px');
   const [userId, setUserId] = useState<number | null>(null);
   const [price, setPrice] = useState<number>(0); // Состояние для цены тарифа
+  const [tariffName, setTariffName] = useState<string>(''); // Состояние для названия тарифа
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const queryPrice = searchParams.get('price');
+      const queryTariff = searchParams.get('tariff'); // Извлекаем название тарифа
       if (queryPrice) {
         setPrice(Number(queryPrice));
+      }
+      if (queryTariff) {
+        setTariffName(queryTariff); // Сохраняем название тарифа
       }
     }
   }, [searchParams]);
@@ -76,13 +81,13 @@ function PaymentPage() {
           throw new Error(t('errorNoUserId'));
         }
 
-        // Передаём цену в долларах
+        // Передаем цену в долларах и название тарифа
         const response = await fetch('/api/telegram-invoice', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId: userId, priceInDollars: price }), // Передаём цену
+          body: JSON.stringify({ userId: userId, priceInDollars: price, tariffName: tariffName }), // Передаем цену и тариф
         });
 
         const data = await response.json();
@@ -137,6 +142,7 @@ function PaymentPage() {
         </div>
         <div className={styles.content}>
           <p className={styles.title}>{t('to_pay')}: {price}$</p> {/* Отображаем стоимость тарифа */}
+          <p className={styles.subtitle}>{t('tariff')}: {tariffName}</p> {/* Отображаем название тарифа */}
           <div className={styles.methodbox}>
             <div
               className={`${styles.method} ${selectedMethod === 0 ? styles.selectedMethod : ''}`}

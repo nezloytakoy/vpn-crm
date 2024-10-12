@@ -6,8 +6,8 @@ import Link from 'next/link';
 interface PopupProps {
     isVisible: boolean;
     onClose: () => void;
-    buttonText: string;
-    price: number | undefined; // проп для цены может быть undefined
+    buttonText: string;  // Название тарифа
+    price: number | undefined; // Цена может быть undefined
 }
 
 const sendLogToTelegram = async (message: string) => {
@@ -72,7 +72,7 @@ const Popup: React.FC<PopupProps> = ({ isVisible, onClose, buttonText, price }) 
                 
                 {/* Условный рендеринг для отображения цены или многоточий */}
                 <button className={styles.confirmButton} onClick={handleClose}>
-                    <Link href={`/payment-methods?price=${price !== undefined ? price : '...'}`}>
+                    <Link href={`/payment-methods?price=${price !== undefined ? price : '...'}&tariff=${encodeURIComponent(buttonText)}`}>
                         {`Оплатить - ${price !== undefined ? `${price}$` : '...'}`}
                     </Link> 
                 </button>
