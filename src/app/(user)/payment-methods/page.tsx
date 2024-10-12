@@ -18,13 +18,14 @@ function PaymentPage() {
   const [userId, setUserId] = useState<number | null>(null);
   const [price, setPrice] = useState<number>(0); // Состояние для цены тарифа
 
-  // Извлекаем параметр цены из URL
   useEffect(() => {
-    const queryPrice = router.query.price;
-    if (queryPrice) {
-      setPrice(Number(queryPrice)); // Преобразуем в число и сохраняем в состоянии
+    if (router.isReady) {
+      const queryPrice = router.query.price;
+      if (queryPrice) {
+        setPrice(Number(queryPrice)); // Преобразуем в число и сохраняем в состоянии
+      }
     }
-  }, [router.query.price]);
+  }, [router.isReady, router.query.price]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
