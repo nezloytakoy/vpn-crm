@@ -95,10 +95,16 @@ export async function POST(request: Request) {
       },
     });
 
+    // Преобразуем BigInt в строку, чтобы избежать ошибки сериализации
+    const sanitizedUser = {
+      ...updatedUser,
+      telegramId: updatedUser.telegramId.toString(), // Преобразуем BigInt в строку
+    };
+
     // Логируем успешное обновление
     await sendLogToTelegram(`User ${userId} updated with subscription: ${subscriptionType}`);
 
-    return new Response(JSON.stringify({ invoiceLink, updatedUser }), {
+    return new Response(JSON.stringify({ invoiceLink, updatedUser: sanitizedUser }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -114,3 +120,4 @@ export async function POST(request: Request) {
     });
   }
 }
+
