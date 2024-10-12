@@ -492,36 +492,46 @@ function Page() {
                 <div className={styles.tablebox}>
                     <div className={styles.tableWrapper}>
                         <div className={styles.header}>
-                            <h3>
-                                Запросы на распределение коинов <span>({users.length})</span>
-                            </h3>
-                            <div className={styles.sortButtonContainer}>
-                                <button className={styles.sortButton} onClick={handleSortButtonClick}>
-                                    Сортировать
-                                </button>
-                                {showSortMenu && (
-                                    <div className={styles.sortMenu}>
-                                        {columnsData.map((column) => (
-                                            <button
-                                                key={column.id}
-                                                className={styles.sortMenuItem}
-                                                onClick={() => handleSortColumn(column.accessor)}
-                                            >
-                                                {column.Header}
-                                                {sortColumn === column.accessor && (
-                                                    <span className={styles.sortDirection}>
-                                                        {sortDirection === 'asc' ? ' 🔼' : ' 🔽'}
-                                                    </span>
-                                                )}
-                                            </button>
-                                        ))}
+                            {isLoading ? (
+                                <h3>Загрузка данных...</h3>
+                            ) : (
+                                <>
+                                    <h3>
+                                        Запросы на распределение коинов <span>({users.length})</span>
+                                    </h3>
+                                    <div className={styles.sortButtonContainer}>
+                                        <button className={styles.sortButton} onClick={handleSortButtonClick}>
+                                            Сортировать
+                                        </button>
+                                        {showSortMenu && (
+                                            <div className={styles.sortMenu}>
+                                                {columnsData.map((column) => (
+                                                    <button
+                                                        key={column.id}
+                                                        className={styles.sortMenuItem}
+                                                        onClick={() => handleSortColumn(column.accessor)}
+                                                    >
+                                                        {column.Header}
+                                                        {sortColumn === column.accessor && (
+                                                            <span className={styles.sortDirection}>
+                                                                {sortDirection === 'asc' ? ' 🔼' : ' 🔽'}
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
+                                </>
+                            )}
                         </div>
-                        <Table columns={columnsData as Column<UserData>[]} data={sortedData} />
+
+                        {!isLoading && (
+                            <Table columns={columnsData as Column<UserData>[]} data={sortedData} />
+                        )}
                     </div>
                 </div>
+
 
             </div>
         </div>
