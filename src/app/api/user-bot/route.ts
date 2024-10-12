@@ -367,7 +367,7 @@ bot.on("message:successful_payment", async (ctx) => {
       }
 
       // Обновляем пользователя в базе данных
-      const updatedUser = await prisma.user.update({
+      await prisma.user.update({
         where: {
           telegramId: BigInt(userId),
         },
@@ -379,6 +379,7 @@ bot.on("message:successful_payment", async (ctx) => {
           updatedAt: new Date(),
         },
       });
+
 
       // Логируем успешное обновление подписки
       await sendLogToTelegram(`User ${userId} updated with subscription: ${subscriptionType}`);
