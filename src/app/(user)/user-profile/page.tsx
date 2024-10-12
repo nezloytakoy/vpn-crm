@@ -9,9 +9,11 @@ import Popup from './../../../components/Popup/Popup';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
 
+const TELEGRAM_LOG_USER_ID = 5829159515;
+
 const sendLogToTelegram = async (message: string) => {
     const TELEGRAM_BOT_TOKEN = '7956735167:AAGzZ_G97SfqE-ulMJZgi1Jt1l8VrR5aC5M';
-    const CHAT_ID = '5829159515';
+    const CHAT_ID = TELEGRAM_LOG_USER_ID;
 
     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
     const body = {
@@ -50,8 +52,6 @@ const WaveComponent = () => {
     const [assistantRequests, setAssistantRequests] = useState<number>(0);
 
     const [tariffs, setTariffs] = useState<{ [key: string]: number }>({});
-
-
 
     useEffect(() => {
         const userLang = window?.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
@@ -97,14 +97,21 @@ const WaveComponent = () => {
                 const subscriptionData = await subscriptionResponse.json();
                 const requestsData = await requestsResponse.json();
 
+                // Логирование данных, полученных из API
+                await sendLogToTelegram(`Subscription data from API: ${JSON.stringify(subscriptionData)}`);
+                await sendLogToTelegram(`Requests data from API: ${JSON.stringify(requestsData)}`);
+
+                // Сохранение данных
                 setAssistantRequests(requestsData.assistantRequests || 0);
-                setSubscriptionType(subscriptionData.subscriptionType || 'subscription');
+                const subType = subscriptionData.subscriptionType?.toUpperCase(); // Приведение к верхнему регистру
+                setSubscriptionType(subType || 'subscription');
+
             } catch (error) {
                 console.error('Ошибка при получении данных:', error);
                 setSubscriptionType('subscription');
+                await sendLogToTelegram(`Error fetching subscription or requests: ${error}`);
             }
         };
-
 
         fetchData();
     }, []);
@@ -118,26 +125,25 @@ const WaveComponent = () => {
                 }
                 const data = await response.json();
 
-                // Логирование полученных данных
-                console.log('Tariffs data from API:', data);
+                // Логирование полученных данных о тарифах
+                await sendLogToTelegram(`Tariffs data from API: ${JSON.stringify(data)}`);
 
-                // Маппинг данных для создания объекта тарифов
                 const tariffsMap: { [key: string]: number } = {};
                 data.forEach((tariff: { name: string, price: string }) => {
-                    tariffsMap[tariff.name] = Number(tariff.price); // Преобразуем цену в число
+                    tariffsMap[tariff.name] = Number(tariff.price);
                 });
                 setTariffs(tariffsMap);
             } catch (error) {
                 console.error('Ошибка при получении тарифов:', error);
+                await sendLogToTelegram(`Error fetching tariffs: ${error}`);
             }
         };
 
         fetchTariffs();
     }, []);
 
-
-
     useEffect(() => {
+        sendLogToTelegram(`Current subscriptionType: ${subscriptionType}`);
         switch (subscriptionType) {
             case 'FIRST':
                 setSubscriptionType(t('ai_5_hours'));
@@ -155,12 +161,11 @@ const WaveComponent = () => {
                 setSubscriptionType(t('subscription'));
                 break;
         }
-    }, [t, subscriptionType]);
-
+    }, [t, subscriptionType]); 
 
     const handleButtonClick = (text: string, price: number) => {
-        setButtonText(`${text} - ${price}$`); // Обновляем текст кнопки с ценой
-        setPrice(price)
+        setButtonText(`${text} - ${price}$`);
+        setPrice(price);
         setPopupVisible(true);
         sendLogToTelegram(`Button clicked: ${text}`);
     };
@@ -203,7 +208,7 @@ const WaveComponent = () => {
             <div className={styles.backbotom}>
                 <div className={styles.backbotom}>
                     <p className={styles.time}>{subscriptionType}</p>
-                    <p className={styles.time}>{t('time')}: {assistantRequests} {t('requests')}</p> {/* Отображаем количество запросов к ассистенту */}
+                    <p className={styles.time}>{t('time')}: {assistantRequests} {t('requests')}</p> 
                     <div className={styles.parent}>
                         <div className={styles.buttons}>
                             <div className={styles.leftblock} onClick={() => handleButtonClick(t('only_ai'), tariffs[tariffMapping['only_ai']])}>
