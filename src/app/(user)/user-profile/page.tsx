@@ -43,6 +43,7 @@ const WaveComponent = () => {
     const { t } = useTranslation();
     const [isPopupVisible, setPopupVisible] = useState(false);
     const [buttonText, setButtonText] = useState('');
+    const [price, setPrice] = useState<number>(0);
     const [telegramUsername, setTelegramUsername] = useState('');
     const [fontSize, setFontSize] = useState('24px');
     const [subscriptionType, setSubscriptionType] = useState<string>(t('subscription'));
@@ -158,6 +159,7 @@ const WaveComponent = () => {
 
     const handleButtonClick = (text: string, price: number) => {
         setButtonText(`${text} - ${price}$`); // Обновляем текст кнопки с ценой
+        setPrice(price)
         setPopupVisible(true);
         sendLogToTelegram(`Button clicked: ${text}`);
     };
@@ -267,7 +269,7 @@ const WaveComponent = () => {
                         isVisible={isPopupVisible}
                         onClose={handleClosePopup}
                         buttonText={buttonText}
-                        price={tariffs[buttonText]}  // Передаем цену в Popup
+                        price={price} 
                     />
                 )}
             </div>
