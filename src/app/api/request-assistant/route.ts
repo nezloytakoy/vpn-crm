@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import fetch from 'node-fetch';
 
 const prisma = new PrismaClient();
+
 // Пример объекта translations
 const translations = {
     en: {
@@ -10,6 +11,7 @@ const translations = {
         requestReceived: 'Your request has been received. Please wait while an assistant contacts you.',
         noAssistantsAvailable: 'No assistants available',
         requestSent: 'The request has been sent to the assistant.',
+        notEnoughRequests: 'You do not have enough requests to contact an assistant.',
         serverError: 'Server Error',
         assistantRequestMessage: 'User request for conversation',
         accept: 'Accept',
@@ -22,6 +24,7 @@ const translations = {
         requestReceived: 'Ваш запрос получен. Ожидайте, пока с вами свяжется ассистент.',
         noAssistantsAvailable: 'Нет доступных ассистентов',
         requestSent: 'Запрос отправлен ассистенту.',
+        notEnoughRequests: 'У вас недостаточно запросов для общения с ассистентом.',
         serverError: 'Ошибка сервера',
         assistantRequestMessage: 'Запрос пользователя на разговор',
         accept: 'Принять',
@@ -70,6 +73,22 @@ export async function POST(request: Request) {
                 headers: { 'Content-Type': 'application/json' },
             });
         }
+
+        // Проверяем, есть ли у пользователя доступные запросы к ассистенту
+        if (userExists.assistantRequests <= 0) {
+            return new Response(JSON.stringify({ error: getTranslation(lang, 'notEnoughRequests') }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        // Уменьшаем количество запросов к ассистенту на 1
+        await prisma.user.update({
+            where: { telegramId: userIdBigInt },
+            data: {
+                assistantRequests: { decrement: 1 },
+            },
+        });
 
         await sendTelegramMessageToUser(userIdBigInt.toString(), getTranslation(lang, 'requestReceived'));
 

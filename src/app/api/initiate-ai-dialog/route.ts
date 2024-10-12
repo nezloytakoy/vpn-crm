@@ -5,7 +5,6 @@ const prisma = new PrismaClient();
 export async function POST(request: Request) {
   try {
     console.log('Получен POST-запрос к /api/initiate-ai-dialog');
-
     
     const body = await request.json();
     console.log('Тело запроса:', body);
@@ -23,16 +22,41 @@ export async function POST(request: Request) {
 
     console.log(`Включаем режим общения с ИИ для пользователя с ID: ${userId}`);
 
+    // Проверяем, есть ли у пользователя доступные запросы
+    const user = await prisma.user.findUnique({
+      where: { telegramId: BigInt(userId) },
+    });
 
+    if (!user) {
+      console.error('Пользователь не найден');
+      return new Response(JSON.stringify({ error: 'Пользователь не найден' }), {
+        status: 404,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    }
 
-  
+    if (user.aiRequests <= 0) {
+      console.error('У пользователя нет доступных запросов к ИИ');
+      return new Response(JSON.stringify({ error: 'Нет доступных запросов к ИИ' }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    }
+
+    // Обновляем информацию о пользователе: уменьшаем количество доступных AI запросов на 1
     const updatedUser = await prisma.user.update({
-      where: { telegramId: userId.toString() },
-      data: { isActiveAIChat: true },
+      where: { telegramId: BigInt(userId) },
+      data: {
+        isActiveAIChat: true,
+        aiRequests: { decrement: 1 }, // Уменьшаем количество запросов на 1
+      },
     });
 
     console.log('Пользователь обновлен:', updatedUser);
-
 
     const BOT_TOKEN = process.env.TELEGRAM_USER_BOT_TOKEN;
     if (!BOT_TOKEN) {
@@ -51,7 +75,6 @@ export async function POST(request: Request) {
 
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
 
-  
     const telegramResponse = await fetch(url, {
       method: 'POST',
       headers: {
@@ -82,7 +105,7 @@ export async function POST(request: Request) {
 
     console.log('Сообщение успешно отправлено через Telegram Bot API');
 
-    return new Response(JSON.stringify({ message: 'AI dialog initiated' }), {
+    return new Response(JSON.stringify({ message: 'AI dialog initiated', aiRequestsRemaining: updatedUser.aiRequests }), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
@@ -103,7 +126,6 @@ export async function POST(request: Request) {
       },
     });
   } finally {
-    
     await prisma.$disconnect();
   }
 }
