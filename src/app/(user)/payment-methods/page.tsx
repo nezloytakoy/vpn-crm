@@ -8,6 +8,8 @@ import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
 
+export const dynamic = 'force-dynamic';
+
 function PaymentPage() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -23,7 +25,7 @@ function PaymentPage() {
     if (typeof window !== 'undefined' && router.isReady) {
       const queryPrice = router.query.price;
       if (queryPrice) {
-        setPrice(Number(queryPrice)); // Преобразуем в число и сохраняем в состоянии
+        setPrice(Number(queryPrice));
       }
     }
   }, [router.isReady, router.query.price]);
