@@ -51,6 +51,8 @@ const WaveComponent = () => {
 
     const [tariffs, setTariffs] = useState<{ [key: string]: number }>({});
 
+
+
     useEffect(() => {
         const userLang = window?.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
 
@@ -95,7 +97,6 @@ const WaveComponent = () => {
                 const subscriptionData = await subscriptionResponse.json();
                 const requestsData = await requestsResponse.json();
 
-                // Сохранение данных без использования `t` здесь
                 setAssistantRequests(requestsData.assistantRequests || 0);
                 setSubscriptionType(subscriptionData.subscriptionType || 'subscription');
             } catch (error) {
@@ -103,6 +104,7 @@ const WaveComponent = () => {
                 setSubscriptionType('subscription');
             }
         };
+
 
         fetchData();
     }, []);
@@ -136,7 +138,6 @@ const WaveComponent = () => {
 
 
     useEffect(() => {
-        // Обновление текста после смены языка
         switch (subscriptionType) {
             case 'FIRST':
                 setSubscriptionType(t('ai_5_hours'));
@@ -154,7 +155,7 @@ const WaveComponent = () => {
                 setSubscriptionType(t('subscription'));
                 break;
         }
-    }, [t, subscriptionType]);  // Зависящий от перевода эффект
+    }, [t, subscriptionType]);
 
 
     const handleButtonClick = (text: string, price: number) => {
@@ -269,7 +270,7 @@ const WaveComponent = () => {
                         isVisible={isPopupVisible}
                         onClose={handleClosePopup}
                         buttonText={buttonText}
-                        price={price} 
+                        price={price}
                     />
                 )}
             </div>
