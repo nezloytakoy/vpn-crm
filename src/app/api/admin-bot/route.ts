@@ -60,13 +60,36 @@ function detectUserLanguage(ctx: Context): 'ru' | 'en' {
 // Обновление lastActiveAt при каждом взаимодействии с ботом
 adminBot.use(async (ctx, next) => {
   if (ctx.from?.id) {
-    await prisma.moderator.update({
-      where: { id: BigInt(ctx.from.id) },
-      data: { lastActiveAt: new Date() },
+    const moderatorId = BigInt(ctx.from.id);
+
+    // Проверка, существует ли модератор
+    let moderator = await prisma.moderator.findUnique({
+      where: { id: moderatorId },
     });
+
+    // Если модератор не найден, создаем новую запись
+    if (!moderator) {
+      await prisma.moderator.create({
+        data: {
+          id: moderatorId,
+          lastActiveAt: new Date(),
+          login: `moderator_${moderatorId}`, // Пример создания логина
+          password: 'defaultPassword123',    // Пример создания пароля
+        },
+      });
+      console.log(`Создан новый модератор с ID ${moderatorId}`);
+    } else {
+      // Если модератор существует, обновляем его
+      await prisma.moderator.update({
+        where: { id: moderatorId },
+        data: { lastActiveAt: new Date() },
+      });
+    }
   }
   await next();
 });
+
+
 
 adminBot.command('menu', async (ctx) => {
   const lang = detectUserLanguage(ctx);
