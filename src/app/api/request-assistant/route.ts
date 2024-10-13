@@ -44,7 +44,6 @@ function detectLanguage(): "en" | "ru" {
     return "en"; // Пример: возвращаем английский по умолчанию
 }
 
-// Основная логика обработки запроса с локализацией
 export async function POST(request: Request) {
     try {
       const body = await request.json();
@@ -92,10 +91,34 @@ export async function POST(request: Request) {
   
       await sendTelegramMessageToUser(userIdBigInt.toString(), getTranslation(lang, 'requestReceived'));
   
+      // Получаем запрос пользователя, чтобы потом обновлять ignoredAssistants
+      let assistantRequest = await prisma.assistantRequest.findFirst({
+        where: {
+          userId: userIdBigInt,
+          isActive: true,
+        },
+      });
+  
+      if (!assistantRequest) {
+        assistantRequest = await prisma.assistantRequest.create({
+          data: {
+            userId: userIdBigInt,
+            assistantId: BigInt(0), // временно, пока не выбран ассистент
+            message: getTranslation(lang, 'assistantRequestMessage'),
+            status: 'PENDING',
+            isActive: true,
+          },
+        });
+      }
+  
+      // Ищем доступного ассистента, исключая тех, кто уже в ignoredAssistants
       const availableAssistants = await prisma.assistant.findMany({
         where: {
           isWorking: true,
           isBusy: false,
+          telegramId: {
+            notIn: assistantRequest.ignoredAssistants || [], // исключаем ассистентов, которые проигнорировали запрос
+          },
         },
         orderBy: {
           lastActiveAt: 'desc', // Сортируем по последней активности
@@ -119,16 +142,15 @@ export async function POST(request: Request) {
         },
       });
   
-      const assistantRequest = await prisma.assistantRequest.create({
+      // Обновляем запрос с новым ассистентом
+      await prisma.assistantRequest.update({
+        where: { id: assistantRequest.id },
         data: {
-          userId: userIdBigInt,
           assistantId: selectedAssistant.telegramId,
-          message: getTranslation(lang, 'assistantRequestMessage'),
-          status: 'PENDING',
-          isActive: false,
         },
       });
   
+      // Отправляем сообщение ассистенту с кнопками для принятия или отклонения
       await sendTelegramMessageWithButtons(
         selectedAssistant.telegramId.toString(),
         getTranslation(lang, 'assistantRequestMessage'),
@@ -150,8 +172,9 @@ export async function POST(request: Request) {
       });
     }
   }
-
   
+
+
 // Обновим и другие вспомогательные функции, чтобы использовать локализацию
 async function sendTelegramMessageToUser(chatId: string, text: string) {
     const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
