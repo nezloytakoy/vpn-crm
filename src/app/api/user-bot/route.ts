@@ -2,7 +2,6 @@ import { Bot, webhookCallback } from 'grammy';
 import OpenAI from 'openai';
 import { PrismaClient, SubscriptionType } from '@prisma/client';
 import { ArbitrationStatus } from '@prisma/client';
-import { subHours } from 'date-fns'; // Для работы с датами
 
 const prisma = new PrismaClient();
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
