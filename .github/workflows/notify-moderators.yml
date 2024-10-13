@@ -16,4 +16,4 @@ jobs:
     - name: Run script to check arbitration
       run: |
         # Команда, которая запускает проверку арбитража
-        curl -X POST https://your-domain.com/api/check-arbitration
+        curl -X POST https://crm-vpn.vercel.app/api/check-arbitration
