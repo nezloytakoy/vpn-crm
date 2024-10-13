@@ -14,48 +14,48 @@ interface PopupProps {
 }
 
 const handleWithdraw = async () => {
-    if (window.Telegram && window.Telegram.WebApp) {
-      try {
-        const currentUser = window.Telegram.WebApp.initDataUnsafe.user;
-        if (!currentUser?.id) {
-          throw new Error('Не удалось получить идентификатор пользователя.');
-        }
-  
-        const currentUserId = currentUser.id;
-        const userNickname = currentUser.username || `${currentUser.first_name} ${currentUser.last_name}`;
-        const userRole = 'user'; // You can dynamically set this based on your logic (e.g., user, assistant)
-  
-        const amountToWithdraw = 100;
-  
-        const response = await fetch('/api/withdraw-request', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId: currentUserId,
-            userNickname,
-            userRole,
-            amount: amountToWithdraw
-          }),
-        });
-  
-        const data = await response.json();
-  
-        if (response.ok) {
-          console.log(`Запрос на вывод успешно отправлен, ID запроса: ${data.requestId}`);
-        } else {
-          alert(data.error || 'Ошибка при отправке запроса на вывод.');
-        }
-      } catch (error) {
-        console.error('Ошибка при отправке запроса на вывод:', error);
-        alert('Произошла ошибка при отправке запроса на вывод.');
+  if (window.Telegram && window.Telegram.WebApp) {
+    try {
+      const currentUser = window.Telegram.WebApp.initDataUnsafe.user;
+      if (!currentUser?.id) {
+        throw new Error('Не удалось получить идентификатор пользователя.');
       }
-    } else {
-      alert('Telegram WebApp API недоступен.');
+
+      const currentUserId = currentUser.id;
+      const userNickname = currentUser.username || `${currentUser.first_name} ${currentUser.last_name}`;
+      const userRole = 'user'; // You can dynamically set this based on your logic (e.g., user, assistant)
+
+      const amountToWithdraw = 100;
+
+      const response = await fetch('/api/withdraw-request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: currentUserId,
+          userNickname,
+          userRole,
+          amount: amountToWithdraw
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log(`Запрос на вывод успешно отправлен, ID запроса: ${data.requestId}`);
+      } else {
+        alert(data.error || 'Ошибка при отправке запроса на вывод.');
+      }
+    } catch (error) {
+      console.error('Ошибка при отправке запроса на вывод:', error);
+      alert('Произошла ошибка при отправке запроса на вывод.');
     }
-  };
-  
+  } else {
+    alert('Telegram WebApp API недоступен.');
+  }
+};
+
 
 const Popup: React.FC<PopupProps> = ({ isVisible, onClose }) => {
   const { t } = useTranslation();
@@ -119,7 +119,7 @@ const ReferralPopup: React.FC<ReferralPopupProps> = ({ isVisible, onClose, refer
     <div className={`${styles.popupOverlay} ${isClosing ? styles.fadeOutOverlay : ''}`}>
       <div className={`${styles.popupContent} ${isClosing ? styles.slideDown : styles.slideUp}`}>
         <div className={styles.popupHeader}>
-            <div></div>
+          <div></div>
           <button onClick={handleClose} className={styles.closeButton}>✖</button>
         </div>
         <h2 className={styles.title}>{t('your_referral_link')}</h2>
@@ -139,79 +139,101 @@ const ReferralPopup: React.FC<ReferralPopupProps> = ({ isVisible, onClose, refer
 };
 
 function Page() {
-    const { t } = useTranslation();
-    const [isPopupVisible, setPopupVisible] = useState(false);
-    const [isReferralPopupVisible, setReferralPopupVisible] = useState(false);
-    const [telegramUsername, setTelegramUsername] = useState('');
-    const [fontSize, setFontSize] = useState('24px');
-    const [referralLink, setReferralLink] = useState<string | null>(null);
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [ReferralCount, setReferralCount] = useState<number>(0);
-    const [loading, setLoading] = useState(true); // Добавляем состояние загрузки
-  
-    useEffect(() => {
-      // Проверяем, что Telegram WebApp API доступен
-      if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.ready();
-  
-        // Получаем язык пользователя через Telegram WebApp SDK
-        const userLang = window.Telegram.WebApp.initDataUnsafe?.user?.language_code;
-  
-        // Меняем язык в зависимости от Telegram интерфейса пользователя
-        if (userLang === 'ru') {
-          i18n.changeLanguage('ru'); // Устанавливаем русский язык
-        } else {
-          i18n.changeLanguage('en'); // Устанавливаем английский язык по умолчанию
-        }
-  
-        // Получаем данные пользователя
-        const username = window.Telegram.WebApp.initDataUnsafe?.user?.username;
-        const firstName = window.Telegram.WebApp.initDataUnsafe?.user?.first_name;
-        const lastName = window.Telegram.WebApp.initDataUnsafe?.user?.last_name;
-  
-        const displayName = username ? `@${username}` : `${firstName || ''} ${lastName || ''}`.trim();
-        setTelegramUsername(displayName || 'Guest');
-  
-        // Настраиваем размер шрифта в зависимости от длины имени пользователя
-        if (displayName.length > 12) {
-          setFontSize('19px');
-        } else if (displayName.length > 8) {
-          setFontSize('21px');
-        } else {
-          setFontSize('25px');
-        }
+  const { t } = useTranslation();
+  const [isPopupVisible, setPopupVisible] = useState(false);
+  const [isReferralPopupVisible, setReferralPopupVisible] = useState(false);
+  const [telegramUsername, setTelegramUsername] = useState('');
+  const [fontSize, setFontSize] = useState('24px');
+  const [referralLink, setReferralLink] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [ReferralCount, setReferralCount] = useState<number>(0);
+  const [loading, setLoading] = useState(true); // Добавляем состояние загрузки
+  const [coins, setCoins] = useState<number>(0);
+
+  useEffect(() => {
+    // Проверяем, что Telegram WebApp API доступен
+    if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.ready();
+
+      // Получаем язык пользователя через Telegram WebApp SDK
+      const userLang = window.Telegram.WebApp.initDataUnsafe?.user?.language_code;
+
+      // Меняем язык в зависимости от Telegram интерфейса пользователя
+      if (userLang === 'ru') {
+        i18n.changeLanguage('ru'); // Устанавливаем русский язык
       } else {
-        console.error('Telegram WebApp API недоступен.');
-        // Устанавливаем значения по умолчанию
-        i18n.changeLanguage('en');
-        setTelegramUsername('Guest');
+        i18n.changeLanguage('en'); // Устанавливаем английский язык по умолчанию
       }
-  
-      const telegramId = window?.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-  
-      const fetchData = async () => {
-        try {
-          if (!telegramId) {
-            throw new Error('Не удалось получить telegram id');
-          }
-  
-          const referralsResponse = await fetch(`api/get-referrals?telegramId=${telegramId}`);
-  
-          if (!referralsResponse.ok) {
-            throw new Error('Ошибка получения данных');
-          }
-  
-          const ReferralData = await referralsResponse.json();
-          setReferralCount(ReferralData.referralCount || 0);
-        } catch (error) {
-          console.log('Не удалось получить данные:', error);
-        } finally {
-          setLoading(false); // Устанавливаем загрузку в false после получения данных
+
+      // Получаем данные пользователя
+      const username = window.Telegram.WebApp.initDataUnsafe?.user?.username;
+      const firstName = window.Telegram.WebApp.initDataUnsafe?.user?.first_name;
+      const lastName = window.Telegram.WebApp.initDataUnsafe?.user?.last_name;
+
+      const displayName = username ? `@${username}` : `${firstName || ''} ${lastName || ''}`.trim();
+      setTelegramUsername(displayName || 'Guest');
+
+      // Настраиваем размер шрифта в зависимости от длины имени пользователя
+      if (displayName.length > 12) {
+        setFontSize('19px');
+      } else if (displayName.length > 8) {
+        setFontSize('21px');
+      } else {
+        setFontSize('25px');
+      }
+
+    } else {
+      console.error('Telegram WebApp API недоступен.');
+      // Устанавливаем значения по умолчанию
+      i18n.changeLanguage('en');
+      setTelegramUsername('Guest');
+    }
+
+    const fetchCoins = async () => {
+      try {
+        const telegramId = window?.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+        if (!telegramId) throw new Error("Не удалось получить айди пользователя")
+
+        const response = await fetch(`/api/get-user-coins?telegramId=${telegramId}`)
+        const data = await response.json()
+
+        if (response.ok) {
+          setCoins(data.coins)
+        } else {
+          console.log(data.error)
         }
-      };
-  
-      fetchData();
-    }, []);
+      } catch (error) {
+        console.log("Не удалось получить койны", error)
+      }
+    }
+
+    fetchCoins();
+
+    const telegramId = window?.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+
+    const fetchData = async () => {
+      try {
+        if (!telegramId) {
+          throw new Error('Не удалось получить telegram id');
+        }
+
+        const referralsResponse = await fetch(`api/get-referrals?telegramId=${telegramId}`);
+
+        if (!referralsResponse.ok) {
+          throw new Error('Ошибка получения данных');
+        }
+
+        const ReferralData = await referralsResponse.json();
+        setReferralCount(ReferralData.referralCount || 0);
+      } catch (error) {
+        console.log('Не удалось получить данные:', error);
+      } finally {
+        setLoading(false); // Устанавливаем загрузку в false после получения данных
+      }
+    };
+
+    fetchData();
+  }, []);
 
 
   const showPopup = () => {
@@ -309,7 +331,7 @@ function Page() {
                 />
               </div>
               <div className={styles.textbox}>
-                <p className={styles.num}>20$</p>
+                <p className={styles.num}>{coins}$</p>
                 <p className={styles.text}>{t('bonus')}</p>
               </div>
             </div>
@@ -324,7 +346,7 @@ function Page() {
                 />
               </div>
               <div className={styles.textbox}>
-                <p className={styles.num}>10$</p>
+                <p className={styles.num}>{coins}$</p>
                 <p className={styles.text}>{t('available')}</p>
               </div>
             </div>

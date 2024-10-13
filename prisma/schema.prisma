@@ -46,6 +46,7 @@ model Assistant {
   isBusy       Boolean            @default(false)
   startedAt    DateTime?
   joinedAt     DateTime           @default(now())
+  coins        Int                @default(0) // Добавлено поле для хранения коинов
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   requests     AssistantRequest[]
@@ -71,6 +72,7 @@ model User {
   totalRequests          Int                @default(0)
   aiRequests             Int                @default(0)
   assistantRequests      Int                @default(0)
+  coins                  Int                @default(0) // Добавлено поле для хранения коинов
   isActiveAIChat         Boolean            @default(false)
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
@@ -141,7 +143,6 @@ model Arbitration {
   updatedAt        DateTime          @updatedAt
 }
 
-
 enum ArbitrationStatus {
   PENDING // Арбитраж создан, ожидает решения
   IN_PROGRESS // Арбитраж в процессе рассмотрения
@@ -169,4 +170,3 @@ model Tariff {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now()) @updatedAt
 }
-
