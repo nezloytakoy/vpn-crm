@@ -99,12 +99,12 @@ export async function POST(request: Request) {
         },
       });
   
-      // Если нет активного запроса, создаем новый
+      // Если нет активного запроса, создаем новый с assistantId: -1 (временное значение)
       if (!assistantRequest) {
         assistantRequest = await prisma.assistantRequest.create({
           data: {
             userId: userIdBigInt,
-            assistantId: BigInt(0), // временно, пока не выбран ассистент
+            assistantId: BigInt(-1), // Временно устанавливаем assistantId как -1
             message: getTranslation(lang, 'assistantRequestMessage'),
             status: 'PENDING',
             isActive: true,
@@ -174,6 +174,7 @@ export async function POST(request: Request) {
       });
     }
   }
+  
 
 
 // Обновим и другие вспомогательные функции, чтобы использовать локализацию
