@@ -40,18 +40,20 @@ model Invitation {
 }
 
 model Assistant {
-  telegramId   BigInt             @id @unique
-  role         String             @default("assistant")
-  isWorking    Boolean            @default(false)
-  isBusy       Boolean            @default(false)
-  startedAt    DateTime?
-  joinedAt     DateTime           @default(now())
-  coins        Int                @default(0) // Добавлено поле для хранения коинов
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  requests     AssistantRequest[]
-  arbitrations Arbitration[] // Поле для обратного отношения
+  telegramId      BigInt             @id @unique
+  role            String             @default("assistant")
+  isWorking       Boolean            @default(false)
+  isBusy          Boolean            @default(false)
+  startedAt       DateTime?
+  joinedAt        DateTime           @default(now())
+  coins           Int                @default(0) // Добавлено поле для хранения коинов
+  lastActiveAt    DateTime?          // Поле для хранения времени последней активности
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  requests        AssistantRequest[]
+  arbitrations    Arbitration[]      // Поле для обратного отношения
 }
+
 
 enum SubscriptionType {
   FREE

@@ -47,107 +47,111 @@ function detectLanguage(): "en" | "ru" {
 // Основная логика обработки запроса с локализацией
 export async function POST(request: Request) {
     try {
-        const body = await request.json();
-        const { userId } = body;
-
-        const lang = detectLanguage(); // Определяем язык
-
-        if (!userId) {
-            return new Response(JSON.stringify({ error: getTranslation(lang, 'userIdRequired') }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
-
-        const userIdBigInt = BigInt(userId);
-
-        await sendLogToTelegram(getTranslation(lang, 'logMessage'));
-
-        const userExists = await prisma.user.findUnique({
-            where: { telegramId: userIdBigInt },
+      const body = await request.json();
+      const { userId } = body;
+  
+      const lang = detectLanguage(); // Определяем язык
+  
+      if (!userId) {
+        return new Response(JSON.stringify({ error: getTranslation(lang, 'userIdRequired') }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
         });
-
-        if (!userExists) {
-            return new Response(JSON.stringify({ error: getTranslation(lang, 'userNotFound') }), {
-                status: 404,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
-
-        // Проверяем, есть ли у пользователя доступные запросы к ассистенту
-        if (userExists.assistantRequests <= 0) {
-            return new Response(JSON.stringify({ error: getTranslation(lang, 'notEnoughRequests') }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
-
-        // Уменьшаем количество запросов к ассистенту на 1
-        await prisma.user.update({
-            where: { telegramId: userIdBigInt },
-            data: {
-                assistantRequests: { decrement: 1 },
-            },
+      }
+  
+      const userIdBigInt = BigInt(userId);
+  
+      await sendLogToTelegram(getTranslation(lang, 'logMessage'));
+  
+      const userExists = await prisma.user.findUnique({
+        where: { telegramId: userIdBigInt },
+      });
+  
+      if (!userExists) {
+        return new Response(JSON.stringify({ error: getTranslation(lang, 'userNotFound') }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
         });
-
-        await sendTelegramMessageToUser(userIdBigInt.toString(), getTranslation(lang, 'requestReceived'));
-
-        const availableAssistants = await prisma.assistant.findMany({
-            where: {
-                isWorking: true,
-                isBusy: false,
-            },
-            orderBy: {
-                startedAt: 'asc',
-            },
+      }
+  
+      // Проверяем, есть ли у пользователя доступные запросы к ассистенту
+      if (userExists.assistantRequests <= 0) {
+        return new Response(JSON.stringify({ error: getTranslation(lang, 'notEnoughRequests') }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
         });
-
-        if (availableAssistants.length === 0) {
-            return new Response(JSON.stringify({ message: getTranslation(lang, 'noAssistantsAvailable') }), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
-
-        const selectedAssistant = availableAssistants[0];
-
-        await prisma.assistant.update({
-            where: { telegramId: selectedAssistant.telegramId },
-            data: { isBusy: true },
+      }
+  
+      // Уменьшаем количество запросов к ассистенту на 1
+      await prisma.user.update({
+        where: { telegramId: userIdBigInt },
+        data: {
+          assistantRequests: { decrement: 1 },
+        },
+      });
+  
+      await sendTelegramMessageToUser(userIdBigInt.toString(), getTranslation(lang, 'requestReceived'));
+  
+      const availableAssistants = await prisma.assistant.findMany({
+        where: {
+          isWorking: true,
+          isBusy: false,
+        },
+        orderBy: {
+          lastActiveAt: 'desc', // Сортируем по последней активности
+        },
+      });
+  
+      if (availableAssistants.length === 0) {
+        return new Response(JSON.stringify({ message: getTranslation(lang, 'noAssistantsAvailable') }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
         });
-
-        const assistantRequest = await prisma.assistantRequest.create({
-            data: {
-                userId: userIdBigInt,
-                assistantId: selectedAssistant.telegramId,
-                message: getTranslation(lang, 'assistantRequestMessage'),
-                status: 'PENDING',
-                isActive: false,
-            },
-        });
-
-        await sendTelegramMessageWithButtons(
-            selectedAssistant.telegramId.toString(),
-            getTranslation(lang, 'assistantRequestMessage'),
-            [
-                { text: getTranslation(lang, 'accept'), callback_data: `accept_${assistantRequest.id}` },
-                { text: getTranslation(lang, 'reject'), callback_data: `reject_${assistantRequest.id}` },
-            ]
-        );
-
-        return new Response(JSON.stringify({ message: getTranslation(lang, 'requestSent') }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-        });
+      }
+  
+      const selectedAssistant = availableAssistants[0];
+  
+      await prisma.assistant.update({
+        where: { telegramId: selectedAssistant.telegramId },
+        data: { 
+          isBusy: true,
+          lastActiveAt: new Date(), // Обновляем время последней активности
+        },
+      });
+  
+      const assistantRequest = await prisma.assistantRequest.create({
+        data: {
+          userId: userIdBigInt,
+          assistantId: selectedAssistant.telegramId,
+          message: getTranslation(lang, 'assistantRequestMessage'),
+          status: 'PENDING',
+          isActive: false,
+        },
+      });
+  
+      await sendTelegramMessageWithButtons(
+        selectedAssistant.telegramId.toString(),
+        getTranslation(lang, 'assistantRequestMessage'),
+        [
+          { text: getTranslation(lang, 'accept'), callback_data: `accept_${assistantRequest.id}` },
+          { text: getTranslation(lang, 'reject'), callback_data: `reject_${assistantRequest.id}` },
+        ]
+      );
+  
+      return new Response(JSON.stringify({ message: getTranslation(lang, 'requestSent') }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
     } catch (error) {
-        console.error('Ошибка:', error);
-        return new Response(JSON.stringify({ error: getTranslation(detectLanguage(), 'serverError') }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-        });
+      console.error('Ошибка:', error);
+      return new Response(JSON.stringify({ error: getTranslation(detectLanguage(), 'serverError') }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
-}
+  }
 
+  
 // Обновим и другие вспомогательные функции, чтобы использовать локализацию
 async function sendTelegramMessageToUser(chatId: string, text: string) {
     const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;

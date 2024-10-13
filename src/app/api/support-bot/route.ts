@@ -275,6 +275,12 @@ bot.command('start', async (ctx) => {
         });
 
         await ctx.reply(getTranslation(lang, 'assistant_congrats'));
+
+        // Обновляем последнее активное время ассистента
+        await prisma.assistant.update({
+          where: { telegramId: telegramId },
+          data: { lastActiveAt: new Date() },
+        });
       } else {
         await ctx.reply(getTranslation(lang, 'end_dialog_error'));
       }
@@ -290,36 +296,30 @@ bot.command('start', async (ctx) => {
 bot.command('menu', async (ctx) => {
   const lang = detectUserLanguage(ctx);
 
-  // Функция отправки логов пользователю с ID 214663034
-  async function sendLogToUser(logMessage: string) {
-    const logUserId = '214663034';
-    try {
-      await bot.api.sendMessage(logUserId, logMessage);
-    } catch (error) {
-      console.error('Ошибка при отправке логов пользователю:', error);
-    }
-  }
-
-  // Отправляем лог данных ctx.from
-  await sendLogToUser(`Context 'from': ${JSON.stringify(ctx.from)}`);
-
   try {
     // Проверяем, что ctx.from существует
     if (!ctx.from?.id) {
       await ctx.reply(getTranslation(lang, 'end_dialog_error'));
-      await sendLogToUser('Ошибка: ctx.from.id не определён');
       return;
     }
+
+    const telegramId = BigInt(ctx.from.id);
 
     // Проверяем, является ли пользователь ассистентом
     const assistant = await prisma.assistant.findUnique({
-      where: { telegramId: BigInt(ctx.from.id) },
+      where: { telegramId: telegramId },
     });
 
     if (!assistant) {
-      await sendLogToUser('Вы не являетесь ассистентом');
+      await ctx.reply(getTranslation(lang, 'end_dialog_error'));
       return;
     }
+
+    // Обновляем последнее активное время ассистента
+    await prisma.assistant.update({
+      where: { telegramId: telegramId },
+      data: { lastActiveAt: new Date() },
+    });
 
     // Отображаем меню, если пользователь ассистент
     await ctx.reply(getTranslation(lang, 'menu_message'), {
@@ -331,12 +331,9 @@ bot.command('menu', async (ctx) => {
         ],
       },
     });
-
-    // Отправляем лог успешного выполнения
-    await sendLogToUser('Меню успешно показано пользователю.');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-    await sendLogToUser(`Ошибка: ${errorMessage}`);
+    console.error('Error showing menu:', errorMessage);
   }
 });
 
