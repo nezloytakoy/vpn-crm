@@ -347,22 +347,20 @@ bot.on('callback_query:data', async (ctx) => {
     const telegramId = BigInt(ctx.from.id);
     const data = ctx.callbackQuery?.data;
 
-    if (data === 'my_coins') {
-      // Получаем данные ассистента из базы
-      const assistant = await prisma.assistant.findUnique({
-        where: { telegramId: telegramId },
-      });
+    if (data.startsWith('accept_') || data.startsWith('reject_')) {
+      const [action, requestId] = data.split('_');
 
-      if (assistant) {
-        // Отправляем количество коинов ассистенту
-        const coinsMessage = `${getTranslation(lang, 'my_coins')}: ${assistant.coins}`;
-        await ctx.reply(coinsMessage);
-      } else {
-        await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+      if (action === 'accept') {
+        await handleAcceptRequest(requestId, telegramId, ctx);
+      } else if (action === 'reject') {
+        await handleRejectRequest(requestId, telegramId, ctx);
       }
-    } else if (data === 'my_activity') {
-      await ctx.reply('📊 Моя активность: 10 завершенных задач.');
-    } else if (data === 'start_work') {
+
+      // Завершаем обработку здесь, чтобы "📊 Моя активность" не отправлялась
+      return;
+    }
+
+    if (data === 'start_work') {
       const assistant = await prisma.assistant.findUnique({ where: { telegramId: telegramId } });
 
       if (assistant?.isWorking) {
@@ -377,6 +375,20 @@ bot.on('callback_query:data', async (ctx) => {
 
       await ctx.reply(getTranslation(lang, 'work_started'));
       return;
+    } else if (data === 'my_coins') {
+      // Добавляем получение количества коинов ассистента
+      const assistant = await prisma.assistant.findUnique({
+        where: { telegramId: telegramId },
+      });
+
+      if (assistant) {
+        const coinsMessage = `${getTranslation(lang, 'my_coins')}: ${assistant.coins}`; // Выводим количество коинов
+        await ctx.reply(coinsMessage);
+      } else {
+        await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+      }
+    } else if (data === 'my_activity') {
+      await ctx.reply('📊 Моя активность: 10 завершенных задач.');
     }
   } else {
     await ctx.reply(getTranslation(lang, 'end_dialog_error'));
