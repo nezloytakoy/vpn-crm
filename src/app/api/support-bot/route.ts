@@ -481,7 +481,7 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
       where: { id: BigInt(requestId) },
     });
 
-    let ignoredAssistants = assistantRequest?.ignoredAssistants || [];
+    const ignoredAssistants = assistantRequest?.ignoredAssistants || [];
 
     // Добавляем текущего ассистента в список проигнорированных
     ignoredAssistants.push(assistantTelegramId);
