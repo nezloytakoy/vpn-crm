@@ -27,6 +27,16 @@ interface MessageData {
   };
 }
 
+interface ArbitrationData {
+  userId: bigint;
+  userNickname: string | null;
+  assistantId: bigint | null;
+  assistantNickname: string | null;
+  moderatorId: bigint | null;
+  reason: string;
+  status: ArbitrationStatus;
+}
+
 const userConversations = new Map<bigint, ChatMessage[]>();
 
 async function sendMessageToAssistant(chatId: string, text: string) {
@@ -545,21 +555,20 @@ bot.command('problem', async (ctx) => {
     const userNickname = ctx.from.username || null;
     const assistantNickname = activeRequest.assistant?.telegramId?.toString() || null;
 
-    // Создаём новый арбитраж с сохранением никнеймов
     const arbitrationData: any = {
       userId: telegramId,
-      userNickname, // Сохраняем никнейм пользователя
-      assistantNickname, // Сохраняем никнейм ассистента
-      moderatorId: null,
+      userNickname: userNickname || null,
+      assistantNickname: assistantNickname || null,
+      moderatorId: null, // Если модератора нет на момент создания
       reason: 'Открытие арбитража пользователем',
       status: 'PENDING' as ArbitrationStatus,
     };
-
-    // Проверяем, если assistantId существует, то добавляем его в данные
-    if (activeRequest.assistantId !== null) {
+    
+    // Добавляем assistantId только если оно не null
+    if (activeRequest.assistantId) {
       arbitrationData.assistantId = activeRequest.assistantId;
     }
-
+    
     const arbitration = await prisma.arbitration.create({
       data: arbitrationData,
     });
