@@ -1,22 +1,19 @@
-name: Notify Moderators
+name: Check Arbitration
 
-# Устанавливаем расписание для запуска задачи
 on:
   schedule:
-    # Каждую минуту
-    - cron: '*/1 * * * *'
+    - cron: "*/1 * * * *" # Запуск каждую минуту
+  workflow_dispatch: # Для ручного запуска
 
 jobs:
-  notify:
+  arbitration-check:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Send request to notify moderators
-        run: |
-          curl -X POST https://crm-vpn.vercel.app/api/check-arbitration \
-          -H "Content-Type: application/json" \
-          -d '{"arbitrationId": "your-arbitration-id"}'
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      # В случае необходимости, можете добавить дополнительные шаги для логирования
-      - name: Log completion
-        run: echo "Notification job completed"
+    - name: Run script to check arbitration
+      run: |
+        # Команда, которая запускает проверку арбитража
+        curl -X POST https://your-domain.com/api/check-arbitration
