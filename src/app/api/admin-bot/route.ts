@@ -399,15 +399,18 @@ adminBot.on('callback_query:data', async (ctx) => {
         let newStatus: ArbitrationStatus;
         let decisionText = '';
         let winnerTelegramId: bigint;
+        let winnerRole: 'user' | 'assistant';
 
         if (decision === 'user') {
           newStatus = 'REJECTED' as ArbitrationStatus; // Решение в пользу пользователя
           decisionText = 'USER';
           winnerTelegramId = arbitration.user.telegramId;
+          winnerRole = 'user';
         } else if (decision === 'assistant') {
           newStatus = 'ACCEPTED' as ArbitrationStatus; // Решение в пользу ассистента
           decisionText = 'ASSISTANT';
           winnerTelegramId = arbitration.assistant.telegramId;
+          winnerRole = 'assistant';
         } else {
           await ctx.reply('Неверное решение.');
           await sendLogToUser(`Ошибка: Неверное решение ${decision}`);
@@ -415,7 +418,7 @@ adminBot.on('callback_query:data', async (ctx) => {
         }
 
         // Логируем айди победителя
-        await sendLogToUser(`Победитель арбитража: ID = ${winnerTelegramId}`);
+        await sendLogToUser(`Победитель арбитража: ID = ${winnerTelegramId}, роль = ${winnerRole}`);
 
         // Обновляем арбитраж
         await prisma.arbitration.update({
@@ -428,13 +431,14 @@ adminBot.on('callback_query:data', async (ctx) => {
 
         await sendLogToUser(`Арбитраж ID: ${arbitrationId} завершён с решением: ${decisionText}`);
 
-        // Обновляем статус ассистента
-        await prisma.assistant.update({
-          where: { telegramId: arbitration.assistant.telegramId },
-          data: { isBusy: false },
-        });
-
-        await sendLogToUser(`Ассистент ID: ${arbitration.assistant.telegramId} обновлён: isBusy = false`);
+        // Обновляем статус ассистента, если решение в его пользу
+        if (winnerRole === 'assistant') {
+          await prisma.assistant.update({
+            where: { telegramId: arbitration.assistant.telegramId },
+            data: { isBusy: false },
+          });
+          await sendLogToUser(`Ассистент ID: ${arbitration.assistant.telegramId} обновлён: isBusy = false`);
+        }
 
         // Завершаем активный диалог между пользователем и ассистентом
         await prisma.assistantRequest.updateMany({
@@ -444,11 +448,18 @@ adminBot.on('callback_query:data', async (ctx) => {
 
         await sendLogToUser(`Диалог между пользователем и ассистентом завершён для арбитража ID: ${arbitrationId}`);
 
-        // Начисляем койн победителю арбитража
-        await prisma.assistant.update({
-          where: { telegramId: winnerTelegramId },
-          data: { coins: { increment: 1 } },
-        });
+        // Начисляем койн победителю арбитража в зависимости от его роли
+        if (winnerRole === 'assistant') {
+          await prisma.assistant.update({
+            where: { telegramId: winnerTelegramId },
+            data: { coins: { increment: 1 } },
+          });
+        } else if (winnerRole === 'user') {
+          await prisma.user.update({
+            where: { telegramId: winnerTelegramId },
+            data: { coins: { increment: 1 } },
+          });
+        }
 
         await sendLogToUser(`Победителю арбитража ID: ${winnerTelegramId} начислен 1 койн`);
 
@@ -518,6 +529,7 @@ adminBot.on('callback_query:data', async (ctx) => {
     }
   }
 });
+
 
 
 
