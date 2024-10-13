@@ -154,14 +154,26 @@ bot.command('end_dialog', async (ctx) => {
       data: { status: 'COMPLETED', isActive: false },
     });
 
-    await prisma.assistant.update({
-      where: { telegramId: activeRequest.assistant.telegramId },
-      data: { isBusy: false },
-    });
+    if (activeRequest.assistant) {
+      await prisma.assistant.update({
+        where: { telegramId: activeRequest.assistant.telegramId },
+        data: { isBusy: false },
+      });
+    } else {
+      console.error('Ошибка: ассистент не найден для запроса');
+    }
 
     await ctx.reply(getTranslation(languageCode, 'dialog_closed'));
 
-    await sendMessageToAssistant(activeRequest.assistant.telegramId.toString(), getTranslation(languageCode, 'user_ended_dialog'));
+    if (activeRequest.assistant) {
+      await sendMessageToAssistant(
+        activeRequest.assistant.telegramId.toString(),
+        getTranslation(languageCode, 'user_ended_dialog')
+      );
+    } else {
+      console.error('Ошибка: ассистент не найден для активного запроса');
+    }
+
   } catch (error) {
     console.error('Ошибка при завершении диалога:', error);
     const languageCode = ctx.from?.language_code || 'en';
@@ -310,7 +322,7 @@ bot.on("pre_checkout_query", async (ctx) => {
   try {
     // Подтверждаем, что бот готов принять платеж
     await ctx.answerPreCheckoutQuery(true);
-    
+
     // Логируем информацию о pre_checkout_query
     await sendLogToTelegram(`Pre-checkout query received for user ${ctx.from?.id}`);
   } catch (error) {
@@ -414,7 +426,7 @@ async function sendTelegramMessageToModerator(chatId: string, text: string, arbi
 
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
-  
+
 
   try {
     const messageData: MessageData = {
@@ -518,10 +530,11 @@ bot.command('problem', async (ctx) => {
     const existingArbitration = await prisma.arbitration.findFirst({
       where: {
         userId: telegramId,
-        assistantId: activeRequest.assistantId,
+        assistantId: activeRequest.assistantId ?? undefined, // Используем undefined, если assistantId равен null
         status: 'IN_PROGRESS' as ArbitrationStatus,
       },
     });
+
 
     if (existingArbitration) {
       await ctx.reply('У вас уже есть активный арбитраж по этому запросу.');
@@ -533,23 +546,34 @@ bot.command('problem', async (ctx) => {
     const assistantNickname = activeRequest.assistant?.telegramId?.toString() || null;
 
     // Создаём новый арбитраж с сохранением никнеймов
+    const arbitrationData: any = {
+      userId: telegramId,
+      userNickname, // Сохраняем никнейм пользователя
+      assistantNickname, // Сохраняем никнейм ассистента
+      moderatorId: null,
+      reason: 'Открытие арбитража пользователем',
+      status: 'PENDING' as ArbitrationStatus,
+    };
+
+    // Проверяем, если assistantId существует, то добавляем его в данные
+    if (activeRequest.assistantId !== null) {
+      arbitrationData.assistantId = activeRequest.assistantId;
+    }
+
     const arbitration = await prisma.arbitration.create({
-      data: {
-        userId: telegramId,
-        userNickname, // Сохраняем никнейм пользователя
-        assistantId: activeRequest.assistantId,
-        assistantNickname, // Сохраняем никнейм ассистента
-        moderatorId: null,
-        reason: 'Открытие арбитража пользователем',
-        status: 'PENDING' as ArbitrationStatus,
-      },
+      data: arbitrationData,
     });
 
+
     await ctx.reply('Для решения спорной ситуации приглашен модератор.');
-    await sendTelegramMessageToAssistant(
-      activeRequest.assistant.telegramId.toString(),
-      'Для решения спорной ситуации пользователем приглашен модератор.'
-    );
+    if (activeRequest.assistant !== null) {
+      await sendTelegramMessageToAssistant(
+        activeRequest.assistant.telegramId.toString(),
+        'Для решения спорной ситуации пользователем приглашен модератор.'
+      );
+    } else {
+      console.error('Ошибка: Ассистент не найден для активного запроса.');
+    }
 
     // Ищем модератора с последней активностью
     const lastActiveModerator = await prisma.moderator.findFirst({
@@ -677,7 +701,11 @@ bot.on('message', async (ctx) => {
       }
     } else if (activeRequest) {
       // Обработка активного запроса к ассистенту
-      await sendMessageToAssistant(activeRequest.assistant.telegramId.toString(), userMessage);
+      if (activeRequest.assistant !== null) {
+        await sendMessageToAssistant(activeRequest.assistant.telegramId.toString(), userMessage);
+      } else {
+        console.error('Ошибка: Ассистент не найден для активного запроса.');
+      }
     } else {
       // Нет активного диалога
       await ctx.reply('У вас нет активных диалогов. Используйте /start, чтобы начать.');

@@ -99,12 +99,12 @@ export async function POST(request: Request) {
         },
       });
   
-      // Если нет активного запроса, создаем новый с assistantId: -1 (временное значение)
+      // Если нет активного запроса, создаем новый с assistantId: null
       if (!assistantRequest) {
         assistantRequest = await prisma.assistantRequest.create({
           data: {
             userId: userIdBigInt,
-            assistantId: BigInt(-1), // Временно устанавливаем assistantId как -1
+            assistantId: null, // Устанавливаем null, пока не выбран ассистент
             message: getTranslation(lang, 'assistantRequestMessage'),
             status: 'PENDING',
             isActive: true,
@@ -174,6 +174,7 @@ export async function POST(request: Request) {
       });
     }
   }
+  
   
 
 

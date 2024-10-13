@@ -109,17 +109,17 @@ model Conversation {
 }
 
 model AssistantRequest {
-  id              BigInt        @id @default(autoincrement())
-  user            User          @relation(fields: [userId], references: [telegramId])
-  userId          BigInt
-  assistant       Assistant     @relation(fields: [assistantId], references: [telegramId])
-  assistantId     BigInt
-  message         String
-  status          RequestStatus @default(PENDING)
-  isActive        Boolean       @default(false)
-  ignoredAssistants BigInt[]    // Массив telegramId ассистентов, которые проигнорировали запрос
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id          BigInt        @id @default(autoincrement())
+  user        User          @relation(fields: [userId], references: [telegramId])
+  userId      BigInt
+  assistant   Assistant?     @relation(fields: [assistantId], references: [telegramId])
+  assistantId BigInt?        // Поле assistantId теперь может быть null
+  message     String
+  status      RequestStatus @default(PENDING)
+  isActive    Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  ignoredAssistants BigInt[]
 }
 
 
