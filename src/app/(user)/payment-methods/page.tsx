@@ -1,8 +1,8 @@
 import dynamic from 'next/dynamic';
 
-// Динамически загружаем компонент PaymentPage
+
 const PaymentPageClient = dynamic(() => import('./PaymentPage'), {
-  ssr: false, // Отключаем серверный рендеринг
+  ssr: false,
 });
 
 export default function PaymentWrapper() {
