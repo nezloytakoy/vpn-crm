@@ -63,7 +63,7 @@ adminBot.use(async (ctx, next) => {
     const moderatorId = BigInt(ctx.from.id);
 
     // Проверка, существует ли модератор
-    let moderator = await prisma.moderator.findUnique({
+    const moderator = await prisma.moderator.findUnique({
       where: { id: moderatorId },
     });
 
