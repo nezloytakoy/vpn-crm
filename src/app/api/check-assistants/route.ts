@@ -23,7 +23,7 @@ async function findAvailableAssistant(ignoredAssistants: bigint[]) {
 }
 
 // Основная функция обработки запросов с status: PENDING
-export async function POST(request: Request) {
+export async function POST() {
   try {
     // Ищем все запросы со статусом PENDING
     const pendingRequests = await prisma.assistantRequest.findMany({
