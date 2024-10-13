@@ -473,7 +473,6 @@ adminBot.on('callback_query:data', async (ctx) => {
         console.error('Ошибка при обработке решения арбитража:', error);
         await ctx.reply('Произошла ошибка при обработке решения арбитража.');
         await sendLogToUser(`Ошибка при обработке арбитража: ${error instanceof Error ? error.message : String(error)}`);
-
       }
     } else if (data === 'current_arbitrations') {
       await ctx.answerCallbackQuery();
