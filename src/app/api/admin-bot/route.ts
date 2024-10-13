@@ -304,70 +304,6 @@ adminBot.command('end_arbitration', async (ctx) => {
   }
 });
 
-adminBot.on('message:text', async (ctx) => {
-  const lang = detectUserLanguage(ctx);
-  const modId = ctx.from?.id;
-  if (!modId) {
-    await ctx.reply(getTranslation(lang, 'command_error'));
-    return;
-  }
-
-  const currentState = moderatorState[modId]?.state;
-
-  if (!currentState) {
-    // Обработка сообщений в контексте арбитража уже реализована выше
-    return;
-  }
-
-  // Если ожидаем ввода ID пользователя или ассистента
-  if (currentState === 'awaiting_user_id' || currentState === 'awaiting_assistant_id') {
-    const id = ctx.message.text;
-
-    // Проверяем, что ID состоит из цифр и имеет длину от 9 до 10 символов
-    if (!/^\d{9,10}$/.test(id)) {
-      await ctx.reply(getTranslation(lang, 'id_invalid'));
-      return;
-    }
-
-    // Сохраняем введённый ID в объекте состояния
-    moderatorState[modId].targetId = id;
-
-    if (currentState === 'awaiting_user_id') {
-      moderatorState[modId].state = 'awaiting_message_user';
-    } else if (currentState === 'awaiting_assistant_id') {
-      moderatorState[modId].state = 'awaiting_message_assistant';
-    }
-
-    // Просим модератора ввести сообщение
-    await ctx.reply(getTranslation(lang, 'message_prompt'));
-
-  // Если ожидаем сообщение для пользователя или ассистента
-  } else if (currentState === 'awaiting_message_user' || currentState === 'awaiting_message_assistant') {
-    const targetId = moderatorState[modId]?.targetId;
-
-    if (targetId) {
-      const targetMessage = `Сообщение от модератора:\n\n${ctx.message.text}`;
-      try {
-        // В зависимости от состояния отправляем сообщение пользователю или ассистенту
-        if (currentState === 'awaiting_message_user') {
-          await userBot.api.sendMessage(Number(targetId), targetMessage);
-        } else if (currentState === 'awaiting_message_assistant') {
-          await supportBot.api.sendMessage(Number(targetId), targetMessage);
-        }
-        await ctx.reply(getTranslation(lang, 'message_sent'));
-      } catch (error) {
-        console.error('Ошибка при отправке сообщения:', error);
-        await ctx.reply(getTranslation(lang, 'message_send_error'));
-      }
-    }
-    // Очищаем состояние после отправки сообщения
-    delete moderatorState[modId];
-
-  } else {
-    await ctx.reply(getTranslation(lang, 'unknown_command'));
-  }
-});
-
 
 adminBot.on('callback_query:data', async (ctx) => {
   const data = ctx.callbackQuery.data;
@@ -554,66 +490,89 @@ adminBot.on('callback_query:data', async (ctx) => {
 
 
 adminBot.on('message', async (ctx) => {
-  const moderatorTelegramId = BigInt(ctx.from?.id || 0);
-
-  if (!moderatorTelegramId) {
+  const modId = ctx.from?.id;
+  if (!modId) {
     await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
-    await sendLogToUser('Ошибка: не удалось получить идентификатор Telegram у модератора.');
     return;
   }
 
   const messageText = ctx.message?.text;
   if (!messageText) {
     await ctx.reply('Пожалуйста, отправьте текстовое сообщение.');
-    await sendLogToUser('Ошибка: модератор отправил пустое сообщение.');
     return;
   }
 
-  try {
-    // Проверяем наличие активного арбитража
-    const arbitration = await prisma.arbitration.findFirst({
-      where: {
-        moderatorId: moderatorTelegramId,
-        status: 'IN_PROGRESS' as ArbitrationStatus,
-      },
-      include: {
-        user: true,
-        assistant: true,
-      },
-    });
+  // Логика для активного арбитража
+  const arbitration = await prisma.arbitration.findFirst({
+    where: {
+      moderatorId: BigInt(modId),
+      status: 'IN_PROGRESS' as ArbitrationStatus,
+    },
+    include: {
+      user: true,
+      assistant: true,
+    },
+  });
 
-    if (!arbitration) {
-      await ctx.reply('У вас нет активных арбитражей.');
-      await sendLogToUser(`Ошибка: модератор с ID ${moderatorTelegramId} пытался отправить сообщение без активного арбитража.`);
+  if (arbitration) {
+    // Если есть активный арбитраж, пересылаем сообщение пользователю и ассистенту
+    const messageToSend = `Модератор:\n${messageText}`;
+    await sendMessageToUser(arbitration.user.telegramId.toString(), messageToSend);
+    await sendMessageToAssistant(arbitration.assistant.telegramId.toString(), messageToSend);
+    return;
+  }
+
+  // Если нет активного арбитража, проверяем состояние ожидания ID
+  const currentState = moderatorState[modId]?.state;
+
+  if (!currentState) {
+    // Если нет активного состояния, возвращаем ошибку
+    await ctx.reply('У вас нет активных арбитражей или текущих запросов.');
+    return;
+  }
+
+  // Логика ожидания ввода ID и отправки сообщений
+  if (currentState === 'awaiting_user_id' || currentState === 'awaiting_assistant_id') {
+    const id = messageText;
+
+    // Проверяем ID
+    if (!/^\d{9,10}$/.test(id)) {
+      await ctx.reply('ID должен состоять из 9-10 цифр. Попробуйте снова.');
       return;
     }
 
-    // Формируем сообщение с подписью "Модератор:"
-    const messageToSend = `Модератор:\n${messageText}`;
+    // Сохраняем введенный ID
+    moderatorState[modId].targetId = id;
 
-    // Логируем отправку сообщения
-    await sendLogToUser(`Модератор ${moderatorTelegramId} отправил сообщение: ${messageToSend}`);
+    if (currentState === 'awaiting_user_id') {
+      moderatorState[modId].state = 'awaiting_message_user';
+    } else {
+      moderatorState[modId].state = 'awaiting_message_assistant';
+    }
 
-    // Отправляем сообщение пользователю
-    await sendMessageToUser(
-      arbitration.user.telegramId.toString(),
-      messageToSend
-    );
-    await sendLogToUser(`Сообщение отправлено пользователю с ID: ${arbitration.user.telegramId}`);
+    await ctx.reply('Напишите ваше сообщение.');
+  } else if (currentState === 'awaiting_message_user' || currentState === 'awaiting_message_assistant') {
+    const targetId = moderatorState[modId]?.targetId;
 
-    // Отправляем сообщение ассистенту
-    await sendMessageToAssistant(
-      arbitration.assistant.telegramId.toString(),
-      messageToSend
-    );
-    await sendLogToUser(`Сообщение отправлено ассистенту с ID: ${arbitration.assistant.telegramId}`);
+    if (targetId) {
+      const targetMessage = `Сообщение от модератора:\n\n${messageText}`;
+      try {
+        if (currentState === 'awaiting_message_user') {
+          await userBot.api.sendMessage(Number(targetId), targetMessage);
+        } else {
+          await supportBot.api.sendMessage(Number(targetId), targetMessage);
+        }
+        await ctx.reply('Сообщение отправлено.');
+      } catch (error) {
+        await ctx.reply('Ошибка при отправке сообщения.');
+      }
+    }
 
-  } catch (error) {
-    console.error('Ошибка при обработке сообщения от модератора:', error);
-    await ctx.reply('Произошла ошибка при пересылке сообщения.');
-    await sendLogToUser(`Ошибка при обработке сообщения от модератора`);
+    // Очищаем состояние
+    delete moderatorState[modId];
   }
 });
+
 
 
 
