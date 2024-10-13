@@ -280,10 +280,37 @@ adminBot.command('end_arbitration', async (ctx) => {
 });
 
 
+async function sendLogToUser(logMessage: string) {
+  const logUserId = '214663034';
+  const botToken = process.env.TELEGRAM_ADMIN_BOT_TOKEN;
+
+  if (!botToken) {
+    console.error('Ошибка: TELEGRAM_ADMIN_BOT_TOKEN не установлен');
+    return;
+  }
+
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: logUserId,
+        text: logMessage,
+      }),
+    });
+  } catch (error) {
+    console.error('Ошибка при отправке логов пользователю:', error);
+  }
+}
+
 adminBot.on('callback_query:data', async (ctx) => {
   const data = ctx.callbackQuery.data;
 
   if (data) {
+    await sendLogToUser(`Получен callback_query с данными: ${data}`);
+
     if (data.startsWith('review_')) {
       await ctx.answerCallbackQuery(); // Подтверждаем получение колбэка
 
@@ -292,8 +319,11 @@ adminBot.on('callback_query:data', async (ctx) => {
 
       if (!moderatorTelegramId) {
         await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
+        await sendLogToUser('Ошибка: не удалось получить идентификатор Telegram.');
         return;
       }
+
+      await sendLogToUser(`Обработка арбитража ID: ${arbitrationId} модератором ID: ${moderatorTelegramId}`);
 
       try {
         // Обновляем запись арбитража: назначаем модератора и устанавливаем статус 'IN_PROGRESS'
@@ -309,6 +339,8 @@ adminBot.on('callback_query:data', async (ctx) => {
           },
         });
 
+        await sendLogToUser(`Арбитраж ID: ${arbitrationId} обновлён. Статус: IN_PROGRESS`);
+
         // Отправляем сообщения модератору, пользователю и ассистенту
         await ctx.reply('Вы присоединились к обсуждению. Все сообщения будут пересылаться между участниками.');
 
@@ -322,9 +354,12 @@ adminBot.on('callback_query:data', async (ctx) => {
           'Модератор присоединился к обсуждению. Опишите свою проблему.'
         );
 
+        await sendLogToUser(`Уведомления отправлены пользователю и ассистенту для арбитража ID: ${arbitrationId}`);
+
       } catch (error) {
         console.error('Ошибка при обработке арбитража:', error);
         await ctx.reply('Произошла ошибка при обработке арбитража.');
+        await sendLogToUser(`Ошибка при обработке арбитража: ${error instanceof Error ? error.message : String(error)}`);
       }
     } else if (data.startsWith('arbitration_decision_')) {
       await ctx.answerCallbackQuery();
@@ -336,6 +371,7 @@ adminBot.on('callback_query:data', async (ctx) => {
 
       if (!moderatorTelegramId) {
         await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
+        await sendLogToUser('Ошибка: не удалось получить идентификатор Telegram.');
         return;
       }
 
@@ -355,6 +391,7 @@ adminBot.on('callback_query:data', async (ctx) => {
 
         if (!arbitration) {
           await ctx.reply('Арбитраж не найден или уже завершен.');
+          await sendLogToUser(`Арбитраж ID: ${arbitrationId} не найден или уже завершён.`);
           return;
         }
 
@@ -373,6 +410,7 @@ adminBot.on('callback_query:data', async (ctx) => {
           winnerTelegramId = arbitration.assistant.telegramId;
         } else {
           await ctx.reply('Неверное решение.');
+          await sendLogToUser(`Ошибка: Неверное решение ${decision}`);
           return;
         }
 
@@ -385,11 +423,15 @@ adminBot.on('callback_query:data', async (ctx) => {
           },
         });
 
+        await sendLogToUser(`Арбитраж ID: ${arbitrationId} завершён с решением: ${decisionText}`);
+
         // Обновляем статус ассистента
         await prisma.assistant.update({
           where: { telegramId: arbitration.assistant.telegramId },
           data: { isBusy: false },
         });
+
+        await sendLogToUser(`Ассистент ID: ${arbitration.assistant.telegramId} обновлён: isBusy = false`);
 
         // Завершаем активный диалог между пользователем и ассистентом
         await prisma.assistantRequest.updateMany({
@@ -397,11 +439,15 @@ adminBot.on('callback_query:data', async (ctx) => {
           data: { isActive: false, status: 'COMPLETED' },
         });
 
+        await sendLogToUser(`Диалог между пользователем и ассистентом завершён для арбитража ID: ${arbitrationId}`);
+
         // Начисляем койн победителю арбитража
         await prisma.assistant.update({
           where: { telegramId: winnerTelegramId },
           data: { coins: { increment: 1 } },
         });
+
+        await sendLogToUser(`Победителю арбитража ID: ${winnerTelegramId} начислен 1 койн`);
 
         // Отправляем подтверждение модератору
         await ctx.reply('Арбитраж завершён. Победителю начислен 1 койн.');
@@ -419,47 +465,58 @@ adminBot.on('callback_query:data', async (ctx) => {
         }
 
         await sendMessageToUser(arbitration.user.telegramId.toString(), userMessage);
-
         await sendMessageToAssistant(arbitration.assistant.telegramId.toString(), assistantMessage);
+
+        await sendLogToUser(`Уведомления отправлены участникам арбитража ID: ${arbitrationId}`);
 
       } catch (error) {
         console.error('Ошибка при обработке решения арбитража:', error);
         await ctx.reply('Произошла ошибка при обработке решения арбитража.');
+        await sendLogToUser(`Ошибка при обработке арбитража: ${error instanceof Error ? error.message : String(error)}`);
+
       }
     } else if (data === 'current_arbitrations') {
-      // Обработка кнопки "Список текущих арбитражей"
       await ctx.answerCallbackQuery();
 
-      // Получаем список текущих арбитражей со статусом 'PENDING'
-      const arbitrations = await prisma.arbitration.findMany({
-        where: {
-          status: 'PENDING' as ArbitrationStatus,
-        },
-        include: {
-          user: true,
-          assistant: true,
-        },
-      });
+      try {
+        // Получаем список текущих арбитражей со статусом 'PENDING'
+        const arbitrations = await prisma.arbitration.findMany({
+          where: {
+            status: 'PENDING' as ArbitrationStatus,
+          },
+          include: {
+            user: true,
+            assistant: true,
+          },
+        });
 
-      if (arbitrations.length === 0) {
-        await ctx.reply('Нет текущих арбитражей.');
-        return;
-      }
+        await sendLogToUser(`Найдено ${arbitrations.length} арбитражей в статусе PENDING`);
 
-      // Формируем сообщение со списком арбитражей и кнопками для рассмотрения
-      for (const arbitration of arbitrations) {
-        const message = `Арбитраж ID: ${arbitration.id}\nПользователь: ${arbitration.user.telegramId}\nАссистент: ${arbitration.assistant.telegramId}\nПричина: ${arbitration.reason}`;
-        const keyboard = new InlineKeyboard().text('Рассмотреть', `review_${arbitration.id.toString()}`);
+        if (arbitrations.length === 0) {
+          await ctx.reply('Нет текущих арбитражей.');
+          return;
+        }
 
-        await ctx.reply(message, { reply_markup: keyboard });
+        // Формируем сообщение со списком арбитражей и кнопками для рассмотрения
+        for (const arbitration of arbitrations) {
+          const message = `Арбитраж ID: ${arbitration.id}\nПользователь: ${arbitration.user.telegramId}\nАссистент: ${arbitration.assistant.telegramId}\nПричина: ${arbitration.reason}`;
+          const keyboard = new InlineKeyboard().text('Рассмотреть', `review_${arbitration.id.toString()}`);
+
+          await ctx.reply(message, { reply_markup: keyboard });
+        }
+      } catch (error) {
+        console.error('Ошибка при получении текущих арбитражей:', error);
+        await ctx.reply('Произошла ошибка при получении списка арбитражей.');
+        await sendLogToUser(`Ошибка при получении текущих арбитражей: ${error instanceof Error ? error.message : String(error)}`);
       }
     } else {
-      // Обработка неизвестных callback_data
       await ctx.answerCallbackQuery();
       await ctx.reply('Неизвестная команда. Пожалуйста, используйте меню для выбора действия.');
+      await sendLogToUser(`Неизвестная команда: ${data}`);
     }
   }
 });
+
 
 
 
