@@ -414,6 +414,9 @@ adminBot.on('callback_query:data', async (ctx) => {
           return;
         }
 
+        // Логируем айди победителя
+        await sendLogToUser(`Победитель арбитража: ID = ${winnerTelegramId}`);
+
         // Обновляем арбитраж
         await prisma.arbitration.update({
           where: { id: arbitration.id },
