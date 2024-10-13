@@ -1,70 +1,74 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { NextResponse } from 'next/server';
+import { PrismaClient, ArbitrationStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
-    const { arbitrationId } = await req.json();
-
-    // Логика обработки модератора
-    const arbitration = await prisma.arbitration.findUnique({
-      where: { id: BigInt(arbitrationId) },
-    });
-
-    if (!arbitration) {
-      return NextResponse.json({ error: 'Арбитраж не найден' }, { status: 404 });
-    }
-
-    // Ищем модератора, который не является текущим и не был проигнорирован (если это указано)
-    const newModerator = await prisma.moderator.findFirst({
+    // Ищем все арбитражи со статусом PENDING
+    const pendingArbitrations = await prisma.arbitration.findMany({
       where: {
-        ...(arbitration.moderatorId ? {
-          id: {
-            not: arbitration.moderatorId, // Исключаем текущего модератора, если он назначен
-          },
-        } : {}),
-        id: {
-          notIn: arbitration.ignoredModerators || [], // Исключаем модераторов, которые уже проигнорировали арбитраж
-        },
+        status: 'PENDING' as ArbitrationStatus,
       },
-      orderBy: {
-        lastActiveAt: 'desc', // Последний активный модератор
+      include: {
+        moderator: true,
       },
     });
 
-    if (!newModerator) {
-      return NextResponse.json({ error: 'Нет доступных модераторов' }, { status: 404 });
+    if (pendingArbitrations.length === 0) {
+      return NextResponse.json({ message: 'Нет арбитражей со статусом PENDING' }, { status: 200 });
     }
 
-    // Обновляем арбитраж, добавляем нового модератора и отмечаем игнорировавших
-    await prisma.arbitration.update({
-      where: { id: arbitration.id },
-      data: {
-        moderatorId: newModerator.id,
-        ignoredModerators: {
-          push: arbitration.moderatorId || BigInt(0), // Добавляем текущего модератора в список проигнорировавших
+    // Обрабатываем каждый арбитраж
+    for (const arbitration of pendingArbitrations) {
+      const ignoredModerators = arbitration.ignoredModerators || [];
+
+      // Ищем модератора, который не был проигнорирован
+      const newModerator = await prisma.moderator.findFirst({
+        where: {
+          id: {
+            notIn: ignoredModerators, // Исключаем проигнорированных модераторов
+          },
         },
-      },
-    });
+        orderBy: {
+          lastActiveAt: 'desc', // Находим самого активного недавно
+        },
+      });
 
-    // Уведомляем нового модератора
-    await notifyModerator(newModerator.id, arbitration.id);
+      if (newModerator) {
+        // Уведомляем модератора
+        await notifyModerator(newModerator.id, arbitration.id);
 
-    return NextResponse.json({ success: true, moderatorId: newModerator.id });
+        // Обновляем арбитраж, добавляем нового модератора и список проигнорированных
+        await prisma.arbitration.update({
+          where: { id: arbitration.id },
+          data: {
+            moderatorId: newModerator.id,
+            ignoredModerators: {
+              push: newModerator.id, // Добавляем текущего модератора в список проигнорированных
+            },
+          },
+        });
+
+        console.log(`Модератор ${newModerator.id} уведомлен для арбитража ${arbitration.id}`);
+      } else {
+        console.log(`Не удалось найти доступного модератора для арбитража ${arbitration.id}`);
+      }
+    }
+
+    return NextResponse.json({ message: 'Проверка завершена' }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Неизвестная ошибка' }, { status: 500 });
   }
 }
 
+// Функция уведомления модератора
 async function notifyModerator(moderatorId: bigint, arbitrationId: bigint) {
   try {
-    // Отправляем уведомление модератору
     await sendTelegramMessageToModerator(
       moderatorId.toString(),
       `Вы назначены на арбитраж с ID: ${arbitrationId}. Пожалуйста, рассмотрите его.`
     );
-    
     console.log(`Модератор ${moderatorId} уведомлен о арбитраже ${arbitrationId}.`);
   } catch (error) {
     console.error(`Ошибка при уведомлении модератора ${moderatorId} для арбитража ${arbitrationId}:`, error instanceof Error ? error.message : String(error));
