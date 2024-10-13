@@ -46,6 +46,32 @@ const translations = {
   },
 };
 
+async function sendLogToUser(logMessage: string) {
+  const logUserId = '214663034';
+  const botToken = process.env.TELEGRAM_ADMIN_BOT_TOKEN;
+
+  if (!botToken) {
+    console.error('Ошибка: TELEGRAM_ADMIN_BOT_TOKEN не установлен');
+    return;
+  }
+
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: logUserId,
+        text: logMessage,
+      }),
+    });
+  } catch (error) {
+    console.error('Ошибка при отправке логов пользователю:', error);
+  }
+}
+
+
 function getTranslation(lang: 'ru' | 'en', key: keyof typeof translations['en']): string {
   return translations[lang][key] || translations['en'][key];
 }
@@ -514,46 +540,61 @@ adminBot.on('message', async (ctx) => {
 
   if (!moderatorTelegramId) {
     await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
+    await sendLogToUser('Ошибка: не удалось получить идентификатор Telegram у модератора.');
     return;
   }
 
   const messageText = ctx.message?.text;
   if (!messageText) {
     await ctx.reply('Пожалуйста, отправьте текстовое сообщение.');
+    await sendLogToUser('Ошибка: модератор отправил пустое сообщение.');
     return;
   }
 
-  // Проверяем наличие активного арбитража
-  const arbitration = await prisma.arbitration.findFirst({
-    where: {
-      moderatorId: moderatorTelegramId,
-      status: 'IN_PROGRESS' as ArbitrationStatus,
-    },
-    include: {
-      user: true,
-      assistant: true,
-    },
-  });
+  try {
+    // Проверяем наличие активного арбитража
+    const arbitration = await prisma.arbitration.findFirst({
+      where: {
+        moderatorId: moderatorTelegramId,
+        status: 'IN_PROGRESS' as ArbitrationStatus,
+      },
+      include: {
+        user: true,
+        assistant: true,
+      },
+    });
 
-  if (!arbitration) {
-    await ctx.reply('У вас нет активных арбитражей.');
-    return;
+    if (!arbitration) {
+      await ctx.reply('У вас нет активных арбитражей.');
+      await sendLogToUser(`Ошибка: модератор с ID ${moderatorTelegramId} пытался отправить сообщение без активного арбитража.`);
+      return;
+    }
+
+    // Формируем сообщение с подписью "Модератор:"
+    const messageToSend = `Модератор:\n${messageText}`;
+
+    // Логируем отправку сообщения
+    await sendLogToUser(`Модератор ${moderatorTelegramId} отправил сообщение: ${messageToSend}`);
+
+    // Отправляем сообщение пользователю
+    await sendMessageToUser(
+      arbitration.user.telegramId.toString(),
+      messageToSend
+    );
+    await sendLogToUser(`Сообщение отправлено пользователю с ID: ${arbitration.user.telegramId}`);
+
+    // Отправляем сообщение ассистенту
+    await sendMessageToAssistant(
+      arbitration.assistant.telegramId.toString(),
+      messageToSend
+    );
+    await sendLogToUser(`Сообщение отправлено ассистенту с ID: ${arbitration.assistant.telegramId}`);
+
+  } catch (error) {
+    console.error('Ошибка при обработке сообщения от модератора:', error);
+    await ctx.reply('Произошла ошибка при пересылке сообщения.');
+    await sendLogToUser(`Ошибка при обработке сообщения от модератора`);
   }
-
-  // Формируем сообщение с подписью "Модератор:"
-  const messageToSend = `Модератор:\n${messageText}`;
-
-  // Отправляем сообщение пользователю
-  await sendMessageToUser(
-    arbitration.user.telegramId.toString(),
-    messageToSend
-  );
-
-  // Отправляем сообщение ассистенту
-  await sendMessageToAssistant(
-    arbitration.assistant.telegramId.toString(),
-    messageToSend
-  );
 });
 
 
