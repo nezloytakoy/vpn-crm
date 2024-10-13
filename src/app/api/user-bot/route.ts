@@ -552,36 +552,31 @@ bot.command('problem', async (ctx) => {
       'Для решения спорной ситуации пользователем приглашен модератор.'
     );
 
-    // Получаем время, которое на один час меньше текущего
-    const oneHourAgo = subHours(new Date(), 1);
-
-    // Ищем модераторов, которые были активны в последний час
-    const moderators = await prisma.moderator.findMany({
-      where: {
-        lastActiveAt: {
-          gte: oneHourAgo,
-        },
+    // Ищем модератора с последней активностью
+    const lastActiveModerator = await prisma.moderator.findFirst({
+      orderBy: {
+        lastActiveAt: 'desc', // Сортируем по последней активности
       },
     });
 
-    if (moderators.length === 0) {
+    if (!lastActiveModerator) {
       await ctx.reply('Нет активных модераторов.');
       return;
     }
 
-    // Отправляем сообщение модераторам через бота для модераторов
-    for (const moderator of moderators) {
-      await sendTelegramMessageToModerator(
-        moderator.id.toString(), // Используем telegramId модератора
-        'Для решения спорной ситуации пользователем приглашен модератор. Проверьте арбитраж.',
-        arbitration.id // Передаем ID арбитража
-      );
-    }
+    // Отправляем сообщение последнему активному модератору через бота для модераторов
+    await sendTelegramMessageToModerator(
+      lastActiveModerator.id.toString(), // Используем telegramId модератора
+      'Для решения спорной ситуации пользователем приглашен модератор. Проверьте арбитраж.',
+      arbitration.id // Передаем ID арбитража
+    );
+
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
     await ctx.reply(`⚠️ Произошла ошибка при открытии арбитража: ${errorMessage}. Пожалуйста, попробуйте еще раз.`);
   }
 });
+
 
 
 

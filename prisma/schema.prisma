@@ -137,6 +137,8 @@ model Arbitration {
   moderator        Moderator?        @relation(fields: [moderatorId], references: [id])
   moderatorId      BigInt?           // Поле может быть null
   reason           String
+  assignedAt    DateTime?  // Дата и время назначения модератора
+  ignoredModerators BigInt[]         @default([])  // Поле для хранения списка ID проигнорировавших модераторов
   decision         String?
   status           ArbitrationStatus @default(PENDING)
   createdAt        DateTime          @default(now())

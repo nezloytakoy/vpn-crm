@@ -331,7 +331,7 @@ function Page() {
                 />
               </div>
               <div className={styles.textbox}>
-                <p className={styles.num}>{coins}$</p>
+                <p className={styles.num}>{loading ? '...' : coins}$</p>
                 <p className={styles.text}>{t('bonus')}</p>
               </div>
             </div>
@@ -346,7 +346,7 @@ function Page() {
                 />
               </div>
               <div className={styles.textbox}>
-                <p className={styles.num}>{coins}$</p>
+                <p className={styles.num}>{loading ? '...' : coins}$</p>
                 <p className={styles.text}>{t('available')}</p>
               </div>
             </div>
