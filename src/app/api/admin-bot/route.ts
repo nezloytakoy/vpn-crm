@@ -137,24 +137,37 @@ adminBot.command('start', async (ctx) => {
             return;
           }
 
-          // Переносим данные из таблицы Invitation в таблицу Moderator
-          await prisma.moderator.create({
-            data: {
-              login: invitation.login,
-              password: invitation.password || 'defaultPassword',
-              id: BigInt(ctx.from.id),
-            },
+          const moderatorId = BigInt(ctx.from.id);
+
+          // Проверяем, существует ли модератор с таким ID
+          const existingModerator = await prisma.moderator.findUnique({
+            where: { id: moderatorId },
           });
 
-          // Обновляем статус приглашения как использованное
-          await prisma.invitation.update({
-            where: { id: invitation.id },
-            data: { used: true },
-          });
+          if (existingModerator) {
+            // Если модератор уже существует, отправляем сообщение
+            await ctx.reply('Вы уже являетесь модератором.');
+            await showModeratorMenu(ctx, lang); // Показываем меню модератора
+          } else {
+            // Переносим данные из таблицы Invitation в таблицу Moderator
+            await prisma.moderator.create({
+              data: {
+                login: invitation.login,
+                password: invitation.password || 'defaultPassword',
+                id: moderatorId,
+              },
+            });
 
-          // Приветственное сообщение и меню для модератора
-          await ctx.reply(getTranslation(lang, 'welcome'));
-          await showModeratorMenu(ctx, lang);
+            // Обновляем статус приглашения как использованное
+            await prisma.invitation.update({
+              where: { id: invitation.id },
+              data: { used: true },
+            });
+
+            // Приветственное сообщение и меню для модератора
+            await ctx.reply(getTranslation(lang, 'welcome'));
+            await showModeratorMenu(ctx, lang);
+          }
         } else {
           await ctx.reply(getTranslation(lang, 'invalid_link'));
         }
@@ -168,6 +181,7 @@ adminBot.command('start', async (ctx) => {
     await ctx.reply(getTranslation(lang, 'command_error'));
   }
 });
+
 
 async function showModeratorMenu(ctx: Context, lang: 'ru' | 'en') {
   const keyboard = new InlineKeyboard()

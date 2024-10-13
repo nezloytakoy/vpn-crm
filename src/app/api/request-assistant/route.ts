@@ -99,6 +99,7 @@ export async function POST(request: Request) {
         },
       });
   
+      // Если нет активного запроса, создаем новый
       if (!assistantRequest) {
         assistantRequest = await prisma.assistantRequest.create({
           data: {
@@ -107,6 +108,7 @@ export async function POST(request: Request) {
             message: getTranslation(lang, 'assistantRequestMessage'),
             status: 'PENDING',
             isActive: true,
+            ignoredAssistants: [], // Инициализация массива проигнорированных ассистентов
           },
         });
       }
@@ -136,7 +138,7 @@ export async function POST(request: Request) {
   
       await prisma.assistant.update({
         where: { telegramId: selectedAssistant.telegramId },
-        data: { 
+        data: {
           isBusy: true,
           lastActiveAt: new Date(), // Обновляем время последней активности
         },
@@ -172,7 +174,6 @@ export async function POST(request: Request) {
       });
     }
   }
-  
 
 
 // Обновим и другие вспомогательные функции, чтобы использовать локализацию
