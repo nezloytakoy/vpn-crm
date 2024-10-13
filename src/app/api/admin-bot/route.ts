@@ -46,6 +46,7 @@ const translations = {
   },
 };
 
+
 async function sendLogToUser(logMessage: string) {
   const logUserId = '214663034';
   const botToken = process.env.TELEGRAM_ADMIN_BOT_TOKEN;
@@ -449,13 +450,16 @@ adminBot.on('callback_query:data', async (ctx) => {
         // Определяем новый статус арбитража и решение
         let newStatus: ArbitrationStatus;
         let decisionText = '';
+        let winnerTelegramId: bigint;
 
         if (decision === 'user') {
           newStatus = 'REJECTED' as ArbitrationStatus; // Решение в пользу пользователя
           decisionText = 'USER';
+          winnerTelegramId = arbitration.user.telegramId;
         } else if (decision === 'assistant') {
           newStatus = 'ACCEPTED' as ArbitrationStatus; // Решение в пользу ассистента
           decisionText = 'ASSISTANT';
+          winnerTelegramId = arbitration.assistant.telegramId;
         } else {
           await ctx.reply('Неверное решение.');
           return;
@@ -476,8 +480,20 @@ adminBot.on('callback_query:data', async (ctx) => {
           data: { isBusy: false },
         });
 
+        // Завершаем активный диалог между пользователем и ассистентом
+        await prisma.assistantRequest.updateMany({
+          where: { userId: arbitration.userId, assistantId: arbitration.assistantId, isActive: true },
+          data: { isActive: false, status: 'COMPLETED' },
+        });
+
+        // Начисляем койн победителю арбитража
+        await prisma.assistant.update({
+          where: { telegramId: winnerTelegramId },
+          data: { coins: { increment: 1 } },
+        });
+
         // Отправляем подтверждение модератору
-        await ctx.reply('Арбитраж завершён.');
+        await ctx.reply('Арбитраж завершён. Победителю начислен 1 койн.');
 
         // Уведомляем участников
         let userMessage = '';
@@ -533,6 +549,8 @@ adminBot.on('callback_query:data', async (ctx) => {
     }
   }
 });
+
+
 
 
 adminBot.on('message', async (ctx) => {
