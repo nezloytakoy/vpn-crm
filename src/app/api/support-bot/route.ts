@@ -19,6 +19,32 @@ interface MessageData {
   };
 }
 
+type TelegramButton = {
+  text: string;
+  callback_data: string;
+};
+
+// Функция отправки сообщения с кнопками
+async function sendTelegramMessageWithButtons(chatId: string, text: string, buttons: TelegramButton[]) {
+  const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+  await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      reply_markup: {
+        inline_keyboard: buttons.map((button) => [{ text: button.text, callback_data: button.callback_data }]),
+      },
+    }),
+  });
+}
+
+
 // Функция отправки сообщений пользователю
 async function sendTelegramMessageToUser(chatId: string, text: string) {
   const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
@@ -151,6 +177,34 @@ const detectUserLanguage = (ctx: Context) => {
   const userLang = ctx.from?.language_code;
   return userLang === 'ru' ? 'ru' : 'en';
 };
+
+// Функция поиска нового доступного ассистента
+async function findNewAssistant(requestId: bigint, ignoredAssistants: bigint[]) {
+  const availableAssistant = await prisma.assistant.findFirst({
+    where: {
+      isWorking: true,
+      isBusy: false,
+      telegramId: {
+        notIn: ignoredAssistants, // исключаем ассистентов из списка проигнорированных
+      },
+    },
+    orderBy: {
+      lastActiveAt: 'desc', // выбираем самого активного недавно
+    },
+  });
+
+  if (!availableAssistant) {
+    // Если нет доступных ассистентов, очищаем список проигнорированных и начинаем поиск с начала
+    await prisma.assistantRequest.update({
+      where: { id: requestId },
+      data: { ignoredAssistants: [] }, // Очищаем список проигнорированных ассистентов
+    });
+    // И снова ищем ассистента
+    return findNewAssistant(requestId, []);
+  }
+
+  return availableAssistant;
+}
 
 async function endActiveDialog(telegramId: bigint, lang: "en" | "ru", ctx: Context) {
   try {
@@ -419,28 +473,68 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
   }
 }
 
+// Обработчик отклонения запроса ассистентом
 async function handleRejectRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
   try {
+    // Добавляем текущего ассистента в список проигнорированных
+    const assistantRequest = await prisma.assistantRequest.findUnique({
+      where: { id: BigInt(requestId) },
+    });
+
+    let ignoredAssistants = assistantRequest?.ignoredAssistants || [];
+
+    // Добавляем текущего ассистента в список проигнорированных
+    ignoredAssistants.push(assistantTelegramId);
+
     // Обновляем статус запроса как "Отклонено" и деактивируем его
     await prisma.assistantRequest.update({
       where: { id: BigInt(requestId) },
-      data: { status: 'REJECTED', isActive: false },
+      data: {
+        status: 'REJECTED',
+        isActive: false,
+        ignoredAssistants, // Обновляем список проигнорированных ассистентов
+      },
     });
+
+    // Ищем нового ассистента
+    const newAssistant = await findNewAssistant(BigInt(requestId), ignoredAssistants);
+
+    // Если найден новый ассистент, отправляем запрос ему
+    if (newAssistant) {
+      await prisma.assistantRequest.update({
+        where: { id: BigInt(requestId) },
+        data: {
+          assistantId: newAssistant.telegramId, // Назначаем нового ассистента
+          status: 'PENDING',
+          isActive: false,
+        },
+      });
+
+      // Уведомляем нового ассистента
+      await sendTelegramMessageWithButtons(
+        newAssistant.telegramId.toString(),
+        `Новый запрос от пользователя`,
+        [
+          { text: 'Принять', callback_data: `accept_${requestId}` },
+          { text: 'Отклонить', callback_data: `reject_${requestId}` },
+        ]
+      );
+
+      await ctx.reply('❌ Вы отклонили запрос. Новый ассистент уведомлен.');
+    } else {
+      await ctx.reply('❌ Вы отклонили запрос, но доступных ассистентов больше нет.');
+    }
 
     // Обновляем статус ассистента, что он не занят
     await prisma.assistant.update({
       where: { telegramId: assistantTelegramId },
       data: { isBusy: false },
     });
-
-    // Отправляем сообщение ассистенту
-    await ctx.reply('❌ Вы отклонили запрос.');
   } catch (error) {
     console.error('Ошибка при отклонении запроса:', error);
     await ctx.reply('❌ Произошла ошибка при отклонении запроса.');
   }
 }
-
 // Обработчик команды /problem
 bot.command('problem', async (ctx) => {
   try {
