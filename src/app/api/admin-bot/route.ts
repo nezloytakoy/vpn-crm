@@ -277,6 +277,70 @@ adminBot.command('end_arbitration', async (ctx) => {
   }
 });
 
+adminBot.on('message:text', async (ctx) => {
+  const lang = detectUserLanguage(ctx);
+  const modId = ctx.from?.id;
+  if (!modId) {
+    await ctx.reply(getTranslation(lang, 'command_error'));
+    return;
+  }
+
+  const currentState = moderatorState[modId]?.state;
+
+  if (!currentState) {
+    // Обработка сообщений в контексте арбитража уже реализована выше
+    return;
+  }
+
+  // Если ожидаем ввода ID пользователя или ассистента
+  if (currentState === 'awaiting_user_id' || currentState === 'awaiting_assistant_id') {
+    const id = ctx.message.text;
+
+    // Проверяем, что ID состоит из цифр и имеет длину от 9 до 10 символов
+    if (!/^\d{9,10}$/.test(id)) {
+      await ctx.reply(getTranslation(lang, 'id_invalid'));
+      return;
+    }
+
+    // Сохраняем введённый ID в объекте состояния
+    moderatorState[modId].targetId = id;
+
+    if (currentState === 'awaiting_user_id') {
+      moderatorState[modId].state = 'awaiting_message_user';
+    } else if (currentState === 'awaiting_assistant_id') {
+      moderatorState[modId].state = 'awaiting_message_assistant';
+    }
+
+    // Просим модератора ввести сообщение
+    await ctx.reply(getTranslation(lang, 'message_prompt'));
+
+  // Если ожидаем сообщение для пользователя или ассистента
+  } else if (currentState === 'awaiting_message_user' || currentState === 'awaiting_message_assistant') {
+    const targetId = moderatorState[modId]?.targetId;
+
+    if (targetId) {
+      const targetMessage = `Сообщение от модератора:\n\n${ctx.message.text}`;
+      try {
+        // В зависимости от состояния отправляем сообщение пользователю или ассистенту
+        if (currentState === 'awaiting_message_user') {
+          await userBot.api.sendMessage(Number(targetId), targetMessage);
+        } else if (currentState === 'awaiting_message_assistant') {
+          await supportBot.api.sendMessage(Number(targetId), targetMessage);
+        }
+        await ctx.reply(getTranslation(lang, 'message_sent'));
+      } catch (error) {
+        console.error('Ошибка при отправке сообщения:', error);
+        await ctx.reply(getTranslation(lang, 'message_send_error'));
+      }
+    }
+    // Очищаем состояние после отправки сообщения
+    delete moderatorState[modId];
+
+  } else {
+    await ctx.reply(getTranslation(lang, 'unknown_command'));
+  }
+});
+
 
 adminBot.on('callback_query:data', async (ctx) => {
   const data = ctx.callbackQuery.data;
@@ -492,69 +556,7 @@ adminBot.on('message', async (ctx) => {
   );
 });
 
-adminBot.on('message:text', async (ctx) => {
-  const lang = detectUserLanguage(ctx);
-  const modId = ctx.from?.id;
-  if (!modId) {
-    await ctx.reply(getTranslation(lang, 'command_error'));
-    return;
-  }
 
-  const currentState = moderatorState[modId]?.state;
-
-  if (!currentState) {
-    // Обработка сообщений в контексте арбитража уже реализована выше
-    return;
-  }
-
-  // Если ожидаем ввода ID пользователя или ассистента
-  if (currentState === 'awaiting_user_id' || currentState === 'awaiting_assistant_id') {
-    const id = ctx.message.text;
-
-    // Проверяем, что ID состоит из цифр и имеет длину от 9 до 10 символов
-    if (!/^\d{9,10}$/.test(id)) {
-      await ctx.reply(getTranslation(lang, 'id_invalid'));
-      return;
-    }
-
-    // Сохраняем введённый ID в объекте состояния
-    moderatorState[modId].targetId = id;
-
-    if (currentState === 'awaiting_user_id') {
-      moderatorState[modId].state = 'awaiting_message_user';
-    } else if (currentState === 'awaiting_assistant_id') {
-      moderatorState[modId].state = 'awaiting_message_assistant';
-    }
-
-    // Просим модератора ввести сообщение
-    await ctx.reply(getTranslation(lang, 'message_prompt'));
-
-  // Если ожидаем сообщение для пользователя или ассистента
-  } else if (currentState === 'awaiting_message_user' || currentState === 'awaiting_message_assistant') {
-    const targetId = moderatorState[modId]?.targetId;
-
-    if (targetId) {
-      const targetMessage = `Сообщение от модератора:\n\n${ctx.message.text}`;
-      try {
-        // В зависимости от состояния отправляем сообщение пользователю или ассистенту
-        if (currentState === 'awaiting_message_user') {
-          await userBot.api.sendMessage(Number(targetId), targetMessage);
-        } else if (currentState === 'awaiting_message_assistant') {
-          await supportBot.api.sendMessage(Number(targetId), targetMessage);
-        }
-        await ctx.reply(getTranslation(lang, 'message_sent'));
-      } catch (error) {
-        console.error('Ошибка при отправке сообщения:', error);
-        await ctx.reply(getTranslation(lang, 'message_send_error'));
-      }
-    }
-    // Очищаем состояние после отправки сообщения
-    delete moderatorState[modId];
-
-  } else {
-    await ctx.reply(getTranslation(lang, 'unknown_command'));
-  }
-});
 
 
 export const POST = webhookCallback(adminBot, 'std/http');
