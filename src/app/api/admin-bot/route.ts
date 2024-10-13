@@ -47,31 +47,6 @@ const translations = {
 };
 
 
-async function sendLogToUser(logMessage: string) {
-  const logUserId = '214663034';
-  const botToken = process.env.TELEGRAM_ADMIN_BOT_TOKEN;
-
-  if (!botToken) {
-    console.error('Ошибка: TELEGRAM_ADMIN_BOT_TOKEN не установлен');
-    return;
-  }
-
-  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-
-  try {
-    await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: logUserId,
-        text: logMessage,
-      }),
-    });
-  } catch (error) {
-    console.error('Ошибка при отправке логов пользователю:', error);
-  }
-}
-
 
 function getTranslation(lang: 'ru' | 'en', key: keyof typeof translations['en']): string {
   return translations[lang][key] || translations['en'][key];
@@ -564,6 +539,7 @@ adminBot.on('message', async (ctx) => {
         }
         await ctx.reply('Сообщение отправлено.');
       } catch (error) {
+        console.log(error)
         await ctx.reply('Ошибка при отправке сообщения.');
       }
     }
