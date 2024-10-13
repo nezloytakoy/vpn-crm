@@ -1,0 +1,22 @@
+name: Notify Moderators
+
+# Устанавливаем расписание для запуска задачи
+on:
+  schedule:
+    # Каждую минуту
+    - cron: '*/1 * * * *'
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send request to notify moderators
+        run: |
+          curl -X POST https://crm-vpn.vercel.app/api/check-arbitration \
+          -H "Content-Type: application/json" \
+          -d '{"arbitrationId": "your-arbitration-id"}'
+
+      # В случае необходимости, можете добавить дополнительные шаги для логирования
+      - name: Log completion
+        run: echo "Notification job completed"
