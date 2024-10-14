@@ -24,7 +24,6 @@ export async function POST(req: NextRequest) {
       const sanitizedRequest = {
         ...newWithdrawalRequest,
         userId: newWithdrawalRequest.userId.toString(), // Преобразуем BigInt в строку
-        amount: newWithdrawalRequest.amount.toString(), // Если необходимо, преобразуйте другие поля
       };
   
       return NextResponse.json({ success: true, data: sanitizedRequest }, { status: 201 });
