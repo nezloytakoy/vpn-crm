@@ -494,7 +494,15 @@ bot.on('callback_query:data', async (ctx) => {
 
       if (assistant) {
         const coinsMessage = `${getTranslation(lang, 'my_coins')}: ${assistant.coins}`; // Выводим количество коинов
-        await ctx.reply(coinsMessage);
+
+        // Добавляем кнопку для запроса на вывод коинов
+        await ctx.reply(coinsMessage, {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: 'Запросить вывод', callback_data: 'request_withdrawal' }],
+            ],
+          },
+        });
       } else {
         await ctx.reply(getTranslation(lang, 'end_dialog_error'));
       }
@@ -512,6 +520,38 @@ bot.on('callback_query:data', async (ctx) => {
       `;
 
       await ctx.reply(activityMessage);
+    } else if (data === 'request_withdrawal') {
+      // Логика для обработки запроса на вывод коинов
+      const assistant = await prisma.assistant.findUnique({
+        where: { telegramId: telegramId },
+      });
+
+      if (assistant) {
+        const withdrawalAmount = assistant.coins; // Сумма для вывода (все коины ассистента)
+
+        // Отправляем сообщение пользователю
+        await ctx.reply('Запрос на вывод отправлен. Пожалуйста, ожидайте рассмотрения.');
+
+        // Делаем запрос на API для создания записи в таблице WithdrawalRequest
+        const response = await fetch('/api/withdraw', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: assistant.telegramId,
+            userNickname: ctx.from?.username || null,
+            amount: withdrawalAmount,
+          }),
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          await ctx.reply('Ваш запрос на вывод успешно создан.');
+        } else {
+          await ctx.reply('Произошла ошибка при создании запроса на вывод. Пожалуйста, попробуйте позже.');
+        }
+      } else {
+        await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+      }
     }
   } else {
     await ctx.reply(getTranslation(lang, 'end_dialog_error'));
