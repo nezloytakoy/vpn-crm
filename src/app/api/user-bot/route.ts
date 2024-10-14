@@ -437,30 +437,14 @@ bot.command('problem', async (ctx) => {
 
     const assistantId = lastConversation.assistantId;
 
-    // Запрашиваем описание жалобы у пользователя
-    await ctx.reply('Опишите свою жалобу.');
-
-    // Включаем обработчик для следующего сообщения пользователя
-    bot.on('message', async (complaintCtx) => {
-      const complaintText = complaintCtx.message?.text;
-
-      if (!complaintText) {
-        await ctx.reply('Пожалуйста, отправьте текст жалобы.');
-        return;
-      }
-
-      // Создаем запись в таблице жалоб
-      await prisma.complaint.create({
-        data: {
-          userId: telegramId,
-          assistantId: assistantId, // ID ассистента из последней беседы
-          text: complaintText,
-          status: 'PENDING',
-        },
-      });
-
-      await ctx.reply('Ваша жалоба была принята на рассмотрение. Спасибо за обращение!');
+    // Устанавливаем флаг ожидания жалобы для пользователя
+    await prisma.user.update({
+      where: { telegramId },
+      data: { isWaitingForComplaint: true },
     });
+
+    // Сообщаем пользователю, что ждем ввода жалобы
+    await ctx.reply('Опишите свою жалобу.');
 
   } catch (error) {
     console.error('Ошибка при создании жалобы:', error);
@@ -519,6 +503,45 @@ bot.on('message', async (ctx) => {
       return;
     }
 
+    // Проверка, ожидает ли пользователь ввода жалобы
+    if (user.isWaitingForComplaint) {
+      // Если пользователь ожидает ввода жалобы
+      if (!userMessage) {
+        await ctx.reply('Пожалуйста, отправьте текст жалобы.');
+        return;
+      }
+
+      // Находим последнюю завершенную беседу пользователя
+      const lastConversation = await prisma.conversation.findFirst({
+        where: {
+          userId: telegramId,
+          status: 'COMPLETED',
+        },
+        orderBy: {
+          updatedAt: 'desc',
+        },
+      });
+
+      // Создаем запись в таблице жалоб
+      await prisma.complaint.create({
+        data: {
+          userId: telegramId,
+          assistantId: lastConversation?.assistantId ?? BigInt(0),
+          text: userMessage,
+          status: 'PENDING',
+        },
+      });
+
+      // Сбрасываем флаг ожидания жалобы
+      await prisma.user.update({
+        where: { telegramId },
+        data: { isWaitingForComplaint: false },
+      });
+
+      await ctx.reply('Ваша жалоба была принята на рассмотрение. Спасибо за обращение!');
+      return;
+    }
+
     if (arbitration) {
       // Если есть активный арбитраж, пересылаем сообщение ассистенту и модератору
       const messageToSend = `Пользователь:\n${userMessage}`;
@@ -530,9 +553,6 @@ bot.on('message', async (ctx) => {
       if (arbitration.moderator) {
         await sendMessageToModerator(arbitration.moderator.id.toString(), messageToSend);
       }
-
-      // Можно уведомить пользователя, что сообщение отправлено
-      // await ctx.reply('Ваше сообщение было отправлено в арбитраж.');
 
     } else if (user.isActiveAIChat) {
       // Обработка режима общения с ИИ
@@ -585,6 +605,7 @@ bot.on('message', async (ctx) => {
     await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
   }
 });
+
 
 
 export const POST = webhookCallback(bot, 'std/http');

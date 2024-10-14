@@ -68,21 +68,23 @@ model User {
   telegramId             BigInt             @id @unique
   username               String?
   referralCount          Int                @default(0)
-  referrer               Referral[]         @relation("Referrer") // Обратное отношение к `Referral`
-  referredUsers          Referral[]         @relation("Referred") // Обратное отношение для приглашенных
+  referrer               Referral[]         @relation("Referrer")
+  referredUsers          Referral[]         @relation("Referred")
   subscriptionType       SubscriptionType   @default(FREE)
   hasUpdatedSubscription Boolean            @default(false)
   totalRequests          Int                @default(0)
   aiRequests             Int                @default(0)
   assistantRequests      Int                @default(0)
-  coins                  Int                @default(0) // Добавлено поле для хранения коинов
+  coins                  Int                @default(0)
   isActiveAIChat         Boolean            @default(false)
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
   conversations          Conversation[]
   requests               AssistantRequest[]
-  arbitrations           Arbitration[]      // Поле для обратного отношения
+  arbitrations           Arbitration[]
+  isWaitingForComplaint  Boolean            @default(false)  // Новое поле
 }
+
 
 model Referral {
   id             BigInt   @id @default(autoincrement())
