@@ -333,25 +333,16 @@ bot.on("message:successful_payment", async (ctx) => {
       // Логируем успешную оплату
       await sendLogToTelegram(`User ${userId} has successfully paid for ${payment.total_amount / 42} stars`);
 
-      // Пример получения данных о пользователе из БД и обновления подписки (необходимо реализовать соответствующую логику)
-      const user = await prisma.user.findUnique({
-        where: {
-          telegramId: BigInt(userId), // Ищем пользователя по Telegram ID
-        },
-      });
+      // Парсим JSON из invoice_payload
+      const payloadData = JSON.parse(payment.invoice_payload);
+      const { userId: decodedUserId, tariffName } = payloadData;
 
-      if (!user) {
-        await sendLogToTelegram(`User ${userId} not found in database.`);
-        throw new Error(`User ${userId} not found in database.`);
-      }
-
-      // Определяем логику для обновления подписки в зависимости от того, что пользователь купил
       let subscriptionType: SubscriptionType;
       let assistantRequestsIncrement = 0;
       let aiRequestsIncrement = 0;
 
       // Определяем, какой тариф был куплен
-      switch (payment.invoice_payload) {  // Используем invoice_payload для определения тарифа
+      switch (tariffName.toLowerCase().replace(/ - \d+\$$/, '')) {  // Убираем цену из названия
         case "ai + 5 запросов ассистенту":
         case "ai + 5 assistant requests":
           subscriptionType = SubscriptionType.FIRST;
@@ -376,14 +367,14 @@ bot.on("message:successful_payment", async (ctx) => {
           aiRequestsIncrement = 100;
           break;
         default:
-          await sendLogToTelegram(`Invalid invoice payload: ${payment.invoice_payload}`);
-          throw new Error(`Invalid invoice payload: ${payment.invoice_payload}`);
+          await sendLogToTelegram(`Invalid tariff name: ${tariffName}`);
+          throw new Error(`Invalid tariff name: ${tariffName}`);
       }
 
       // Обновляем пользователя в базе данных
       await prisma.user.update({
         where: {
-          telegramId: BigInt(userId),
+          telegramId: BigInt(decodedUserId),
         },
         data: {
           subscriptionType,
@@ -394,9 +385,8 @@ bot.on("message:successful_payment", async (ctx) => {
         },
       });
 
-
       // Логируем успешное обновление подписки
-      await sendLogToTelegram(`User ${userId} updated with subscription: ${subscriptionType}`);
+      await sendLogToTelegram(`User ${decodedUserId} updated with subscription: ${subscriptionType}`);
 
       // Отправляем сообщение пользователю о том, что подписка была успешно обновлена
       await ctx.reply("Ваш платеж прошел успешно! Привилегии активированы.");
@@ -405,8 +395,12 @@ bot.on("message:successful_payment", async (ctx) => {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     await sendLogToTelegram(`Error handling successful payment: ${errorMessage}`);
     console.error("Ошибка обработки успешного платежа:", errorMessage);
+    
+    // Уведомляем пользователя о возникшей проблеме
+    await ctx.reply("Произошла ошибка при обработке вашего платежа. Пожалуйста, свяжитесь с поддержкой.");
   }
 });
+
 
 
 bot.command('problem', async (ctx) => {
