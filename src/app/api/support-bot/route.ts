@@ -518,7 +518,14 @@ bot.on('callback_query:data', async (ctx) => {
         - Жалоб за последние сутки: ${stats.complaintsLast24Hours}
       `;
 
-      await ctx.reply(activityMessage);
+      // Добавляем кнопку "Лимиты"
+      await ctx.reply(activityMessage, {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: 'Лимиты', callback_data: 'view_limits' }],
+          ],
+        },
+      });
     } else if (data === 'request_withdrawal') {
       // Логика для обработки запроса на вывод
       const assistant = await prisma.assistant.findUnique({
@@ -528,6 +535,19 @@ bot.on('callback_query:data', async (ctx) => {
       if (assistant) {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
+
+        // Проверка наличия открытых жалоб
+        const pendingComplaints = await prisma.complaint.count({
+          where: {
+            assistantId: assistant.telegramId,
+            status: 'PENDING',
+          },
+        });
+
+        if (pendingComplaints > 0) {
+          await ctx.reply('Пользователь написал на вас жалобу, вы не можете сделать вывод, пока она не будет рассмотрена.');
+          return;
+        }
 
         // Получаем количество действий REJECTED и IGNORED за последние сутки
         const rejectedActions = await prisma.requestAction.count({
@@ -575,12 +595,17 @@ bot.on('callback_query:data', async (ctx) => {
       } else {
         await ctx.reply(getTranslation(lang, 'end_dialog_error'));
       }
+    } else if (data === 'view_limits') {
+      // Логика для обработки нажатия на кнопку "Лимиты"
+      await ctx.reply(
+        `Если пропуски запросов за сутки будет больше 3 или отказов больше 10, то ваша активность снизится и вы получите заморозку до 24 часов. 
+        Вывод коинов будет недоступен за это время. Получение жалобы также приостанавливает вывод коинов до того как ситуация не будет разрешена.`
+      );
     }
   } else {
     await ctx.reply(getTranslation(lang, 'end_dialog_error'));
   }
 });
-
 
 
 
