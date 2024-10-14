@@ -1,7 +1,6 @@
 import { Bot } from "grammy";
-import { PrismaClient, SubscriptionType } from "@prisma/client";
 
-const prisma = new PrismaClient();
+
 const bot = new Bot(process.env.TELEGRAM_USER_BOT_TOKEN!);
 
 const TELEGRAM_LOG_USER_ID = 5829159515;
@@ -20,13 +19,12 @@ export async function POST(request: Request) {
 
     await sendLogToTelegram(`Received tariffName: ${tariffName}, price: ${priceInDollars}`);
 
-    const cleanTariffName = tariffName.replace(/ - \d+\$$/, '').toLowerCase();
 
-    const starsAmount = priceInDollars * 1;
+    const starsAmount = priceInDollars * 1; // Цена в "звездах"
 
     const title = "Оплата через Звезды Telegram";
     const description = "Оплата за товар через звезды Telegram.";
-    const payload = "{}";
+    const payload = JSON.stringify({ userId, tariffName }); // Сохраняем информацию о пользователе и тарифе в payload
     const currency = "XTR";
     const prices = [{ amount: starsAmount, label: "Оплата через звезды" }];
 
@@ -39,71 +37,19 @@ export async function POST(request: Request) {
       prices
     );
 
-    await sendLogToTelegram(`Cleaned tariffName for comparison: ${cleanTariffName}`);
+    await sendLogToTelegram(`Invoice created for user: ${userId} with tariff: ${tariffName}`);
 
-    let subscriptionType: SubscriptionType;
-    let assistantRequestsIncrement = 0;
-    let aiRequestsIncrement = 0;
-
-    switch (cleanTariffName) {
-      case "ai + 5 запросов ассистенту":
-      case "ai + 5 assistant requests":
-        subscriptionType = SubscriptionType.FIRST;
-        assistantRequestsIncrement = 5;
-        aiRequestsIncrement = 10;
-        break;
-      case "ai + 14 запросов ассистенту":
-      case "ai + 14 assistant requests":
-        subscriptionType = SubscriptionType.SECOND;
-        assistantRequestsIncrement = 14;
-        aiRequestsIncrement = 28;
-        break;
-      case "ai + 30 запросов ассистенту":
-      case "ai + 30 assistant requests":
-        subscriptionType = SubscriptionType.THIRD;
-        assistantRequestsIncrement = 30;
-        aiRequestsIncrement = 60;
-        break;
-      case "только ai":
-      case "only ai":
-        subscriptionType = SubscriptionType.FOURTH;
-        aiRequestsIncrement = 100;
-        break;
-      default:
-        await sendLogToTelegram(`Invalid tariff name: ${cleanTariffName}`);
-        throw new Error(`Invalid tariff name: ${cleanTariffName}`);
-    }
-
-    const updatedUser = await prisma.user.update({
-      where: {
-        telegramId: BigInt(userId),
-      },
-      data: {
-        subscriptionType,
-        hasUpdatedSubscription: true,
-        aiRequests: { increment: aiRequestsIncrement },
-        assistantRequests: { increment: assistantRequestsIncrement },
-        updatedAt: new Date(),
-      },
-    });
-
-    const sanitizedUser = {
-      ...updatedUser,
-      telegramId: updatedUser.telegramId.toString(),
-    };
-
-    await sendLogToTelegram(`User ${userId} updated with subscription: ${subscriptionType}`);
-
-    return new Response(JSON.stringify({ invoiceLink, updatedUser: sanitizedUser }), {
+    // Возвращаем ссылку на инвойс, но не обновляем подписку до успешной оплаты
+    return new Response(JSON.stringify({ invoiceLink }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error("Ошибка создания инвойса или обновления подписки:", errorMessage);
-    await sendLogToTelegram(`Error processing invoice or subscription: ${errorMessage}`);
+    console.error("Ошибка создания инвойса:", errorMessage);
+    await sendLogToTelegram(`Error creating invoice: ${errorMessage}`);
     
-    return new Response(JSON.stringify({ message: "Ошибка создания инвойса или обновления подписки" }), {
+    return new Response(JSON.stringify({ message: "Ошибка создания инвойса" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });

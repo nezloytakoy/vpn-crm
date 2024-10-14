@@ -364,7 +364,7 @@ bot.on("message:successful_payment", async (ctx) => {
           assistantRequestsIncrement = 14;
           aiRequestsIncrement = 28;
           break;
-        case "ai + 30 запросов ассистенту":
+        case "ai + 30 запросов":
         case "ai + 30 assistant requests":
           subscriptionType = SubscriptionType.THIRD;
           assistantRequestsIncrement = 30;
