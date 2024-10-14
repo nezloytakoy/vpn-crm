@@ -418,19 +418,24 @@ bot.command('problem', async (ctx) => {
 
     const telegramId = BigInt(ctx.from.id);
 
-    // Ищем активный запрос пользователя
-    const activeRequest = await prisma.assistantRequest.findFirst({
+    // Находим последнюю завершенную беседу пользователя
+    const lastConversation = await prisma.conversation.findFirst({
       where: {
-        user: { telegramId: telegramId },
-        isActive: true,
+        userId: telegramId,
+        status: 'COMPLETED', // Ищем только завершенные беседы
       },
-      include: { assistant: true },
+      orderBy: {
+        updatedAt: 'desc', // Получаем последнюю по дате обновления беседу
+      },
+      include: { assistant: true }, // Включаем информацию об ассистенте
     });
 
-    if (!activeRequest) {
-      await ctx.reply('⚠️ У вас нет активных запросов.');
+    if (!lastConversation) {
+      await ctx.reply('⚠️ У вас нет завершенных бесед.');
       return;
     }
+
+    const assistantId = lastConversation.assistantId;
 
     // Запрашиваем описание жалобы у пользователя
     await ctx.reply('Опишите свою жалобу.');
@@ -448,7 +453,7 @@ bot.command('problem', async (ctx) => {
       await prisma.complaint.create({
         data: {
           userId: telegramId,
-          assistantId: activeRequest.assistantId ?? BigInt(0), // Устанавливаем ID ассистента или 0, если его нет
+          assistantId: assistantId, // ID ассистента из последней беседы
           text: complaintText,
           status: 'PENDING',
         },
