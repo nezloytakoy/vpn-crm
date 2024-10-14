@@ -455,7 +455,7 @@ bot.on('callback_query:data', async (ctx) => {
   const lang = detectUserLanguage(ctx);
 
   if (ctx.from?.id) {
-    const telegramId = BigInt(ctx.from.id);
+    const telegramId = BigInt(ctx.from.id); // Преобразование id в BigInt
     const data = ctx.callbackQuery?.data;
 
     if (data.startsWith('accept_') || data.startsWith('reject_')) {
@@ -467,8 +467,7 @@ bot.on('callback_query:data', async (ctx) => {
         await handleRejectRequest(requestId, telegramId, ctx);
       }
 
-      // Завершаем обработку здесь, чтобы "📊 Моя активность" не отправлялась
-      return;
+      return; // Завершаем обработку здесь
     }
 
     if (data === 'start_work') {
@@ -487,15 +486,15 @@ bot.on('callback_query:data', async (ctx) => {
       await ctx.reply(getTranslation(lang, 'work_started'));
       return;
     } else if (data === 'my_coins') {
-      // Добавляем получение количества коинов ассистента
+      // Получаем количество коинов ассистента
       const assistant = await prisma.assistant.findUnique({
         where: { telegramId: telegramId },
       });
 
       if (assistant) {
-        const coinsMessage = `${getTranslation(lang, 'my_coins')}: ${assistant.coins}`; // Выводим количество коинов
+        const coinsMessage = `${getTranslation(lang, 'my_coins')}: ${assistant.coins}`; 
 
-        // Добавляем кнопку для запроса на вывод коинов
+        // Добавляем кнопку для запроса на вывод
         await ctx.reply(coinsMessage, {
           reply_markup: {
             inline_keyboard: [
@@ -521,23 +520,23 @@ bot.on('callback_query:data', async (ctx) => {
 
       await ctx.reply(activityMessage);
     } else if (data === 'request_withdrawal') {
-      // Логика для обработки запроса на вывод коинов
+      // Логика для обработки запроса на вывод
       const assistant = await prisma.assistant.findUnique({
         where: { telegramId: telegramId },
       });
 
       if (assistant) {
-        const withdrawalAmount = assistant.coins; // Сумма для вывода (все коины ассистента)
+        const withdrawalAmount = assistant.coins; // Сумма для вывода
 
         // Отправляем сообщение пользователю
-        await ctx.reply('Запрос на вывод отправлен. Пожалуйста, ожидайте рассмотрения.');
+        await ctx.reply('Запрос на вывод отправлен.');
 
-        // Делаем запрос на API для создания записи в таблице WithdrawalRequest
+        // Запрос к API для создания записи о выводе
         const response = await fetch('/api/withdraw', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: assistant.telegramId,
+            userId: assistant.telegramId.toString(), // Преобразуем BigInt в строку
             userNickname: ctx.from?.username || null,
             amount: withdrawalAmount,
           }),
@@ -547,7 +546,7 @@ bot.on('callback_query:data', async (ctx) => {
         if (result.success) {
           await ctx.reply('Ваш запрос на вывод успешно создан.');
         } else {
-          await ctx.reply('Произошла ошибка при создании запроса на вывод. Пожалуйста, попробуйте позже.');
+          await ctx.reply('Произошла ошибка при создании запроса.');
         }
       } else {
         await ctx.reply(getTranslation(lang, 'end_dialog_error'));
