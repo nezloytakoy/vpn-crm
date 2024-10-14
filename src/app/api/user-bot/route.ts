@@ -494,7 +494,6 @@ async function sendTelegramMessageToAssistant(chatId: string, text: string) {
 }
 
 
-// Обработчик команды /problem для бота пользователя
 bot.command('problem', async (ctx) => {
   try {
     if (!ctx.from?.id) {
@@ -503,14 +502,6 @@ bot.command('problem', async (ctx) => {
     }
 
     const telegramId = BigInt(ctx.from.id);
-    const user = await prisma.user.findUnique({
-      where: { telegramId: telegramId },
-    });
-
-    if (!user) {
-      await ctx.reply('Ошибка: пользователь не найден.');
-      return;
-    }
 
     // Ищем активный запрос пользователя
     const activeRequest = await prisma.assistantRequest.findFirst({
@@ -526,92 +517,37 @@ bot.command('problem', async (ctx) => {
       return;
     }
 
-    // Проверяем, нет ли уже активного арбитража для этого запроса
-    const existingArbitration = await prisma.arbitration.findFirst({
-      where: {
-        userId: telegramId,
-        assistantId: activeRequest.assistantId ?? undefined, // Используем undefined, если assistantId равен null
-        status: 'IN_PROGRESS' as ArbitrationStatus,
-      },
+    // Запрашиваем описание жалобы у пользователя
+    await ctx.reply('Опишите свою жалобу.');
+
+    // Включаем обработчик для следующего сообщения пользователя
+    bot.on('message', async (complaintCtx) => {
+      const complaintText = complaintCtx.message?.text;
+
+      if (!complaintText) {
+        await ctx.reply('Пожалуйста, отправьте текст жалобы.');
+        return;
+      }
+
+      // Создаем запись в таблице жалоб
+      await prisma.complaint.create({
+        data: {
+          userId: telegramId,
+          assistantId: activeRequest.assistantId ?? BigInt(0), // Устанавливаем ID ассистента или 0, если его нет
+          text: complaintText,
+          status: 'PENDING',
+        },
+      });
+
+      await ctx.reply('Ваша жалоба была принята на рассмотрение. Спасибо за обращение!');
     });
-
-
-    if (existingArbitration) {
-      await ctx.reply('У вас уже есть активный арбитраж по этому запросу.');
-      return;
-    }
-
-    // Получаем никнеймы пользователя и ассистента
-    const userNickname = ctx.from.username || null;
-    const assistantNickname = activeRequest.assistant?.telegramId?.toString() || null;
-
-    interface ArbitrationData {
-      userId: bigint;
-      userNickname: string | null;
-      assistantId?: bigint; // assistantId теперь опциональный
-      assistantNickname: string | null;
-      moderatorId: bigint | null;
-      reason: string;
-      status: ArbitrationStatus;
-    }
-    
-    const arbitrationData: ArbitrationData = {
-      userId: telegramId,
-      userNickname: userNickname || null,
-      assistantNickname: assistantNickname || null,
-      moderatorId: null, // Если модератора нет на момент создания
-      reason: 'Открытие арбитража пользователем',
-      status: 'PENDING' as ArbitrationStatus,
-    };
-    
-    // Если assistantId существует, добавляем его в объект arbitrationData
-    if (activeRequest.assistantId) {
-      arbitrationData.assistantId = activeRequest.assistantId;
-    }
-    
-    // Если assistantId обязательный, задаем значение по умолчанию
-    const arbitration = await prisma.arbitration.create({
-      data: {
-        ...arbitrationData,
-        assistantId: arbitrationData.assistantId || BigInt(0), // Устанавливаем assistantId как BigInt(0), если не указан
-      },
-    });
-
-
-    await ctx.reply('Для решения спорной ситуации приглашен модератор.');
-    if (activeRequest.assistant !== null) {
-      await sendTelegramMessageToAssistant(
-        activeRequest.assistant.telegramId.toString(),
-        'Для решения спорной ситуации пользователем приглашен модератор.'
-      );
-    } else {
-      console.error('Ошибка: Ассистент не найден для активного запроса.');
-    }
-
-    // Ищем модератора с последней активностью
-    const lastActiveModerator = await prisma.moderator.findFirst({
-      orderBy: {
-        lastActiveAt: 'desc', // Сортируем по последней активности
-      },
-    });
-
-    if (!lastActiveModerator) {
-      await ctx.reply('Нет активных модераторов.');
-      return;
-    }
-
-    // Отправляем сообщение последнему активному модератору через бота для модераторов
-    await sendTelegramMessageToModerator(
-      lastActiveModerator.id.toString(), // Используем telegramId модератора
-      'Для решения спорной ситуации пользователем приглашен модератор. Проверьте арбитраж.',
-      arbitration.id // Передаем ID арбитража
-    );
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-    await ctx.reply(`⚠️ Произошла ошибка при открытии арбитража: ${errorMessage}. Пожалуйста, попробуйте еще раз.`);
+    console.error('Ошибка при создании жалобы:', error);
+    await ctx.reply('Произошла ошибка при создании жалобы. Пожалуйста, попробуйте позже.');
   }
 });
+
 
 
 
