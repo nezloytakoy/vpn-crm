@@ -499,12 +499,85 @@ bot.on('callback_query:data', async (ctx) => {
         await ctx.reply(getTranslation(lang, 'end_dialog_error'));
       }
     } else if (data === 'my_activity') {
-      await ctx.reply('📊 Моя активность: 10 завершенных задач.');
+      // Логика для получения активности ассистента
+      const stats = await getAssistantActivity(telegramId);
+
+      const activityMessage = `
+        📊 Моя активность:
+        - Всего диалогов: ${stats.totalConversations}
+        - Диалогов за последние сутки: ${stats.conversationsLast24Hours}
+        - Пропусков за последние сутки: ${stats.ignoredRequests}
+        - Отказов за последние сутки: ${stats.rejectedRequests}
+        - Жалоб за последние сутки: ${stats.complaintsLast24Hours}
+      `;
+
+      await ctx.reply(activityMessage);
     }
   } else {
     await ctx.reply(getTranslation(lang, 'end_dialog_error'));
   }
 });
+
+// Функция для получения активности ассистента
+async function getAssistantActivity(assistantId: bigint) {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  // Общее количество диалогов
+  const totalConversations = await prisma.conversation.count({
+    where: { assistantId: assistantId },
+  });
+
+  // Диалоги за последние сутки
+  const conversationsLast24Hours = await prisma.conversation.count({
+    where: {
+      assistantId: assistantId,
+      createdAt: {
+        gte: yesterday,
+      },
+    },
+  });
+
+  // Количество пропусков (IGNORED) за последние сутки
+  const ignoredRequests = await prisma.requestAction.count({
+    where: {
+      assistantId: assistantId,
+      action: 'IGNORED',
+      createdAt: {
+        gte: yesterday,
+      },
+    },
+  });
+
+  // Количество отказов (REJECTED) за последние сутки
+  const rejectedRequests = await prisma.requestAction.count({
+    where: {
+      assistantId: assistantId,
+      action: 'REJECTED',
+      createdAt: {
+        gte: yesterday,
+      },
+    },
+  });
+
+  // Количество жалоб за последние сутки
+  const complaintsLast24Hours = await prisma.complaint.count({
+    where: {
+      assistantId: assistantId,
+      createdAt: {
+        gte: yesterday,
+      },
+    },
+  });
+
+  return {
+    totalConversations,
+    conversationsLast24Hours,
+    ignoredRequests,
+    rejectedRequests,
+    complaintsLast24Hours,
+  };
+}
 
 
 // Функции для обработки принятия запросов

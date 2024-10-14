@@ -188,8 +188,6 @@ async function showModeratorMenu(ctx: Context, lang: 'ru' | 'en') {
     .text('💬 ' + getTranslation(lang, 'message_user'), 'message_user')
     .row()
     .text('👨‍💻 ' + getTranslation(lang, 'message_assistant'), 'message_assistant')
-    .row()
-    .text('⚖️ ' + getTranslation(lang, 'arbitration_list'), 'current_arbitrations');
 
   await ctx.reply(getTranslation(lang, 'menu'), { reply_markup: keyboard });
 }
