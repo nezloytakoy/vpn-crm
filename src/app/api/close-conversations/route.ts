@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 export async function POST() {
   try {
     // Find all active conversations that are older than one hour
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000); // 1 hour ago
+    const oneHourAgo = new Date(Date.now() - 60); // 1 hour ago
     const conversations = await prisma.conversation.findMany({
       where: {
         status: 'IN_PROGRESS',

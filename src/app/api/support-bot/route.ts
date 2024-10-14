@@ -234,6 +234,19 @@ async function endActiveDialog(telegramId: bigint, lang: "en" | "ru", ctx: Conte
       data: { isBusy: false },
     });
 
+    // Обновляем статус разговора на "COMPLETED"
+    await prisma.conversation.updateMany({
+      where: {
+        userId: activeRequest.userId,
+        assistantId: telegramId,
+        status: 'IN_PROGRESS', // Только для активных разговоров
+      },
+      data: {
+        status: 'COMPLETED',
+        updatedAt: new Date(), // Обновляем время последнего изменения
+      },
+    });
+
     await ctx.reply(getTranslation(lang, 'dialog_closed'));
 
     // Отправляем сообщение пользователю
@@ -243,6 +256,7 @@ async function endActiveDialog(telegramId: bigint, lang: "en" | "ru", ctx: Conte
     await ctx.reply(getTranslation(lang, 'end_dialog_error'));
   }
 }
+
 
 // Команда end_dialog
 bot.command('end_dialog', async (ctx) => {
@@ -261,6 +275,7 @@ bot.command('end_dialog', async (ctx) => {
     await ctx.reply(getTranslation(lang, 'end_dialog_error'));
   }
 });
+
 
 // Команда end_work
 bot.command('end_work', async (ctx) => {
@@ -297,6 +312,7 @@ bot.command('end_work', async (ctx) => {
     await ctx.reply(getTranslation(detectUserLanguage(ctx), 'end_dialog_error'));
   }
 });
+
 
 bot.command('start', async (ctx) => {
   const lang = detectUserLanguage(ctx);
@@ -447,7 +463,7 @@ bot.on('callback_query:data', async (ctx) => {
 });
 
 
-// Функции для обработки принятия и отклонения запросов
+// Функции для обработки принятия запросов
 async function handleAcceptRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
   try {
     const assistantRequest = await prisma.assistantRequest.update({
@@ -456,9 +472,20 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
       include: { user: true },
     });
 
+    // Обновляем статус ассистента
     await prisma.assistant.update({
       where: { telegramId: assistantTelegramId },
       data: { isBusy: true },
+    });
+
+    // Создаем новую запись в таблице Conversation
+    await prisma.conversation.create({
+      data: {
+        userId: assistantRequest.userId, // ID пользователя
+        assistantId: assistantTelegramId, // ID ассистента
+        messages: [], // Изначально пустой массив для сообщений
+        status: 'IN_PROGRESS', // Статус разговора в процессе
+      },
     });
 
     await ctx.reply('✅ Вы приняли запрос. Ожидайте вопрос пользователя.');
