@@ -178,9 +178,36 @@ const detectUserLanguage = (ctx: Context) => {
   return userLang === 'ru' ? 'ru' : 'en';
 };
 
-// Функция поиска нового доступного ассистента
+// Функция подсчета штрафных очков за последние 24 часа
+async function getAssistantPenaltyPoints(assistantId: bigint) {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const actions = await prisma.requestAction.findMany({
+    where: {
+      assistantId: assistantId,
+      createdAt: {
+        gte: yesterday, // Действия за последние 24 часа
+      },
+    },
+  });
+
+  let penaltyPoints = 0;
+  for (const action of actions) {
+    if (action.action === 'REJECTED') {
+      penaltyPoints += 1; // 1 очко за отказ
+    } else if (action.action === 'IGNORED') {
+      penaltyPoints += 3; // 3 очка за игнорирование
+    }
+  }
+
+  return penaltyPoints;
+}
+
+// Обновленная функция для поиска нового ассистента
 async function findNewAssistant(requestId: bigint, ignoredAssistants: bigint[]) {
-  const availableAssistant = await prisma.assistant.findFirst({
+  // Ищем всех доступных ассистентов
+  const availableAssistants = await prisma.assistant.findMany({
     where: {
       isWorking: true,
       isBusy: false,
@@ -188,23 +215,40 @@ async function findNewAssistant(requestId: bigint, ignoredAssistants: bigint[]) 
         notIn: ignoredAssistants, // исключаем ассистентов из списка проигнорированных
       },
     },
-    orderBy: {
-      lastActiveAt: 'desc', // выбираем самого активного недавно
-    },
   });
 
-  if (!availableAssistant) {
-    // Если нет доступных ассистентов, очищаем список проигнорированных и начинаем поиск с начала
+  // Добавляем штрафные очки каждому ассистенту
+  const assistantsWithPenalty = await Promise.all(
+    availableAssistants.map(async (assistant) => {
+      const penaltyPoints = await getAssistantPenaltyPoints(assistant.telegramId);
+      return { ...assistant, penaltyPoints };
+    })
+  );
+
+  // Сортируем ассистентов по штрафным очкам и времени активности
+  assistantsWithPenalty.sort((a, b) => {
+    if (a.penaltyPoints === b.penaltyPoints) {
+      // Если штрафные очки равны, сортируем по активности
+      return (b.lastActiveAt?.getTime() || 0) - (a.lastActiveAt?.getTime() || 0);
+    }
+    return a.penaltyPoints - b.penaltyPoints; // Сортируем по штрафным очкам (от меньшего к большему)
+  });
+
+  // Выбираем ассистента с наименьшими штрафными очками
+  const selectedAssistant = assistantsWithPenalty[0];
+
+  // Если ассистент не найден, очищаем список проигнорированных и начинаем заново
+  if (!selectedAssistant) {
     await prisma.assistantRequest.update({
       where: { id: requestId },
       data: { ignoredAssistants: [] }, // Очищаем список проигнорированных ассистентов
     });
-    // И снова ищем ассистента
     return findNewAssistant(requestId, []);
   }
 
-  return availableAssistant;
+  return selectedAssistant;
 }
+
 
 async function endActiveDialog(telegramId: bigint, lang: "en" | "ru", ctx: Context) {
   try {
@@ -501,6 +545,7 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
 }
 
 // Обработчик отклонения запроса ассистентом
+// Обновляем функцию отклонения запроса
 async function handleRejectRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
   try {
     // Добавляем текущего ассистента в список проигнорированных
@@ -512,6 +557,15 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
 
     // Добавляем текущего ассистента в список проигнорированных
     ignoredAssistants.push(assistantTelegramId);
+
+    // Записываем событие отказа в таблицу RequestAction
+    await prisma.requestAction.create({
+      data: {
+        requestId: BigInt(requestId),
+        assistantId: assistantTelegramId,
+        action: 'REJECTED',
+      },
+    });
 
     // Обновляем статус запроса как "Отклонено" и деактивируем его
     await prisma.assistantRequest.update({
@@ -533,7 +587,6 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
         data: {
           assistantId: newAssistant.telegramId, // Назначаем нового ассистента
           status: 'PENDING',
-          isActive: false,
         },
       });
 

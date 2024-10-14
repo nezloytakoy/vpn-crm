@@ -33,6 +33,35 @@ const translations = {
     }
 };
 
+async function getPenaltyPointsForLast24Hours(assistantId: BigInt): Promise<number> {
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+
+    // Получаем действия ассистента за последние 24 часа
+    const actions = await prisma.requestAction.findMany({
+        where: {
+            assistantId: Number(assistantId), // Преобразование BigInt в number
+            createdAt: {
+                gte: yesterday, // Действия за последние 24 часа
+            },
+        },
+    });
+
+    // Подсчитываем штрафные очки
+    let penaltyPoints = 0;
+    for (const action of actions) {
+        if (action.action === 'REJECTED') {
+            penaltyPoints += 1; // 1 очко за отказ
+        } else if (action.action === 'IGNORED') {
+            penaltyPoints += 3; // 3 очка за игнор
+        }
+    }
+
+    return penaltyPoints;
+}
+
+
 // Функция получения перевода
 function getTranslation(lang: "en" | "ru", key: keyof typeof translations["en"]) {
     return translations[lang][key] || translations["en"][key];
@@ -46,136 +75,155 @@ function detectLanguage(): "en" | "ru" {
 
 export async function POST(request: Request) {
     try {
-      const body = await request.json();
-      const { userId } = body;
-  
-      const lang = detectLanguage(); // Определяем язык
-  
-      if (!userId) {
-        return new Response(JSON.stringify({ error: getTranslation(lang, 'userIdRequired') }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
+        const body = await request.json();
+        const { userId } = body;
+
+        const lang = detectLanguage(); // Определяем язык
+
+        if (!userId) {
+            return new Response(JSON.stringify({ error: getTranslation(lang, 'userIdRequired') }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        const userIdBigInt = BigInt(userId);
+
+        await sendLogToTelegram(getTranslation(lang, 'logMessage'));
+
+        const userExists = await prisma.user.findUnique({
+            where: { telegramId: userIdBigInt },
         });
-      }
-  
-      const userIdBigInt = BigInt(userId);
-  
-      await sendLogToTelegram(getTranslation(lang, 'logMessage'));
-  
-      const userExists = await prisma.user.findUnique({
-        where: { telegramId: userIdBigInt },
-      });
-  
-      if (!userExists) {
-        return new Response(JSON.stringify({ error: getTranslation(lang, 'userNotFound') }), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' },
+
+        if (!userExists) {
+            return new Response(JSON.stringify({ error: getTranslation(lang, 'userNotFound') }), {
+                status: 404,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        // Проверяем, есть ли у пользователя доступные запросы к ассистенту
+        if (userExists.assistantRequests <= 0) {
+            return new Response(JSON.stringify({ error: getTranslation(lang, 'notEnoughRequests') }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        // Уменьшаем количество запросов к ассистенту на 1
+        await prisma.user.update({
+            where: { telegramId: userIdBigInt },
+            data: {
+                assistantRequests: { decrement: 1 },
+            },
         });
-      }
-  
-      // Проверяем, есть ли у пользователя доступные запросы к ассистенту
-      if (userExists.assistantRequests <= 0) {
-        return new Response(JSON.stringify({ error: getTranslation(lang, 'notEnoughRequests') }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
+
+        await sendTelegramMessageToUser(userIdBigInt.toString(), getTranslation(lang, 'requestReceived'));
+
+        // Получаем запрос пользователя, чтобы потом обновлять ignoredAssistants
+        let assistantRequest = await prisma.assistantRequest.findFirst({
+            where: {
+                userId: userIdBigInt,
+                isActive: true,
+            },
         });
-      }
-  
-      // Уменьшаем количество запросов к ассистенту на 1
-      await prisma.user.update({
-        where: { telegramId: userIdBigInt },
-        data: {
-          assistantRequests: { decrement: 1 },
-        },
-      });
-  
-      await sendTelegramMessageToUser(userIdBigInt.toString(), getTranslation(lang, 'requestReceived'));
-  
-      // Получаем запрос пользователя, чтобы потом обновлять ignoredAssistants
-      let assistantRequest = await prisma.assistantRequest.findFirst({
-        where: {
-          userId: userIdBigInt,
-          isActive: true,
-        },
-      });
-  
-      // Если нет активного запроса, создаем новый с assistantId: null
-      if (!assistantRequest) {
-        assistantRequest = await prisma.assistantRequest.create({
-          data: {
-            userId: userIdBigInt,
-            assistantId: null, // Устанавливаем null, пока не выбран ассистент
-            message: getTranslation(lang, 'assistantRequestMessage'),
-            status: 'PENDING',
-            isActive: true,
-            ignoredAssistants: [], // Инициализация массива проигнорированных ассистентов
-          },
+
+        // Если нет активного запроса, создаем новый с assistantId: null
+        if (!assistantRequest) {
+            assistantRequest = await prisma.assistantRequest.create({
+                data: {
+                    userId: userIdBigInt,
+                    assistantId: null, // Устанавливаем null, пока не выбран ассистент
+                    message: getTranslation(lang, 'assistantRequestMessage'),
+                    status: 'PENDING',
+                    isActive: true,
+                    ignoredAssistants: [], // Инициализация массива проигнорированных ассистентов
+                },
+            });
+        }
+
+        // Ищем всех доступных ассистентов, исключая тех, кто уже в ignoredAssistants
+        let availableAssistants = await prisma.assistant.findMany({
+            where: {
+                isWorking: true,
+                isBusy: false,
+                telegramId: {
+                    notIn: assistantRequest.ignoredAssistants || [], // Исключаем ассистентов, которые проигнорировали запрос
+                },
+            },
         });
-      }
-  
-      // Ищем доступного ассистента, исключая тех, кто уже в ignoredAssistants
-      const availableAssistants = await prisma.assistant.findMany({
-        where: {
-          isWorking: true,
-          isBusy: false,
-          telegramId: {
-            notIn: assistantRequest.ignoredAssistants || [], // исключаем ассистентов, которые проигнорировали запрос
-          },
-        },
-        orderBy: {
-          lastActiveAt: 'desc', // Сортируем по последней активности
-        },
-      });
-  
-      if (availableAssistants.length === 0) {
-        return new Response(JSON.stringify({ message: getTranslation(lang, 'noAssistantsAvailable') }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
+
+        // Подсчитываем штрафные очки для каждого ассистента
+        const assistantsWithPenalties = await Promise.all(
+            availableAssistants.map(async (assistant) => {
+                const penaltyPoints = await getPenaltyPointsForLast24Hours(assistant.telegramId);
+                return {
+                    ...assistant,
+                    penaltyPoints,
+                };
+            })
+        );
+
+        // Сортируем ассистентов по штрафным очкам и последней активности
+        assistantsWithPenalties.sort((a, b) => {
+            if (a.penaltyPoints !== b.penaltyPoints) {
+                return a.penaltyPoints - b.penaltyPoints; // Сначала ассистенты с меньшим количеством штрафных очков
+            }
+            return (b.lastActiveAt ? b.lastActiveAt.getTime() : 0) - (a.lastActiveAt ? a.lastActiveAt.getTime() : 0);
+
         });
-      }
-  
-      const selectedAssistant = availableAssistants[0];
-  
-      await prisma.assistant.update({
-        where: { telegramId: selectedAssistant.telegramId },
-        data: {
-          isBusy: true,
-          lastActiveAt: new Date(), // Обновляем время последней активности
-        },
-      });
-  
-      // Обновляем запрос с новым ассистентом
-      await prisma.assistantRequest.update({
-        where: { id: assistantRequest.id },
-        data: {
-          assistantId: selectedAssistant.telegramId,
-        },
-      });
-  
-      // Отправляем сообщение ассистенту с кнопками для принятия или отклонения
-      await sendTelegramMessageWithButtons(
-        selectedAssistant.telegramId.toString(),
-        getTranslation(lang, 'assistantRequestMessage'),
-        [
-          { text: getTranslation(lang, 'accept'), callback_data: `accept_${assistantRequest.id}` },
-          { text: getTranslation(lang, 'reject'), callback_data: `reject_${assistantRequest.id}` },
-        ]
-      );
-  
-      return new Response(JSON.stringify({ message: getTranslation(lang, 'requestSent') }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+
+        if (assistantsWithPenalties.length === 0) {
+            return new Response(JSON.stringify({ message: getTranslation(lang, 'noAssistantsAvailable') }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        // Выбираем ассистента с наименьшими штрафными очками
+        const selectedAssistant = assistantsWithPenalties[0];
+
+        await prisma.assistant.update({
+            where: { telegramId: selectedAssistant.telegramId },
+            data: {
+                isBusy: true,
+                lastActiveAt: new Date(), // Обновляем время последней активности
+            },
+        });
+
+        // Обновляем запрос с новым ассистентом
+        await prisma.assistantRequest.update({
+            where: { id: assistantRequest.id },
+            data: {
+                assistantId: selectedAssistant.telegramId,
+            },
+        });
+
+        // Отправляем сообщение ассистенту с кнопками для принятия или отклонения
+        await sendTelegramMessageWithButtons(
+            selectedAssistant.telegramId.toString(),
+            getTranslation(lang, 'assistantRequestMessage'),
+            [
+                { text: getTranslation(lang, 'accept'), callback_data: `accept_${assistantRequest.id}` },
+                { text: getTranslation(lang, 'reject'), callback_data: `reject_${assistantRequest.id}` },
+            ]
+        );
+
+        return new Response(JSON.stringify({ message: getTranslation(lang, 'requestSent') }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        });
     } catch (error) {
-      console.error('Ошибка:', error);
-      return new Response(JSON.stringify({ error: getTranslation(detectLanguage(), 'serverError') }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+        console.error('Ошибка:', error);
+        return new Response(JSON.stringify({ error: getTranslation(detectLanguage(), 'serverError') }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+        });
     }
-  }
-  
-  
+}
+
+
+
 
 
 // Обновим и другие вспомогательные функции, чтобы использовать локализацию

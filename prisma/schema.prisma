@@ -53,6 +53,7 @@ model Assistant {
   requests        AssistantRequest[]
   arbitrations    Arbitration[]      // Field for the reverse relation
   conversations   Conversation[]     // Reverse relation to Conversation
+  requestActions  RequestAction[]    // Добавлено поле для обратного отношения к RequestAction
 }
 
 
@@ -116,17 +117,18 @@ model Conversation {
 
 
 model AssistantRequest {
-  id          BigInt        @id @default(autoincrement())
-  user        User          @relation(fields: [userId], references: [telegramId])
-  userId      BigInt
-  assistant   Assistant?     @relation(fields: [assistantId], references: [telegramId])
-  assistantId BigInt?        // Поле assistantId теперь может быть null
-  message     String
-  status      RequestStatus @default(PENDING)
-  isActive    Boolean       @default(false)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id               BigInt         @id @default(autoincrement())
+  user             User           @relation(fields: [userId], references: [telegramId])
+  userId           BigInt
+  assistant        Assistant?     @relation(fields: [assistantId], references: [telegramId])
+  assistantId      BigInt?
+  message          String
+  status           RequestStatus  @default(PENDING)
+  isActive         Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
   ignoredAssistants BigInt[]
+  requestActions   RequestAction[] @relation("RequestActionsOnAssistantRequest") // Добавлено поле для обратного отношения
 }
 
 
@@ -193,4 +195,14 @@ model Complaint {
   decision      String?  // Решение (если рассмотрено)
   createdAt     DateTime @default(now()) // Дата создания
   updatedAt     DateTime @updatedAt      // Дата обновления
+}
+
+model RequestAction {
+  id               BigInt          @id @default(autoincrement())
+  requestId        BigInt
+  assistantId      BigInt
+  action           String
+  createdAt        DateTime        @default(now())
+  Assistant        Assistant       @relation(fields: [assistantId], references: [telegramId])
+  AssistantRequest AssistantRequest @relation(fields: [requestId], references: [id], name: "RequestActionsOnAssistantRequest") // Добавлено имя отношения
 }
