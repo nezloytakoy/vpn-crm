@@ -46,12 +46,13 @@ model Assistant {
   isBusy          Boolean            @default(false)
   startedAt       DateTime?
   joinedAt        DateTime           @default(now())
-  coins           Int                @default(0) // Добавлено поле для хранения коинов
-  lastActiveAt    DateTime?          // Поле для хранения времени последней активности
+  coins           Int                @default(0) // Field for storing coins
+  lastActiveAt    DateTime?          // Field for storing last active time
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
   requests        AssistantRequest[]
-  arbitrations    Arbitration[]      // Поле для обратного отношения
+  arbitrations    Arbitration[]      // Field for the reverse relation
+  conversations   Conversation[]     // Reverse relation to Conversation
 }
 
 
@@ -100,13 +101,17 @@ model Referral {
 }
 
 model Conversation {
-  id        BigInt   @id @default(autoincrement())
-  user      User     @relation(fields: [userId], references: [telegramId])
-  userId    BigInt
-  messages  Json     @default("[]") // Храним сообщения в формате JSON
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          BigInt   @id @default(autoincrement())
+  user        User     @relation(fields: [userId], references: [telegramId])
+  userId      BigInt
+  assistant   Assistant @relation(fields: [assistantId], references: [telegramId]) // Relation to the Assistant model
+  assistantId BigInt    // Field to store the assistant's ID
+  messages    Json      @default("[]") // Store messages in JSON format
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  status      String    @default("IN_PROGRESS") // Field to track the conversation status
 }
+
 
 model AssistantRequest {
   id          BigInt        @id @default(autoincrement())
