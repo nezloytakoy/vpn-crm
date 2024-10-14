@@ -492,7 +492,7 @@ bot.on('callback_query:data', async (ctx) => {
       });
 
       if (assistant) {
-        const coinsMessage = `${getTranslation(lang, 'my_coins')}: ${assistant.coins}`; 
+        const coinsMessage = `${getTranslation(lang, 'my_coins')}: ${assistant.coins}`;
 
         // Добавляем кнопку для запроса на вывод
         await ctx.reply(coinsMessage, {
@@ -526,6 +526,36 @@ bot.on('callback_query:data', async (ctx) => {
       });
 
       if (assistant) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        // Получаем количество действий REJECTED и IGNORED за последние сутки
+        const rejectedActions = await prisma.requestAction.count({
+          where: {
+            assistantId: assistant.telegramId,
+            action: 'REJECTED',
+            createdAt: {
+              gte: yesterday,
+            },
+          },
+        });
+
+        const ignoredActions = await prisma.requestAction.count({
+          where: {
+            assistantId: assistant.telegramId,
+            action: 'IGNORED',
+            createdAt: {
+              gte: yesterday,
+            },
+          },
+        });
+
+        // Проверка условий на превышение лимита
+        if (rejectedActions > 10 || ignoredActions > 3) {
+          await ctx.reply('Ваш баланс заморожен на 24 часа за низкую активность.');
+          return;
+        }
+
         const withdrawalAmount = assistant.coins; // Сумма для вывода
 
         // Отправляем сообщение пользователю
@@ -550,6 +580,7 @@ bot.on('callback_query:data', async (ctx) => {
     await ctx.reply(getTranslation(lang, 'end_dialog_error'));
   }
 });
+
 
 
 
