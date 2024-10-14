@@ -33,7 +33,7 @@ const translations = {
     }
 };
 
-async function getPenaltyPointsForLast24Hours(assistantId: BigInt): Promise<number> {
+async function getPenaltyPointsForLast24Hours(assistantId: bigint): Promise<number> {
     const now = new Date();
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
@@ -143,7 +143,7 @@ export async function POST(request: Request) {
         }
 
         // Ищем всех доступных ассистентов, исключая тех, кто уже в ignoredAssistants
-        let availableAssistants = await prisma.assistant.findMany({
+        const availableAssistants = await prisma.assistant.findMany({
             where: {
                 isWorking: true,
                 isBusy: false,
