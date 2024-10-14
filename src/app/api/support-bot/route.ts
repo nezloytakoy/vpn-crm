@@ -492,7 +492,7 @@ bot.on('callback_query:data', async (ctx) => {
       });
 
       if (assistant) {
-        const coinsMessage = `${getTranslation(lang, 'my_coins')}: ${assistant.coins}`;
+        const coinsMessage = `${getTranslation(lang, 'my_coins')}: ${assistant.coins}`; 
 
         // Добавляем кнопку для запроса на вывод
         await ctx.reply(coinsMessage, {
@@ -528,23 +528,20 @@ bot.on('callback_query:data', async (ctx) => {
       if (assistant) {
         const withdrawalAmount = assistant.coins; // Сумма для вывода
 
-        try {
-          // Создаем запись в таблице WithdrawalRequest через Prisma
-          await prisma.withdrawalRequest.create({
-            data: {
-              userId: assistant.telegramId, // Преобразуем BigInt в строку
-              userNickname: ctx.from?.username || null,
-              amount: withdrawalAmount,
-              status: 'Требует рассмотрения',
-            },
-          });
+        // Отправляем сообщение пользователю
+        await ctx.reply('Запрос на вывод отправлен.');
 
-          // Успешный запрос
-          await ctx.reply('Ваш запрос на вывод успешно создан.');
-        } catch (error) {
-          console.error('Ошибка при создании запроса на вывод:', error);
-          await ctx.reply('Произошла ошибка при создании запроса. Пожалуйста, попробуйте позже.');
-        }
+        // Создаем запись о выводе в базе данных
+        await prisma.withdrawalRequest.create({
+          data: {
+            userId: assistant.telegramId,
+            userNickname: ctx.from?.username || null,
+            userRole: 'assistant', // Устанавливаем роль "assistant"
+            amount: withdrawalAmount,
+          },
+        });
+
+        await ctx.reply('Ваш запрос на вывод успешно создан.');
       } else {
         await ctx.reply(getTranslation(lang, 'end_dialog_error'));
       }
@@ -553,6 +550,7 @@ bot.on('callback_query:data', async (ctx) => {
     await ctx.reply(getTranslation(lang, 'end_dialog_error'));
   }
 });
+
 
 
 // Функция для получения активности ассистента
