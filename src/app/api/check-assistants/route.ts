@@ -22,6 +22,17 @@ async function findAvailableAssistant(ignoredAssistants: bigint[]) {
     return availableAssistant;
 }
 
+// Функция для добавления записи об игнорировании
+async function addIgnoreAction(assistantId: bigint, requestId: bigint) {
+    await prisma.requestAction.create({
+        data: {
+            assistantId: assistantId,
+            requestId: requestId,
+            action: 'IGNORED',
+        },
+    });
+}
+
 // Основная функция обработки запросов с status: PENDING
 export async function POST() {
     try {
@@ -42,6 +53,11 @@ export async function POST() {
         // Обрабатываем каждый запрос
         for (const request of pendingRequests) {
             let ignoredAssistants = request.ignoredAssistants || [];
+
+            // Если у запроса уже есть назначенный ассистент, добавляем запись об игнорировании
+            if (request.assistantId) {
+                await addIgnoreAction(BigInt(request.assistantId), request.id);
+            }
 
             // Ищем доступного ассистента
             let selectedAssistant = await findAvailableAssistant(ignoredAssistants);
