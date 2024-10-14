@@ -435,7 +435,6 @@ bot.command('problem', async (ctx) => {
       return;
     }
 
-    const assistantId = lastConversation.assistantId;
 
     // Устанавливаем флаг ожидания жалобы для пользователя
     await prisma.user.update({
