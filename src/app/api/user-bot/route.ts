@@ -16,16 +16,7 @@ type ChatMessage = {
   content: string;
 };
 
-interface MessageData {
-  chat_id: string;
-  text: string;
-  reply_markup?: {
-    inline_keyboard: Array<Array<{
-      text: string;
-      callback_data: string;
-    }>>;
-  };
-}
+
 
 const userConversations = new Map<bigint, ChatMessage[]>();
 
