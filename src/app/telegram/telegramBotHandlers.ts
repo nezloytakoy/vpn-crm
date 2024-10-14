@@ -4,7 +4,6 @@ import fetch from 'node-fetch';
 
 const prisma = new PrismaClient();
 
-
 export async function handleCallbackQuery(ctx: Context) {
   const callbackQuery = ctx.callbackQuery;
   const data = callbackQuery?.data;
@@ -43,7 +42,6 @@ export async function handleCallbackQuery(ctx: Context) {
   }
 }
 
-
 export async function handleMessage(ctx: Context) {
   if (!ctx.from) {
     console.error('Отсутствует объект from в контексте.');
@@ -54,11 +52,11 @@ export async function handleMessage(ctx: Context) {
   const message = ctx.message?.text || '';
 
   const activeRequest = await prisma.assistantRequest.findFirst({
-    where: { userId: userId, isActive: true },
+    where: { userId: BigInt(userId), isActive: true },
     include: { assistant: true },
   });
 
-  if (activeRequest) {
+  if (activeRequest && activeRequest.assistant) {
     const assistantId = activeRequest.assistant.telegramId.toString();
     await sendTelegramMessageToAssistant(assistantId, message);
   } else {
@@ -66,35 +64,42 @@ export async function handleMessage(ctx: Context) {
   }
 }
 
-
 async function sendTelegramMessageToAssistant(chatId: string, text: string) {
   const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
-  await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text,
-    }),
-  });
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+      }),
+    });
+  } catch (error) {
+    console.error('Ошибка при отправке сообщения ассистенту:', error);
+  }
 }
 
 async function sendTelegramMessageToUser(chatId: string, text: string) {
   const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
-  await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text,
-    }),
-  });
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+      }),
+    });
+  } catch (error) {
+    console.error('Ошибка при отправке сообщения пользователю:', error);
+  }
 }
