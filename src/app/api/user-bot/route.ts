@@ -494,8 +494,50 @@ bot.command('problem', async (ctx: Context) => {
   }
 });
 
+// Обработчик команды "problem" для начала жалобы
+bot.command('problem', async (ctx: Context) => {
+  try {
+    if (!ctx.from?.id) {
+      await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
+      return;
+    }
+
+    const telegramId = BigInt(ctx.from.id);
+
+    // Находим последнюю завершенную беседу пользователя
+    const lastConversation = await prisma.conversation.findFirst({
+      where: {
+        userId: telegramId,
+        status: 'COMPLETED',
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+      include: { assistant: true },
+    });
+
+    if (!lastConversation) {
+      await ctx.reply('⚠️ У вас нет завершенных бесед.');
+      return;
+    }
+
+    // Устанавливаем флаг ожидания жалобы для пользователя
+    await prisma.user.update({
+      where: { telegramId },
+      data: { isWaitingForComplaint: true },
+    });
+
+    // Сообщаем пользователю, что ждем ввода жалобы
+    await ctx.reply('Опишите свою жалобу. После этого вы сможете загрузить фото.');
+
+  } catch (error) {
+    console.error('Ошибка при создании жалобы:', error);
+    await ctx.reply('Произошла ошибка при создании жалобы. Пожалуйста, попробуйте позже.');
+  }
+});
+
 // Обработчик для любых сообщений
-bot.on('message', async (ctx: Context) => {
+bot.on('message:text', async (ctx: Context) => {
   try {
     const languageCode = ctx.from?.language_code || 'en';
 
@@ -505,7 +547,7 @@ bot.on('message', async (ctx: Context) => {
     }
 
     const telegramId = BigInt(ctx.from.id);
-    const userMessage = ctx.message?.text || ctx.message?.caption; // Получаем текст или caption изображения
+    const userMessage = ctx.message?.text; // Получаем текст сообщения
 
     if (!userMessage) {
       await ctx.reply(getTranslation(languageCode, 'no_text_message'));
@@ -571,6 +613,72 @@ bot.on('message', async (ctx: Context) => {
     await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
   }
 });
+
+// Обработчик для изображений
+bot.on('message:photo', async (ctx: Context) => {
+  try {
+    const languageCode = ctx.from?.language_code || 'en';
+
+    if (!ctx.from?.id) {
+      await ctx.reply(getTranslation(languageCode, 'no_user_id'));
+      return;
+    }
+
+    const telegramId = BigInt(ctx.from.id);
+    const user = await prisma.user.findUnique({
+      where: { telegramId },
+    });
+
+    if (!user) {
+      await ctx.reply(getTranslation(languageCode, 'no_user_found'));
+      return;
+    }
+
+    if (ctx.message?.photo) {
+      const photoUrls: string[] = [];
+
+      // Проходим по всем фотографиям и сохраняем их URL
+      for (const photo of ctx.message.photo) {
+        const file = await ctx.api.getFile(photo.file_id);
+        const fileUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
+        photoUrls.push(fileUrl);
+      }
+
+      // Найдем последнюю жалобу пользователя со статусом PENDING
+      const lastComplaint = await prisma.complaint.findFirst({
+        where: {
+          userId: telegramId,
+          status: 'PENDING',
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      if (!lastComplaint) {
+        await ctx.reply('Ошибка: не найдена активная жалоба для прикрепления фото.');
+        return;
+      }
+
+      // Добавляем новые ссылки на фото к уже существующим
+      await prisma.complaint.update({
+        where: { id: lastComplaint.id },
+        data: {
+          // Объединяем уже существующие фото с новыми
+          photoUrls: { push: photoUrls },
+        },
+      });
+
+      await ctx.reply('Фото были успешно прикреплены к вашей жалобе.');
+    } else {
+      await ctx.reply('Пожалуйста, отправьте фото для прикрепления к жалобе.');
+    }
+  } catch (error) {
+    console.error('Ошибка при обработке фото:', error);
+    await ctx.reply('Произошла ошибка при загрузке ваших фото.');
+  }
+});
+
 
 // Функция для обработки жалобы пользователя
 async function handleUserComplaint(telegramId: bigint, userMessage: string, languageCode: string, ctx: Context) {

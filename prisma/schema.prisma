@@ -205,6 +205,7 @@ model Complaint {
   text          String   // Текст жалобы
   status        String   @default("PENDING") // Статус жалобы (PENDING/REVIEWED)
   decision      String?  // Решение (если рассмотрено)
+  photoUrls     String[] // Массив ссылок на фотографии
   createdAt     DateTime @default(now()) // Дата создания
   updatedAt     DateTime @updatedAt      // Дата обновления
 }
