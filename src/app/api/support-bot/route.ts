@@ -375,10 +375,12 @@ bot.command('start', async (ctx) => {
 
       if (ctx.from?.id) {
         const telegramId = BigInt(ctx.from.id);
+        const username = ctx.from.username || null; // Получаем username из контекста, если он есть
 
         await prisma.assistant.create({
           data: {
             telegramId: telegramId,
+            username: username, // Сохраняем username ассистента
             role: invitation.role,
           },
         });
@@ -406,6 +408,7 @@ bot.command('start', async (ctx) => {
     await ctx.reply(getTranslation(lang, 'start_message'));
   }
 });
+
 
 bot.command('menu', async (ctx) => {
   const lang = detectUserLanguage(ctx);

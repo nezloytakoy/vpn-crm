@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { Column } from 'react-table';
 import { FaEnvelope } from 'react-icons/fa';
 import Table from '@/components/Table/Table';
@@ -18,42 +18,22 @@ interface AssistantData {
 }
 
 const Monitoring: React.FC = () => {
-  // Wrap sampleData in useMemo
-  const sampleData: AssistantData[] = useMemo(
-    () => [
-      {
-        nick: '@assistant1',
-        averageResponseTime: 5,
-        completed: 100,
-        denied: 10,
-        current: 2,
-        complaints: 1,
-        status: 'Работает',
-        message: 'Готов к работе',
-      },
-      {
-        nick: '@assistant2',
-        averageResponseTime: 6,
-        completed: 90,
-        denied: 8,
-        current: 1,
-        complaints: 2,
-        status: 'Оффлайн',
-        message: 'Не доступен',
-      },
-      {
-        nick: '@assistant3',
-        averageResponseTime: 7,
-        completed: 80,
-        denied: 5,
-        current: 3,
-        complaints: 0,
-        status: 'Не работает',
-        message: 'Ошибка в системе',
-      },
-    ],
-    []
-  );
+  const [assistantsData, setAssistantsData] = useState<AssistantData[]>([]);
+
+  // Получаем данные с сервера
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch('/api/assistants-data'); // Предполагаем, что вы настроили API на /api/assistants
+        const data = await response.json();
+        setAssistantsData(data);
+      } catch (error) {
+        console.error('Ошибка при получении данных ассистентов:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const columns: Column<AssistantData>[] = useMemo(
     () => [
@@ -91,10 +71,10 @@ const Monitoring: React.FC = () => {
               value === 'Работает'
                 ? styles.statusWorking
                 : value === 'Оффлайн'
-                  ? styles.statusOffline
-                  : value === 'Не работает'
-                    ? styles.statusNotWorking
-                    : ''
+                ? styles.statusOffline
+                : value === 'Не работает'
+                ? styles.statusNotWorking
+                : ''
             }
           >
             {value}
@@ -124,10 +104,10 @@ const Monitoring: React.FC = () => {
       <div className={styles.tableWrapper}>
         <div className={styles.header}>
           <h3>
-            Ассистенты <span>({sampleData.length})</span>
+            Ассистенты <span>({assistantsData.length})</span>
           </h3>
         </div>
-        <Table columns={columns} data={sampleData} />
+        <Table columns={columns} data={assistantsData} />
       </div>
     </div>
   );

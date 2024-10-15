@@ -41,6 +41,7 @@ model Invitation {
 
 model Assistant {
   telegramId      BigInt             @id @unique
+  username               String?
   role            String             @default("assistant")
   isWorking       Boolean            @default(false)
   isBusy          Boolean            @default(false)
