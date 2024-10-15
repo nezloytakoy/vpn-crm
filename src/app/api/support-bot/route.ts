@@ -791,19 +791,26 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
 }
 
 
-// Обработчик отклонения запроса ассистентом
-// Обновляем функцию отклонения запроса
 async function handleRejectRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
   try {
     // Добавляем текущего ассистента в список проигнорированных
     const assistantRequest = await prisma.assistantRequest.findUnique({
       where: { id: BigInt(requestId) },
+      include: { conversation: true }, // Включаем связь с разговором
     });
 
     const ignoredAssistants = assistantRequest?.ignoredAssistants || [];
 
     // Добавляем текущего ассистента в список проигнорированных
     ignoredAssistants.push(assistantTelegramId);
+
+    // Если есть активный разговор, обновляем его статус на "ABORTED"
+    if (assistantRequest?.conversation) {
+      await prisma.conversation.update({
+        where: { id: assistantRequest.conversation.id },
+        data: { status: 'ABORTED' }, // Завершаем разговор
+      });
+    }
 
     // Записываем событие отказа в таблицу RequestAction
     await prisma.requestAction.create({
@@ -814,13 +821,14 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
       },
     });
 
-    // Обновляем статус запроса как "Отклонено" и деактивируем его
+    // Обновляем статус запроса, освобождая его от ассистента
     await prisma.assistantRequest.update({
       where: { id: BigInt(requestId) },
       data: {
-        status: 'REJECTED',
-        isActive: false,
-        ignoredAssistants, // Обновляем список проигнорированных ассистентов
+        status: 'PENDING',  // Возвращаем запрос в статус ожидания
+        isActive: true,      // Оставляем запрос активным
+        assistantId: null,   // Убираем текущего ассистента
+        ignoredAssistants,   // Обновляем список проигнорированных ассистентов
       },
     });
 
@@ -833,14 +841,13 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
         where: { id: BigInt(requestId) },
         data: {
           assistantId: newAssistant.telegramId, // Назначаем нового ассистента
-          status: 'PENDING',
         },
       });
 
       // Уведомляем нового ассистента
       await sendTelegramMessageWithButtons(
         newAssistant.telegramId.toString(),
-        `Новый запрос от пользователя`,
+        'Новый запрос от пользователя',
         [
           { text: 'Принять', callback_data: `accept_${requestId}` },
           { text: 'Отклонить', callback_data: `reject_${requestId}` },
@@ -862,6 +869,15 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
     await ctx.reply('❌ Произошла ошибка при отклонении запроса.');
   }
 }
+
+
+
+
+
+
+
+
+
 // Обработчик команды /problem
 bot.command('problem', async (ctx) => {
   try {
