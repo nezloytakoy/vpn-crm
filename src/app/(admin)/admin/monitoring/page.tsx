@@ -6,6 +6,8 @@ import { FaEnvelope } from 'react-icons/fa';
 import Table from '@/components/Table/Table';
 import styles from './Monitoring.module.css';
 
+export const fetchCache = 'force-no-store';
+
 interface AssistantData {
   nick: string;
   averageResponseTime: number;
