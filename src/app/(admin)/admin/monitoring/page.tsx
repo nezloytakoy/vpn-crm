@@ -17,7 +17,7 @@ interface AssistantData {
   complaints: number;
   status: string;
   message: string;
-  telegramId: string; // Добавляем поле telegramId для идентификации ассистента
+  telegramId: string; // Добавлено поле telegramId для идентификации ассистента
 }
 
 const Monitoring: React.FC = () => {
