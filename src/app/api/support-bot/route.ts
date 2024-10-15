@@ -691,6 +691,7 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
       data: {
         userId: assistantRequest.userId, // ID пользователя
         assistantId: assistantTelegramId, // ID ассистента
+        requestId: assistantRequest.id, // Добавляем ID запроса, чтобы выполнить связь
         messages: [], // Изначально пустой массив для сообщений
         status: 'IN_PROGRESS', // Статус разговора в процессе
       },
