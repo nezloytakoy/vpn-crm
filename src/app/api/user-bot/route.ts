@@ -2,7 +2,6 @@ import { Bot, webhookCallback } from 'grammy';
 import { Context } from 'grammy';
 import OpenAI from 'openai';
 import { PrismaClient, SubscriptionType } from '@prisma/client';
-import { ArbitrationStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -69,25 +68,7 @@ async function sendMessageToAssistant(chatId: string, text: string) {
   }
 }
 
-async function sendMessageToModerator(chatId: string, text: string) {
-  const botToken = process.env.TELEGRAM_ADMIN_BOT_TOKEN;
-  if (!botToken) {
-    console.error('Ошибка: TELEGRAM_ADMIN_BOT_TOKEN не установлен');
-    return;
-  }
 
-  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-
-  try {
-    await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text }),
-    });
-  } catch (error) {
-    console.error('Ошибка при отправке сообщения модератору:', error);
-  }
-}
 
 
 type TranslationKey =
@@ -624,7 +605,7 @@ async function handleUserComplaint(telegramId: bigint, userMessage: string, lang
 }
 
 
-async function handleAIChat(telegramId: bigint, userMessage: string, ctx: any) {
+async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Context) {
   const messages: ChatMessage[] = userConversations.get(telegramId) || [
     { role: 'system', content: 'You are a helpful assistant.' },
   ];
