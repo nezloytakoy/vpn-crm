@@ -1,5 +1,6 @@
 import { Bot, webhookCallback, Context } from 'grammy';
 import { PrismaClient, ArbitrationStatus } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 
 const token = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
@@ -45,7 +46,6 @@ async function sendTelegramMessageWithButtons(chatId: string, text: string, butt
 }
 
 
-// Функция отправки сообщений пользователю
 async function sendTelegramMessageToUser(chatId: string, text: string) {
   const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
   if (!botToken) {
@@ -68,7 +68,6 @@ async function sendTelegramMessageToUser(chatId: string, text: string) {
 
     console.log(`Сообщение успешно отправлено пользователю с ID: ${chatId}`);
 
-    // Теперь обновляем статус в Conversation, указывая, что последнее сообщение было от ассистента
     const userTelegramId = BigInt(chatId); // Преобразуем chatId в BigInt для поиска пользователя
 
     // Найти активную запись в таблице Conversation
@@ -80,11 +79,36 @@ async function sendTelegramMessageToUser(chatId: string, text: string) {
     });
 
     if (activeConversation) {
-      // Обновить статус последнего отправителя
-      await prisma.conversation.update({
-        where: { id: activeConversation.id },
-        data: { lastMessageFrom: 'ASSISTANT' }, // Обновляем поле lastMessageFrom на 'ASSISTANT'
-      });
+      const currentTime = new Date();
+
+      // Если последнее сообщение было от пользователя, считаем время ответа ассистента
+      if (activeConversation.lastMessageFrom === 'USER' && activeConversation.lastUserMessageAt) {
+        const lastUserMessageTime = new Date(activeConversation.lastUserMessageAt).getTime();
+        const responseTime = currentTime.getTime() - lastUserMessageTime; // Время ответа в миллисекундах
+
+        // Преобразуем assistantResponseTimes в массив, если это JSON-значение
+        let responseTimesArray: Prisma.JsonArray = Array.isArray(activeConversation.assistantResponseTimes)
+          ? activeConversation.assistantResponseTimes as Prisma.JsonArray
+          : [];
+
+        // Добавляем это время в массив assistantResponseTimes
+        responseTimesArray.push(responseTime);
+
+        // Обновляем поле lastUserMessageAt и массив времен ответа
+        await prisma.conversation.update({
+          where: { id: activeConversation.id },
+          data: {
+            lastMessageFrom: 'ASSISTANT', // Обновляем поле lastMessageFrom на 'ASSISTANT'
+            assistantResponseTimes: responseTimesArray, // Обновляем массив времен ответа
+          },
+        });
+      } else {
+        // Обновить только статус последнего отправителя
+        await prisma.conversation.update({
+          where: { id: activeConversation.id },
+          data: { lastMessageFrom: 'ASSISTANT' }, // Обновляем поле lastMessageFrom на 'ASSISTANT'
+        });
+      }
     } else {
       console.error('Ошибка: активный разговор не найден для пользователя');
     }

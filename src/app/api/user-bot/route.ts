@@ -37,8 +37,8 @@ async function sendMessageToAssistant(chatId: string, text: string) {
       body: JSON.stringify({ chat_id: chatId, text }),
     });
 
-    // Теперь обновляем статус в Conversation, указывая, что последнее сообщение было от пользователя
-    const assistantTelegramId = BigInt(chatId); // Преобразуем chatId в BigInt для поиска ассистента
+    // Преобразуем chatId в BigInt для поиска ассистента
+    const assistantTelegramId = BigInt(chatId);
 
     // Найти активную запись в таблице Conversation
     const activeConversation = await prisma.conversation.findFirst({
@@ -49,10 +49,16 @@ async function sendMessageToAssistant(chatId: string, text: string) {
     });
 
     if (activeConversation) {
-      // Обновить статус последнего отправителя
+      // Текущее время как время последнего сообщения от пользователя
+      const currentTime = new Date();
+
+      // Обновить статус последнего отправителя и время последнего сообщения от пользователя
       await prisma.conversation.update({
         where: { id: activeConversation.id },
-        data: { lastMessageFrom: 'USER' }, // Обновляем поле lastMessageFrom на 'USER'
+        data: {
+          lastMessageFrom: 'USER',         // Обновляем поле lastMessageFrom на 'USER'
+          lastUserMessageAt: currentTime,  // Обновляем время последнего сообщения от пользователя
+        },
       });
     } else {
       console.error('Ошибка: активный разговор не найден для ассистента');
@@ -61,7 +67,6 @@ async function sendMessageToAssistant(chatId: string, text: string) {
     console.error('Ошибка при отправке сообщения ассистенту:', error);
   }
 }
-
 
 async function sendMessageToModerator(chatId: string, text: string) {
   const botToken = process.env.TELEGRAM_ADMIN_BOT_TOKEN;
