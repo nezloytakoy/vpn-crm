@@ -19,12 +19,14 @@ interface AssistantData {
 
 const Monitoring: React.FC = () => {
   const [assistantsData, setAssistantsData] = useState<AssistantData[]>([]);
+  const [isPopupOpen, setIsPopupOpen] = useState(false); // Состояние для открытия попапа
+  const [popupMessage, setPopupMessage] = useState(''); // Состояние для ввода текста в попапе
 
   // Получаем данные с сервера
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('/api/assistants-data'); // Предполагаем, что вы настроили API на /api/assistants
+        const response = await fetch('/api/assistants-data');
         const data = await response.json();
         setAssistantsData(data);
       } catch (error) {
@@ -43,7 +45,7 @@ const Monitoring: React.FC = () => {
         Cell: ({ value }) => <strong>{value}</strong>,
       },
       {
-        Header: 'Время ответа',
+        Header: 'Время ответа(секунды)',
         accessor: 'averageResponseTime',
       },
       {
@@ -87,9 +89,7 @@ const Monitoring: React.FC = () => {
         Cell: ({ value }) => (
           <button
             className={styles.messageButton}
-            onClick={() => {
-              alert(value);
-            }}
+            onClick={() => setIsPopupOpen(true)} // Открытие попапа
           >
             <FaEnvelope />
           </button>
@@ -98,6 +98,13 @@ const Monitoring: React.FC = () => {
     ],
     []
   );
+
+  const handleSendMessage = () => {
+    // Здесь можно добавить логику отправки сообщения
+    console.log('Отправлено сообщение:', popupMessage);
+    setIsPopupOpen(false); // Закрытие попапа после отправки
+    setPopupMessage(''); // Очистка поля ввода
+  };
 
   return (
     <div className={styles.main}>
@@ -109,6 +116,24 @@ const Monitoring: React.FC = () => {
         </div>
         <Table columns={columns} data={assistantsData} />
       </div>
+
+      {/* Попап для отправки сообщения */}
+      {isPopupOpen && (
+        <div className={styles.popupOverlay}>
+          <div className={styles.popup}>
+            <h3>Отправить сообщение</h3>
+            <textarea
+              value={popupMessage}
+              onChange={(e) => setPopupMessage(e.target.value)}
+              placeholder="Введите ваше сообщение"
+              className={styles.textarea}
+            />
+            <button className={styles.sendButton} onClick={handleSendMessage}>
+              Отправить
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

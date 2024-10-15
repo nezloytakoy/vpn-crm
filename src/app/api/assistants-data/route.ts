@@ -23,12 +23,19 @@ export async function GET() {
       // Фильтруем все разговоры ассистента
       const averageResponseTime = calculateAverageResponseTimeFromConversations(assistant.conversations);
 
-      const status =
-        assistant.isWorking && assistant.isBusy
-          ? 'Работает'
-          : assistant.isWorking && !assistant.isBusy
-          ? 'Не работает'
-          : 'Оффлайн';
+      const status = (() => {
+        const logMessage = `Assistant: ${assistant.telegramId} - isWorking: ${assistant.isWorking}, isBusy: ${assistant.isBusy}`;
+        
+        sendDebugLogToTelegram(logMessage); // Отправляем лог в Telegram
+      
+        if (assistant.isWorking && assistant.isBusy) {
+          return 'Работает';
+        } else if (assistant.isWorking && !assistant.isBusy) {
+          return 'Не работает';
+        } else {
+          return 'Оффлайн';
+        }
+      })();
 
       return {
         nick: assistant.username ? `@${assistant.username}` : `@${assistant.telegramId}`, // Если username есть, используем его
@@ -65,6 +72,29 @@ function calculateAverageResponseTimeFromConversations(conversations: Conversati
   const totalResponseTime = responseTimes.reduce((acc, time) => acc + time, 0);
   const averageResponseTimeInMs = totalResponseTime / responseTimes.length;
 
-  // Переводим в секунды
-  return averageResponseTimeInMs / 1000;
+  // Переводим в секунды и округляем до целого числа
+  return Math.round(averageResponseTimeInMs / 1000);
 }
+
+
+async function sendDebugLogToTelegram(message: string) {
+    const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
+    const chatId = '5829159515'; // ID пользователя для отладки
+    const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+  
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message,
+        }),
+      });
+    } catch (error) {
+      console.error('Ошибка при отправке отладочного сообщения:', error);
+    }
+  }
+  
