@@ -279,12 +279,19 @@ async function endActiveDialog(telegramId: bigint, lang: "en" | "ru", ctx: Conte
         assistant: { telegramId: telegramId }, // telegramId ассистента
         isActive: true,
       },
-      include: { user: true },
+      include: { user: true, conversation: true }, // Включаем разговор для удаления
     });
 
     if (!activeRequest) {
       await ctx.reply(getTranslation(lang, 'no_active_requests'));
       return;
+    }
+
+    // Удаляем текущий разговор, если он существует
+    if (activeRequest.conversation) {
+      await prisma.conversation.delete({
+        where: { id: activeRequest.conversation.id },
+      });
     }
 
     // Обновляем статус запроса как "REJECTED" и снимаем активность
@@ -312,19 +319,6 @@ async function endActiveDialog(telegramId: bigint, lang: "en" | "ru", ctx: Conte
     await prisma.assistant.update({
       where: { telegramId: telegramId }, // telegramId ассистента
       data: { isBusy: false },
-    });
-
-    // Обновляем статус разговора на "ABORTED"
-    await prisma.conversation.updateMany({
-      where: {
-        userId: activeRequest.userId,
-        assistantId: telegramId,
-        status: 'IN_PROGRESS', // Только для активных разговоров
-      },
-      data: {
-        status: 'ABORTED', // Меняем статус на ABORTED
-        updatedAt: new Date(), // Обновляем время последнего изменения
-      },
     });
 
     // Уведомляем пользователя о потере связи с ассистентом
@@ -367,6 +361,7 @@ async function endActiveDialog(telegramId: bigint, lang: "en" | "ru", ctx: Conte
     await ctx.reply(getTranslation(lang, 'end_dialog_error'));
   }
 }
+
 
 
 
