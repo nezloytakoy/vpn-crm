@@ -149,13 +149,8 @@ const Monitoring: React.FC = () => {
           <h3>
             Ассистенты <span>({sampleData.length})</span>
           </h3>
-          <div
-            className={styles.timePeriodButtons}
-            style={{
-              '--active-index': activeIndex,
-            } as React.CSSProperties}
-          >
-            {timePeriods.map((period) => (
+          <div>
+            {/* {timePeriods.map((period) => (
               <button
                 key={period}
                 className={timePeriod === period ? styles.active : ''}
@@ -165,7 +160,7 @@ const Monitoring: React.FC = () => {
                 {period === 'week' && 'За неделю'}
                 {period === 'date' && 'За определенную дату'}
               </button>
-            ))}
+            ))} */}
           </div>
         </div>
 
