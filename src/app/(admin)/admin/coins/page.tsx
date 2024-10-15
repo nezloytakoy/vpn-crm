@@ -66,7 +66,11 @@ export default function Page() {
   ];
 
   if (loading) {
-    return <div>Загрузка данных...</div>;
+    return (
+      <div className={styles.loaderWrapper}>
+        <div className={styles.loader}></div>
+      </div>
+    );
   }
 
   if (error) {

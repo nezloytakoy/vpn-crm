@@ -1,4 +1,5 @@
 import { Bot, webhookCallback } from 'grammy';
+import { Context } from 'grammy';
 import OpenAI from 'openai';
 import { PrismaClient, SubscriptionType } from '@prisma/client';
 import { ArbitrationStatus } from '@prisma/client';
@@ -103,9 +104,14 @@ type TranslationKey =
   | 'ai_chat_deactivated'
   | 'ai_chat_not_active'
   | 'coin_awarded'
+  | 'no_user_found'
+  | 'no_active_dialogs'
+  | 'complaint_submitted';
+
+type Language = 'en' | 'ru'; // Определяем возможные языки
 
 const getTranslation = (languageCode: string | undefined, key: TranslationKey): string => {
-  const translations = {
+  const translations: Record<Language, Record<TranslationKey, string>> = {
     ru: {
       start_message:
         '👋 Это бот для пользователей! Для продолжения нажмите на кнопку ниже и войдите в Telegram Web App.',
@@ -122,6 +128,9 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       ai_chat_deactivated: 'Режим общения с ИИ деактивирован. Спасибо за использование нашего сервиса!',
       ai_chat_not_active: 'У вас нет активного диалога с ИИ.',
       coin_awarded: 'Вам начислен 1 коин за завершение диалога.',
+      no_user_found: 'Пользователь не найден.',
+      no_active_dialogs: 'У вас нет активных диалогов.',
+      complaint_submitted: 'Ваша жалоба была отправлена.',
     },
     en: {
       start_message:
@@ -139,13 +148,15 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       ai_chat_deactivated: 'AI chat mode has been deactivated. Thank you for using our service!',
       ai_chat_not_active: 'You have no active AI dialog.',
       coin_awarded: 'You have been awarded 1 coin for completing the dialog.',
+      no_user_found: 'User not found.',
+      no_active_dialogs: 'You have no active dialogs.',
+      complaint_submitted: 'Your complaint has been submitted.',
     },
   };
 
-  const lang: 'ru' | 'en' = languageCode === 'ru' ? 'ru' : 'en';
-  return translations[lang][key];
+  const selectedLanguage: Language = (languageCode as Language) || 'en'; // Используем 'en' по умолчанию
+  return translations[selectedLanguage]?.[key] || translations['en'][key]; // Безопасное обращение к переводам
 };
-
 
 bot.command('end_dialog', async (ctx) => {
   try {
@@ -460,7 +471,8 @@ bot.on("message:successful_payment", async (ctx) => {
 
 
 
-bot.command('problem', async (ctx) => {
+// Обработчик команды "problem" для начала жалобы
+bot.command('problem', async (ctx: Context) => {
   try {
     if (!ctx.from?.id) {
       await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
@@ -473,19 +485,18 @@ bot.command('problem', async (ctx) => {
     const lastConversation = await prisma.conversation.findFirst({
       where: {
         userId: telegramId,
-        status: 'COMPLETED', // Ищем только завершенные беседы
+        status: 'COMPLETED',
       },
       orderBy: {
-        updatedAt: 'desc', // Получаем последнюю по дате обновления беседу
+        updatedAt: 'desc',
       },
-      include: { assistant: true }, // Включаем информацию об ассистенте
+      include: { assistant: true },
     });
 
     if (!lastConversation) {
       await ctx.reply('⚠️ У вас нет завершенных бесед.');
       return;
     }
-
 
     // Устанавливаем флаг ожидания жалобы для пользователя
     await prisma.user.update({
@@ -494,7 +505,7 @@ bot.command('problem', async (ctx) => {
     });
 
     // Сообщаем пользователю, что ждем ввода жалобы
-    await ctx.reply('Опишите свою жалобу.');
+    await ctx.reply('Опишите свою жалобу. После этого вы сможете загрузить фото.');
 
   } catch (error) {
     console.error('Ошибка при создании жалобы:', error);
@@ -502,159 +513,115 @@ bot.command('problem', async (ctx) => {
   }
 });
 
-
-
-
-
-
-bot.on('message', async (ctx) => {
+// Обработка сообщений, включая текстовые сообщения и фотографии
+bot.on('message', async (ctx: Context) => {
   try {
     const languageCode = ctx.from?.language_code || 'en';
 
     if (!ctx.from?.id) {
-      await ctx.reply(getTranslation(languageCode, 'no_user_id'));
+      await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
       return;
     }
 
     const telegramId = BigInt(ctx.from.id);
-    const userMessage = ctx.message?.text;
+    const userMessage = ctx.message?.text || ctx.message?.caption;
 
     if (!userMessage) {
-      await ctx.reply(getTranslation(languageCode, 'no_text_message'));
+      await ctx.reply('Пожалуйста, отправьте текстовое сообщение.');
       return;
     }
 
-    // Одновременное получение пользователя, активного запроса и арбитража
-    const [user, activeRequest, arbitration] = await Promise.all([
-      prisma.user.findUnique({
-        where: { telegramId },
-      }),
-      prisma.assistantRequest.findFirst({
-        where: {
-          user: { telegramId: telegramId },
-          isActive: true,
-        },
-        include: { assistant: true },
-      }),
-      prisma.arbitration.findFirst({
-        where: {
-          userId: telegramId,
-          status: 'IN_PROGRESS' as ArbitrationStatus,
-        },
-        include: {
-          assistant: true,
-          moderator: true,
-        },
-      }),
-    ]);
+    const user = await prisma.user.findUnique({
+      where: { telegramId },
+    });
 
     if (!user) {
-      await ctx.reply(getTranslation(languageCode, 'no_user_id'));
+      await ctx.reply('Пользователь не найден.');
       return;
     }
 
     // Проверка, ожидает ли пользователь ввода жалобы
     if (user.isWaitingForComplaint) {
-      // Если пользователь ожидает ввода жалобы
-      if (!userMessage) {
-        await ctx.reply('Пожалуйста, отправьте текст жалобы.');
-        return;
-      }
-
-      // Находим последнюю завершенную беседу пользователя
-      const lastConversation = await prisma.conversation.findFirst({
-        where: {
-          userId: telegramId,
-          status: 'COMPLETED',
-        },
-        orderBy: {
-          updatedAt: 'desc',
-        },
-      });
-
-      // Создаем запись в таблице жалоб
-      await prisma.complaint.create({
-        data: {
-          userId: telegramId,
-          assistantId: lastConversation?.assistantId ?? BigInt(0),
-          text: userMessage,
-          status: 'PENDING',
-        },
-      });
-
-      // Сбрасываем флаг ожидания жалобы
-      await prisma.user.update({
-        where: { telegramId },
-        data: { isWaitingForComplaint: false },
-      });
-
-      await ctx.reply('Ваша жалоба была принята на рассмотрение. Спасибо за обращение!');
+      // Обработка жалобы от пользователя
+      await handleUserComplaint(telegramId, userMessage, ctx);
       return;
     }
 
-    if (arbitration) {
-      // Если есть активный арбитраж, пересылаем сообщение ассистенту и модератору
-      const messageToSend = `Пользователь:\n${userMessage}`;
-
-      // Отправляем сообщение ассистенту
-      await sendMessageToAssistant(arbitration.assistant.telegramId.toString(), messageToSend);
-
-      // Отправляем сообщение модератору, если он назначен
-      if (arbitration.moderator) {
-        await sendMessageToModerator(arbitration.moderator.id.toString(), messageToSend);
-      }
-
-    } else if (user.isActiveAIChat) {
-      // Обработка режима общения с ИИ
-      const messages: ChatMessage[] = userConversations.get(telegramId) || [
-        { role: 'system', content: 'You are a helpful assistant.' },
-      ];
-
-      messages.push({ role: 'user', content: userMessage });
-
-      const response = await openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: messages,
-        temperature: 0.7,
-      });
-
-      const firstChoice = response.choices[0];
-      if (firstChoice && firstChoice.message && firstChoice.message.content) {
-        const aiMessage = firstChoice.message.content.trim();
-
-        messages.push({ role: 'assistant', content: aiMessage });
-
-        userConversations.set(telegramId, messages);
-
-        await ctx.reply(aiMessage);
-
-        await prisma.user.update({
-          where: { telegramId },
-          data: {
-            aiRequests: { increment: 1 },
-            totalRequests: { increment: 1 },
-          },
-        });
-      } else {
-        await ctx.reply(getTranslation(languageCode, 'ai_no_response'));
-      }
-    } else if (activeRequest) {
-      // Обработка активного запроса к ассистенту
-      if (activeRequest.assistant !== null) {
-        await sendMessageToAssistant(activeRequest.assistant.telegramId.toString(), userMessage);
-      } else {
-        console.error('Ошибка: Ассистент не найден для активного запроса.');
-      }
-    } else {
-      // Нет активного диалога
-      await ctx.reply('У вас нет активных диалогов. Используйте /start, чтобы начать.');
-    }
+    await ctx.reply('Ваше сообщение получено.');
   } catch (error) {
     console.error('Ошибка при обработке сообщения:', error);
-    const languageCode = ctx.from?.language_code || 'en';
-    await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
+    await ctx.reply('Произошла ошибка при обработке сообщения.');
   }
 });
+
+// Обработка жалобы от пользователя
+async function handleUserComplaint(telegramId: bigint, userMessage: string, ctx: Context) {
+  // Находим последнюю завершенную беседу пользователя
+  const lastConversation = await prisma.conversation.findFirst({
+    where: {
+      userId: telegramId,
+      status: 'COMPLETED',
+    },
+    orderBy: {
+      updatedAt: 'desc',
+    },
+  });
+
+  // Создаем запись жалобы
+  await prisma.complaint.create({
+    data: {
+      userId: telegramId,
+      assistantId: lastConversation?.assistantId || BigInt(0),
+      text: userMessage,
+      status: 'PENDING',
+    },
+  });
+
+  // Сбрасываем флаг ожидания жалобы
+  await prisma.user.update({
+    where: { telegramId },
+    data: { isWaitingForComplaint: false },
+  });
+
+  await ctx.reply('Ваша жалоба была принята.');
+}
+
+async function handleAIChat(telegramId: bigint, userMessage: string, ctx: any) {
+  const messages: ChatMessage[] = userConversations.get(telegramId) || [
+    { role: 'system', content: 'You are a helpful assistant.' },
+  ];
+
+  messages.push({ role: 'user', content: userMessage });
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-3.5-turbo',
+    messages: messages,
+    temperature: 0.7,
+  });
+
+  const firstChoice = response.choices[0];
+  if (firstChoice && firstChoice.message && firstChoice.message.content) {
+    const aiMessage = firstChoice.message.content.trim();
+
+    messages.push({ role: 'assistant', content: aiMessage });
+
+    userConversations.set(telegramId, messages);
+
+    await ctx.reply(aiMessage);
+
+    await prisma.user.update({
+      where: { telegramId },
+      data: {
+        aiRequests: { increment: 1 },
+        totalRequests: { increment: 1 },
+      },
+    });
+  } else {
+    await ctx.reply('AI не смог сгенерировать ответ.');
+  }
+}
+
+
 
 
 

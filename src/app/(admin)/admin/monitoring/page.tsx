@@ -9,6 +9,7 @@ import styles from './Monitoring.module.css';
 export const fetchCache = 'force-no-store';
 
 interface AssistantData {
+  telegramId: string; // Обязательно наличие поля telegramId
   nick: string;
   averageResponseTime: number;
   completed: number;
@@ -17,7 +18,6 @@ interface AssistantData {
   complaints: number;
   status: string;
   message: string;
-  telegramId: string; // Убедитесь, что telegramId добавлен сюда
 }
 
 const Monitoring: React.FC = () => {
@@ -38,8 +38,14 @@ const Monitoring: React.FC = () => {
             Expires: '0',
           },
         });
+
+        if (!response.ok) {
+          throw new Error('Ошибка загрузки данных с сервера');
+        }
+
         const data = await response.json();
-        setAssistantsData(data); // Убедитесь, что telegramId приходит с сервера
+        console.log('Полученные данные ассистентов:', data); // Лог данных ассистентов для проверки
+        setAssistantsData(data);
       } catch (error) {
         console.error('Ошибка при получении данных ассистентов:', error);
       }
@@ -48,24 +54,35 @@ const Monitoring: React.FC = () => {
     fetchData();
   }, []);
 
-  // Закрытие попапа при клике вне его
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
-        setIsPopupOpen(false); // Закрываем попап, если клик был вне его
+  const handleSendMessage = async () => {
+    try {
+      if (!currentAssistantTelegramId) {
+        console.error('Ошибка: telegramId ассистента не установлен');
+        return;
       }
-    };
 
-    if (isPopupOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside);
+      const response = await fetch('/api/send-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: popupMessage,
+          chatId: currentAssistantTelegramId, // Передаем telegramId ассистента
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Ошибка при отправке сообщения');
+      }
+
+      console.log('Отправлено сообщение:', popupMessage);
+      setIsPopupOpen(false); // Закрытие попапа после отправки
+      setPopupMessage(''); // Очистка поля ввода
+    } catch (error) {
+      console.error('Ошибка отправки сообщения:', error);
     }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isPopupOpen]);
+  };
 
   const columns: Column<AssistantData>[] = useMemo(
     () => [
@@ -115,11 +132,12 @@ const Monitoring: React.FC = () => {
       },
       {
         Header: '',
-        accessor: 'telegramId', // Убедитесь, что telegramId здесь передан как accessor
+        accessor: 'telegramId', // Передаем telegramId ассистента
         Cell: ({ value }) => (
           <button
             className={styles.messageButton}
             onClick={() => {
+              console.log('Клик по сообщению, telegramId:', value); // Логируем значение telegramId при клике
               if (!value) {
                 console.error('Ошибка: telegramId ассистента не установлен');
                 return;
@@ -135,36 +153,6 @@ const Monitoring: React.FC = () => {
     ],
     []
   );
-
-  const handleSendMessage = async () => {
-    try {
-      if (!currentAssistantTelegramId) {
-        console.error('Ошибка: telegramId ассистента не установлен');
-        return;
-      }
-
-      const response = await fetch('/api/send-message', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: popupMessage,
-          chatId: currentAssistantTelegramId, // Отправляем сообщение выбранному ассистенту
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Ошибка при отправке сообщения');
-      }
-
-      console.log('Отправлено сообщение:', popupMessage);
-      setIsPopupOpen(false); // Закрытие попапа после отправки
-      setPopupMessage(''); // Очистка поля ввода
-    } catch (error) {
-      console.error('Ошибка отправки сообщения:', error);
-    }
-  };
 
   return (
     <div className={styles.main}>

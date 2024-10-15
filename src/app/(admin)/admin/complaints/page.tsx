@@ -83,7 +83,7 @@ function App() {
         accessor: 'userId', // ID отображается как обычный текст
       },
       {
-        Header: 'Роль',
+        Header: 'Ассистент',
         accessor: 'assistant',
         Cell: ({ row }) => (
           <a
@@ -105,7 +105,11 @@ function App() {
   );
 
   if (loading) {
-    return <div>Загрузка данных...</div>;
+    return (
+      <div className={styles.loaderWrapper}>
+        <div className={styles.loader}></div>
+      </div>
+    );
   }
 
   if (error) {

@@ -15,6 +15,7 @@
     "@ionic/react": "^8.3.1",
     "@ionic/react-router": "^8.3.1",
     "@prisma/client": "^5.20.0",
+    "@vercel/blob": "^0.25.1",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
     "d3-shape": "^3.2.0",
@@ -36,6 +37,7 @@
     "react-spring": "^9.7.4",
     "react-table": "^7.8.0",
     "react-wavify": "^1.11.1",
+    "telegraf": "^4.16.3",
     "uuid": "^10.0.0",
     "wavify": "^1.0.0"
   },
