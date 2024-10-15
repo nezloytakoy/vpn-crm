@@ -27,7 +27,7 @@ const Monitoring: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('/api/assistants-data');
+        const response = await fetch('/api/assistants-data', { cache: 'no-store' });
         const data = await response.json();
         setAssistantsData(data);
       } catch (error) {
