@@ -17,7 +17,7 @@ interface AssistantData {
   complaints: number;
   status: string;
   message: string;
-  telegramId: string; // Добавлено поле telegramId для идентификации ассистента
+  telegramId: string; // Убедитесь, что telegramId добавлен сюда
 }
 
 const Monitoring: React.FC = () => {
@@ -39,7 +39,7 @@ const Monitoring: React.FC = () => {
           },
         });
         const data = await response.json();
-        setAssistantsData(data);
+        setAssistantsData(data); // Убедитесь, что telegramId приходит с сервера
       } catch (error) {
         console.error('Ошибка при получении данных ассистентов:', error);
       }
@@ -115,11 +115,15 @@ const Monitoring: React.FC = () => {
       },
       {
         Header: '',
-        accessor: 'telegramId', // Мы будем использовать telegramId для отправки сообщения
+        accessor: 'telegramId', // Убедитесь, что telegramId здесь передан как accessor
         Cell: ({ value }) => (
           <button
             className={styles.messageButton}
             onClick={() => {
+              if (!value) {
+                console.error('Ошибка: telegramId ассистента не установлен');
+                return;
+              }
               setCurrentAssistantTelegramId(value); // Сохраняем telegramId ассистента
               setIsPopupOpen(true); // Открываем попап
             }}
