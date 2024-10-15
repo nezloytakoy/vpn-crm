@@ -21,8 +21,8 @@ const Monitoring: React.FC = () => {
   const [timePeriod, setTimePeriod] = useState<string>('day');
   const [selectedDate, setSelectedDate] = useState<string>('');
 
-  const timePeriods = ['day', 'week', 'date'];
-  const activeIndex = timePeriods.indexOf(timePeriod);
+  // const timePeriods = ['day', 'week', 'date'];
+  // const activeIndex = timePeriods.indexOf(timePeriod);
 
   // Wrap sampleData in useMemo
   const sampleData: AssistantData[] = useMemo(
@@ -135,12 +135,12 @@ const Monitoring: React.FC = () => {
     []
   );
 
-  const handleTimePeriodChange = (period: string) => {
-    setTimePeriod(period);
-    if (period !== 'date') {
-      setSelectedDate('');
-    }
-  };
+  // const handleTimePeriodChange = (period: string) => {
+  //   setTimePeriod(period);
+  //   if (period !== 'date') {
+  //     setSelectedDate('');
+  //   }
+  // };
 
   return (
     <div className={styles.main}>
