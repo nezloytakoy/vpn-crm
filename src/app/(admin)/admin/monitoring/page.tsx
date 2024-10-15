@@ -42,7 +42,7 @@ const Monitoring: React.FC = () => {
         console.error('Ошибка при получении данных ассистентов:', error);
       }
     };
-  
+
     fetchData();
   }, []);
 
@@ -127,11 +127,26 @@ const Monitoring: React.FC = () => {
     []
   );
 
-  const handleSendMessage = () => {
-    // Здесь можно добавить логику отправки сообщения
-    console.log('Отправлено сообщение:', popupMessage);
-    setIsPopupOpen(false); // Закрытие попапа после отправки
-    setPopupMessage(''); // Очистка поля ввода
+  const handleSendMessage = async () => {
+    try {
+      const response = await fetch('/api/send-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: popupMessage }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Ошибка при отправке сообщения');
+      }
+
+      console.log('Отправлено сообщение:', popupMessage);
+      setIsPopupOpen(false); // Закрытие попапа после отправки
+      setPopupMessage(''); // Очистка поля ввода
+    } catch (error) {
+      console.error('Ошибка отправки сообщения:', error);
+    }
   };
 
   return (
