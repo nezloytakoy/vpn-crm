@@ -87,7 +87,7 @@ async function sendTelegramMessageToUser(chatId: string, text: string) {
         const responseTime = currentTime.getTime() - lastUserMessageTime; // Время ответа в миллисекундах
 
         // Преобразуем assistantResponseTimes в массив, если это JSON-значение
-        let responseTimesArray: Prisma.JsonArray = Array.isArray(activeConversation.assistantResponseTimes)
+        const responseTimesArray: Prisma.JsonArray = Array.isArray(activeConversation.assistantResponseTimes)
           ? activeConversation.assistantResponseTimes as Prisma.JsonArray
           : [];
 
