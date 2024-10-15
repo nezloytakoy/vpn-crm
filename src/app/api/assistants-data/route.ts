@@ -4,57 +4,75 @@ import { PrismaClient, Conversation } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export async function GET() {
-  try {
-    const assistants = await prisma.assistant.findMany({
-      include: {
-        conversations: {
-          where: { status: 'COMPLETED' },
+    try {
+      const assistants = await prisma.assistant.findMany({
+        include: {
+          conversations: {
+            where: { status: 'COMPLETED' },
+          },
+          requestActions: {
+            where: { action: 'REJECTED' },
+          },
         },
-        requestActions: {
-          where: { action: 'REJECTED' },
-        },
-      },
-    });
-
-    const assistantsData = assistants.map((assistant) => {
-      const completedConversations = assistant.conversations.length;
-      const deniedRequests = assistant.requestActions.length;
-
-      // Фильтруем все разговоры ассистента
-      const averageResponseTime = calculateAverageResponseTimeFromConversations(assistant.conversations);
-
-      const status = (() => {
-        const logMessage = `Assistant: ${assistant.telegramId} - isWorking: ${assistant.isWorking}, isBusy: ${assistant.isBusy}`;
+      });
+  
+      const assistantsData = assistants.map((assistant) => {
+        const completedConversations = assistant.conversations.length;
+        const deniedRequests = assistant.requestActions.length;
+  
+        // Фильтруем все разговоры ассистента
+        const averageResponseTime = calculateAverageResponseTimeFromConversations(assistant.conversations);
+  
+        const status = (() => {
+          const logMessage = `Assistant: ${assistant.telegramId} - isWorking: ${assistant.isWorking}, isBusy: ${assistant.isBusy}`;
+          
+          sendDebugLogToTelegram(logMessage); // Отправляем лог в Telegram
         
-        sendDebugLogToTelegram(logMessage); // Отправляем лог в Telegram
-      
-        if (assistant.isWorking && assistant.isBusy) {
-          return 'Работает';
-        } else if (assistant.isWorking && !assistant.isBusy) {
-          return 'Не работает';
-        } else {
-          return 'Оффлайн';
-        }
-      })();
-
-      return {
-        nick: assistant.username ? `@${assistant.username}` : `@${assistant.telegramId}`, // Если username есть, используем его
-        averageResponseTime, // Среднее время ответа
-        completed: completedConversations,
-        denied: deniedRequests,
-        current: 0, // Здесь current жалобы заменены на 0, поскольку жалобы не учитываются
-        complaints: 0, // Общие жалобы не учитываются в данном примере
-        status,
-        message: 'Сообщение ассистента',
-      };
-    });
-
-    return NextResponse.json(assistantsData, { status: 200 });
-  } catch (error) {
-    console.error('Ошибка при получении данных ассистентов:', error);
-    return NextResponse.json({ error: 'Ошибка при получении данных' }, { status: 500 });
+          if (assistant.isWorking && assistant.isBusy) {
+            return 'Работает';
+          } else if (assistant.isWorking && !assistant.isBusy) {
+            return 'Не работает';
+          } else {
+            return 'Оффлайн';
+          }
+        })();
+  
+        return {
+          nick: assistant.username ? `@${assistant.username}` : `@${assistant.telegramId}`, // Если username есть, используем его
+          averageResponseTime, // Среднее время ответа
+          completed: completedConversations,
+          denied: deniedRequests,
+          current: 0, // Здесь current жалобы заменены на 0, поскольку жалобы не учитываются
+          complaints: 0, // Общие жалобы не учитываются в данном примере
+          status,
+          message: 'Сообщение ассистента',
+        };
+      });
+  
+      // Добавление заголовков для отключения кеширования
+      return new NextResponse(JSON.stringify(assistantsData), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      });
+    } catch (error) {
+      console.error('Ошибка при получении данных ассистентов:', error);
+      return new NextResponse(JSON.stringify({ error: 'Ошибка при получении данных' }), {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      });
+    }
   }
-}
+  
 
 // Функция для расчета среднего времени ответа на основе разговоров
 function calculateAverageResponseTimeFromConversations(conversations: Conversation[]) {

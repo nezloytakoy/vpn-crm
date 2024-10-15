@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useState, useRef } from 'react';
 import { Column } from 'react-table';
 import { FaEnvelope } from 'react-icons/fa';
 import Table from '@/components/Table/Table';
@@ -21,6 +21,7 @@ const Monitoring: React.FC = () => {
   const [assistantsData, setAssistantsData] = useState<AssistantData[]>([]);
   const [isPopupOpen, setIsPopupOpen] = useState(false); // Состояние для открытия попапа
   const [popupMessage, setPopupMessage] = useState(''); // Состояние для ввода текста в попапе
+  const popupRef = useRef<HTMLDivElement>(null); // Ссылка на элемент попапа
 
   // Получаем данные с сервера
   useEffect(() => {
@@ -36,6 +37,25 @@ const Monitoring: React.FC = () => {
 
     fetchData();
   }, []);
+
+  // Закрытие попапа при клике вне его
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
+        setIsPopupOpen(false); // Закрываем попап, если клик был вне его
+      }
+    };
+
+    if (isPopupOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isPopupOpen]);
 
   const columns: Column<AssistantData>[] = useMemo(
     () => [
@@ -73,10 +93,10 @@ const Monitoring: React.FC = () => {
               value === 'Работает'
                 ? styles.statusWorking
                 : value === 'Оффлайн'
-                  ? styles.statusOffline
-                  : value === 'Не работает'
-                    ? styles.statusNotWorking
-                    : ''
+                ? styles.statusOffline
+                : value === 'Не работает'
+                ? styles.statusNotWorking
+                : ''
             }
           >
             {value}
@@ -120,7 +140,7 @@ const Monitoring: React.FC = () => {
       {/* Попап для отправки сообщения */}
       {isPopupOpen && (
         <div className={styles.popupOverlay}>
-          <div className={styles.popup}>
+          <div className={styles.popup} ref={popupRef}>
             <h3>Отправить сообщение</h3>
             <textarea
               value={popupMessage}

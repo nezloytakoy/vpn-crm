@@ -165,7 +165,7 @@
     visibility: hidden;
     transform: translateY(-20px);
     transition: all 0.3s ease;
-    z-index: 9999;
+    z-index: 888;
 }
 
 .showMenu {
@@ -344,7 +344,7 @@
     display: flex;
     justify-content: space-between; 
     align-items: center;
-    z-index: 9999;
+    z-index: 888;
     border-radius: 5px;
     cursor: pointer;
     color: white;
