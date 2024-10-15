@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Column } from 'react-table';
 import { FaEnvelope } from 'react-icons/fa';
 import Table from '@/components/Table/Table';
@@ -18,12 +18,6 @@ interface AssistantData {
 }
 
 const Monitoring: React.FC = () => {
-  const [timePeriod, setTimePeriod] = useState<string>('day');
-  const [selectedDate, setSelectedDate] = useState<string>('');
-
-  // const timePeriods = ['day', 'week', 'date'];
-  // const activeIndex = timePeriods.indexOf(timePeriod);
-
   // Wrap sampleData in useMemo
   const sampleData: AssistantData[] = useMemo(
     () => [
@@ -60,16 +54,6 @@ const Monitoring: React.FC = () => {
     ],
     []
   );
-
-  const data: AssistantData[] = useMemo(() => {
-    if (timePeriod === 'date' && selectedDate) {
-      // Modify this logic as needed
-      return sampleData;
-    } else {
-      return sampleData;
-    }
-  }, [timePeriod, selectedDate, sampleData]);
-  
 
   const columns: Column<AssistantData>[] = useMemo(
     () => [
@@ -135,13 +119,6 @@ const Monitoring: React.FC = () => {
     []
   );
 
-  // const handleTimePeriodChange = (period: string) => {
-  //   setTimePeriod(period);
-  //   if (period !== 'date') {
-  //     setSelectedDate('');
-  //   }
-  // };
-
   return (
     <div className={styles.main}>
       <div className={styles.tableWrapper}>
@@ -149,33 +126,8 @@ const Monitoring: React.FC = () => {
           <h3>
             Ассистенты <span>({sampleData.length})</span>
           </h3>
-          <div>
-            {/* {timePeriods.map((period) => (
-              <button
-                key={period}
-                className={timePeriod === period ? styles.active : ''}
-                onClick={() => handleTimePeriodChange(period)}
-              >
-                {period === 'day' && 'За сутки'}
-                {period === 'week' && 'За неделю'}
-                {period === 'date' && 'За определенную дату'}
-              </button>
-            ))} */}
-          </div>
         </div>
-
-        {timePeriod === 'date' && (
-          <div className={styles.datePicker}>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => {
-                setSelectedDate(e.target.value);
-              }}
-            />
-          </div>
-        )}
-        <Table columns={columns} data={data} />
+        <Table columns={columns} data={sampleData} />
       </div>
     </div>
   );
