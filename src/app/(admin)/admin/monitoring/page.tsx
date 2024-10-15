@@ -17,12 +17,14 @@ interface AssistantData {
   complaints: number;
   status: string;
   message: string;
+  telegramId: string; // Добавляем поле telegramId для идентификации ассистента
 }
 
 const Monitoring: React.FC = () => {
   const [assistantsData, setAssistantsData] = useState<AssistantData[]>([]);
   const [isPopupOpen, setIsPopupOpen] = useState(false); // Состояние для открытия попапа
   const [popupMessage, setPopupMessage] = useState(''); // Состояние для ввода текста в попапе
+  const [currentAssistantTelegramId, setCurrentAssistantTelegramId] = useState<string | null>(null); // Хранение telegramId текущего ассистента
   const popupRef = useRef<HTMLDivElement>(null); // Ссылка на элемент попапа
 
   // Получаем данные с сервера
@@ -113,11 +115,14 @@ const Monitoring: React.FC = () => {
       },
       {
         Header: '',
-        accessor: 'message',
-        Cell: () => (
+        accessor: 'telegramId', // Мы будем использовать telegramId для отправки сообщения
+        Cell: ({ value }) => (
           <button
             className={styles.messageButton}
-            onClick={() => setIsPopupOpen(true)} // Открытие попапа
+            onClick={() => {
+              setCurrentAssistantTelegramId(value); // Сохраняем telegramId ассистента
+              setIsPopupOpen(true); // Открываем попап
+            }}
           >
             <FaEnvelope />
           </button>
@@ -129,12 +134,20 @@ const Monitoring: React.FC = () => {
 
   const handleSendMessage = async () => {
     try {
+      if (!currentAssistantTelegramId) {
+        console.error('Ошибка: telegramId ассистента не установлен');
+        return;
+      }
+
       const response = await fetch('/api/send-message', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: popupMessage }),
+        body: JSON.stringify({
+          message: popupMessage,
+          chatId: currentAssistantTelegramId, // Отправляем сообщение выбранному ассистенту
+        }),
       });
 
       if (!response.ok) {
