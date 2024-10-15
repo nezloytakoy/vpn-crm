@@ -22,31 +22,37 @@ export async function GET() {
     });
 
     const assistantsData = assistants.map((assistant) => {
-      const completedConversations = assistant.conversations.length;
-      const deniedRequests = assistant.requestActions.length;
-
-      // Фильтруем жалобы для текущего ассистента
-      const currentComplaints = complaints.filter((complaint) => complaint.assistantId === assistant.telegramId).length;
-      const allComplaints = complaints.filter((complaint) => complaint.assistantId === assistant.telegramId && complaint.status !== 'PENDING').length;
-
-      const status =
-        assistant.isWorking && assistant.isBusy
-          ? 'Работает'
-          : assistant.isWorking && !assistant.isBusy
-          ? 'Не работает'
-          : 'Оффлайн';
-
-      return {
-        nick: assistant.username ? `@${assistant.username}` : `@${assistant.telegramId}`, // Если username есть, используем его
-        averageResponseTime: calculateAverageResponseTime(assistant.conversations, assistant.startedAt),
-        completed: completedConversations,
-        denied: deniedRequests,
-        current: currentComplaints,
-        complaints: allComplaints,
-        status,
-        message: 'Сообщение ассистента',
-      };
-    });
+        const completedConversations = assistant.conversations.length;
+        const deniedRequests = assistant.requestActions.length;
+      
+        // Фильтруем жалобы для текущего ассистента
+        const currentComplaints = complaints.filter((complaint) => 
+          complaint.assistantId === assistant.telegramId && complaint.status === 'PENDING'
+        ).length;
+      
+        const allComplaints = complaints.filter((complaint) => 
+          complaint.assistantId === assistant.telegramId
+        ).length;
+      
+        const status =
+          assistant.isWorking && assistant.isBusy
+            ? 'Работает'
+            : assistant.isWorking && !assistant.isBusy
+            ? 'Не работает'
+            : 'Оффлайн';
+      
+        return {
+          nick: assistant.username ? `@${assistant.username}` : `@${assistant.telegramId}`, // Если username есть, используем его
+          averageResponseTime: calculateAverageResponseTime(assistant.conversations, assistant.startedAt),
+          completed: completedConversations,
+          denied: deniedRequests,
+          current: currentComplaints,
+          complaints: allComplaints,
+          status,
+          message: 'Сообщение ассистента',
+        };
+      });
+      
 
     return NextResponse.json(assistantsData, { status: 200 });
   } catch (error) {
