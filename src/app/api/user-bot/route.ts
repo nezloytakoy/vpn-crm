@@ -73,7 +73,8 @@ type TranslationKey =
   | 'user_ended_dialog'
   | 'ai_no_response'
   | 'ai_chat_deactivated'
-  | 'ai_chat_not_active';
+  | 'ai_chat_not_active'
+  | 'coin_awarded'
 
 const getTranslation = (languageCode: string | undefined, key: TranslationKey): string => {
   const translations = {
@@ -92,6 +93,7 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       ai_no_response: 'Извините, не удалось получить ответ от ИИ.',
       ai_chat_deactivated: 'Режим общения с ИИ деактивирован. Спасибо за использование нашего сервиса!',
       ai_chat_not_active: 'У вас нет активного диалога с ИИ.',
+      coin_awarded: 'Вам начислен 1 коин за завершение диалога.',
     },
     en: {
       start_message:
@@ -108,6 +110,7 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       ai_no_response: 'Sorry, could not get a response from the AI.',
       ai_chat_deactivated: 'AI chat mode has been deactivated. Thank you for using our service!',
       ai_chat_not_active: 'You have no active AI dialog.',
+      coin_awarded: 'You have been awarded 1 coin for completing the dialog.',
     },
   };
 
@@ -127,6 +130,7 @@ bot.command('end_dialog', async (ctx) => {
 
     const telegramId = BigInt(ctx.from.id);
 
+    // Поиск активного запроса
     const activeRequest = await prisma.assistantRequest.findFirst({
       where: {
         user: { telegramId: telegramId },
@@ -140,11 +144,13 @@ bot.command('end_dialog', async (ctx) => {
       return;
     }
 
+    // Обновление статуса в AssistantRequest
     await prisma.assistantRequest.update({
       where: { id: activeRequest.id },
       data: { status: 'COMPLETED', isActive: false },
     });
 
+    // Обновление статуса в Assistant (снятие занятости)
     if (activeRequest.assistant) {
       await prisma.assistant.update({
         where: { telegramId: activeRequest.assistant.telegramId },
@@ -154,12 +160,33 @@ bot.command('end_dialog', async (ctx) => {
       console.error('Ошибка: ассистент не найден для запроса');
     }
 
+    // Поиск активной записи в Conversation и обновление статуса
+    const conversation = await prisma.conversation.findUnique({
+      where: { requestId: activeRequest.id },
+    });
+
+    if (conversation) {
+      await prisma.conversation.update({
+        where: { id: conversation.id },
+        data: { status: 'COMPLETED' },
+      });
+    } else {
+      console.error('Ошибка: разговор для запроса не найден');
+    }
+
     await ctx.reply(getTranslation(languageCode, 'dialog_closed'));
 
+    // Начисление 1 коина ассистенту
     if (activeRequest.assistant) {
+      const updatedAssistant = await prisma.assistant.update({
+        where: { telegramId: activeRequest.assistant.telegramId },
+        data: { coins: { increment: 1 } }, // Начисляем 1 коин
+      });
+
+      // Уведомление ассистента о начислении
       await sendMessageToAssistant(
-        activeRequest.assistant.telegramId.toString(),
-        getTranslation(languageCode, 'user_ended_dialog')
+        updatedAssistant.telegramId.toString(),
+        `${getTranslation(languageCode, 'user_ended_dialog')} ${getTranslation(languageCode, 'coin_awarded')}`
       );
     } else {
       console.error('Ошибка: ассистент не найден для активного запроса');
@@ -171,6 +198,8 @@ bot.command('end_dialog', async (ctx) => {
     await ctx.reply(getTranslation(languageCode, 'error_end_dialog'));
   }
 });
+
+
 
 
 bot.command('end_ai', async (ctx) => {
