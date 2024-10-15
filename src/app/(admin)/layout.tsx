@@ -2,6 +2,8 @@ import "./../globals.css";
 import AdminHeader from "@/components/AdminHeader/AdminHeader";
 
 
+export const fetchCache = 'force-no-store';
+
 export default function RootLayout({
     children,
 }: Readonly<{

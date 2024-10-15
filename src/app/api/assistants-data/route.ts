@@ -3,6 +3,8 @@ import { PrismaClient, Conversation } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+export const fetchCache = 'force-no-store';
+
 export async function GET() {
     try {
       const assistants = await prisma.assistant.findMany({
