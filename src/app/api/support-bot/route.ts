@@ -742,7 +742,6 @@ async function getAssistantActivity(assistantId: bigint) {
 }
 
 
-// Функции для обработки принятия запросов
 async function handleAcceptRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
   try {
     const assistantRequest = await prisma.assistantRequest.update({
@@ -757,28 +756,40 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
       data: { isBusy: true },
     });
 
-    // Создаем новую запись в таблице Conversation
-    await prisma.conversation.create({
-      data: {
-        userId: assistantRequest.userId, // ID пользователя
-        assistantId: assistantTelegramId, // ID ассистента
-        requestId: assistantRequest.id, // Добавляем ID запроса, чтобы выполнить связь
-        messages: [], // Изначально пустой массив для сообщений
-        status: 'IN_PROGRESS', // Статус разговора в процессе
-      },
+    // Проверяем, существует ли уже разговор с данным requestId
+    const existingConversation = await prisma.conversation.findUnique({
+      where: { requestId: assistantRequest.id },
     });
 
-    await ctx.reply('✅ Вы приняли запрос. Ожидайте вопрос пользователя.');
+    if (existingConversation) {
+      // Если разговор уже существует, не создаем новый
+      console.error(`Разговор для запроса с ID ${assistantRequest.id} уже существует.`);
+      await ctx.reply('Этот запрос уже имеет активный разговор.');
+    } else {
+      // Создаем новую запись в таблице Conversation, если она не существует
+      await prisma.conversation.create({
+        data: {
+          userId: assistantRequest.userId, // ID пользователя
+          assistantId: assistantTelegramId, // ID ассистента
+          requestId: assistantRequest.id, // Добавляем ID запроса, чтобы выполнить связь
+          messages: [], // Изначально пустой массив для сообщений
+          status: 'IN_PROGRESS', // Статус разговора в процессе
+        },
+      });
 
-    await sendTelegramMessageToUser(
-      assistantRequest.user.telegramId.toString(),
-      'Ассистент присоединился к чату. Сформулируйте свой вопрос.'
-    );
+      await ctx.reply('✅ Вы приняли запрос. Ожидайте вопрос пользователя.');
+
+      await sendTelegramMessageToUser(
+        assistantRequest.user.telegramId.toString(),
+        'Ассистент присоединился к чату. Сформулируйте свой вопрос.'
+      );
+    }
   } catch (error) {
     console.error('Ошибка при принятии запроса:', error);
     await ctx.reply('❌ Произошла ошибка при принятии запроса.');
   }
 }
+
 
 // Обработчик отклонения запроса ассистентом
 // Обновляем функцию отклонения запроса
