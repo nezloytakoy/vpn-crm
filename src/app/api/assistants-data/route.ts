@@ -16,43 +16,31 @@ export async function GET() {
       },
     });
 
-    // Получаем жалобы для всех ассистентов, где статус PENDING
-    const complaints = await prisma.complaint.findMany({
-      where: { status: 'PENDING' },
-    });
-
     const assistantsData = assistants.map((assistant) => {
-        const completedConversations = assistant.conversations.length;
-        const deniedRequests = assistant.requestActions.length;
-      
-        // Фильтруем жалобы для текущего ассистента
-        const currentComplaints = complaints.filter((complaint) => 
-          complaint.assistantId === assistant.telegramId && complaint.status === 'PENDING'
-        ).length;
-      
-        const allComplaints = complaints.filter((complaint) => 
-          complaint.assistantId === assistant.telegramId
-        ).length;
-      
-        const status =
-          assistant.isWorking && assistant.isBusy
-            ? 'Работает'
-            : assistant.isWorking && !assistant.isBusy
-            ? 'Не работает'
-            : 'Оффлайн';
-      
-        return {
-          nick: assistant.username ? `@${assistant.username}` : `@${assistant.telegramId}`, // Если username есть, используем его
-          averageResponseTime: calculateAverageResponseTime(assistant.conversations, assistant.startedAt),
-          completed: completedConversations,
-          denied: deniedRequests,
-          current: currentComplaints,
-          complaints: allComplaints,
-          status,
-          message: 'Сообщение ассистента',
-        };
-      });
-      
+      const completedConversations = assistant.conversations.length;
+      const deniedRequests = assistant.requestActions.length;
+
+      // Фильтруем все разговоры ассистента
+      const averageResponseTime = calculateAverageResponseTimeFromConversations(assistant.conversations);
+
+      const status =
+        assistant.isWorking && assistant.isBusy
+          ? 'Работает'
+          : assistant.isWorking && !assistant.isBusy
+          ? 'Не работает'
+          : 'Оффлайн';
+
+      return {
+        nick: assistant.username ? `@${assistant.username}` : `@${assistant.telegramId}`, // Если username есть, используем его
+        averageResponseTime, // Среднее время ответа
+        completed: completedConversations,
+        denied: deniedRequests,
+        current: 0, // Здесь current жалобы заменены на 0, поскольку жалобы не учитываются
+        complaints: 0, // Общие жалобы не учитываются в данном примере
+        status,
+        message: 'Сообщение ассистента',
+      };
+    });
 
     return NextResponse.json(assistantsData, { status: 200 });
   } catch (error) {
@@ -61,14 +49,22 @@ export async function GET() {
   }
 }
 
-// Пример функции для расчета среднего времени ответа
-function calculateAverageResponseTime(conversations: Conversation[], startedAt: Date | null) {
-  if (conversations.length === 0 || !startedAt) return 0;
+// Функция для расчета среднего времени ответа на основе разговоров
+function calculateAverageResponseTimeFromConversations(conversations: Conversation[]) {
+  // Собираем все времена ответа ассистента из разговоров
+  const responseTimes: number[] = conversations.flatMap(conversation => {
+    if (Array.isArray(conversation.assistantResponseTimes)) {
+      return conversation.assistantResponseTimes as number[]; // Время в миллисекундах
+    }
+    return [];
+  });
 
-  const totalResponseTime = conversations.reduce((acc: number, conversation: Conversation) => {
-    const responseTime = new Date(conversation.createdAt).getTime() - new Date(startedAt).getTime();
-    return acc + responseTime;
-  }, 0);
+  if (responseTimes.length === 0) return 0;
 
-  return totalResponseTime / conversations.length;
+  // Рассчитываем среднее время ответа в миллисекундах
+  const totalResponseTime = responseTimes.reduce((acc, time) => acc + time, 0);
+  const averageResponseTimeInMs = totalResponseTime / responseTimes.length;
+
+  // Переводим в секунды
+  return averageResponseTimeInMs / 1000;
 }
