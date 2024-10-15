@@ -30,15 +30,38 @@ async function sendMessageToAssistant(chatId: string, text: string) {
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
   try {
+    // Отправка сообщения ассистенту через Telegram API
     await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text }),
     });
+
+    // Теперь обновляем статус в Conversation, указывая, что последнее сообщение было от пользователя
+    const assistantTelegramId = BigInt(chatId); // Преобразуем chatId в BigInt для поиска ассистента
+
+    // Найти активную запись в таблице Conversation
+    const activeConversation = await prisma.conversation.findFirst({
+      where: {
+        assistantId: assistantTelegramId,
+        status: 'IN_PROGRESS', // Убедиться, что разговор активен
+      },
+    });
+
+    if (activeConversation) {
+      // Обновить статус последнего отправителя
+      await prisma.conversation.update({
+        where: { id: activeConversation.id },
+        data: { lastMessageFrom: 'USER' }, // Обновляем поле lastMessageFrom на 'USER'
+      });
+    } else {
+      console.error('Ошибка: активный разговор не найден для ассистента');
+    }
   } catch (error) {
     console.error('Ошибка при отправке сообщения ассистенту:', error);
   }
 }
+
 
 async function sendMessageToModerator(chatId: string, text: string) {
   const botToken = process.env.TELEGRAM_ADMIN_BOT_TOKEN;

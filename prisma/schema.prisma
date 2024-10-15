@@ -112,12 +112,12 @@ model Conversation {
   assistantId      BigInt
   messages         Json              @default("[]")
   requestId        BigInt            @unique
-  assistantRequest AssistantRequest? @relation(fields: [requestId], references: [id]) // Поля остаются здесь
+  assistantRequest AssistantRequest? @relation(fields: [requestId], references: [id])
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   status           String            @default("IN_PROGRESS")
+  lastMessageFrom  String            @default("USER") // Поле для отслеживания отправителя последнего сообщения (USER/ASSISTANT)
 }
-
 
 
 

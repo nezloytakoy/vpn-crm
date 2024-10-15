@@ -67,6 +67,27 @@ async function sendTelegramMessageToUser(chatId: string, text: string) {
     }
 
     console.log(`Сообщение успешно отправлено пользователю с ID: ${chatId}`);
+
+    // Теперь обновляем статус в Conversation, указывая, что последнее сообщение было от ассистента
+    const userTelegramId = BigInt(chatId); // Преобразуем chatId в BigInt для поиска пользователя
+
+    // Найти активную запись в таблице Conversation
+    const activeConversation = await prisma.conversation.findFirst({
+      where: {
+        userId: userTelegramId,
+        status: 'IN_PROGRESS', // Убедиться, что разговор активен
+      },
+    });
+
+    if (activeConversation) {
+      // Обновить статус последнего отправителя
+      await prisma.conversation.update({
+        where: { id: activeConversation.id },
+        data: { lastMessageFrom: 'ASSISTANT' }, // Обновляем поле lastMessageFrom на 'ASSISTANT'
+      });
+    } else {
+      console.error('Ошибка: активный разговор не найден для пользователя');
+    }
   } catch (error) {
     console.error('Ошибка при отправке сообщения пользователю:', error);
   }
@@ -266,19 +287,34 @@ async function endActiveDialog(telegramId: bigint, lang: "en" | "ru", ctx: Conte
       return;
     }
 
-    // Обновляем статус запроса как завершённый
+    // Обновляем статус запроса как "REJECTED" и снимаем активность
     await prisma.assistantRequest.update({
       where: { id: activeRequest.id },
-      data: { status: 'COMPLETED', isActive: false },
+      data: { status: 'REJECTED', isActive: false },
     });
 
-    // Обновляем статус ассистента
+    // Создаем запись в RequestAction с действием "REJECTED"
+    await prisma.requestAction.create({
+      data: {
+        requestId: activeRequest.id,
+        assistantId: telegramId,
+        action: 'REJECTED', // Фиксируем действие REJECTED
+      },
+    });
+
+    // Начисляем 1 запрос пользователю обратно
+    await prisma.user.update({
+      where: { telegramId: activeRequest.userId },
+      data: { aiRequests: { increment: 1 } }, // Начисляем 1 запрос
+    });
+
+    // Обновляем статус ассистента (снятие занятости)
     await prisma.assistant.update({
       where: { telegramId: telegramId }, // telegramId ассистента
       data: { isBusy: false },
     });
 
-    // Обновляем статус разговора на "COMPLETED"
+    // Обновляем статус разговора на "ABORTED"
     await prisma.conversation.updateMany({
       where: {
         userId: activeRequest.userId,
@@ -286,20 +322,52 @@ async function endActiveDialog(telegramId: bigint, lang: "en" | "ru", ctx: Conte
         status: 'IN_PROGRESS', // Только для активных разговоров
       },
       data: {
-        status: 'COMPLETED',
+        status: 'ABORTED', // Меняем статус на ABORTED
         updatedAt: new Date(), // Обновляем время последнего изменения
       },
     });
 
-    await ctx.reply(getTranslation(lang, 'dialog_closed'));
+    // Уведомляем пользователя о потере связи с ассистентом
+    await sendTelegramMessageToUser(
+      activeRequest.user.telegramId.toString(),
+      'Связь с ассистентом потеряна. Ищем другого ассистента...'
+    );
 
-    // Отправляем сообщение пользователю
-    await sendTelegramMessageToUser(activeRequest.user.telegramId.toString(), getTranslation(lang, 'assistant_finished_dialog'));
+    // Ищем нового ассистента
+    const newAssistant = await findNewAssistant(activeRequest.id, [telegramId]);
+
+    if (newAssistant) {
+      // Обновляем запрос с новым ассистентом
+      await prisma.assistantRequest.update({
+        where: { id: activeRequest.id },
+        data: {
+          assistantId: newAssistant.telegramId, // Назначаем нового ассистента
+          status: 'PENDING',
+        },
+      });
+
+      // Уведомляем нового ассистента
+      await sendTelegramMessageWithButtons(
+        newAssistant.telegramId.toString(),
+        `Новый запрос от пользователя`,
+        [
+          { text: 'Принять', callback_data: `accept_${activeRequest.id}` },
+          { text: 'Отклонить', callback_data: `reject_${activeRequest.id}` },
+        ]
+      );
+
+      // Уведомляем пользователя, что новый ассистент ищется
+      await ctx.reply('Запрос передан новому ассистенту.');
+    } else {
+      // Если нет доступных ассистентов
+      await ctx.reply('Доступных ассистентов больше нет.');
+    }
   } catch (error) {
     console.error('Ошибка при завершении диалога:', error);
     await ctx.reply(getTranslation(lang, 'end_dialog_error'));
   }
 }
+
 
 
 // Команда end_dialog
