@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Conversation } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -38,7 +38,7 @@ export async function GET() {
 
       return {
         nick: assistant.username ? `@${assistant.username}` : `@${assistant.telegramId}`, // Если username есть, используем его
-        averageResponseTime: calculateAverageResponseTime(assistant),
+        averageResponseTime: calculateAverageResponseTime(assistant.conversations, assistant.startedAt),
         completed: completedConversations,
         denied: deniedRequests,
         current: currentComplaints,
@@ -56,13 +56,13 @@ export async function GET() {
 }
 
 // Пример функции для расчета среднего времени ответа
-function calculateAverageResponseTime(assistant: any) {
-  if (assistant.conversations.length === 0) return 0;
+function calculateAverageResponseTime(conversations: Conversation[], startedAt: Date | null) {
+  if (conversations.length === 0 || !startedAt) return 0;
 
-  const totalResponseTime = assistant.conversations.reduce((acc: number, conversation: any) => {
-    const responseTime = new Date(conversation.createdAt).getTime() - new Date(assistant.startedAt).getTime();
+  const totalResponseTime = conversations.reduce((acc: number, conversation: Conversation) => {
+    const responseTime = new Date(conversation.createdAt).getTime() - new Date(startedAt).getTime();
     return acc + responseTime;
   }, 0);
 
-  return totalResponseTime / assistant.conversations.length;
+  return totalResponseTime / conversations.length;
 }
