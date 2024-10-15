@@ -73,10 +73,10 @@ const Monitoring: React.FC = () => {
               value === 'Работает'
                 ? styles.statusWorking
                 : value === 'Оффлайн'
-                ? styles.statusOffline
-                : value === 'Не работает'
-                ? styles.statusNotWorking
-                : ''
+                  ? styles.statusOffline
+                  : value === 'Не работает'
+                    ? styles.statusNotWorking
+                    : ''
             }
           >
             {value}
@@ -86,7 +86,7 @@ const Monitoring: React.FC = () => {
       {
         Header: '',
         accessor: 'message',
-        Cell: ({ value }) => (
+        Cell: () => (
           <button
             className={styles.messageButton}
             onClick={() => setIsPopupOpen(true)} // Открытие попапа
