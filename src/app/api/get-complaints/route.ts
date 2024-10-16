@@ -5,29 +5,41 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    // Получаем все жалобы (арбитражи) из базы данных
-    const complaints = await prisma.arbitration.findMany({
+    
+    const complaints = await prisma.complaint.findMany({
       select: {
         id: true,
-        reason: true,  // Жалоба (причина арбитража)
         userId: true,
-        userNickname: true, // Может быть null
         assistantId: true,
-        assistantNickname: true, // Может быть null
+        
       },
     });
 
-    // Преобразуем BigInt в строки для сериализации
-    const serializedComplaints = complaints.map(complaint => ({
-      id: complaint.id.toString(),
-      reason: complaint.reason,
-      userId: complaint.userId.toString(),
-      userNickname: complaint.userNickname || 'Неизвестно', // Обрабатываем null
-      assistantId: complaint.assistantId.toString(),
-      assistantNickname: complaint.assistantNickname || 'Неизвестно', // Обрабатываем null
-    }));
+    
+    const serializedComplaints = await Promise.all(
+      complaints.map(async (complaint) => {
+        const [user, assistant] = await Promise.all([
+          prisma.user.findUnique({
+            where: { telegramId: complaint.userId },
+            select: { username: true },
+          }),
+          prisma.assistant.findUnique({
+            where: { telegramId: complaint.assistantId },
+            select: { username: true },
+          }),
+        ]);
 
-    // Возвращаем данные в формате JSON
+        return {
+          id: complaint.id.toString(),
+          userId: complaint.userId.toString(),
+          userNickname: user?.username || 'Неизвестно',
+          assistantId: complaint.assistantId.toString(),
+          assistantNickname: assistant?.username || 'Неизвестно',
+        };
+      })
+    );
+
+    
     return NextResponse.json(serializedComplaints);
   } catch (error) {
     console.error('Ошибка при получении жалоб:', error);

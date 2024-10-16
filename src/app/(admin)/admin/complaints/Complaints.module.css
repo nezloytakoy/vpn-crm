@@ -50,7 +50,7 @@
     color: #888;
   }
 
-  /* Добавляем в Complaints.module.css */
+
 .tableWrapper {
     background-color: white;
     border-radius: 8px;
@@ -60,21 +60,21 @@
   }
 
   .link {
-    color: blue; /* Синий цвет для ссылки */
-    text-decoration: underline; /* Подчеркивание */
-    transition: color 0.3s ease, text-decoration-color 0.3s ease; /* Анимация при наведении */
+    color: blue; 
+    text-decoration: underline; 
+    transition: color 0.3s ease, text-decoration-color 0.3s ease; 
   }
   
   .link:hover {
-    color: darkblue; /* Изменение цвета при наведении */
-    text-decoration-color: darkblue; /* Анимация подчеркивания */
+    color: darkblue;
+    text-decoration-color: darkblue; 
   }
   
   .loaderWrapper {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh; /* Высота экрана */
+    height: 100vh;
   }
   
   .loader {
@@ -96,3 +96,290 @@
   }
   
   
+
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+
+.main {
+    background-color: #F1F5F9;
+    width: 100%;
+    min-height: 100vh;
+    height: auto;
+    display: flex;
+    justify-content: center;
+    padding: 100px 50px;
+    font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.tablebox {
+    background-color: transparent;
+    width: 100vw;
+    border-radius: 15px;
+}
+
+.h1 {
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.textbox {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.text {
+    font-size: 14px;
+    margin-left: 2.5px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.header h3 {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.header span {
+    color: #888;
+}
+
+.tableWrapper {
+    background-color: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
+}
+
+.link {
+    color: blue;
+    text-decoration: underline;
+    transition: color 0.3s ease, text-decoration-color 0.3s ease;
+}
+
+.link:hover {
+    color: darkblue;
+    text-decoration-color: darkblue;
+}
+
+.loaderWrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.loader {
+    border: 8px solid rgba(0, 0, 0, 0.1);
+    width: 70px;
+    height: 70px;
+    border-radius: 100%;
+    border-left-color: #365CF5;
+    animation: spin 1s ease infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+
+.popup {
+  position: fixed;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  padding: 30px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  z-index: 1000;
+  width: 90%;
+  max-width: 600px;
+  animation: fadeIn 0.3s ease;
+}
+
+.popupContent {
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.popup h3 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.popup p {
+  margin: 15px 0;
+}
+
+.popup a {
+  display: block;
+  margin: 5px 0;
+  color: #365CF5;
+  text-decoration: underline;
+  font-size: 14px;
+}
+
+.popup button {
+  background-color: #365CF5;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.popup button:hover {
+  background-color: #2b4ac8;
+}
+
+@keyframes fadeIn {
+  from {
+      opacity: 0;
+      transform: scale(0.95);
+  }
+  to {
+      opacity: 1;
+      transform: scale(1);
+  }
+}
+
+.popup h4 {
+  font-size: 16px;
+  margin-top: 10px;
+}
+
+.popup pre {
+  background-color: #F5F5F5;
+  padding: 10px;
+  border-radius: 5px;
+  text-align: left;
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+
+.popupContent a:hover {
+  color: darkblue;
+}
+
+
+.buttonGroup {
+  display: flex;
+  justify-content: space-between; 
+  gap: 10px; 
+  margin-top: 20px;
+}
+
+.buttonGroup button {
+  flex: 1;
+  padding: 10px;
+}
+
+
+
+.popupOverlay {
+position: fixed;
+top: 0;
+left: 0;
+width: 100vw;
+height: 100vh;
+background-color: rgba(0, 0, 0, 0.5);
+display: flex;
+justify-content: center;
+align-items: center;
+z-index: 1000;
+opacity: 0;
+animation: fadeIn 0.3s forwards;
+}
+
+.popup {
+background-color: white;
+border-radius: 10px;
+padding: 20px;
+width: 400px;
+max-width: 90%;
+box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+transform: translateY(-20px);
+opacity: 0;
+animation: slideIn 0.3s forwards;
+}
+
+.closeButton {
+background-color: #ff5c5c;
+color: white;
+border: none;
+padding: 10px 20px;
+border-radius: 5px;
+cursor: pointer;
+transition: background-color 0.3s ease;
+}
+
+.closeButton:hover {
+background-color: #e04848;
+}
+
+@keyframes fadeIn {
+to {
+  opacity: 1;
+}
+}
+
+@keyframes slideIn {
+to {
+  transform: translateY(0);
+  opacity: 1;
+}
+}
+
+.loaderWrapper {
+display: flex;
+justify-content: center;
+align-items: center;
+height: 100vh;
+}
+
+.loader {
+border: 8px solid rgba(0, 0, 0, 0.1);
+width: 70px;
+height: 70px;
+border-radius: 100%;
+border-left-color: #365cf5;
+animation: spin 1s ease infinite;
+}
+
+@keyframes spin {
+0% {
+  transform: rotate(0deg);
+}
+100% {
+  transform: rotate(360deg);
+}
+}
+
+
+.imagesContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.image {
+  max-width: 100px;
+  max-height: 100px;
+  object-fit: cover;
+  border-radius: 5px;
+}

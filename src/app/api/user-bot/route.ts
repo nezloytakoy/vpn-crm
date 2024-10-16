@@ -554,7 +554,7 @@ bot.command('problem', async (ctx: Context) => {
     });
 
     
-    await ctx.reply('Опишите свою жалобу. После этого вы сможете загрузить фото.');
+    await ctx.reply('Опишите свою жалобу. После этого вы сможете загрузить скриншоты.');
 
   } catch (error) {
     console.error('Ошибка при создании жалобы:', error);
@@ -669,7 +669,7 @@ bot.on('message:photo', async (ctx: Context) => {
       
       for (const photo of ctx.message.photo) {
         const file = await ctx.api.getFile(photo.file_id);
-        const fileUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
+        const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${file.file_path}`;
         photoUrls.push(fileUrl);
       }
 
@@ -677,12 +677,14 @@ bot.on('message:photo', async (ctx: Context) => {
       const lastComplaint = await prisma.complaint.findFirst({
         where: {
           userId: telegramId,
-          status: 'PENDING',
+          status: 'PENDING', 
         },
         orderBy: {
-          createdAt: 'desc',
+          createdAt: 'desc', 
         },
+        take: 1, 
       });
+      
 
       if (!lastComplaint) {
         await ctx.reply('Ошибка: не найдена активная жалоба для прикрепления фото.');
@@ -698,7 +700,7 @@ bot.on('message:photo', async (ctx: Context) => {
         },
       });
 
-      await ctx.reply('Фото были успешно прикреплены к вашей жалобе.');
+      await ctx.reply('Скриншоты были успешно прикреплены к вашей жалобе.');
     } else {
       await ctx.reply('Пожалуйста, отправьте фото для прикрепления к жалобе.');
     }

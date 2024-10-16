@@ -87,6 +87,21 @@
     border: 1px solid #ccc;
     font-size: 14px;
   }
+
+  /* Table.module.css */
+.tableRow {
+  cursor: default;
+}
+
+.clickableRow {
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.clickableRow:hover {
+  background-color: #f0f0f0; /* Изменение фона при наведении */
+}
+
   
   /* Responsive styles */
   @media (max-width: 600px) {
