@@ -576,34 +576,23 @@ bot.on('message:text', async (ctx: Context) => {
     }
 
     const telegramId = BigInt(ctx.from.id);
-    const userMessage = ctx.message?.text; 
+    const userMessage = ctx.message?.text;
 
     if (!userMessage) {
       await ctx.reply(getTranslation(languageCode, 'no_text_message'));
       return;
     }
 
-    
+    // Получаем пользователя, активный запрос и арбитраж
     const [user, activeRequest, arbitration] = await Promise.all([
-      prisma.user.findUnique({
-        where: { telegramId },
-      }),
+      prisma.user.findUnique({ where: { telegramId } }),
       prisma.assistantRequest.findFirst({
-        where: {
-          user: { telegramId: telegramId },
-          isActive: true,
-        },
+        where: { user: { telegramId }, isActive: true },
         include: { assistant: true },
       }),
       prisma.arbitration.findFirst({
-        where: {
-          userId: telegramId,
-          status: 'IN_PROGRESS',
-        },
-        include: {
-          assistant: true,
-          moderator: true,
-        },
+        where: { userId: telegramId, status: 'IN_PROGRESS' },
+        include: { assistant: true, moderator: true },
       }),
     ]);
 
@@ -612,34 +601,28 @@ bot.on('message:text', async (ctx: Context) => {
       return;
     }
 
-    
+    // Если пользователь ждет возможности добавить текст к жалобе, обновляем жалобу
     if (user.isWaitingForComplaint) {
-      
       await handleUserComplaint(telegramId, userMessage, languageCode, ctx);
       return;
     }
 
     if (arbitration) {
-      
       console.log('deleted function');
     } else if (user.isActiveAIChat) {
-      
       await handleAIChat(telegramId, userMessage, ctx);
     } else if (activeRequest) {
-      
       if (activeRequest.assistant) {
         await sendMessageToAssistant(activeRequest.assistant.telegramId.toString(), userMessage);
       } else {
         console.error('Ошибка: Ассистент не найден для активного запроса.');
       }
     } else {
-      
       await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
     }
   } catch (error) {
     console.error('Ошибка при обработке сообщения:', error);
-    const languageCode = ctx.from?.language_code || 'en';
-    await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
+    await ctx.reply("Не получилось обработать сообщение");
   }
 });
 
@@ -713,34 +696,41 @@ bot.on('message:photo', async (ctx: Context) => {
 
 
 async function handleUserComplaint(telegramId: bigint, userMessage: string, languageCode: string, ctx: Context) {
-  
-  const lastConversation = await prisma.conversation.findFirst({
-    where: {
-      userId: telegramId,
-      status: 'COMPLETED',
-    },
-    orderBy: {
-      updatedAt: 'desc',
-    },
-  });
+  try {
+    // Находим последнюю активную жалобу (в статусе "PENDING")
+    const lastComplaint = await prisma.complaint.findFirst({
+      where: {
+        userId: telegramId,
+        status: 'PENDING', // Ищем активную жалобу
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
 
-  
-  await prisma.complaint.create({
-    data: {
-      userId: telegramId,
-      assistantId: lastConversation?.assistantId || BigInt(0), 
-      text: userMessage,
-      status: 'PENDING',
-    },
-  });
+    // Проверяем, есть ли активная жалоба
+    if (!lastComplaint) {
+      await ctx.reply("Жалоба не найдена"); // Выводим сообщение, если активная жалоба не найдена
+      return;
+    }
 
-  
-  await prisma.user.update({
-    where: { telegramId },
-    data: { isWaitingForComplaint: false },
-  });
+    // Обновляем жалобу, добавляем текст от пользователя
+    await prisma.complaint.update({
+      where: { id: lastComplaint.id },
+      data: { text: userMessage }, // Обновляем текст жалобы
+    });
 
-  await ctx.reply(getTranslation(languageCode, 'complaint_submitted'));
+    // Обновляем статус пользователя, что он больше не ожидает ввода жалобы
+    await prisma.user.update({
+      where: { telegramId },
+      data: { isWaitingForComplaint: false },
+    });
+
+    await ctx.reply(getTranslation(languageCode, 'complaint_submitted')); // Сообщение об успешной отправке жалобы
+  } catch (error) {
+    console.error('Ошибка при обновлении жалобы:', error);
+    await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
+  }
 }
 
 
