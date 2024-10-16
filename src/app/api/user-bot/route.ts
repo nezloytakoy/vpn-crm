@@ -165,102 +165,102 @@ interface JsonObject {
 
 
 
-bot.command('end_dialog', async (ctx) => {
-  try {
-    const languageCode = ctx.from?.language_code || 'en'; 
+// bot.command('end_dialog', async (ctx) => {
+//   try {
+//     const languageCode = ctx.from?.language_code || 'en'; 
 
-    if (!ctx.from?.id) {
-      await ctx.reply(getTranslation(languageCode, 'no_user_id'));
-      return;
-    }
+//     if (!ctx.from?.id) {
+//       await ctx.reply(getTranslation(languageCode, 'no_user_id'));
+//       return;
+//     }
 
-    const telegramId = BigInt(ctx.from.id);
-
-    
-    const activeRequest = await prisma.assistantRequest.findFirst({
-      where: {
-        user: { telegramId: telegramId },
-        isActive: true,
-      },
-      include: { assistant: true },
-    });
-
-    if (!activeRequest) {
-      await ctx.reply(getTranslation(languageCode, 'no_active_dialog'));
-      return;
-    }
+//     const telegramId = BigInt(ctx.from.id);
 
     
-    const conversation = await prisma.conversation.findUnique({
-      where: { requestId: activeRequest.id },
-    });
+//     const activeRequest = await prisma.assistantRequest.findFirst({
+//       where: {
+//         user: { telegramId: telegramId },
+//         isActive: true,
+//       },
+//       include: { assistant: true },
+//     });
 
-    if (!conversation) {
-      console.error('Ошибка: разговор для запроса не найден');
-      await ctx.reply(getTranslation(languageCode, 'error_end_dialog'));
-      return;
-    }
-
-    
-    await prisma.conversation.update({
-      where: { id: conversation.id },
-      data: { status: 'COMPLETED' },
-    });
+//     if (!activeRequest) {
+//       await ctx.reply(getTranslation(languageCode, 'no_active_dialog'));
+//       return;
+//     }
 
     
-    await prisma.assistantRequest.update({
-      where: { id: activeRequest.id },
-      data: { status: 'COMPLETED', isActive: false },
-    });
+//     const conversation = await prisma.conversation.findUnique({
+//       where: { requestId: activeRequest.id },
+//     });
+
+//     if (!conversation) {
+//       console.error('Ошибка: разговор для запроса не найден');
+//       await ctx.reply(getTranslation(languageCode, 'error_end_dialog'));
+//       return;
+//     }
 
     
-    if (activeRequest.assistant) {
-      await prisma.assistant.update({
-        where: { telegramId: activeRequest.assistant.telegramId },
-        data: { isBusy: false },
-      });
-    } else {
-      console.error('Ошибка: ассистент не найден для запроса');
-    }
+//     await prisma.conversation.update({
+//       where: { id: conversation.id },
+//       data: { status: 'COMPLETED' },
+//     });
 
     
-    const messages = conversation.messages as JsonArray | null; 
-    if (!Array.isArray(messages) || messages.length === 0 || conversation.lastMessageFrom === 'USER') {
+//     await prisma.assistantRequest.update({
+//       where: { id: activeRequest.id },
+//       data: { status: 'COMPLETED', isActive: false },
+//     });
+
+    
+//     if (activeRequest.assistant) {
+//       await prisma.assistant.update({
+//         where: { telegramId: activeRequest.assistant.telegramId },
+//         data: { isBusy: false },
+//       });
+//     } else {
+//       console.error('Ошибка: ассистент не найден для запроса');
+//     }
+
+    
+//     const messages = conversation.messages as JsonArray | null; 
+//     if (!Array.isArray(messages) || messages.length === 0 || conversation.lastMessageFrom === 'USER') {
       
-      if (activeRequest.assistant) {
-        await sendMessageToAssistant(
-          activeRequest.assistant.telegramId.toString(),
-          `${getTranslation(languageCode, 'user_ended_dialog_no_reward')}` 
-        );
-      } else {
-        console.error('Ошибка: ассистент не найден для активного запроса');
-      }
-    } else {
+//       if (activeRequest.assistant) {
+//         await sendMessageToAssistant(
+//           activeRequest.assistant.telegramId.toString(),
+//           `${getTranslation(languageCode, 'user_ended_dialog_no_reward')}` 
+//         );
+//       } else {
+//         console.error('Ошибка: ассистент не найден для активного запроса');
+//       }
+//     } else {
       
-      if (activeRequest.assistant) {
-        const updatedAssistant = await prisma.assistant.update({
-          where: { telegramId: activeRequest.assistant.telegramId },
-          data: { coins: { increment: 1 } }, 
-        });
+//       if (activeRequest.assistant) {
+//         const updatedAssistant = await prisma.assistant.update({
+//           where: { telegramId: activeRequest.assistant.telegramId },
+//           data: { coins: { increment: 1 } }, 
+//         });
 
         
-        await sendMessageToAssistant(
-          updatedAssistant.telegramId.toString(),
-          `${getTranslation(languageCode, 'user_ended_dialog')} ${getTranslation(languageCode, 'coin_awarded')}`
-        );
-      } else {
-        console.error('Ошибка: ассистент не найден для активного запроса');
-      }
-    }
+//         await sendMessageToAssistant(
+//           updatedAssistant.telegramId.toString(),
+//           `${getTranslation(languageCode, 'user_ended_dialog')} ${getTranslation(languageCode, 'coin_awarded')}`
+//         );
+//       } else {
+//         console.error('Ошибка: ассистент не найден для активного запроса');
+//       }
+//     }
 
-    await ctx.reply(getTranslation(languageCode, 'dialog_closed'));
+//     await ctx.reply(getTranslation(languageCode, 'dialog_closed'));
 
-  } catch (error) {
-    console.error('Ошибка при завершении диалога:', error);
-    const languageCode = ctx.from?.language_code || 'en';
-    await ctx.reply(getTranslation(languageCode, 'error_end_dialog'));
-  }
-});
+//   } catch (error) {
+//     console.error('Ошибка при завершении диалога:', error);
+//     const languageCode = ctx.from?.language_code || 'en';
+//     await ctx.reply(getTranslation(languageCode, 'error_end_dialog'));
+//   }
+// });
 
 
 

@@ -223,6 +223,7 @@ const translations = {
     send_message_error: "Please send a text message.",
     no_user_requests: "⚠️ You have no active user requests.",
     error_processing_message: "An error occurred while processing your message. Please try again later.",
+    active_dialog_exists: "⚠️ You have an active dialog. Please finish it before ending work.", 
   },
   ru: {
     end_dialog_error: "Ошибка: не удалось получить ваш идентификатор Telegram.",
@@ -245,8 +246,10 @@ const translations = {
     send_message_error: "Пожалуйста, отправьте текстовое сообщение.",
     no_user_requests: "⚠️ У вас нет активных запросов пользователей.",
     error_processing_message: "Произошла ошибка при обработке вашего сообщения. Пожалуйста, попробуйте еще раз позже.",
+    active_dialog_exists: "⚠️ У вас есть активный диалог. Пожалуйста, завершите его перед тем, как закончить работу.", 
   },
 };
+
 
 const detectUserLanguage = (ctx: Context) => {
   const userLang = ctx.from?.language_code;
@@ -325,116 +328,116 @@ async function findNewAssistant(requestId: bigint, ignoredAssistants: bigint[]) 
 }
 
 
-async function endActiveDialog(telegramId: bigint, lang: "en" | "ru", ctx: Context) {
-  try {
 
-    const activeRequest = await prisma.assistantRequest.findFirst({
-      where: {
-        assistant: { telegramId: telegramId }, 
-      },
-      include: { user: true, conversation: true }, 
-    });
 
-    if (!activeRequest) {
-      await ctx.reply(getTranslation(lang, 'no_active_requests'));
-      return;
-    }
 
-  
-    if (activeRequest.conversation) {
-      await prisma.conversation.delete({
-        where: { id: activeRequest.conversation.id },
-      });
-    }
+
+
+
+
+
+
+
+
+
+
+
 
   
-    await prisma.assistantRequest.update({
-      where: { id: activeRequest.id },
-      data: { status: 'REJECTED', isActive: false },
-    });
 
 
-    await prisma.requestAction.create({
-      data: {
-        requestId: activeRequest.id,
-        assistantId: telegramId,
-        action: 'REJECTED',
-      },
-    });
 
 
-    await prisma.user.update({
-      where: { telegramId: activeRequest.userId },
-      data: { aiRequests: { increment: 1 } },
-    });
 
 
-    await prisma.assistant.update({
-      where: { telegramId: telegramId },
-      data: { isBusy: false },
-    });
-
-
-    await sendTelegramMessageToUser(
-      activeRequest.user.telegramId.toString(),
-      'Связь с ассистентом потеряна. Ищем другого ассистента...'
-    );
-
-
-    const newAssistant = await findNewAssistant(activeRequest.id, [telegramId]);
-
-    if (newAssistant) {
   
-      await prisma.assistantRequest.update({
-        where: { id: activeRequest.id },
-        data: {
-          assistantId: newAssistant.telegramId,
-          status: 'PENDING',
-        },
-      });
 
 
-      await sendTelegramMessageWithButtons(
-        newAssistant.telegramId.toString(),
-        `Новый запрос от пользователя`,
-        [
-          { text: 'Принять', callback_data: `accept_${activeRequest.id}` },
-          { text: 'Отклонить', callback_data: `reject_${activeRequest.id}` },
-        ]
-      );
 
 
-      await ctx.reply('Запрос передан новому ассистенту.');
-    } else {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
    
-      await ctx.reply('Доступных ассистентов больше нет.');
-    }
-  } catch (error) {
-    console.error('Ошибка при завершении диалога:', error);
-    await ctx.reply(getTranslation(lang, 'end_dialog_error'));
-  }
-}
 
 
 
 
 
-bot.command('end_dialog', async (ctx) => {
-  const lang = detectUserLanguage(ctx);
 
-  try {
-    if (!ctx.from?.id) {
-      await ctx.reply(getTranslation(lang, 'end_dialog_error'));
-      return;
-    }
 
-    const telegramId = BigInt(ctx.from.id);
-    await endActiveDialog(telegramId, lang, ctx);
-  } catch (error) {
-    console.error('Error ending dialog:', error);
-    await ctx.reply(getTranslation(lang, 'end_dialog_error'));
-  }
-});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -448,18 +451,30 @@ bot.command('end_work', async (ctx) => {
     const telegramId = BigInt(ctx.from.id);
     const lang = detectUserLanguage(ctx);
 
+    
+    const activeConversation = await prisma.conversation.findFirst({
+      where: {
+        assistantId: telegramId,
+        status: 'IN_PROGRESS', 
+      },
+    });
 
-    await endActiveDialog(telegramId, lang, ctx);
+    if (activeConversation) {
+      
+      await ctx.reply(getTranslation(lang, 'active_dialog_exists'));
+      return;
+    }
 
     const assistant = await prisma.assistant.findUnique({
       where: { telegramId: telegramId },
     });
+
     if (!assistant?.isWorking) {
       await ctx.reply(getTranslation(lang, 'no_working_status'));
       return;
     }
 
-
+    
     await prisma.assistant.update({
       where: { telegramId: telegramId },
       data: { isWorking: false, isBusy: false },
@@ -471,6 +486,7 @@ bot.command('end_work', async (ctx) => {
     await ctx.reply(getTranslation(detectUserLanguage(ctx), 'end_dialog_error'));
   }
 });
+
 
 
 bot.command('start', async (ctx) => {
