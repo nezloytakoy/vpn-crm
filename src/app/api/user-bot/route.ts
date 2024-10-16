@@ -462,22 +462,43 @@ bot.command('problem', async (ctx: Context) => {
 
     const telegramId = BigInt(ctx.from.id);
 
-    // Находим последнюю завершенную беседу пользователя
-    const lastConversation = await prisma.conversation.findFirst({
+    // Находим активный запрос пользователя
+    const activeRequest = await prisma.assistantRequest.findFirst({
       where: {
-        userId: telegramId,
-        status: 'COMPLETED',
-      },
-      orderBy: {
-        updatedAt: 'desc',
+        user: { telegramId },
+        isActive: true,
       },
       include: { assistant: true },
     });
 
-    if (!lastConversation) {
-      await ctx.reply('⚠️ У вас нет завершенных бесед.');
+    if (!activeRequest) {
+      await ctx.reply('⚠️ У вас нет активных запросов.');
       return;
     }
+
+    // Проверяем, есть ли уже жалоба на этот запрос
+    const existingComplaint = await prisma.complaint.findUnique({
+      where: { id: activeRequest.id },
+    });
+
+    if (existingComplaint) {
+      await ctx.reply('⚠️ Вы уже подали жалобу по этому запросу.');
+      return;
+    }
+
+    // Определяем assistantId, если его нет — присваиваем 0
+    const assistantId = activeRequest.assistantId ?? BigInt(0);
+
+    // Создаем новую жалобу с тем же ID, что и у запроса
+    await prisma.complaint.create({
+      data: {
+        id: activeRequest.id, // Используем ID запроса как ID жалобы
+        userId: telegramId,
+        assistantId: assistantId, // Используем ID ассистента или 0
+        text: '', // Пользователь добавит текст позже
+        status: 'PENDING',
+      },
+    });
 
     // Устанавливаем флаг ожидания жалобы для пользователя
     await prisma.user.update({
@@ -494,47 +515,7 @@ bot.command('problem', async (ctx: Context) => {
   }
 });
 
-// Обработчик команды "problem" для начала жалобы
-bot.command('problem', async (ctx: Context) => {
-  try {
-    if (!ctx.from?.id) {
-      await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
-      return;
-    }
 
-    const telegramId = BigInt(ctx.from.id);
-
-    // Находим последнюю завершенную беседу пользователя
-    const lastConversation = await prisma.conversation.findFirst({
-      where: {
-        userId: telegramId,
-        status: 'COMPLETED',
-      },
-      orderBy: {
-        updatedAt: 'desc',
-      },
-      include: { assistant: true },
-    });
-
-    if (!lastConversation) {
-      await ctx.reply('⚠️ У вас нет завершенных бесед.');
-      return;
-    }
-
-    // Устанавливаем флаг ожидания жалобы для пользователя
-    await prisma.user.update({
-      where: { telegramId },
-      data: { isWaitingForComplaint: true },
-    });
-
-    // Сообщаем пользователю, что ждем ввода жалобы
-    await ctx.reply('Опишите свою жалобу. После этого вы сможете загрузить фото.');
-
-  } catch (error) {
-    console.error('Ошибка при создании жалобы:', error);
-    await ctx.reply('Произошла ошибка при создании жалобы. Пожалуйста, попробуйте позже.');
-  }
-});
 
 // Обработчик для любых сообщений
 bot.on('message:text', async (ctx: Context) => {
