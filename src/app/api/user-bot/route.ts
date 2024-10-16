@@ -510,22 +510,23 @@ bot.command('problem', async (ctx: Context) => {
     const telegramId = BigInt(ctx.from.id);
 
     
-    const activeRequest = await prisma.assistantRequest.findFirst({
+    const lastRequest = await prisma.assistantRequest.findFirst({
       where: {
-        user: { telegramId },
-        isActive: true,
+        userId: telegramId,
       },
-      include: { assistant: true },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
 
-    if (!activeRequest) {
-      await ctx.reply('⚠️ У вас нет активных запросов.');
+    if (!lastRequest) {
+      await ctx.reply('⚠️ У вас нет запросов.');
       return;
     }
 
     
     const existingComplaint = await prisma.complaint.findUnique({
-      where: { id: activeRequest.id },
+      where: { id: lastRequest.id },
     });
 
     if (existingComplaint) {
@@ -533,13 +534,12 @@ bot.command('problem', async (ctx: Context) => {
       return;
     }
 
-    
-    const assistantId = activeRequest.assistantId ?? BigInt(0);
+    const assistantId = lastRequest.assistantId ?? BigInt(0); 
 
     
     await prisma.complaint.create({
       data: {
-        id: activeRequest.id, 
+        id: lastRequest.id, 
         userId: telegramId,
         assistantId: assistantId, 
         text: '', 
@@ -561,6 +561,7 @@ bot.command('problem', async (ctx: Context) => {
     await ctx.reply('Произошла ошибка при создании жалобы. Пожалуйста, попробуйте позже.');
   }
 });
+
 
 
 
