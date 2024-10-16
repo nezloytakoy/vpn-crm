@@ -94,19 +94,49 @@ async function sendTelegramMessageToUser(chatId: string, text: string) {
         // Добавляем это время в массив assistantResponseTimes
         responseTimesArray.push(responseTime);
 
-        // Обновляем поле lastUserMessageAt и массив времен ответа
+        // Ассоциативный массив для добавления нового сообщения от ассистента
+        const newAssistantMessage = {
+          sender: 'ASSISTANT',
+          message: text,
+          timestamp: currentTime.toISOString(),
+        };
+
+        // Обновляем массив сообщений с добавлением нового сообщения
+        const updatedMessages = [
+          ...(activeConversation.messages as Array<{ sender: string; message: string; timestamp: string }>),
+          newAssistantMessage,
+        ];
+
+        // Обновляем поле lastUserMessageAt, массив времен ответа и массив сообщений
         await prisma.conversation.update({
           where: { id: activeConversation.id },
           data: {
-            lastMessageFrom: 'ASSISTANT', // Обновляем поле lastMessageFrom на 'ASSISTANT'
+            lastMessageFrom: 'ASSISTANT',          // Обновляем поле lastMessageFrom на 'ASSISTANT'
             assistantResponseTimes: responseTimesArray, // Обновляем массив времен ответа
+            messages: updatedMessages,             // Обновляем массив сообщений
           },
         });
       } else {
-        // Обновить только статус последнего отправителя
+        // Ассоциативный массив для добавления нового сообщения от ассистента
+        const newAssistantMessage = {
+          sender: 'ASSISTANT',
+          message: text,
+          timestamp: currentTime.toISOString(),
+        };
+
+        // Обновляем массив сообщений с добавлением нового сообщения
+        const updatedMessages = [
+          ...(activeConversation.messages as Array<{ sender: string; message: string; timestamp: string }>),
+          newAssistantMessage,
+        ];
+
+        // Обновляем только статус последнего отправителя и массив сообщений
         await prisma.conversation.update({
           where: { id: activeConversation.id },
-          data: { lastMessageFrom: 'ASSISTANT' }, // Обновляем поле lastMessageFrom на 'ASSISTANT'
+          data: {
+            lastMessageFrom: 'ASSISTANT',  // Обновляем поле lastMessageFrom на 'ASSISTANT'
+            messages: updatedMessages,     // Обновляем массив сообщений
+          },
         });
       }
     } else {
@@ -116,6 +146,7 @@ async function sendTelegramMessageToUser(chatId: string, text: string) {
     console.error('Ошибка при отправке сообщения пользователю:', error);
   }
 }
+
 
 async function sendTelegramMessageToModerator(chatId: string, text: string, arbitrationId?: bigint) {
   const botToken = process.env.TELEGRAM_ADMIN_BOT_TOKEN;

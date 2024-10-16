@@ -52,12 +52,26 @@ async function sendMessageToAssistant(chatId: string, text: string) {
       // Текущее время как время последнего сообщения от пользователя
       const currentTime = new Date();
 
+      // Ассоциативный массив для добавления нового сообщения
+      const newMessage = {
+        sender: 'USER', // Отправитель — пользователь
+        message: text,  // Само сообщение
+        timestamp: currentTime.toISOString(), // Время отправки сообщения
+      };
+
+      // Обновляем массив сообщений
+      const updatedMessages = [
+        ...(activeConversation.messages as Array<{ sender: string; message: string; timestamp: string }>),
+        newMessage,
+      ];
+
       // Обновить статус последнего отправителя и время последнего сообщения от пользователя
       await prisma.conversation.update({
         where: { id: activeConversation.id },
         data: {
           lastMessageFrom: 'USER',         // Обновляем поле lastMessageFrom на 'USER'
           lastUserMessageAt: currentTime,  // Обновляем время последнего сообщения от пользователя
+          messages: updatedMessages,       // Обновляем массив сообщений
         },
       });
     } else {
@@ -67,6 +81,7 @@ async function sendMessageToAssistant(chatId: string, text: string) {
     console.error('Ошибка при отправке сообщения ассистенту:', error);
   }
 }
+
 
 
 
@@ -142,6 +157,8 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
   return translations[selectedLanguage]?.[key] || translations['en'][key]; // Безопасное обращение к переводам
 };
 
+type JsonArray = Array<string | number | boolean | { [key: string]: any }>;
+
 
 bot.command('end_dialog', async (ctx) => {
   try {
@@ -201,8 +218,19 @@ bot.command('end_dialog', async (ctx) => {
       console.error('Ошибка: ассистент не найден для запроса');
     }
 
-    // Проверка последнего сообщения
-    if (conversation.lastMessageFrom === 'ASSISTANT') {
+    // Проверка последнего сообщения или его отсутствия
+    const messages = conversation.messages as JsonArray | null; // Предполагаем, что сообщения могут быть массивом или null
+    if (!Array.isArray(messages) || messages.length === 0 || conversation.lastMessageFrom === 'USER') {
+      // Если сообщений не было или последнее сообщение от пользователя, ассистент не получает коин
+      if (activeRequest.assistant) {
+        await sendMessageToAssistant(
+          activeRequest.assistant.telegramId.toString(),
+          `${getTranslation(languageCode, 'user_ended_dialog_no_reward')}` // Пользователь покинул диалог, без награды
+        );
+      } else {
+        console.error('Ошибка: ассистент не найден для активного запроса');
+      }
+    } else {
       // Если последнее сообщение от ассистента, начисляем ему 1 коин
       if (activeRequest.assistant) {
         const updatedAssistant = await prisma.assistant.update({
@@ -218,16 +246,6 @@ bot.command('end_dialog', async (ctx) => {
       } else {
         console.error('Ошибка: ассистент не найден для активного запроса');
       }
-    } else {
-      // Если последнее сообщение от пользователя, ассистент не получает коин
-      if (activeRequest.assistant) {
-        await sendMessageToAssistant(
-          activeRequest.assistant.telegramId.toString(),
-          `${getTranslation(languageCode, 'user_ended_dialog_no_reward')}` // Пользователь покинул диалог, без награды
-        );
-      } else {
-        console.error('Ошибка: ассистент не найден для активного запроса');
-      }
     }
 
     await ctx.reply(getTranslation(languageCode, 'dialog_closed'));
@@ -238,6 +256,9 @@ bot.command('end_dialog', async (ctx) => {
     await ctx.reply(getTranslation(languageCode, 'error_end_dialog'));
   }
 });
+
+
+
 
 
 
