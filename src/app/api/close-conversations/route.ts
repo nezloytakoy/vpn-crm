@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 export async function POST() {
   try {
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000); // Время час назад
+    const oneHourAgo = new Date(Date.now() - 60 * 5); // Время час назад
     const conversations = await prisma.conversation.findMany({
       where: {
         status: 'IN_PROGRESS',
