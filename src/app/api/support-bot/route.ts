@@ -793,6 +793,7 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
           requestId: assistantRequest.id, // Добавляем ID запроса, чтобы выполнить связь
           messages: [], // Изначально пустой массив для сообщений
           status: 'IN_PROGRESS', // Статус разговора в процессе
+          lastMessageFrom: 'USER', // Указываем, что последнее сообщение от пользователя
         },
       });
 
