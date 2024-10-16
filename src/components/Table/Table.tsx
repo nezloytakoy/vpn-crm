@@ -1,4 +1,7 @@
+/* eslint-disable react/jsx-key */
+
 'use client';
+
 
 import React, { useRef, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';

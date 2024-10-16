@@ -5,11 +5,17 @@ import Table from '@/components/Table/Table';
 import { Column } from 'react-table'; 
 import styles from './Complaints.module.css';
 
+interface ConversationLog {
+  sender: 'USER' | 'ASSISTANT'; 
+  message: string; 
+  timestamp: string; 
+}
+
 interface Complaint {
   id: string;
   text: string;
-  photoUrls: string[];
-  conversationLogs: any[]; 
+  photoUrls: string[]; 
+  conversationLogs: ConversationLog[]; 
   userId: string;
   userNickname: string;
   assistantId: string;
