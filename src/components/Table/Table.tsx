@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation'; // Импортируем usePathname
+import { usePathname } from 'next/navigation';
 import {
   useTable,
   usePagination,
@@ -37,9 +37,9 @@ type TableInstanceWithPagination<T extends object> = TableInstance<T> &
   };
 
 const Table = <T extends object>({ columns, data, onRowClick }: TableProps<T>) => {
-  const [isMounted, setIsMounted] = useState(false); // Флаг для проверки монтирования компонента
-  const pathname = usePathname(); // Используем usePathname для получения текущего пути
-  const isComplaintsRoute = isMounted && pathname === '/admin/complaints'; // Проверяем, что находимся на странице жалоб
+  const [isMounted, setIsMounted] = useState(false);
+  const pathname = usePathname();
+  const isComplaintsRoute = isMounted && pathname === '/admin/complaints';
 
   const instance = useTable<T>(
     {
@@ -72,7 +72,7 @@ const Table = <T extends object>({ columns, data, onRowClick }: TableProps<T>) =
   const tableRef = useRef<HTMLTableElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Обновляем состояние isMounted после монтирования компонента
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -118,6 +118,7 @@ const Table = <T extends object>({ columns, data, onRowClick }: TableProps<T>) =
                 );
               })}
             </tbody>
+
           </table>
         </div>
       </div>
