@@ -81,6 +81,7 @@ type TranslationKey =
   | 'error_end_dialog'
   | 'no_active_dialog'
   | 'user_ended_dialog'
+  | 'user_ended_dialog_no_reward' // Добавляем новый ключ
   | 'ai_no_response'
   | 'ai_chat_deactivated'
   | 'ai_chat_not_active'
@@ -105,6 +106,7 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       error_end_dialog: 'Произошла ошибка при завершении диалога. Пожалуйста, попробуйте еще раз позже.',
       no_active_dialog: 'У вас нет активного диалога с ассистентом.',
       user_ended_dialog: 'Пользователь завершил диалог.',
+      user_ended_dialog_no_reward: 'Пользователь завершил диалог. Награда не начислена.',
       ai_no_response: 'Извините, не удалось получить ответ от ИИ.',
       ai_chat_deactivated: 'Режим общения с ИИ деактивирован. Спасибо за использование нашего сервиса!',
       ai_chat_not_active: 'У вас нет активного диалога с ИИ.',
@@ -125,6 +127,7 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       error_end_dialog: 'An error occurred while ending the dialog. Please try again later.',
       no_active_dialog: 'You have no active dialog with an assistant.',
       user_ended_dialog: 'The user has ended the dialog.',
+      user_ended_dialog_no_reward: 'The user has ended the dialog. No reward was granted.',
       ai_no_response: 'Sorry, could not get a response from the AI.',
       ai_chat_deactivated: 'AI chat mode has been deactivated. Thank you for using our service!',
       ai_chat_not_active: 'You have no active AI dialog.',
@@ -138,6 +141,7 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
   const selectedLanguage: Language = (languageCode as Language) || 'en'; // Используем 'en' по умолчанию
   return translations[selectedLanguage]?.[key] || translations['en'][key]; // Безопасное обращение к переводам
 };
+
 
 bot.command('end_dialog', async (ctx) => {
   try {
@@ -164,6 +168,23 @@ bot.command('end_dialog', async (ctx) => {
       return;
     }
 
+    // Поиск активной записи в Conversation и проверка последнего сообщения
+    const conversation = await prisma.conversation.findUnique({
+      where: { requestId: activeRequest.id },
+    });
+
+    if (!conversation) {
+      console.error('Ошибка: разговор для запроса не найден');
+      await ctx.reply(getTranslation(languageCode, 'error_end_dialog'));
+      return;
+    }
+
+    // Обновление статуса разговора
+    await prisma.conversation.update({
+      where: { id: conversation.id },
+      data: { status: 'COMPLETED' },
+    });
+
     // Обновление статуса в AssistantRequest
     await prisma.assistantRequest.update({
       where: { id: activeRequest.id },
@@ -180,37 +201,36 @@ bot.command('end_dialog', async (ctx) => {
       console.error('Ошибка: ассистент не найден для запроса');
     }
 
-    // Поиск активной записи в Conversation и обновление статуса
-    const conversation = await prisma.conversation.findUnique({
-      where: { requestId: activeRequest.id },
-    });
+    // Проверка последнего сообщения
+    if (conversation.lastMessageFrom === 'ASSISTANT') {
+      // Если последнее сообщение от ассистента, начисляем ему 1 коин
+      if (activeRequest.assistant) {
+        const updatedAssistant = await prisma.assistant.update({
+          where: { telegramId: activeRequest.assistant.telegramId },
+          data: { coins: { increment: 1 } }, // Начисляем 1 коин
+        });
 
-    if (conversation) {
-      await prisma.conversation.update({
-        where: { id: conversation.id },
-        data: { status: 'COMPLETED' },
-      });
+        // Уведомление ассистента о начислении
+        await sendMessageToAssistant(
+          updatedAssistant.telegramId.toString(),
+          `${getTranslation(languageCode, 'user_ended_dialog')} ${getTranslation(languageCode, 'coin_awarded')}`
+        );
+      } else {
+        console.error('Ошибка: ассистент не найден для активного запроса');
+      }
     } else {
-      console.error('Ошибка: разговор для запроса не найден');
+      // Если последнее сообщение от пользователя, ассистент не получает коин
+      if (activeRequest.assistant) {
+        await sendMessageToAssistant(
+          activeRequest.assistant.telegramId.toString(),
+          `${getTranslation(languageCode, 'user_ended_dialog_no_reward')}` // Пользователь покинул диалог, без награды
+        );
+      } else {
+        console.error('Ошибка: ассистент не найден для активного запроса');
+      }
     }
 
     await ctx.reply(getTranslation(languageCode, 'dialog_closed'));
-
-    // Начисление 1 коина ассистенту
-    if (activeRequest.assistant) {
-      const updatedAssistant = await prisma.assistant.update({
-        where: { telegramId: activeRequest.assistant.telegramId },
-        data: { coins: { increment: 1 } }, // Начисляем 1 коин
-      });
-
-      // Уведомление ассистента о начислении
-      await sendMessageToAssistant(
-        updatedAssistant.telegramId.toString(),
-        `${getTranslation(languageCode, 'user_ended_dialog')} ${getTranslation(languageCode, 'coin_awarded')}`
-      );
-    } else {
-      console.error('Ошибка: ассистент не найден для активного запроса');
-    }
 
   } catch (error) {
     console.error('Ошибка при завершении диалога:', error);
@@ -218,6 +238,7 @@ bot.command('end_dialog', async (ctx) => {
     await ctx.reply(getTranslation(languageCode, 'error_end_dialog'));
   }
 });
+
 
 
 
