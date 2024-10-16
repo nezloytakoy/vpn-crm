@@ -647,39 +647,33 @@ bot.on('message:photo', async (ctx: Context) => {
     }
 
     if (ctx.message?.photo) {
-      const photoUrls: string[] = [];
+      // Берем последнее фото из массива (самое большое разрешение)
+      const largestPhoto = ctx.message.photo[ctx.message.photo.length - 1];
 
+      const file = await ctx.api.getFile(largestPhoto.file_id);
+      const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${file.file_path}`;
       
-      for (const photo of ctx.message.photo) {
-        const file = await ctx.api.getFile(photo.file_id);
-        const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${file.file_path}`;
-        photoUrls.push(fileUrl);
-      }
-
-      
+      // Ищем активную жалобу
       const lastComplaint = await prisma.complaint.findFirst({
         where: {
           userId: telegramId,
-          status: 'PENDING', 
+          status: 'PENDING',
         },
         orderBy: {
-          createdAt: 'desc', 
+          createdAt: 'desc',
         },
-        take: 1, 
       });
-      
 
       if (!lastComplaint) {
         await ctx.reply('Ошибка: не найдена активная жалоба для прикрепления фото.');
         return;
       }
 
-      
+      // Добавляем URL картинки к жалобе
       await prisma.complaint.update({
         where: { id: lastComplaint.id },
         data: {
-          
-          photoUrls: { push: photoUrls },
+          photoUrls: { push: fileUrl },
         },
       });
 
@@ -692,6 +686,7 @@ bot.on('message:photo', async (ctx: Context) => {
     await ctx.reply('Произошла ошибка при загрузке ваших фото.');
   }
 });
+
 
 
 

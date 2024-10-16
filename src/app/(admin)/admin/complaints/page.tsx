@@ -196,7 +196,7 @@ const Complaints: React.FC = () => {
                     
                     <img
                       key={index}
-                      src={`/api/proxy-image?url=${encodeURIComponent(url)}`}
+                      src={`/api/get-image-proxy?url=${encodeURIComponent(url)}`}
                       alt={`Фото ${index + 1}`}
                       className={styles.image}
                     />
