@@ -103,8 +103,7 @@ type TranslationKey =
   | 'coin_awarded'
   | 'no_user_found'
   | 'no_active_dialogs'
-  | 'complaint_submitted'
-  | 'no_active_complaints';  // Добавляем новый ключ
+  | 'complaint_submitted';
 
 type Language = 'en' | 'ru'; 
 
@@ -130,7 +129,6 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       no_user_found: 'Пользователь не найден.',
       no_active_dialogs: 'У вас нет активных диалогов.',
       complaint_submitted: 'Ваша жалоба была отправлена.',
-      no_active_complaints: 'У вас нет активных жалоб.',  // Добавляем перевод
     },
     en: {
       start_message:
@@ -152,14 +150,12 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       no_user_found: 'User not found.',
       no_active_dialogs: 'You have no active dialogs.',
       complaint_submitted: 'Your complaint has been submitted.',
-      no_active_complaints: 'You have no active complaints.',  // Добавляем перевод
     },
   };
 
   const selectedLanguage: Language = (languageCode as Language) || 'en';
   return translations[selectedLanguage]?.[key] || translations['en'][key];
 };
-
 
 type JsonArray = Array<string | number | boolean | { [key: string]: string | number | boolean | JsonArray | JsonObject }>;
 
@@ -570,7 +566,6 @@ bot.command('problem', async (ctx: Context) => {
 
 
 
-// Обработка текстовых сообщений для жалобы
 bot.on('message:text', async (ctx: Context) => {
   try {
     const languageCode = ctx.from?.language_code || 'en';
@@ -588,9 +583,28 @@ bot.on('message:text', async (ctx: Context) => {
       return;
     }
 
-    const user = await prisma.user.findUnique({
-      where: { telegramId },
-    });
+    const [user, activeRequest, arbitration] = await Promise.all([
+      prisma.user.findUnique({
+        where: { telegramId },
+      }),
+      prisma.assistantRequest.findFirst({
+        where: {
+          user: { telegramId: telegramId },
+          isActive: true,
+        },
+        include: { assistant: true },
+      }),
+      prisma.arbitration.findFirst({
+        where: {
+          userId: telegramId,
+          status: 'IN_PROGRESS',
+        },
+        include: {
+          assistant: true,
+          moderator: true,
+        },
+      }),
+    ]);
 
     if (!user) {
       await ctx.reply(getTranslation(languageCode, 'no_user_found'));
@@ -598,41 +612,44 @@ bot.on('message:text', async (ctx: Context) => {
     }
 
     if (user.isWaitingForComplaint) {
-      // Ищем жалобу, чтобы обновить ее текст
-      const existingComplaint = await prisma.complaint.findFirst({
+      const lastConversation = await prisma.conversation.findFirst({
         where: {
           userId: telegramId,
-          status: 'PENDING',
+          status: 'COMPLETED',
         },
         orderBy: {
-          createdAt: 'desc',
+          updatedAt: 'desc',
         },
       });
 
-      if (!existingComplaint) {
-        await ctx.reply('Ошибка: не найдена активная жалоба для обновления.');
-        return;
-      }
+      await createComplaint(telegramId, lastConversation?.assistantId || BigInt(0), userMessage); // Создаем жалобу с текстом
 
-      // Обновляем текст жалобы
-      await prisma.complaint.update({
-        where: { id: existingComplaint.id },
-        data: { text: userMessage },
-      });
-
-      // Обновляем статус пользователя, чтобы он больше не ожидал жалобу
       await prisma.user.update({
         where: { telegramId },
         data: { isWaitingForComplaint: false },
       });
 
       await ctx.reply(getTranslation(languageCode, 'complaint_submitted'));
+      return;
+    }
+
+    if (arbitration) {
+      console.log('deleted function');
+    } else if (user.isActiveAIChat) {
+      await handleAIChat(telegramId, userMessage, ctx);
+    } else if (activeRequest) {
+      if (activeRequest.assistant) {
+        await sendMessageToAssistant(activeRequest.assistant.telegramId.toString(), userMessage);
+      } else {
+        console.error('Ошибка: Ассистент не найден для активного запроса.');
+      }
     } else {
-      await ctx.reply(getTranslation(languageCode, 'no_active_complaints'));
+      await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
     }
   } catch (error) {
     console.error('Ошибка при обработке сообщения:', error);
-    await ctx.reply('Произошла ошибка при обработке вашего сообщения.');
+    const languageCode = ctx.from?.language_code || 'en';
+    await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
   }
 });
 
@@ -705,36 +722,36 @@ bot.on('message:photo', async (ctx: Context) => {
 
 
 
-async function handleUserComplaint(telegramId: bigint, userMessage: string, languageCode: string, ctx: Context) {
+// async function handleUserComplaint(telegramId: bigint, userMessage: string, languageCode: string, ctx: Context) {
   
-  const lastConversation = await prisma.conversation.findFirst({
-    where: {
-      userId: telegramId,
-      status: 'COMPLETED',
-    },
-    orderBy: {
-      updatedAt: 'desc',
-    },
-  });
+//   const lastConversation = await prisma.conversation.findFirst({
+//     where: {
+//       userId: telegramId,
+//       status: 'COMPLETED',
+//     },
+//     orderBy: {
+//       updatedAt: 'desc',
+//     },
+//   });
 
   
-  await prisma.complaint.create({
-    data: {
-      userId: telegramId,
-      assistantId: lastConversation?.assistantId || BigInt(0), 
-      text: userMessage,
-      status: 'PENDING',
-    },
-  });
+//   await prisma.complaint.create({
+//     data: {
+//       userId: telegramId,
+//       assistantId: lastConversation?.assistantId || BigInt(0), 
+//       text: userMessage,
+//       status: 'PENDING',
+//     },
+//   });
 
   
-  await prisma.user.update({
-    where: { telegramId },
-    data: { isWaitingForComplaint: false },
-  });
+//   await prisma.user.update({
+//     where: { telegramId },
+//     data: { isWaitingForComplaint: false },
+//   });
 
-  await ctx.reply(getTranslation(languageCode, 'complaint_submitted'));
-}
+//   await ctx.reply(getTranslation(languageCode, 'complaint_submitted'));
+// }
 
 
 async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Context) {
@@ -772,6 +789,16 @@ async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Contex
   }
 }
 
+async function createComplaint(telegramId: bigint, assistantId: bigint, complaintText: string) {
+  return await prisma.complaint.create({
+    data: {
+      userId: telegramId,
+      assistantId: assistantId,
+      text: complaintText,
+      status: 'PENDING',
+    },
+  });
+}
 
 
 
