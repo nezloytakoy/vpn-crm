@@ -535,18 +535,18 @@ bot.command('problem', async (ctx: Context) => {
       return;
     }
 
-    const assistantId = lastRequest.assistantId ?? BigInt(0);
+    // const assistantId = lastRequest.assistantId ?? BigInt(0);
 
     // Создаем новую жалобу один раз
-    await prisma.complaint.create({
-      data: {
-        id: lastRequest.id, 
-        userId: telegramId,
-        assistantId: assistantId,
-        text: '',  // Изначально пустая жалоба
-        status: 'PENDING',
-      },
-    });
+    // await prisma.complaint.create({
+    //   data: {
+    //     id: lastRequest.id, 
+    //     userId: telegramId,
+    //     assistantId: assistantId,
+    //     text: '',  // Изначально пустая жалоба
+    //     status: 'PENDING',
+    //   },
+    // });
 
     // Обновляем статус пользователя, чтобы ожидать жалобу
     await prisma.user.update({
