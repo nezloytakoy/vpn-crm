@@ -1,21 +1,21 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import Table from '@/components/Table/Table'; 
-import { Column } from 'react-table'; 
-import styles from './Complaints.module.css';
+import React, { useEffect, useState } from "react";
+import Table from "@/components/Table/Table";
+import { Column } from "react-table";
+import styles from "./Complaints.module.css";
 
 interface ConversationLog {
-  sender: 'USER' | 'ASSISTANT'; 
-  message: string; 
-  timestamp: string; 
+  sender: "USER" | "ASSISTANT";
+  message: string;
+  timestamp: string;
 }
 
 interface Complaint {
   id: string;
   text: string;
-  photoUrls: string[]; 
-  conversationLogs: ConversationLog[]; 
+  photoUrls: string[];
+  conversationLogs: ConversationLog[];
   userId: string;
   userNickname: string;
   assistantId: string;
@@ -34,31 +34,38 @@ const Complaints: React.FC = () => {
   const [data, setData] = useState<ComplaintData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
+  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(
+    null
+  );
+  const [selectedImage, setSelectedImage] = useState<string | null>(null); 
 
   useEffect(() => {
     const fetchComplaints = async () => {
       try {
-        const response = await fetch('/api/get-complaints');
+        const response = await fetch("/api/get-complaints");
         if (!response.ok) {
-          throw new Error('Ошибка получения жалоб');
+          throw new Error("Ошибка получения жалоб");
         }
 
         const complaintsData: Complaint[] = await response.json();
 
-        const formattedData: ComplaintData[] = complaintsData.map((complaint) => ({
-          complaintId: complaint.id,
-          user: `@${complaint.userNickname}`,
-          userId: complaint.userId,
-          assistant: `@${complaint.assistantNickname}`,
-          assistantId: complaint.assistantId,
-        }));
+        const formattedData: ComplaintData[] = complaintsData.map(
+          (complaint) => ({
+            complaintId: complaint.id,
+            user: `@${complaint.userNickname}`,
+            userId: complaint.userId,
+            assistant: `@${complaint.assistantNickname}`,
+            assistantId: complaint.assistantId,
+          })
+        );
 
         setData(formattedData);
         setLoading(false);
       } catch (error) {
-        console.error('Ошибка при получении данных:', error);
-        setError('Не удалось загрузить жалобы. Пожалуйста, попробуйте снова позже.');
+        console.error("Ошибка при получении данных:", error);
+        setError(
+          "Не удалось загрузить жалобы. Пожалуйста, попробуйте снова позже."
+        );
       }
     };
 
@@ -67,12 +74,12 @@ const Complaints: React.FC = () => {
 
   const columns: Array<Column<ComplaintData>> = [
     {
-      Header: 'Номер жалобы',
-      accessor: 'complaintId',
+      Header: "Номер жалобы",
+      accessor: "complaintId",
     },
     {
-      Header: 'Пользователь',
-      accessor: 'user',
+      Header: "Пользователь",
+      accessor: "user",
       Cell: ({ row }: { row: { original: ComplaintData } }) => (
         <a
           href={`https://t.me/${row.original.user}`}
@@ -85,12 +92,12 @@ const Complaints: React.FC = () => {
       ),
     },
     {
-      Header: 'ID Пользователя',
-      accessor: 'userId',
+      Header: "ID Пользователя",
+      accessor: "userId",
     },
     {
-      Header: 'Ассистент',
-      accessor: 'assistant',
+      Header: "Ассистент",
+      accessor: "assistant",
       Cell: ({ row }: { row: { original: ComplaintData } }) => (
         <a
           href={`https://t.me/${row.original.assistant}`}
@@ -103,35 +110,33 @@ const Complaints: React.FC = () => {
       ),
     },
     {
-      Header: 'ID Ассистента',
-      accessor: 'assistantId',
+      Header: "ID Ассистента",
+      accessor: "assistantId",
     },
   ];
 
   const handleRowClick = async (row: ComplaintData) => {
     try {
-      
       const response = await fetch(`/api/get-complaint-details?id=${row.complaintId}`);
       if (!response.ok) {
-        throw new Error('Ошибка получения деталей жалобы');
+        throw new Error("Ошибка получения деталей жалобы");
       }
       const complaintDetails: Complaint = await response.json();
-      setSelectedComplaint(complaintDetails); 
+      setSelectedComplaint(complaintDetails);
     } catch (error) {
-      console.error('Ошибка при получении деталей жалобы:', error);
+      console.error("Ошибка при получении деталей жалобы:", error);
     }
   };
 
   const handleApprove = async () => {
     if (selectedComplaint) {
       try {
-        
         await fetch(`/api/approve-complaint?id=${selectedComplaint.id}`, {
-          method: 'POST',
+          method: "POST",
         });
-        setSelectedComplaint(null); 
+        setSelectedComplaint(null);
       } catch (error) {
-        console.error('Ошибка при одобрении жалобы:', error);
+        console.error("Ошибка при одобрении жалобы:", error);
       }
     }
   };
@@ -139,15 +144,22 @@ const Complaints: React.FC = () => {
   const handleReject = async () => {
     if (selectedComplaint) {
       try {
-        
         await fetch(`/api/reject-complaint?id=${selectedComplaint.id}`, {
-          method: 'POST',
+          method: "POST",
         });
-        setSelectedComplaint(null); 
+        setSelectedComplaint(null);
       } catch (error) {
-        console.error('Ошибка при отклонении жалобы:', error);
+        console.error("Ошибка при отклонении жалобы:", error);
       }
     }
+  };
+
+  const openImageModal = (imageUrl: string) => {
+    setSelectedImage(imageUrl); 
+  };
+
+  const closeImageModal = () => {
+    setSelectedImage(null); 
   };
 
   if (loading) {
@@ -162,7 +174,6 @@ const Complaints: React.FC = () => {
     return <div className={styles.error}>{error}</div>;
   }
 
-  
   return (
     <div className={styles.main}>
       <div className={styles.tablebox}>
@@ -172,11 +183,7 @@ const Complaints: React.FC = () => {
               Жалобы на ассистентов <span>({data.length})</span>
             </h3>
           </div>
-          <Table
-            columns={columns}
-            data={data}
-            onRowClick={handleRowClick}
-          />
+          <Table columns={columns} data={data} onRowClick={handleRowClick} />
         </div>
       </div>
 
@@ -184,30 +191,32 @@ const Complaints: React.FC = () => {
         <div className={styles.popupOverlay}>
           <div className={styles.popup}>
             <h3>Подробности жалобы</h3>
-            <p><strong>Жалоба:</strong> {selectedComplaint.text}</p>
+            <p>
+              <strong>Сообщение:</strong> {selectedComplaint.text}
+            </p>
 
-           
             {selectedComplaint.photoUrls.length > 0 && (
               <div>
                 <strong>Скриншоты:</strong>
-                
+
                 <div className={styles.imagesContainer}>
                   {selectedComplaint.photoUrls.map((url, index) => (
-                    
                     <img
                       key={index}
                       src={`/api/get-image-proxy?url=${encodeURIComponent(url)}`}
                       alt={`Фото ${index + 1}`}
                       className={styles.image}
+                      onClick={() => openImageModal(`/api/get-image-proxy?url=${encodeURIComponent(url)}`)} 
                     />
                   ))}
                 </div>
               </div>
             )}
 
-            
             <a
-              href={`data:text/plain;charset=utf-8,${encodeURIComponent(JSON.stringify(selectedComplaint.conversationLogs, null, 2))}`}
+              href={`data:text/plain;charset=utf-8,${encodeURIComponent(
+                JSON.stringify(selectedComplaint.conversationLogs, null, 2)
+              )}`}
               download="dialog-logs.txt"
               className={styles.link}
             >
@@ -224,7 +233,12 @@ const Complaints: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
 
+      {selectedImage && (
+        <div className={styles.imageModalOverlay} onClick={closeImageModal}>
+          <img src={selectedImage} alt="Увеличенное изображение" className={styles.imageModal} />
+        </div>
       )}
     </div>
   );
