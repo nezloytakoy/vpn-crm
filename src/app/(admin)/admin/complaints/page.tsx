@@ -34,15 +34,15 @@ const Complaints: React.FC = () => {
   const [data, setData] = useState<ComplaintData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(
-    null
-  );
+  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [isFormVisible, setIsFormVisible] = useState(false); 
-  const [fadeOut, setFadeOut] = useState(false); 
+  const [isFormVisible, setIsFormVisible] = useState(false);
+  const [fadeOut, setFadeOut] = useState(false);
   const [explanation, setExplanation] = useState("");
+  const [action, setAction] = useState<"approve" | "reject" | null>(null); 
 
   useEffect(() => {
+    console.log("Начало загрузки жалоб...");
     const fetchComplaints = async () => {
       try {
         const response = await fetch("/api/get-complaints");
@@ -51,24 +51,21 @@ const Complaints: React.FC = () => {
         }
 
         const complaintsData: Complaint[] = await response.json();
+        console.log("Жалобы получены:", complaintsData);
 
-        const formattedData: ComplaintData[] = complaintsData.map(
-          (complaint) => ({
-            complaintId: complaint.id,
-            user: `@${complaint.userNickname}`,
-            userId: complaint.userId,
-            assistant: `@${complaint.assistantNickname}`,
-            assistantId: complaint.assistantId,
-          })
-        );
+        const formattedData: ComplaintData[] = complaintsData.map((complaint) => ({
+          complaintId: complaint.id,
+          user: `@${complaint.userNickname}`,
+          userId: complaint.userId,
+          assistant: `@${complaint.assistantNickname}`,
+          assistantId: complaint.assistantId,
+        }));
 
         setData(formattedData);
         setLoading(false);
       } catch (error) {
         console.error("Ошибка при получении данных:", error);
-        setError(
-          "Не удалось загрузить жалобы. Пожалуйста, попробуйте снова позже."
-        );
+        setError("Не удалось загрузить жалобы. Пожалуйста, попробуйте снова позже.");
       }
     };
 
@@ -84,12 +81,7 @@ const Complaints: React.FC = () => {
       Header: "Пользователь",
       accessor: "user",
       Cell: ({ row }: { row: { original: ComplaintData } }) => (
-        <a
-          href={`https://t.me/${row.original.user}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={styles.link}
-        >
+        <a href={`https://t.me/${row.original.user}`} target="_blank" rel="noopener noreferrer" className={styles.link}>
           {row.original.user}
         </a>
       ),
@@ -102,12 +94,7 @@ const Complaints: React.FC = () => {
       Header: "Ассистент",
       accessor: "assistant",
       Cell: ({ row }: { row: { original: ComplaintData } }) => (
-        <a
-          href={`https://t.me/${row.original.assistant}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={styles.link}
-        >
+        <a href={`https://t.me/${row.original.assistant}`} target="_blank" rel="noopener noreferrer" className={styles.link}>
           {row.original.assistant}
         </a>
       ),
@@ -119,48 +106,43 @@ const Complaints: React.FC = () => {
   ];
 
   const handleRowClick = async (row: ComplaintData) => {
+    console.log(`Выбрана жалоба с ID: ${row.complaintId}`);
     try {
       const response = await fetch(`/api/get-complaint-details?id=${row.complaintId}`);
       if (!response.ok) {
         throw new Error("Ошибка получения деталей жалобы");
       }
       const complaintDetails: Complaint = await response.json();
+      console.log("Детали жалобы получены:", complaintDetails);
       setSelectedComplaint(complaintDetails);
     } catch (error) {
       console.error("Ошибка при получении деталей жалобы:", error);
     }
   };
 
-  const handleApprove = async () => {
-    if (selectedComplaint) {
-      try {
-        await fetch(`/api/approve-complaint?id=${selectedComplaint.id}`, {
-          method: "POST",
-        });
-        setSelectedComplaint(null);
-      } catch (error) {
-        console.error("Ошибка при одобрении жалобы:", error);
-      }
-    }
-  };
-
-  const handleReject = async () => {
+  const handleApprove = () => {
+    setAction("approve");
     setFadeOut(true);
     setTimeout(() => {
       setIsFormVisible(true);
       setFadeOut(false);
-    }, 300); 
+    }, 300);
+  };
+
+  const handleReject = () => {
+    setAction("reject");
+    setFadeOut(true);
+    setTimeout(() => {
+      setIsFormVisible(true);
+      setFadeOut(false);
+    }, 300);
   };
 
   const handleFormSubmit = async () => {
     if (selectedComplaint) {
+      console.log(`${action === "approve" ? "Одобрение" : "Отклонение"} жалобы с ID: ${selectedComplaint.id}. Объяснение: ${explanation}`);
       try {
-        console.log("Отправка данных на сервер:", {
-          complaintId: selectedComplaint.id,
-          explanation,
-        });
-  
-        const response = await fetch(`/api/reject-complaint?id=${selectedComplaint.id}`, {
+        const response = await fetch(`/api/${action === "approve" ? "approve-complaint" : "reject-complaint"}?id=${selectedComplaint.id}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -168,22 +150,22 @@ const Complaints: React.FC = () => {
             explanation,
           }),
         });
-  
+
         if (!response.ok) {
-          throw new Error(`Ошибка при отклонении жалобы: ${response.status}`);
+          throw new Error(`Ошибка при ${action === "approve" ? "одобрении" : "отклонении"} жалобы: ${response.status}`);
         }
-  
+
         const result = await response.json();
-        console.log("Результат отклонения жалобы:", result);
+        console.log(`Результат ${action === "approve" ? "одобрения" : "отклонения"} жалобы:`, result);
 
         setTimeout(() => {
-          window.location.reload(); 
+          window.location.reload();
         }, 3000);
 
         setSelectedComplaint(null);
         setIsFormVisible(false);
       } catch (error) {
-        console.error("Ошибка при отклонении жалобы:", error);
+        console.error(`Ошибка при ${action === "approve" ? "одобрении" : "отклонении"} жалобы:`, error);
       }
     }
   };
@@ -233,23 +215,14 @@ const Complaints: React.FC = () => {
                 {selectedComplaint.photoUrls.length > 0 && (
                   <div>
                     <strong>Скриншоты:</strong>
-
                     <div className={styles.imagesContainer}>
                       {selectedComplaint.photoUrls.map((url, index) => (
                         <img
                           key={index}
-                          src={`/api/get-image-proxy?url=${encodeURIComponent(
-                            url
-                          )}`}
+                          src={`/api/get-image-proxy?url=${encodeURIComponent(url)}`}
                           alt={`Фото ${index + 1}`}
                           className={styles.image}
-                          onClick={() =>
-                            openImageModal(
-                              `/api/get-image-proxy?url=${encodeURIComponent(
-                                url
-                              )}`
-                            )
-                          }
+                          onClick={() => openImageModal(`/api/get-image-proxy?url=${encodeURIComponent(url)}`)}
                         />
                       ))}
                     </div>
@@ -257,9 +230,7 @@ const Complaints: React.FC = () => {
                 )}
 
                 <a
-                  href={`data:text/plain;charset=utf-8,${encodeURIComponent(
-                    JSON.stringify(selectedComplaint.conversationLogs, null, 2)
-                  )}`}
+                  href={`data:text/plain;charset=utf-8,${encodeURIComponent(JSON.stringify(selectedComplaint.conversationLogs, null, 2))}`}
                   download="dialog-logs.txt"
                   className={styles.link}
                 >
@@ -267,10 +238,7 @@ const Complaints: React.FC = () => {
                 </a>
 
                 <div className={styles.buttonGroup}>
-                  <button
-                    onClick={handleApprove}
-                    className={styles.approveButton}
-                  >
+                  <button onClick={handleApprove} className={styles.approveButton}>
                     Одобрить
                   </button>
                   <button onClick={handleReject} className={styles.rejectButton}>
@@ -278,7 +246,6 @@ const Complaints: React.FC = () => {
                   </button>
                 </div>
 
-               
                 <div className={styles.indicators}>
                   <div className={styles.circleActive}></div>
                   <div className={styles.circle}></div>
@@ -286,21 +253,17 @@ const Complaints: React.FC = () => {
               </>
             ) : (
               <div className={styles.formContainer}>
-                <h3>Отклонение жалобы</h3>
+                <h3>{action === "approve" ? "Одобрение жалобы" : "Отклонение жалобы"}</h3>
                 <textarea
                   placeholder="Введите ваше объяснение"
                   value={explanation}
                   onChange={(e) => setExplanation(e.target.value)}
                   className={styles.textArea}
                 />
-                <button
-                  onClick={handleFormSubmit}
-                  className={styles.submitButton}
-                >
+                <button onClick={handleFormSubmit} className={styles.submitButton}>
                   Отправить
                 </button>
 
-              
                 <div className={styles.indicators}>
                   <div className={styles.circle}></div>
                   <div className={styles.circleActive}></div>
@@ -313,11 +276,7 @@ const Complaints: React.FC = () => {
 
       {selectedImage && (
         <div className={styles.imageModalOverlay} onClick={closeImageModal}>
-          <img
-            src={selectedImage}
-            alt="Увеличенное изображение"
-            className={styles.imageModal}
-          />
+          <img src={selectedImage} alt="Увеличенное изображение" className={styles.imageModal} />
         </div>
       )}
     </div>

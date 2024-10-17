@@ -55,7 +55,7 @@ function Page() {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const response = await fetch('/api/get-users'); // Замените на ваш реальный путь к API
+                const response = await fetch('/api/get-users'); 
                 const data = await response.json();
                 setUsers(data);
             } catch (error) {
@@ -131,27 +131,27 @@ function Page() {
     const columnsData: MyColumn<UserData, keyof UserData>[] = [
         {
             Header: 'Ник пользователя',
-            accessor: 'username',  // Должен совпадать с именем поля из API
+            accessor: 'username',  
             id: 'username',
         },
         {
             Header: 'Количество рефералов',
-            accessor: 'referralCount',  // Должен совпадать с именем поля из API
+            accessor: 'referralCount',  
             id: 'referralCount',
         },
         {
             Header: 'Подписка',
-            accessor: 'subscriptionType',  // Должен совпадать с именем поля из API
+            accessor: 'subscriptionType',  
             id: 'subscriptionType',
         },
         {
             Header: 'Количество запросов',
-            accessor: 'assistantRequests',  // Должен совпадать с именем поля из API
+            accessor: 'assistantRequests',  
             id: 'assistantRequests',
         },
         {
-            Header: 'Обновлено',
-            accessor: 'hasUpdatedSubscription',  // Должен совпадать с именем поля из API
+            Header: 'Постоянный клиент',
+            accessor: 'hasUpdatedSubscription',  
             id: 'hasUpdatedSubscription',
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => (
                 <span>{typeof value === 'boolean' ? (value ? 'Да' : 'Нет') : value}</span>
@@ -477,7 +477,7 @@ function Page() {
                             ) : (
                                 <>
                                     <h3>
-                                        Запросы на распределение коинов <span>({users.length})</span>
+                                        Пользователи <span>({users.length})</span>
                                     </h3>
                                     <div className={styles.sortButtonContainer}>
                                         <button className={styles.sortButton} onClick={handleSortButtonClick}>
