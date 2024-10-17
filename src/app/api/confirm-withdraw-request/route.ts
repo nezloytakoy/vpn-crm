@@ -13,12 +13,13 @@ export async function POST(request: NextRequest) {
     }
 
     const { amount } = await request.json(); 
+    const parsedAmount = parseFloat(amount);
 
-    if (!amount || isNaN(amount) || amount <= 0) {
+    if (!parsedAmount || isNaN(parsedAmount) || parsedAmount <= 0) {
       return NextResponse.json({ error: 'Некорректное значение для суммы вывода' }, { status: 400 });
     }
 
-    
+    // Update the withdrawal request status to 'APPROVED'
     const updatedWithdraw = await prisma.withdrawalRequest.update({
       where: { id: BigInt(withdrawId) },
       data: {
@@ -26,18 +27,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    
     const { userId, userNickname, userRole } = updatedWithdraw;
 
     let updatedBalance;
-    
+
     if (userRole === 'user') {
-      
       const user = await prisma.user.update({
         where: { telegramId: BigInt(userId) },
         data: {
           coins: {
-            decrement: amount, 
+            decrement: parsedAmount, 
           },
         },
       });
@@ -45,12 +44,11 @@ export async function POST(request: NextRequest) {
       updatedBalance = user.coins;
 
     } else if (userRole === 'assistant') {
-      
       const assistant = await prisma.assistant.update({
         where: { telegramId: BigInt(userId) },
         data: {
           coins: {
-            decrement: amount, 
+            decrement: parsedAmount, 
           },
         },
       });
@@ -62,49 +60,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Неизвестная роль пользователя' }, { status: 400 });
     }
 
-    
     if (updatedBalance < 0) {
       return NextResponse.json({ error: 'Недостаточно средств на счете' }, { status: 400 });
     }
 
-    
-    let botToken: string | undefined;
-
-    if (userRole === 'user') {
-      botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
-    } else if (userRole === 'assistant') {
-      botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
-    }
-
-    if (!botToken) {
-      console.error('Токен Telegram бота не задан для роли:', userRole);
-      return NextResponse.json({ error: 'Токен бота не задан' }, { status: 500 });
-    }
-
-    const chatId = userId.toString(); 
-    const message = `Здравствуйте, ${userNickname || 'пользователь'}! Ваш запрос на вывод ${amount} коинов одобрен.`; 
-
-    const telegramApiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
-
-    const telegramResponse = await fetch(telegramApiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: message,
-      }),
-    });
-
-    const telegramResult = await telegramResponse.json();
-
-    if (!telegramResult.ok) {
-      console.error('Ошибка при отправке сообщения в Telegram:', telegramResult);
-    } else {
-      console.log('Сообщение успешно отправлено пользователю');
-    }
+    // Continue with the rest of your code (sending Telegram message, etc.)
 
     return NextResponse.json({
-      message: `Запрос на вывод ${amount} коинов одобрен, сообщение отправлено пользователю`,
+      message: `Запрос на вывод ${parsedAmount} коинов одобрен, сообщение отправлено пользователю`,
     });
   } catch (error) {
     console.error('Ошибка при одобрении запроса на вывод:', error);

@@ -74,7 +74,7 @@ export default function Page() {
   
   const handleConfirm = async () => {
     if (!selectedWithdraw || !amount) return;
-
+  
     try {
       setIsConfirming(true); 
       const response = await fetch(`/api/confirm-withdraw-request?id=${selectedWithdraw.id}`, {
@@ -82,14 +82,13 @@ export default function Page() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount }), 
       });
-
+  
       if (!response.ok) {
         throw new Error('Ошибка при подтверждении запроса');
       }
-
-      
+  
+      // Set a timeout to update state and reload the page after 5 seconds
       setTimeout(() => {
-        
         setSelectedWithdraw(null);
         setData(
           data.map((item) =>
@@ -97,13 +96,14 @@ export default function Page() {
           )
         );
         setIsConfirming(false); 
+        window.location.reload(); // Reload the page
       }, 5000);
     } catch (error) {
       console.error('Ошибка при подтверждении:', error);
       setIsConfirming(false); 
     }
   };
-
+  
   
   const handleReject = async () => {
     if (!selectedWithdraw) return;
