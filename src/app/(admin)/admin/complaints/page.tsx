@@ -37,7 +37,10 @@ const Complaints: React.FC = () => {
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(
     null
   );
-  const [selectedImage, setSelectedImage] = useState<string | null>(null); 
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isFormVisible, setIsFormVisible] = useState(false); 
+  const [fadeOut, setFadeOut] = useState(false); 
+  const [explanation, setExplanation] = useState("");
 
   useEffect(() => {
     const fetchComplaints = async () => {
@@ -142,12 +145,43 @@ const Complaints: React.FC = () => {
   };
 
   const handleReject = async () => {
+    setFadeOut(true);
+    setTimeout(() => {
+      setIsFormVisible(true);
+      setFadeOut(false);
+    }, 300); 
+  };
+
+  const handleFormSubmit = async () => {
     if (selectedComplaint) {
       try {
-        await fetch(`/api/reject-complaint?id=${selectedComplaint.id}`, {
-          method: "POST",
+        console.log("Отправка данных на сервер:", {
+          complaintId: selectedComplaint.id,
+          explanation,
         });
+  
+        const response = await fetch(`/api/reject-complaint?id=${selectedComplaint.id}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            complaintId: selectedComplaint.id,
+            explanation,
+          }),
+        });
+  
+        if (!response.ok) {
+          throw new Error(`Ошибка при отклонении жалобы: ${response.status}`);
+        }
+  
+        const result = await response.json();
+        console.log("Результат отклонения жалобы:", result);
+
+        setTimeout(() => {
+          window.location.reload(); 
+        }, 3000);
+
         setSelectedComplaint(null);
+        setIsFormVisible(false);
       } catch (error) {
         console.error("Ошибка при отклонении жалобы:", error);
       }
@@ -155,11 +189,11 @@ const Complaints: React.FC = () => {
   };
 
   const openImageModal = (imageUrl: string) => {
-    setSelectedImage(imageUrl); 
+    setSelectedImage(imageUrl);
   };
 
   const closeImageModal = () => {
-    setSelectedImage(null); 
+    setSelectedImage(null);
   };
 
   if (loading) {
@@ -188,56 +222,102 @@ const Complaints: React.FC = () => {
       </div>
 
       {selectedComplaint && (
-        <div className={styles.popupOverlay}>
+        <div className={`${styles.popupOverlay} ${fadeOut ? styles.fadeOut : ""}`}>
           <div className={styles.popup}>
-            <h3>Подробности жалобы</h3>
-            <p>
-              <strong>Сообщение:</strong> {selectedComplaint.text}
-            </p>
+            {!isFormVisible ? (
+              <>
+                <p>
+                  <strong>Сообщение:</strong> {selectedComplaint.text}
+                </p>
 
-            {selectedComplaint.photoUrls.length > 0 && (
-              <div>
-                <strong>Скриншоты:</strong>
+                {selectedComplaint.photoUrls.length > 0 && (
+                  <div>
+                    <strong>Скриншоты:</strong>
 
-                <div className={styles.imagesContainer}>
-                  {selectedComplaint.photoUrls.map((url, index) => (
-                    <img
-                      key={index}
-                      src={`/api/get-image-proxy?url=${encodeURIComponent(url)}`}
-                      alt={`Фото ${index + 1}`}
-                      className={styles.image}
-                      onClick={() => openImageModal(`/api/get-image-proxy?url=${encodeURIComponent(url)}`)} 
-                    />
-                  ))}
+                    <div className={styles.imagesContainer}>
+                      {selectedComplaint.photoUrls.map((url, index) => (
+                        <img
+                          key={index}
+                          src={`/api/get-image-proxy?url=${encodeURIComponent(
+                            url
+                          )}`}
+                          alt={`Фото ${index + 1}`}
+                          className={styles.image}
+                          onClick={() =>
+                            openImageModal(
+                              `/api/get-image-proxy?url=${encodeURIComponent(
+                                url
+                              )}`
+                            )
+                          }
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <a
+                  href={`data:text/plain;charset=utf-8,${encodeURIComponent(
+                    JSON.stringify(selectedComplaint.conversationLogs, null, 2)
+                  )}`}
+                  download="dialog-logs.txt"
+                  className={styles.link}
+                >
+                  Скачать логи диалога
+                </a>
+
+                <div className={styles.buttonGroup}>
+                  <button
+                    onClick={handleApprove}
+                    className={styles.approveButton}
+                  >
+                    Одобрить
+                  </button>
+                  <button onClick={handleReject} className={styles.rejectButton}>
+                    Отклонить
+                  </button>
+                </div>
+
+               
+                <div className={styles.indicators}>
+                  <div className={styles.circleActive}></div>
+                  <div className={styles.circle}></div>
+                </div>
+              </>
+            ) : (
+              <div className={styles.formContainer}>
+                <h3>Отклонение жалобы</h3>
+                <textarea
+                  placeholder="Введите ваше объяснение"
+                  value={explanation}
+                  onChange={(e) => setExplanation(e.target.value)}
+                  className={styles.textArea}
+                />
+                <button
+                  onClick={handleFormSubmit}
+                  className={styles.submitButton}
+                >
+                  Отправить
+                </button>
+
+              
+                <div className={styles.indicators}>
+                  <div className={styles.circle}></div>
+                  <div className={styles.circleActive}></div>
                 </div>
               </div>
             )}
-
-            <a
-              href={`data:text/plain;charset=utf-8,${encodeURIComponent(
-                JSON.stringify(selectedComplaint.conversationLogs, null, 2)
-              )}`}
-              download="dialog-logs.txt"
-              className={styles.link}
-            >
-              Скачать логи диалога
-            </a>
-
-            <div className={styles.buttonGroup}>
-              <button onClick={handleApprove} className={styles.approveButton}>
-                Одобрить
-              </button>
-              <button onClick={handleReject} className={styles.rejectButton}>
-                Отклонить
-              </button>
-            </div>
           </div>
         </div>
       )}
 
       {selectedImage && (
         <div className={styles.imageModalOverlay} onClick={closeImageModal}>
-          <img src={selectedImage} alt="Увеличенное изображение" className={styles.imageModal} />
+          <img
+            src={selectedImage}
+            alt="Увеличенное изображение"
+            className={styles.imageModal}
+          />
         </div>
       )}
     </div>

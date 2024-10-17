@@ -523,3 +523,92 @@ animation: spin 1s ease infinite;
     transform: scale(0.7);
   }
 }
+
+.popup {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.explanationInput {
+  width: 100%;
+  height: 80px;
+  padding: 10px;
+  margin-top: 15px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.submitButton {
+  background-color: #365cf5;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.submitButton:hover {
+  background-color: #2b4ac8;
+}
+
+
+
+.fadeOut {
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+
+.popup {
+  opacity: 1;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.formContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.textArea {
+  width: 100%;
+  min-height: 100px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.submitButton {
+  background-color: #365CF5;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.submitButton:hover {
+  background-color: #2b4ac8;
+}
+
+
+.indicators {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.circle {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #ccc;
+  margin: 0 5px;
+}
+
+.circleActive {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #365CF5; 
+  margin: 0 5px;
+}

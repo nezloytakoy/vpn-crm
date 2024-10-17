@@ -7,11 +7,11 @@ export async function GET() {
   try {
     
     const complaints = await prisma.complaint.findMany({
+      where: { status: 'PENDING' }, 
       select: {
         id: true,
         userId: true,
         assistantId: true,
-        
       },
     });
 
