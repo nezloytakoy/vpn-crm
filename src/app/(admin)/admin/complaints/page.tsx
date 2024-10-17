@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Image from "next/image"; // Импорт компонента Image
 import Table from "@/components/Table/Table";
 import { Column } from "react-table";
 import styles from "./Complaints.module.css";
@@ -39,7 +40,7 @@ const Complaints: React.FC = () => {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
   const [explanation, setExplanation] = useState("");
-  const [action, setAction] = useState<"approve" | "reject" | null>(null); 
+  const [action, setAction] = useState<"approve" | "reject" | null>(null);
 
   useEffect(() => {
     console.log("Начало загрузки жалоб...");
@@ -217,12 +218,14 @@ const Complaints: React.FC = () => {
                     <strong>Скриншоты:</strong>
                     <div className={styles.imagesContainer}>
                       {selectedComplaint.photoUrls.map((url, index) => (
-                        <img
+                        <Image
                           key={index}
                           src={`/api/get-image-proxy?url=${encodeURIComponent(url)}`}
                           alt={`Фото ${index + 1}`}
                           className={styles.image}
                           onClick={() => openImageModal(`/api/get-image-proxy?url=${encodeURIComponent(url)}`)}
+                          width={500}
+                          height={300}
                         />
                       ))}
                     </div>
@@ -276,7 +279,7 @@ const Complaints: React.FC = () => {
 
       {selectedImage && (
         <div className={styles.imageModalOverlay} onClick={closeImageModal}>
-          <img src={selectedImage} alt="Увеличенное изображение" className={styles.imageModal} />
+          <Image src={selectedImage} alt="Увеличенное изображение" className={styles.imageModal} width={800} height={600} />
         </div>
       )}
     </div>
