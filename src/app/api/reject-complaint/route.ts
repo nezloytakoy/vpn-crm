@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
 
     
     const assistantMessage = `Жалоба пользователя на вас отклонена модератором. Вы получаете 1 койн: ${explanation}`;
-    const userMessage = `Ответ модератора на вашу жалобу на ассистента: ${explanation}`;
+    const userMessage = `Ваша жалоба на ассистента отклонена. ${explanation}`;
 
     const supportBotToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
     const userBotToken = process.env.TELEGRAM_USER_BOT_TOKEN;

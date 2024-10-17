@@ -612,3 +612,31 @@ animation: spin 1s ease infinite;
   background-color: #365CF5; 
   margin: 0 5px;
 }
+
+
+
+.buttonLoader {
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

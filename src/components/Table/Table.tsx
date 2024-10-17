@@ -1,7 +1,6 @@
-/* eslint-disable react/jsx-key */
+
 
 'use client';
-
 
 import React, { useRef, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
@@ -15,14 +14,12 @@ import {
   UsePaginationState,
 } from 'react-table';
 
-
 import {
   FaAngleDoubleLeft,
   FaAngleLeft,
   FaAngleRight,
   FaAngleDoubleRight,
 } from 'react-icons/fa';
-
 
 import styles from './Table.module.css';
 
@@ -42,7 +39,9 @@ type TableInstanceWithPagination<T extends object> = TableInstance<T> &
 const Table = <T extends object>({ columns, data, onRowClick }: TableProps<T>) => {
   const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
-  const isComplaintsRoute = isMounted && pathname === '/admin/complaints';
+
+  const isComplaintsOrCoinsRoute =
+    isMounted && (pathname === '/admin/complaints' || pathname === '/admin/coins');
 
   const instance = useTable<T>(
     {
@@ -74,7 +73,6 @@ const Table = <T extends object>({ columns, data, onRowClick }: TableProps<T>) =
 
   const tableRef = useRef<HTMLTableElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
-
 
   useEffect(() => {
     setIsMounted(true);
@@ -110,7 +108,7 @@ const Table = <T extends object>({ columns, data, onRowClick }: TableProps<T>) =
                   <tr
                     {...row.getRowProps()}
                     onClick={() => onRowClick?.(row.original)}
-                    className={isComplaintsRoute ? styles.clickableRow : ''}
+                    className={isComplaintsOrCoinsRoute ? styles.clickableRow : ''}
                   >
                     {row.cells.map((cell) => (
                       <td {...cell.getCellProps()} className={styles.td}>
@@ -121,7 +119,6 @@ const Table = <T extends object>({ columns, data, onRowClick }: TableProps<T>) =
                 );
               })}
             </tbody>
-
           </table>
         </div>
       </div>
@@ -145,10 +142,7 @@ const Table = <T extends object>({ columns, data, onRowClick }: TableProps<T>) =
         <button onClick={() => gotoPage(pageCount - 1)} disabled={!canNextPage}>
           <FaAngleDoubleRight />
         </button>
-        <select
-          value={pageSize}
-          onChange={(e) => setPageSize(Number(e.target.value))}
-        >
+        <select value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
           {[5, 10, 20, 30, 40, 50].map((size) => (
             <option key={size} value={size}>
               Показать {size}

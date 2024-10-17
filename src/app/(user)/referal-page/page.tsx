@@ -23,10 +23,9 @@ const handleWithdraw = async () => {
 
       const currentUserId = currentUser.id;
       const userNickname = currentUser.username || `${currentUser.first_name} ${currentUser.last_name}`;
-      const userRole = 'user'; // You can dynamically set this based on your logic (e.g., user, assistant)
+      const userRole = 'user'; 
 
-      const amountToWithdraw = 100;
-
+      
       const response = await fetch('/api/withdraw-request', {
         method: 'POST',
         headers: {
@@ -36,7 +35,6 @@ const handleWithdraw = async () => {
           userId: currentUserId,
           userNickname,
           userRole,
-          amount: amountToWithdraw
         }),
       });
 
@@ -55,6 +53,7 @@ const handleWithdraw = async () => {
     alert('Telegram WebApp API недоступен.');
   }
 };
+
 
 
 const Popup: React.FC<PopupProps> = ({ isVisible, onClose }) => {
@@ -147,25 +146,25 @@ function Page() {
   const [referralLink, setReferralLink] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [ReferralCount, setReferralCount] = useState<number>(0);
-  const [loading, setLoading] = useState(true); // Добавляем состояние загрузки
+  const [loading, setLoading] = useState(true); 
   const [coins, setCoins] = useState<number>(0);
 
   useEffect(() => {
-    // Проверяем, что Telegram WebApp API доступен
+    
     if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
       window.Telegram.WebApp.ready();
 
-      // Получаем язык пользователя через Telegram WebApp SDK
+      
       const userLang = window.Telegram.WebApp.initDataUnsafe?.user?.language_code;
 
-      // Меняем язык в зависимости от Telegram интерфейса пользователя
+      
       if (userLang === 'ru') {
-        i18n.changeLanguage('ru'); // Устанавливаем русский язык
+        i18n.changeLanguage('ru'); 
       } else {
-        i18n.changeLanguage('en'); // Устанавливаем английский язык по умолчанию
+        i18n.changeLanguage('en'); 
       }
 
-      // Получаем данные пользователя
+      
       const username = window.Telegram.WebApp.initDataUnsafe?.user?.username;
       const firstName = window.Telegram.WebApp.initDataUnsafe?.user?.first_name;
       const lastName = window.Telegram.WebApp.initDataUnsafe?.user?.last_name;
@@ -173,7 +172,7 @@ function Page() {
       const displayName = username ? `@${username}` : `${firstName || ''} ${lastName || ''}`.trim();
       setTelegramUsername(displayName || 'Guest');
 
-      // Настраиваем размер шрифта в зависимости от длины имени пользователя
+      
       if (displayName.length > 12) {
         setFontSize('19px');
       } else if (displayName.length > 8) {
@@ -184,7 +183,7 @@ function Page() {
 
     } else {
       console.error('Telegram WebApp API недоступен.');
-      // Устанавливаем значения по умолчанию
+      
       i18n.changeLanguage('en');
       setTelegramUsername('Guest');
     }
@@ -228,7 +227,7 @@ function Page() {
       } catch (error) {
         console.log('Не удалось получить данные:', error);
       } finally {
-        setLoading(false); // Устанавливаем загрузку в false после получения данных
+        setLoading(false); 
       }
     };
 
@@ -271,7 +270,7 @@ function Page() {
 
         if (response.ok) {
           setReferralLink(data.referralLink);
-          setReferralPopupVisible(true); // Открываем попап после генерации ссылки
+          setReferralPopupVisible(true); 
         } else {
           alert(data.error || 'Ошибка при генерации реферальной ссылки.');
         }
@@ -319,7 +318,7 @@ function Page() {
       <div className={styles.backbotom}>
         <div className={styles.infobox}>
           <div className={styles.first}>
-            {/* Блоки с информацией */}
+            
             <div className={styles.firstone}>
               <div className={styles.imgbox}>
                 <Image

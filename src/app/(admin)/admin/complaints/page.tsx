@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Image from "next/image"; // Импорт компонента Image
+import Image from "next/image";
 import Table from "@/components/Table/Table";
 import { Column } from "react-table";
 import styles from "./Complaints.module.css";
@@ -41,6 +41,7 @@ const Complaints: React.FC = () => {
   const [fadeOut, setFadeOut] = useState(false);
   const [explanation, setExplanation] = useState("");
   const [action, setAction] = useState<"approve" | "reject" | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false); 
 
   useEffect(() => {
     console.log("Начало загрузки жалоб...");
@@ -82,7 +83,12 @@ const Complaints: React.FC = () => {
       Header: "Пользователь",
       accessor: "user",
       Cell: ({ row }: { row: { original: ComplaintData } }) => (
-        <a href={`https://t.me/${row.original.user}`} target="_blank" rel="noopener noreferrer" className={styles.link}>
+        <a
+          href={`https://t.me/${row.original.user}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.link}
+        >
           {row.original.user}
         </a>
       ),
@@ -95,7 +101,12 @@ const Complaints: React.FC = () => {
       Header: "Ассистент",
       accessor: "assistant",
       Cell: ({ row }: { row: { original: ComplaintData } }) => (
-        <a href={`https://t.me/${row.original.assistant}`} target="_blank" rel="noopener noreferrer" className={styles.link}>
+        <a
+          href={`https://t.me/${row.original.assistant}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.link}
+        >
           {row.original.assistant}
         </a>
       ),
@@ -141,24 +152,44 @@ const Complaints: React.FC = () => {
 
   const handleFormSubmit = async () => {
     if (selectedComplaint) {
-      console.log(`${action === "approve" ? "Одобрение" : "Отклонение"} жалобы с ID: ${selectedComplaint.id}. Объяснение: ${explanation}`);
+      setIsSubmitting(true); 
+      console.log(
+        `${action === "approve" ? "Одобрение" : "Отклонение"} жалобы с ID: ${
+          selectedComplaint.id
+        }. Объяснение: ${explanation}`
+      );
       try {
-        const response = await fetch(`/api/${action === "approve" ? "approve-complaint" : "reject-complaint"}?id=${selectedComplaint.id}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            complaintId: selectedComplaint.id,
-            explanation,
-          }),
-        });
+        const response = await fetch(
+          `/api/${action === "approve" ? "approve-complaint" : "reject-complaint"}?id=${
+            selectedComplaint.id
+          }`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              complaintId: selectedComplaint.id,
+              explanation,
+            }),
+          }
+        );
 
         if (!response.ok) {
-          throw new Error(`Ошибка при ${action === "approve" ? "одобрении" : "отклонении"} жалобы: ${response.status}`);
+          throw new Error(
+            `Ошибка при ${
+              action === "approve" ? "одобрении" : "отклонении"
+            } жалобы: ${response.status}`
+          );
         }
 
         const result = await response.json();
-        console.log(`Результат ${action === "approve" ? "одобрения" : "отклонения"} жалобы:`, result);
+        console.log(
+          `Результат ${
+            action === "approve" ? "одобрения" : "отклонения"
+          } жалобы:`,
+          result
+        );
 
+        
         setTimeout(() => {
           window.location.reload();
         }, 3000);
@@ -166,7 +197,13 @@ const Complaints: React.FC = () => {
         setSelectedComplaint(null);
         setIsFormVisible(false);
       } catch (error) {
-        console.error(`Ошибка при ${action === "approve" ? "одобрении" : "отклонении"} жалобы:`, error);
+        console.error(
+          `Ошибка при ${
+            action === "approve" ? "одобрении" : "отклонении"
+          } жалобы:`,
+          error
+        );
+        setIsSubmitting(false); 
       }
     }
   };
@@ -223,7 +260,11 @@ const Complaints: React.FC = () => {
                           src={`/api/get-image-proxy?url=${encodeURIComponent(url)}`}
                           alt={`Фото ${index + 1}`}
                           className={styles.image}
-                          onClick={() => openImageModal(`/api/get-image-proxy?url=${encodeURIComponent(url)}`)}
+                          onClick={() =>
+                            openImageModal(
+                              `/api/get-image-proxy?url=${encodeURIComponent(url)}`
+                            )
+                          }
                           width={500}
                           height={300}
                         />
@@ -233,7 +274,9 @@ const Complaints: React.FC = () => {
                 )}
 
                 <a
-                  href={`data:text/plain;charset=utf-8,${encodeURIComponent(JSON.stringify(selectedComplaint.conversationLogs, null, 2))}`}
+                  href={`data:text/plain;charset=utf-8,${encodeURIComponent(
+                    JSON.stringify(selectedComplaint.conversationLogs, null, 2)
+                  )}`}
                   download="dialog-logs.txt"
                   className={styles.link}
                 >
@@ -263,8 +306,12 @@ const Complaints: React.FC = () => {
                   onChange={(e) => setExplanation(e.target.value)}
                   className={styles.textArea}
                 />
-                <button onClick={handleFormSubmit} className={styles.submitButton}>
-                  Отправить
+                <button
+                  onClick={handleFormSubmit}
+                  className={styles.submitButton}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? <div className={styles.buttonLoader}></div> : "Отправить"}
                 </button>
 
                 <div className={styles.indicators}>
@@ -279,7 +326,13 @@ const Complaints: React.FC = () => {
 
       {selectedImage && (
         <div className={styles.imageModalOverlay} onClick={closeImageModal}>
-          <Image src={selectedImage} alt="Увеличенное изображение" className={styles.imageModal} width={800} height={600} />
+          <Image
+            src={selectedImage}
+            alt="Увеличенное изображение"
+            className={styles.imageModal}
+            width={800}
+            height={600}
+          />
         </div>
       )}
     </div>
