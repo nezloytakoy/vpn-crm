@@ -18,13 +18,25 @@ export async function GET() {
       },
     });
 
-    // Преобразуем BigInt в строки для корректной сериализации
-    const assistantsData = assistants.map((assistant) => {
+    // Используем Promise.all для асинхронного выполнения операций внутри map
+    const assistantsData = await Promise.all(assistants.map(async (assistant) => {
       const completedConversations = assistant.conversations.length;
       const deniedRequests = assistant.requestActions.length;
 
-      // Фильтруем все разговоры ассистента
+      // Рассчитываем среднее время ответа
       const averageResponseTime = calculateAverageResponseTimeFromConversations(assistant.conversations);
+
+      // Получаем количество жалоб и количество активных жалоб (со статусом 'PENDING')
+      const totalComplaints = await prisma.complaint.count({
+        where: { assistantId: assistant.telegramId },
+      });
+
+      const pendingComplaints = await prisma.complaint.count({
+        where: {
+          assistantId: assistant.telegramId,
+          status: 'PENDING',
+        },
+      });
 
       const status = (() => {
         const logMessage = `Assistant: ${assistant.telegramId} - isWorking: ${assistant.isWorking}, isBusy: ${assistant.isBusy}`;
@@ -46,12 +58,12 @@ export async function GET() {
         averageResponseTime, // Среднее время ответа
         completed: completedConversations,
         denied: deniedRequests,
-        current: 0, // Здесь current жалобы заменены на 0, поскольку жалобы не учитываются
-        complaints: 0, // Общие жалобы не учитываются в данном примере
+        current: pendingComplaints, // Активные жалобы
+        complaints: totalComplaints, // Всего жалоб
         status,
         message: 'Сообщение ассистента',
       };
-    });
+    }));
 
     return new NextResponse(JSON.stringify(assistantsData), {
       status: 200,

@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const { userId, userNickname, userRole } = updatedWithdraw;
+    const { userId, userRole } = updatedWithdraw;
 
     let updatedBalance;
 
