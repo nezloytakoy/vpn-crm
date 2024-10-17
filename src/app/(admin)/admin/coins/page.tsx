@@ -54,6 +54,7 @@ export default function Page() {
     {
       Header: 'Роль',
       accessor: 'userRole',
+      Cell: ({ value }: { value: string }) => (value === 'user' ? 'Пользователь' : 'Ассистент'), // Изменяем отображение роли
     },
     {
       Header: 'Сумма',

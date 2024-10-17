@@ -508,22 +508,34 @@ bot.command('start', async (ctx) => {
         const telegramId = BigInt(ctx.from.id);
         const username = ctx.from.username || null;
 
+        // Находим минимальный неиспользованный порядковый номер для ассистента
+        const lastAssistant = await prisma.assistant.findFirst({
+          orderBy: { orderNumber: 'desc' },
+          select: { orderNumber: true },
+        });
+
+        const nextOrderNumber = lastAssistant?.orderNumber ? lastAssistant.orderNumber + 1 : 1;
+
+        // Создаем ассистента с присвоением порядкового номера
         await prisma.assistant.create({
           data: {
             telegramId: telegramId,
             username: username,
             role: invitation.role,
+            orderNumber: nextOrderNumber, // Присваиваем порядковый номер
           },
         });
 
+        // Обновляем статус инвайта
         await prisma.invitation.update({
           where: { id: invitation.id },
           data: { used: true },
         });
 
+        // Ответ пользователю
         await ctx.reply(getTranslation(lang, 'assistant_congrats'));
 
-
+        // Обновляем поле lastActiveAt для ассистента
         await prisma.assistant.update({
           where: { telegramId: telegramId },
           data: { lastActiveAt: new Date() },
@@ -539,6 +551,7 @@ bot.command('start', async (ctx) => {
     await ctx.reply(getTranslation(lang, 'start_message'));
   }
 });
+
 
 
 bot.command('menu', async (ctx) => {

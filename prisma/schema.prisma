@@ -49,6 +49,7 @@ model Assistant {
   joinedAt        DateTime           @default(now())
   coins           Int                @default(0) // Field for storing coins
   lastActiveAt    DateTime?          // Field for storing last active time
+  orderNumber     Int?               // Порядковый номер
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
   requests        AssistantRequest[]
@@ -79,6 +80,7 @@ model User {
   assistantRequests      Int                @default(0)
   coins                  Int                @default(0)
   isActiveAIChat         Boolean            @default(false)
+  orderNumber            Int?               // Порядковый номер
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
   conversations          Conversation[]

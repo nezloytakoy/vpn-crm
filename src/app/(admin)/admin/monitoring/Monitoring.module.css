@@ -113,13 +113,13 @@
   .messageButton {
     background: none;
     border: none;
-    color: #007bff; /* Синий цвет иконки */
+    color: #0056b3; /* Синий цвет иконки */
     cursor: pointer;
     font-size: 18px;
   }
   
   .messageButton:hover {
-    color: #0056b3; /* Темно-синий при наведении */
+    color: #007bff; /* Темно-синий при наведении */
   }
 
     /* Стили для попапа */
@@ -176,7 +176,7 @@
 .sendButton {
   width: 100%;
   padding: 10px;
-  background-color: #007bff;
+  background-color: #0056b3;
   color: white;
   border: none;
   border-radius: 4px;
@@ -185,7 +185,7 @@
 }
 
 .sendButton:hover {
-  background-color: #0056b3;
+  background-color: #007bff;
 }
 
   
