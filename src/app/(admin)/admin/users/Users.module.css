@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+
 .main {
     height: auto;
     width: 100%;
@@ -692,7 +694,7 @@ input:checked+.slider:hover {
     background-color: #f0f8ff;
 }
 
-/* Стили для кнопки переключения отображения блоков */
+
 .toggleButton {
     width: 100%;
     max-width: 1200px;
@@ -719,7 +721,7 @@ input:checked+.slider:hover {
     transform: scale(0.98);
 }
 
-/* Стили для стрелочки */
+
 .arrowIcon {
     margin-left: 10px;
     transition: transform 0.3s ease;

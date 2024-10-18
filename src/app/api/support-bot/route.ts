@@ -420,6 +420,22 @@ bot.command('start', async (ctx) => {
         const username = ctx.from.username || null;
 
         
+        const userProfilePhotos = await ctx.api.getUserProfilePhotos(ctx.from.id);
+
+        let avatarFileId: string | null = null;
+
+        if (userProfilePhotos.total_count > 0) {
+          
+          const photos = userProfilePhotos.photos[0];
+          
+          const largestPhoto = photos[photos.length - 1];
+          
+          avatarFileId = largestPhoto.file_id;
+        } else {
+          console.log('У ассистента нет аватарки.');
+        }
+
+        
         const lastAssistant = await prisma.assistant.findFirst({
           orderBy: { orderNumber: 'desc' },
           select: { orderNumber: true },
@@ -433,7 +449,8 @@ bot.command('start', async (ctx) => {
             telegramId: telegramId,
             username: username,
             role: invitation.role,
-            orderNumber: nextOrderNumber, 
+            orderNumber: nextOrderNumber,
+            avatarFileId: avatarFileId, 
           },
         });
 
