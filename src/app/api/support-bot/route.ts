@@ -329,118 +329,6 @@ async function findNewAssistant(requestId: bigint, ignoredAssistants: bigint[]) 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 bot.command('end_work', async (ctx) => {
   try {
     if (!ctx.from?.id) {
@@ -480,12 +368,35 @@ bot.command('end_work', async (ctx) => {
       data: { isWorking: false, isBusy: false },
     });
 
+    
+    const activeSession = await prisma.assistantSession.findFirst({
+      where: {
+        assistantId: telegramId,
+        endedAt: null,
+      },
+      orderBy: {
+        startedAt: 'desc', 
+      },
+    });
+
+    if (activeSession) {
+      
+      await prisma.assistantSession.update({
+        where: { id: activeSession.id },
+        data: { endedAt: new Date() },
+      });
+    } else {
+      
+      console.warn(`Не найдена активная сессия для ассистента ${telegramId}`);
+    }
+
     await ctx.reply(getTranslation(lang, 'end_work'));
   } catch (error) {
     console.error('Ошибка при завершении работы:', error);
     await ctx.reply(getTranslation(detectUserLanguage(ctx), 'end_dialog_error'));
   }
 });
+
 
 
 
@@ -508,7 +419,7 @@ bot.command('start', async (ctx) => {
         const telegramId = BigInt(ctx.from.id);
         const username = ctx.from.username || null;
 
-        // Находим минимальный неиспользованный порядковый номер для ассистента
+        
         const lastAssistant = await prisma.assistant.findFirst({
           orderBy: { orderNumber: 'desc' },
           select: { orderNumber: true },
@@ -516,26 +427,26 @@ bot.command('start', async (ctx) => {
 
         const nextOrderNumber = lastAssistant?.orderNumber ? lastAssistant.orderNumber + 1 : 1;
 
-        // Создаем ассистента с присвоением порядкового номера
+        
         await prisma.assistant.create({
           data: {
             telegramId: telegramId,
             username: username,
             role: invitation.role,
-            orderNumber: nextOrderNumber, // Присваиваем порядковый номер
+            orderNumber: nextOrderNumber, 
           },
         });
 
-        // Обновляем статус инвайта
+        
         await prisma.invitation.update({
           where: { id: invitation.id },
           data: { used: true },
         });
 
-        // Ответ пользователю
+        
         await ctx.reply(getTranslation(lang, 'assistant_congrats'));
 
-        // Обновляем поле lastActiveAt для ассистента
+        
         await prisma.assistant.update({
           where: { telegramId: telegramId },
           data: { lastActiveAt: new Date() },
@@ -619,17 +530,26 @@ bot.on('callback_query:data', async (ctx) => {
 
     if (data === 'start_work') {
       const assistant = await prisma.assistant.findUnique({ where: { telegramId: telegramId } });
-
+    
       if (assistant?.isWorking) {
         await ctx.reply(getTranslation(lang, 'already_working'));
         return;
       }
-
+    
+      
       await prisma.assistant.update({
         where: { telegramId: telegramId },
         data: { isWorking: true, isBusy: false },
       });
-
+    
+      
+      await prisma.assistantSession.create({
+        data: {
+          assistantId: telegramId,
+          
+        },
+      });
+    
       await ctx.reply(getTranslation(lang, 'work_started'));
       return;
     } else if (data === 'my_coins') {
