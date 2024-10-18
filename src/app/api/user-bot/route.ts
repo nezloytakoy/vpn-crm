@@ -176,7 +176,7 @@ bot.command('end_dialog', async (ctx) => {
 
     const telegramId = BigInt(ctx.from.id);
 
-    
+    // Получаем активный запрос для этого пользователя
     const activeRequest = await prisma.assistantRequest.findFirst({
       where: {
         user: { telegramId: telegramId },
@@ -190,7 +190,7 @@ bot.command('end_dialog', async (ctx) => {
       return;
     }
 
-    
+    // Получаем разговор, связанный с этим запросом
     const conversation = await prisma.conversation.findUnique({
       where: { requestId: activeRequest.id },
     });
@@ -201,19 +201,19 @@ bot.command('end_dialog', async (ctx) => {
       return;
     }
 
-    
+    // Обновляем статус разговора на 'COMPLETED'
     await prisma.conversation.update({
       where: { id: conversation.id },
       data: { status: 'COMPLETED' },
     });
 
-    
+    // Обновляем статус запроса ассистента на 'COMPLETED' и устанавливаем isActive в false
     await prisma.assistantRequest.update({
       where: { id: activeRequest.id },
       data: { status: 'COMPLETED', isActive: false },
     });
 
-    
+    // Если есть ассистент, связанный с этим запросом, устанавливаем его статус isBusy в false
     if (activeRequest.assistant) {
       await prisma.assistant.update({
         where: { telegramId: activeRequest.assistant.telegramId },
@@ -223,10 +223,12 @@ bot.command('end_dialog', async (ctx) => {
       console.error('Ошибка: ассистент не найден для запроса');
     }
 
-    
+    // Проверяем сообщения в разговоре
     const messages = conversation.messages as JsonArray | null; 
     if (!Array.isArray(messages) || messages.length === 0 || conversation.lastMessageFrom === 'USER') {
-      
+      // Если разговор не содержит сообщений или последнее сообщение от пользователя,
+      // не начисляем коины ассистенту
+
       if (activeRequest.assistant) {
         await sendMessageToAssistant(
           activeRequest.assistant.telegramId.toString(),
@@ -236,14 +238,28 @@ bot.command('end_dialog', async (ctx) => {
         console.error('Ошибка: ассистент не найден для активного запроса');
       }
     } else {
-      
+      // Начисляем коины ассистенту
+
       if (activeRequest.assistant) {
+        const coinsToAdd = 1; // Количество начисляемых коинов
+        const reason = 'Завершение диалога'; // Причина начисления
+
+        // Обновляем баланс ассистента
         const updatedAssistant = await prisma.assistant.update({
           where: { telegramId: activeRequest.assistant.telegramId },
-          data: { coins: { increment: 1 } }, 
+          data: { coins: { increment: coinsToAdd } }, 
         });
 
-        
+        // Создаем запись в AssistantCoinTransaction
+        await prisma.assistantCoinTransaction.create({
+          data: {
+            assistantId: activeRequest.assistant.telegramId,
+            amount: coinsToAdd,
+            reason: reason,
+          },
+        });
+
+        // Отправляем сообщение ассистенту
         await sendMessageToAssistant(
           updatedAssistant.telegramId.toString(),
           `${getTranslation(languageCode, 'user_ended_dialog')} ${getTranslation(languageCode, 'coin_awarded')}`
@@ -261,6 +277,7 @@ bot.command('end_dialog', async (ctx) => {
     await ctx.reply(getTranslation(languageCode, 'error_end_dialog'));
   }
 });
+
 
 
 

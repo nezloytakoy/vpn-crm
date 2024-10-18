@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Некорректное значение для суммы вывода' }, { status: 400 });
     }
 
-    // Update the withdrawal request status to 'APPROVED'
+    // Обновляем статус запроса на вывод на 'APPROVED'
     const updatedWithdraw = await prisma.withdrawalRequest.update({
       where: { id: BigInt(withdrawId) },
       data: {
@@ -55,6 +55,15 @@ export async function POST(request: NextRequest) {
 
       updatedBalance = assistant.coins;
 
+      // Добавляем запись в AssistantCoinTransaction
+      await prisma.assistantCoinTransaction.create({
+        data: {
+          assistantId: BigInt(userId),
+          amount: -parsedAmount, // Отрицательное значение, так как это вывод коинов
+          reason: 'Вывод коинов',
+        },
+      });
+
     } else {
       console.error('Неизвестная роль пользователя:', userRole);
       return NextResponse.json({ error: 'Неизвестная роль пользователя' }, { status: 400 });
@@ -64,7 +73,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Недостаточно средств на счете' }, { status: 400 });
     }
 
-    // Continue with the rest of your code (sending Telegram message, etc.)
+    // Продолжение вашего кода (отправка сообщения в Telegram и т.д.)
 
     return NextResponse.json({
       message: `Запрос на вывод ${parsedAmount} коинов одобрен, сообщение отправлено пользователю`,

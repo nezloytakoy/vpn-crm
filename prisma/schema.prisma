@@ -57,6 +57,7 @@ model Assistant {
   conversations   Conversation[]     // Reverse relation to Conversation
   requestActions  RequestAction[]    // Добавлено поле для обратного отношения к RequestAction
   sessions   AssistantSession[]
+   coinTransactions AssistantCoinTransaction[] @relation("AssistantToCoinTransactions")
 }
 
 model AssistantSession {
@@ -65,7 +66,6 @@ model AssistantSession {
   assistant   Assistant @relation(fields: [assistantId], references: [telegramId])
   startedAt   DateTime  @default(now())
   endedAt     DateTime?
-  // Дополнительные поля по необходимости
 }
 
 
@@ -194,11 +194,20 @@ model WithdrawalRequest {
   id           BigInt   @id @default(autoincrement())
   userId       BigInt
   userNickname String?
-  userRole     String   @default("user") // Add a default value
+  userRole     String   @default("user")
   amount       Float
   status       String   @default("Требует рассмотрения")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+model AssistantCoinTransaction {
+  id          BigInt    @id @default(autoincrement())
+  assistantId BigInt
+  assistant   Assistant @relation("AssistantToCoinTransactions", fields: [assistantId], references: [telegramId])
+  amount      Int
+  reason      String
+  createdAt   DateTime  @default(now())
 }
 
 model Tariff {

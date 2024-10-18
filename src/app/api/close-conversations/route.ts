@@ -23,7 +23,7 @@ export async function POST() {
 
     for (const conversation of conversations) {
       if (conversation.lastMessageFrom === 'ASSISTANT') {
-        
+        // Получаем активный запрос
         const activeRequest = await prisma.assistantRequest.findFirst({
           where: {
             id: conversation.requestId,
@@ -33,13 +33,13 @@ export async function POST() {
         });
 
         if (activeRequest) {
-          
+          // Обновляем статус запроса
           await prisma.assistantRequest.update({
             where: { id: activeRequest.id },
             data: { status: 'COMPLETED', isActive: false },
           });
 
-          
+          // Обновляем статус ассистента
           if (activeRequest.assistant) {
             await prisma.assistant.update({
               where: { telegramId: activeRequest.assistant.telegramId },
@@ -49,27 +49,40 @@ export async function POST() {
             console.error('Ошибка: ассистент не найден для запроса');
           }
 
-          
+          // Обновляем статус разговора
           await prisma.conversation.update({
             where: { id: conversation.id },
             data: { status: 'COMPLETED' },
           });
 
-          
+          // Начисляем коины ассистенту и создаем запись в AssistantCoinTransaction
           if (activeRequest.assistant) {
+            const coinsToAdd = 1; // Количество начисляемых коинов
+            const reason = 'Автоматическое завершение диалога'; // Причина начисления
+
+            // Обновляем баланс ассистента
             const updatedAssistant = await prisma.assistant.update({
               where: { telegramId: activeRequest.assistant.telegramId },
-              data: { coins: { increment: 1 } },
+              data: { coins: { increment: coinsToAdd } },
             });
 
-            
+            // Создаем запись в AssistantCoinTransaction
+            await prisma.assistantCoinTransaction.create({
+              data: {
+                assistantId: activeRequest.assistant.telegramId,
+                amount: coinsToAdd,
+                reason: reason,
+              },
+            });
+
+            // Отправляем сообщение ассистенту
             await sendTelegramMessageToAssistant(
               updatedAssistant.telegramId.toString(),
-              'Вам начислен 1 коин за завершение диалога.'
+              `Вам начислен ${coinsToAdd} коин за завершение диалога.`
             );
           }
 
-          
+          // Отправляем сообщение пользователю
           await sendTelegramMessageToUser(
             conversation.userId.toString(),
             'Диалог завершен.'
@@ -78,9 +91,8 @@ export async function POST() {
           console.error('Ошибка: активный запрос не найден');
         }
       } else {
-        
+        // Обработка отклонения запроса
         await handleRejectRequest(conversation.requestId.toString(), conversation.assistantId);
-
       }
     }
 
@@ -96,6 +108,7 @@ export async function POST() {
     });
   }
 }
+
 
 async function handleRejectRequest(requestId: string, assistantTelegramId: bigint) {
   try {

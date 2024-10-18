@@ -1,9 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 
-
 const prisma = new PrismaClient();
-
 
 async function sendMessageToTelegram(telegramId: bigint, message: string, token: string) {
   const apiUrl = `https://api.telegram.org/bot${token}/sendMessage`;
@@ -24,22 +22,18 @@ async function sendMessageToTelegram(telegramId: bigint, message: string, token:
   }
 }
 
-
 export async function POST(req: NextRequest) {
   try {
     console.log("Запрос получен, начало обработки");
     
-    
     const { complaintId, explanation } = await req.json();
     console.log("Тело запроса:", { complaintId, explanation });
 
-    
     if (!complaintId || !explanation) {
       console.error("Отсутствуют необходимые данные");
       return NextResponse.json({ error: 'Отсутствуют необходимые данные' }, { status: 400 });
     }
 
-    
     const complaint = await prisma.complaint.findUnique({
       where: { id: BigInt(complaintId) },
     });
@@ -51,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     console.log("Жалоба найдена:", complaint);
 
-    
+    // Начисляем коин ассистенту
     await prisma.assistant.update({
       where: { telegramId: complaint.assistantId },
       data: { coins: { increment: 1 } },
@@ -59,8 +53,16 @@ export async function POST(req: NextRequest) {
 
     console.log(`Коин успешно начислен ассистенту с ID: ${complaint.assistantId}`);
 
-    
-    const assistantMessage = `Жалоба пользователя на вас отклонена модератором. Вы получаете 1 койн: ${explanation}`;
+    // Добавляем запись в AssistantCoinTransaction
+    await prisma.assistantCoinTransaction.create({
+      data: {
+        assistantId: complaint.assistantId,
+        amount: 1,
+        reason: 'Жалоба отклонена, начислен коин',
+      },
+    });
+
+    const assistantMessage = `Жалоба пользователя на вас отклонена модератором. Вы получаете 1 коин: ${explanation}`;
     const userMessage = `Ваша жалоба на ассистента отклонена. ${explanation}`;
 
     const supportBotToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
@@ -75,7 +77,6 @@ export async function POST(req: NextRequest) {
 
     console.log("Сообщения успешно отправлены");
 
-    
     await prisma.complaint.update({
       where: { id: complaint.id },
       data: {
