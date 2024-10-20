@@ -9,10 +9,10 @@
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    position: relative; /* Для работы с псевдоэлементом */
+    position: relative; 
 }
 
-/* Псевдоэлемент для наложения цветного слоя */
+
 .main::before {
     content: "";
     position: absolute;
@@ -20,9 +20,9 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: #365CF5; /* Цвет фильтра */
-    opacity: 0.5; /* Прозрачность для смешивания */
-    pointer-events: none; /* Чтобы не блокировать взаимодействие */
+    background-color: #365CF5; 
+    opacity: 0.5; 
+    pointer-events: none; 
 }
 
 
@@ -83,7 +83,7 @@
 }
 
 .input {
-    height: 50px;
+    height: 70px !important; 
     width: 90%;
     background-color: white;
     border: 2px solid rgb(222, 214, 214);
