@@ -906,6 +906,36 @@
     margin-top: -40px;
 }
 
+.alertTop {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #f0c14b;
+    padding: 10px 20px;
+    border-radius: 4px;
+    color: #111;
+    font-size: 16px;
+    z-index: 1000; 
+    opacity: 0;
+    transition: opacity 0.5s ease, top 0.5s ease;
+  }
+  
+  .alertTop.show {
+    opacity: 1;
+    top: 20px;
+  }
+  
+  .alertTop.hide {
+    opacity: 0;
+    top: 0;
+  }
+  
+  .loading {
+    background-color: #f5a623; 
+  }
+  
+
 
 .hidePupils {
     max-height: 0;

@@ -40,26 +40,36 @@ model Invitation {
 }
 
 model Assistant {
-  telegramId      BigInt             @id @unique
-  username        String?
-  role            String             @default("assistant")
-  isWorking       Boolean            @default(false)
-  isBusy          Boolean            @default(false)
-  startedAt       DateTime?
-  joinedAt        DateTime           @default(now())
-  coins           Int                @default(0) // Поле для хранения коинов
-  lastActiveAt    DateTime?          // Поле для хранения времени последней активности
-  orderNumber     Int?               // Порядковый номер
-  avatarFileId    String?            // Новое поле для хранения file_id аватарки
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  telegramId   BigInt     @id @unique
+  username     String?
+  role         String     @default("assistant")
+  isWorking    Boolean    @default(false)
+  isBusy       Boolean    @default(false)
+  startedAt    DateTime?
+  joinedAt     DateTime   @default(now())
+  coins        Int        @default(0)
+  lastActiveAt DateTime?
+  orderNumber  Int?
+  avatarFileId String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  mentorId     BigInt?  // Здесь мы указываем ID наставника
+
   requests        AssistantRequest[]
-  arbitrations    Arbitration[]      // Поле для обратного отношения
-  conversations   Conversation[]     // Обратное отношение к Conversation
-  requestActions  RequestAction[]    // Добавлено поле для обратного отношения к RequestAction
+  arbitrations    Arbitration[]
+  conversations   Conversation[]
+  requestActions  RequestAction[]
   sessions        AssistantSession[]
   coinTransactions AssistantCoinTransaction[] @relation("AssistantToCoinTransactions")
 }
+
+
+
+
+
+
+
 
 
 model AssistantSession {

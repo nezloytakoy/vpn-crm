@@ -1,11 +1,13 @@
-"use client"
+"use client";
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import styles from './Assistent.module.css';
 import Link from 'next/link';
 import { FaEllipsisH } from 'react-icons/fa';
 import Table from '@/components/Table/Table';
 import { Column } from 'react-table';
+import confetti from 'canvas-confetti';
 
 interface RequestData {
   requestId: number;
@@ -21,7 +23,44 @@ interface TransactionData {
   time: string;
 }
 
+interface AssistantData {
+  assistant: {
+    orderNumber: number;
+    username: string;
+    telegramId: string;
+    avatarFileId: string | null;
+  };
+  allRequests: number;
+  requestsThisMonth: number;
+  requestsThisWeek: number;
+  requestsToday: number;
+  ignoredRequests: number;
+  rejectedRequests: number;
+  complaints: number;
+  sessionCount: number;
+  averageSessionTime: number;
+  transactions: {
+    id: number;
+    amount: number;
+    reason: string;
+    time: string;
+  }[];
+  pupils: {
+    telegramId: string;
+    username: string;
+  }[];
+}
+
+interface Pupil {
+  telegramId: string;
+  username: string;
+  lastActiveAt: Date;  // Дата последней активности
+  orderNumber: number;  // Номер ассистента
+}
+
+
 function Page() {
+  const { id: currentAssistantId } = useParams();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [showPupilDropdown, setShowPupilDropdown] = useState(false);
@@ -31,20 +70,87 @@ function Page() {
   const pupilDropdownRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
 
+
+  const [pupilId, setPupilId] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const [assistantData, setAssistantData] = useState<AssistantData | null>(null);
+
+  const fetchAssistantData = async () => {
+    try {
+      const response = await fetch(`/api/get-assistant?assistantId=${currentAssistantId}`);
+      const data = await response.json();
+      if (response.ok) {
+        setAssistantData(data);
+      } else {
+        console.error('Ошибка:', data.error);
+      }
+    } catch (error) {
+      console.error('Ошибка при получении данных:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (currentAssistantId) {
+      fetchAssistantData();
+    }
+  }, [currentAssistantId]);
+
+
+
+
+
+  const handleAddPupil = async () => {
+    setIsLoading(true);
+
+    try {
+      if (!currentAssistantId) {
+        throw new Error('ID ассистента не найден в роуте');
+      }
+
+      const response = await fetch('/api/add-pupil', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ pupilId, assistantId: currentAssistantId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Ошибка при добавлении подопечного');
+      }
+
+
+      confetti({
+        particleCount: 200,
+        spread: 70,
+        origin: { y: 0.6 },
+      });
+
+      alert('Подопечный успешно добавлен 🎉');
+    } catch (error: any) {
+      alert('Ошибка: ' + error.message + ' ❌❌❌');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const pupils = assistantData?.pupils as Pupil[];
+
+
   const columns: Column<RequestData>[] = [
     { Header: 'ID запроса', accessor: 'requestId' },
     { Header: 'Действие', accessor: 'action' },
     { Header: 'Лог', accessor: 'log' },
     { Header: 'ID пользователя', accessor: 'userId' }
   ];
-  
 
   const data: RequestData[] = [
     { requestId: 1, action: 'Создан', log: 'Создание запроса', userId: 1001 },
     { requestId: 2, action: 'Изменен', log: 'Изменение статуса', userId: 1002 },
     { requestId: 3, action: 'Удален', log: 'Удаление записи', userId: 1003 }
   ];
-  
+
   const transactionColumns: Column<TransactionData>[] = [
     { Header: 'ID', accessor: 'id' },
     { Header: 'Количество', accessor: 'amount' },
@@ -57,9 +163,7 @@ function Page() {
     { id: 2, amount: 300, reason: 'Возврат средств', time: '2023-10-19 10:15' },
     { id: 3, amount: 200, reason: 'Пополнение счета', time: '2023-10-18 16:45' }
   ];
-  
-  
-  
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -91,14 +195,13 @@ function Page() {
     };
   }, []);
 
-  
   const toggleMessagebox = () => {
     setIsMessageboxVisible(!isMessageboxVisible);
   };
 
   return (
     <div className={styles.main}>
-      
+
       <div className={styles.titlebox}>
         <h1 className={styles.title}>Ассистент</h1>
         <div className={styles.pointerblock}>
@@ -109,7 +212,7 @@ function Page() {
         </div>
       </div>
 
-      
+
       <div className={styles.assistantblock}>
         <div className={styles.infoblock}>
           <div className={styles.metricsblock}>
@@ -117,19 +220,19 @@ function Page() {
               <div className={styles.avatarblock}></div>
               <div className={styles.numbers}>
                 <div className={styles.metric}>
-                  <p className={styles.number}>100</p>
+                  <p className={styles.number}>{assistantData?.allRequests}</p>
                   <p className={styles.smalltitle}>Запросы</p>
                 </div>
                 <div className={styles.metric}>
-                  <p className={styles.number}>100</p>
+                  <p className={styles.number}>{assistantData?.rejectedRequests}</p>
                   <p className={styles.smalltitle}>Отказы</p>
                 </div>
                 <div className={styles.metric}>
-                  <p className={styles.number}>100</p>
+                  <p className={styles.number}>{assistantData?.complaints}</p>
                   <p className={styles.smalltitle}>Жалобы</p>
                 </div>
                 <div className={styles.metrictwo}>
-                  
+
                   <button
                     className={styles.iconButton}
                     onClick={() => setShowDropdown(!showDropdown)}
@@ -138,52 +241,52 @@ function Page() {
                   >
                     <FaEllipsisH />
                   </button>
-                  
+
                   {showDropdown && (
                     <div className={`${styles.dropdownMenu} ${showDropdown ? styles.fadeIn : styles.fadeOut}`} ref={dropdownRef}>
-                        <div className={styles.dropdownItem}>
-                          <p className={styles.number}>100</p>
-                          <p className={styles.smalltitle}>Запросы/месяц</p>
-                        </div>
-                        <div className={styles.dropdownItem}>
-                          <p className={styles.number}>100</p>
-                          <p className={styles.smalltitle}>Запросы/неделя</p>
-                        </div>
-                        <div className={styles.dropdownItem}>
-                          <p className={styles.number}>100</p>
-                          <p className={styles.smalltitle}>Запросы/сутки</p>
-                        </div>
-                        <div className={styles.dropdownItem}>
-                          <p className={styles.number}>100</p>
-                          <p className={styles.smalltitle}>Время ответа(с)</p>
-                        </div>
+                      <div className={styles.dropdownItem}>
+                        <p className={styles.number}>{assistantData?.requestsThisMonth}</p>
+                        <p className={styles.smalltitle}>Запросы/месяц</p>
+                      </div>
+                      <div className={styles.dropdownItem}>
+                        <p className={styles.number}>{assistantData?.requestsThisWeek}</p>
+                        <p className={styles.smalltitle}>Запросы/неделя</p>
+                      </div>
+                      <div className={styles.dropdownItem}>
+                        <p className={styles.number}>{assistantData?.requestsToday}</p>
+                        <p className={styles.smalltitle}>Запросы/сутки</p>
+                      </div>
+                      <div className={styles.dropdownItem}>
+                        <p className={styles.number}>{assistantData?.averageSessionTime}</p>
+                        <p className={styles.smalltitle}>Время ответа(с)</p>
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-            
+
             <div className={styles.datablock}>
               <div className={styles.nameblock}>
-                <p className={styles.name}>John Doe</p>
-                <p className={styles.undername}>Founder, Abc Company</p>
+                <p className={styles.name}>@{assistantData?.assistant.username}</p>
+                <p className={styles.undername}>{assistantData?.assistant.telegramId}</p>
               </div>
               <div className={styles.numberstwo}>
                 <div className={styles.metric}>
-                  <p className={styles.number}>100</p>
+                  <p className={styles.number}>{assistantData?.sessionCount}</p>
                   <p className={styles.smalltitle}>Рабочие сессии</p>
                 </div>
                 <div className={styles.metric}>
-                  <p className={styles.number}>100</p>
+                  <p className={styles.number}>{assistantData?.averageSessionTime || 0}</p>
                   <p className={styles.smalltitle}>Время сессии</p>
                 </div>
                 <div className={styles.metric}>
-                  <p className={styles.number}>100</p>
+                  <p className={styles.number}>{assistantData?.ignoredRequests}</p>
                   <p className={styles.smalltitle}>Пропусков запросов</p>
                 </div>
                 <div className={styles.metric}>
-                  <p className={styles.number}>100</p>
+                  <p className={styles.number}>{assistantData?.assistant.orderNumber}</p>
                   <p className={styles.smalltitle}>Номер(№) ассистента</p>
                 </div>
               </div>
@@ -210,7 +313,7 @@ function Page() {
           </div>
         </div>
 
-        
+
         <div className={styles.pupil}>
           <div className={styles.pupiltitleblock}>
             <p className={styles.pupiltitle}>Подопечные</p>
@@ -222,7 +325,7 @@ function Page() {
             </button>
           </div>
 
-          
+
           {showPupilDropdown && (
             <div className={`${styles.pupilDropdown} ${showPupilDropdown ? styles.fadeIn : styles.fadeOut}`} ref={pupilDropdownRef}>
               <div onClick={toggleMessagebox} className={styles.pupilDropdownItem}>
@@ -231,132 +334,59 @@ function Page() {
             </div>
           )}
 
-          
+
           <div className={`${styles.messageboxtwo} ${isMessageboxVisible ? styles.show : styles.hide}`}>
             <h1 className={styles.gifttitle}>Добавить подопечного</h1>
             <h1 className={styles.undertitletwo}>Введите айди подопечного</h1>
             <div className={styles.inputContainerthree}>
-              <input type="text" className={styles.inputFieldtwo} placeholder="7" />
+              <input
+                type="text"
+                className={styles.inputFieldtwo}
+                placeholder="7"
+                value={pupilId}
+                onChange={(e) => setPupilId(e.target.value)}
+              />
             </div>
             <div className={styles.buttonblock}>
-              <button className={styles.submitButtonfour}>Подтвердить</button>
+              <button
+                className={styles.submitButtonfour}
+                onClick={handleAddPupil}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Загрузка...' : 'Подтвердить'}
+              </button>
             </div>
           </div>
           <div className={`${styles.pupilsblock} ${isMessageboxVisible ? styles.hidePupils : styles.showPupils}`}>
-            <div className={styles.pupilblock}>
-              <div className={styles.pupillogo}>
-                <div className={styles.activecircle}></div>
-              </div>
-              <div className={styles.pupilnameblock}>
-                <div className={styles.pupilinnername}>
-                  <p className={styles.nametext}>John Doe</p>
-                  <div className={styles.pupilinfo}>
-                    <p className={styles.infotext}>В сети - 20м назад</p>
+            {pupils?.length > 0 ? (
+              pupils.map((pupil) => {
+                const lastActiveAt = new Date(pupil.lastActiveAt);
+                const now = new Date();
+                const minutesAgo = Math.floor((now.getTime() - lastActiveAt.getTime()) / 60000);
+
+                return (
+                  <div key={pupil.telegramId} className={styles.pupilblock}>
+                    <div className={styles.pupillogo}>
+                      <div className={styles.activecircle}></div>
+                    </div>
+                    <div className={styles.pupilnameblock}>
+                      <div className={styles.pupilinnername}>
+                        <p className={styles.nametext}>{pupil.username}</p>
+                        <div className={styles.pupilinfo}>
+                          <p className={styles.infotext}>В сети - {minutesAgo}м назад</p>
+                        </div>
+                      </div>
+                      <div className={styles.pupilunderblock}>
+                        <p className={styles.undertext}>{pupil.telegramId}</p>
+                        <p className={styles.undertext}>№{pupil.orderNumber}</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className={styles.pupilunderblock}>
-                  <p className={styles.undertext}>Founder, Abc Company</p>
-                  <p className={styles.undertext}>№1</p>
-                </div>
-              </div>
-
-
-            </div>
-            <div className={styles.pupilblock}>
-              <div className={styles.pupillogo}>
-                <div className={styles.activecircle}></div>
-              </div>
-              <div className={styles.pupilnameblock}>
-                <div className={styles.pupilinnername}>
-                  <p className={styles.nametext}>John Doe</p>
-                  <div className={styles.pupilinfo}>
-                    <p className={styles.infotext}>В сети - 20м назад</p>
-                  </div>
-                </div>
-                <div className={styles.pupilunderblock}>
-                  <p className={styles.undertext}>Founder, Abc Company</p>
-                  <p className={styles.undertext}>№1</p>
-                </div>
-              </div>
-
-
-            </div>
-            <div className={styles.pupilblock}>
-              <div className={styles.pupillogo}>
-                <div className={styles.activecircle}></div>
-              </div>
-              <div className={styles.pupilnameblock}>
-                <div className={styles.pupilinnername}>
-                  <p className={styles.nametext}>John Doe</p>
-                  <div className={styles.pupilinfo}>
-                    <p className={styles.infotext}>В сети - 20м назад</p>
-                  </div>
-                </div>
-                <div className={styles.pupilunderblock}>
-                  <p className={styles.undertext}>Founder, Abc Company</p>
-                  <p className={styles.undertext}>№1</p>
-                </div>
-              </div>
-
-
-            </div>
-            <div className={styles.pupilblock}>
-              <div className={styles.pupillogo}>
-                <div className={styles.activecircle}></div>
-              </div>
-              <div className={styles.pupilnameblock}>
-                <div className={styles.pupilinnername}>
-                  <p className={styles.nametext}>John Doe</p>
-                  <div className={styles.pupilinfo}>
-                    <p className={styles.infotext}>В сети - 20м назад</p>
-                  </div>
-                </div>
-                <div className={styles.pupilunderblock}>
-                  <p className={styles.undertext}>Founder, Abc Company</p>
-                  <p className={styles.undertext}>№1</p>
-                </div>
-              </div>
-
-
-            </div>
-            <div className={styles.pupilblock}>
-              <div className={styles.pupillogo}>
-                <div className={styles.activecircle}></div>
-              </div>
-              <div className={styles.pupilnameblock}>
-                <div className={styles.pupilinnername}>
-                  <p className={styles.nametext}>John Doe</p>
-                  <div className={styles.pupilinfo}>
-                    <p className={styles.infotext}>В сети - 20м назад</p>
-                  </div>
-                </div>
-                <div className={styles.pupilunderblock}>
-                  <p className={styles.undertext}>Founder, Abc Company</p>
-                  <p className={styles.undertext}>№1</p>
-                </div>
-              </div>
-
-
-            </div>
-            <div className={styles.pupilblock}>
-              <div className={styles.pupillogo}>
-                <div className={styles.activecircle}></div>
-              </div>
-              <div className={styles.pupilnameblock}>
-                <div className={styles.pupilinnername}>
-                  <p className={styles.nametext}>John Doe</p>
-                  <div className={styles.pupilinfo}>
-                    <p className={styles.infotext}>В сети - 20м назад</p>
-                  </div>
-                </div>
-                <div className={styles.pupilunderblock}>
-                  <p className={styles.undertext}>Founder, Abc Company</p>
-                  <p className={styles.undertext}>№1</p>
-                </div>
-              </div>
-
-
-            </div>
+                );
+              })
+            ) : (
+              <p>Подопечные не найдены или данные загружаются...</p>
+            )}
           </div>
         </div>
       </div>
@@ -381,7 +411,7 @@ function Page() {
         </div>
       </div>
 
-      
+
       {showPopup && (
         <>
           <div className={styles.overlay} />
