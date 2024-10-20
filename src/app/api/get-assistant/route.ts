@@ -33,28 +33,28 @@ export async function GET(request: NextRequest) {
 //     isBusy          Boolean            @default(false)
 //     startedAt       DateTime?
 //     joinedAt        DateTime           @default(now())
-//     coins           Int                @default(0) 
-//     lastActiveAt    DateTime?          
-//     orderNumber     Int?               
+//     coins           Int                @default(0) // Field for storing coins
+//     lastActiveAt    DateTime?          // Field for storing last active time
+//     orderNumber     Int?               // Порядковый номер
 //     createdAt       DateTime           @default(now())
 //     updatedAt       DateTime           @updatedAt
 //     requests        AssistantRequest[]
-//     arbitrations    Arbitration[]      
-//     conversations   Conversation[]     
-//     requestActions  RequestAction[]    
+//     arbitrations    Arbitration[]      // Field for the reverse relation
+//     conversations   Conversation[]     // Reverse relation to Conversation
+//     requestActions  RequestAction[]    // Добавлено поле для обратного отношения к RequestAction
 //   }
 
 //             }
-//             
+//             // получить у ассистента: порядковый номер, юзернейм, айди, количество запросов за все время, месяц, неделю, сутки, количество отказов, количество жалоб, количество проигнорированных запросов, среднее время ответа в минутах, количество выходов на линию, средняя продолжительность работы
 //         })
 
 //аватарка ассистента
 
-        
+        //данные про каждый запрос с логами
 
-        
+        //история транзакций по койнам
 
-        
+        // подопечные ассистента
 
     } catch (error) {
         console.log(error)

@@ -4,12 +4,13 @@ import React, { useMemo, useEffect, useState, useRef } from 'react';
 import { Column } from 'react-table';
 import { FaEnvelope } from 'react-icons/fa';
 import Table from '@/components/Table/Table';
+import { useRouter } from 'next/navigation'; // Импортируем useRouter для навигации
 import styles from './Monitoring.module.css';
 
 export const fetchCache = 'force-no-store';
 
 interface AssistantData {
-  telegramId: string; // Обязательно наличие поля telegramId
+  telegramId: string;
   nick: string;
   averageResponseTime: number;
   completed: number;
@@ -22,18 +23,19 @@ interface AssistantData {
 
 const Monitoring: React.FC = () => {
   const [assistantsData, setAssistantsData] = useState<AssistantData[]>([]);
-  const [isPopupOpen, setIsPopupOpen] = useState(false); // Состояние для открытия попапа
-  const [popupMessage, setPopupMessage] = useState(''); // Состояние для ввода текста в попапе
-  const [currentAssistantTelegramId, setCurrentAssistantTelegramId] = useState<string | null>(null); // Хранение telegramId текущего ассистента
-  const popupRef = useRef<HTMLDivElement>(null); // Ссылка на элемент попапа
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [popupMessage, setPopupMessage] = useState('');
+  const [currentAssistantTelegramId, setCurrentAssistantTelegramId] = useState<string | null>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
 
-  // Получаем данные с сервера
+  const router = useRouter(); // Инициализируем роутер для перенаправления
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await fetch('/api/assistants-data', {
           headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate', // Запрещаем кеширование
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
             Pragma: 'no-cache',
             Expires: '0',
           },
@@ -44,7 +46,7 @@ const Monitoring: React.FC = () => {
         }
 
         const data = await response.json();
-        console.log('Полученные данные ассистентов:', data); // Лог данных ассистентов для проверки
+        console.log('Полученные данные ассистентов:', data);
         setAssistantsData(data);
       } catch (error) {
         console.error('Ошибка при получении данных ассистентов:', error);
@@ -53,6 +55,11 @@ const Monitoring: React.FC = () => {
 
     fetchData();
   }, []);
+
+  const handleRowClick = (telegramId: string) => {
+    // Перенаправляем пользователя на страницу ассистента по его telegramId
+    router.push(`/admin/monitoring/${telegramId}`);
+  };
 
   const handleSendMessage = async () => {
     try {
@@ -68,7 +75,7 @@ const Monitoring: React.FC = () => {
         },
         body: JSON.stringify({
           message: popupMessage,
-          chatId: currentAssistantTelegramId, // Передаем telegramId ассистента
+          chatId: currentAssistantTelegramId,
         }),
       });
 
@@ -77,14 +84,13 @@ const Monitoring: React.FC = () => {
       }
 
       console.log('Отправлено сообщение:', popupMessage);
-      setIsPopupOpen(false); // Закрытие попапа после отправки
-      setPopupMessage(''); // Очистка поля ввода
+      setIsPopupOpen(false);
+      setPopupMessage('');
     } catch (error) {
       console.error('Ошибка отправки сообщения:', error);
     }
   };
 
-  // Закрытие попапа при клике вне его
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
@@ -106,9 +112,13 @@ const Monitoring: React.FC = () => {
   const columns: Column<AssistantData>[] = useMemo(
     () => [
       {
-        Header: '',
+        Header: 'Имя',
         accessor: 'nick',
-        Cell: ({ value }) => <strong>{value}</strong>,
+        Cell: ({ row }) => (
+          <span onClick={() => handleRowClick(row.original.telegramId)} style={{ cursor: 'pointer' }}>
+            <strong className={styles.nick}>{row.original.nick}</strong>
+          </span>
+        ),
       },
       {
         Header: 'Время ответа(секунды)',
@@ -151,18 +161,18 @@ const Monitoring: React.FC = () => {
       },
       {
         Header: '',
-        accessor: 'telegramId', // Передаем telegramId ассистента
+        accessor: 'telegramId',
         Cell: ({ value }) => (
           <button
             className={styles.messageButton}
             onClick={() => {
-              console.log('Клик по сообщению, telegramId:', value); // Логируем значение telegramId при клике
+              console.log('Клик по сообщению, telegramId:', value);
               if (!value) {
                 console.error('Ошибка: telegramId ассистента не установлен');
                 return;
               }
-              setCurrentAssistantTelegramId(value); // Сохраняем telegramId ассистента
-              setIsPopupOpen(true); // Открываем попап
+              setCurrentAssistantTelegramId(value);
+              setIsPopupOpen(true);
             }}
           >
             <FaEnvelope />

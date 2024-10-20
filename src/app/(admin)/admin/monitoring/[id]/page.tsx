@@ -118,15 +118,15 @@ function Page() {
               <div className={styles.numbers}>
                 <div className={styles.metric}>
                   <p className={styles.number}>100</p>
-                  <p className={styles.smalltitle}>Objects</p>
+                  <p className={styles.smalltitle}>Запросы</p>
                 </div>
                 <div className={styles.metric}>
                   <p className={styles.number}>100</p>
-                  <p className={styles.smalltitle}>Objects</p>
+                  <p className={styles.smalltitle}>Отказы</p>
                 </div>
                 <div className={styles.metric}>
                   <p className={styles.number}>100</p>
-                  <p className={styles.smalltitle}>Objects</p>
+                  <p className={styles.smalltitle}>Жалобы</p>
                 </div>
                 <div className={styles.metrictwo}>
                   
@@ -141,12 +141,22 @@ function Page() {
                   
                   {showDropdown && (
                     <div className={`${styles.dropdownMenu} ${showDropdown ? styles.fadeIn : styles.fadeOut}`} ref={dropdownRef}>
-                      {[...Array(4)].map((_, index) => (
-                        <div key={index} className={styles.dropdownItem}>
+                        <div className={styles.dropdownItem}>
                           <p className={styles.number}>100</p>
-                          <p className={styles.smalltitle}>Objects</p>
+                          <p className={styles.smalltitle}>Запросы/месяц</p>
                         </div>
-                      ))}
+                        <div className={styles.dropdownItem}>
+                          <p className={styles.number}>100</p>
+                          <p className={styles.smalltitle}>Запросы/неделя</p>
+                        </div>
+                        <div className={styles.dropdownItem}>
+                          <p className={styles.number}>100</p>
+                          <p className={styles.smalltitle}>Запросы/сутки</p>
+                        </div>
+                        <div className={styles.dropdownItem}>
+                          <p className={styles.number}>100</p>
+                          <p className={styles.smalltitle}>Время ответа(с)</p>
+                        </div>
                     </div>
                   )}
                 </div>
@@ -162,19 +172,19 @@ function Page() {
               <div className={styles.numberstwo}>
                 <div className={styles.metric}>
                   <p className={styles.number}>100</p>
-                  <p className={styles.smalltitle}>Objects</p>
+                  <p className={styles.smalltitle}>Рабочие сессии</p>
                 </div>
                 <div className={styles.metric}>
                   <p className={styles.number}>100</p>
-                  <p className={styles.smalltitle}>Objects</p>
+                  <p className={styles.smalltitle}>Время сессии</p>
                 </div>
                 <div className={styles.metric}>
                   <p className={styles.number}>100</p>
-                  <p className={styles.smalltitle}>Objects</p>
+                  <p className={styles.smalltitle}>Пропусков запросов</p>
                 </div>
                 <div className={styles.metric}>
                   <p className={styles.number}>100</p>
-                  <p className={styles.smalltitle}>Objects</p>
+                  <p className={styles.smalltitle}>Номер(№) ассистента</p>
                 </div>
               </div>
             </div>
@@ -216,7 +226,7 @@ function Page() {
           {showPupilDropdown && (
             <div className={`${styles.pupilDropdown} ${showPupilDropdown ? styles.fadeIn : styles.fadeOut}`} ref={pupilDropdownRef}>
               <div onClick={toggleMessagebox} className={styles.pupilDropdownItem}>
-                {isMessageboxVisible ? 'Скрыть' : 'Показать'}
+                {isMessageboxVisible ? 'Список' : 'Добавить'}
               </div>
             </div>
           )}

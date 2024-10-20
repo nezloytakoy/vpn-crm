@@ -147,6 +147,11 @@
   animation: popupShow 0.3s ease; 
 }
 
+.nick {
+  color: #3367D1;
+  text-decoration: underline;
+}
+
 @keyframes popupShow {
   from {
     transform: scale(0.9);

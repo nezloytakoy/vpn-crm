@@ -158,7 +158,7 @@
 .dropdownMenu {
     position: absolute;
     top: 100%;
-    
+    width: 130px;
     right: 0;
     background-color: white;
     border: 1px solid #ccc;
@@ -191,7 +191,7 @@
 }
 
 .smalltitle {
-    font-size: 14px;
+    font-size: 13px;
     color: #666;
 }
 
