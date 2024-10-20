@@ -94,7 +94,7 @@ function Page() {
     if (currentAssistantId) {
       fetchAssistantData();
     }
-  }, [currentAssistantId]);
+  }, [currentAssistantId, fetchAssistantData]);
 
 
 
@@ -128,8 +128,12 @@ function Page() {
       });
 
       alert('Подопечный успешно добавлен 🎉');
-    } catch (error: any) {
-      alert('Ошибка: ' + error.message + ' ❌❌❌');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        alert('Ошибка: ' + error.message + ' ❌❌❌');
+      } else {
+        alert('Произошла неизвестная ошибка ❌❌❌');
+      }
     } finally {
       setIsLoading(false);
     }
