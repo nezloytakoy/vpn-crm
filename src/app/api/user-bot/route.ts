@@ -348,8 +348,9 @@ bot.command('start', async (ctx) => {
     let referrerId = null;
 
     
+    let code = '';
     if (referralCode && referralCode.startsWith('ref_')) {
-      const code = referralCode.replace('ref_', '');  
+      code = referralCode.replace('ref_', '');  
 
       console.log(`Поиск реферального кода: ${code}`);
 
@@ -395,7 +396,7 @@ bot.command('start', async (ctx) => {
     });
 
     
-    if (referrerId && referralCode) {
+    if (referrerId && code) {
       console.log(`Обновляем счетчик рефералов для пользователя с ID: ${referrerId}`);
 
       await prisma.user.update({
@@ -405,10 +406,10 @@ bot.command('start', async (ctx) => {
         },
       });
 
-      console.log(`Обновляем реферальную запись с кодом: ${referralCode}`);
+      console.log(`Обновляем реферальную запись с кодом: ${code}`);
 
       await prisma.referral.update({
-        where: { code: referralCode },
+        where: { code },  
         data: {
           isUsed: true,  
         },
@@ -446,10 +447,6 @@ bot.command('start', async (ctx) => {
     await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
   }
 });
-
-
-
-
 
 
 
