@@ -16,25 +16,25 @@ model Admin {
 }
 
 model Moderator {
-  id           BigInt        @id @unique @default(autoincrement()) // Основной ID, используется как Telegram ID
+  id           BigInt        @id @unique @default(autoincrement()) 
   login        String        @unique
   password     String
-  inviteToken  String?       @unique // Поле приглашения необязательное
-  role         String        @default("moderator") // Роль по умолчанию "модератор"
-  lastActiveAt DateTime      @default(now()) // Время последней активности
+  inviteToken  String?       @unique 
+  role         String        @default("moderator") 
+  lastActiveAt DateTime      @default(now()) 
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
-  arbitrations Arbitration[] // Поле для обратного отношения
+  arbitrations Arbitration[] 
 }
 
 model Invitation {
-  id        BigInt   @id @default(autoincrement()) // Поле id генерируется автоматически
+  id        BigInt   @id @default(autoincrement()) 
   link      String   @unique
   token     String   @unique
   role      String
   used      Boolean  @default(false)
-  login     String? // Логин для модераторов (необязательное поле)
-  password  String? // Пароль для модераторов (необязательное поле)
+  login     String? 
+  password  String? 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -54,7 +54,7 @@ model Assistant {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  mentorId     BigInt?  // Здесь мы указываем ID наставника
+  mentorId     BigInt?  
 
   requests        AssistantRequest[]
   arbitrations    Arbitration[]
@@ -92,9 +92,7 @@ enum SubscriptionType {
 model User {
   telegramId             BigInt             @id @unique
   username               String?
-  referralCount          Int                @default(0)
-  referrer               Referral[]         @relation("Referrer")
-  referredUsers          Referral[]         @relation("Referred")
+  referralCount          Int                @default(0) 
   subscriptionType       SubscriptionType   @default(FREE)
   hasUpdatedSubscription Boolean            @default(false)
   totalRequests          Int                @default(0)
@@ -102,31 +100,29 @@ model User {
   assistantRequests      Int                @default(0)
   coins                  Int                @default(0)
   isActiveAIChat         Boolean            @default(false)
-  orderNumber            Int?               // Порядковый номер
+  orderNumber            Int?               
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
+
+  
+  referrals              Referral[]         @relation("Referrer")
+
   conversations          Conversation[]
   requests               AssistantRequest[]
   arbitrations           Arbitration[]
-  isWaitingForComplaint  Boolean            @default(false)  // Новое поле
+  isWaitingForComplaint  Boolean            @default(false)
 }
-
 
 model Referral {
   id             BigInt   @id @default(autoincrement())
-  
-  // Отношение к пользователю, который создал реферальную ссылку
   user           User     @relation("Referrer", fields: [userId], references: [telegramId]) 
   userId         BigInt
-
-  // Отношение к пользователю, который использовал реферальную ссылку
-  referredUser   User?    @relation("Referred", fields: [referredUserId], references: [telegramId]) 
-  referredUserId BigInt?  @unique
-
-  code           String   @unique
-  link           String
-  createdAt      DateTime @default(now())
+  code           String   @unique             
+  link           String                      
+  isUsed         Boolean   @default(false)    
+  createdAt      DateTime  @default(now())    
 }
+
 
 model Conversation {
   id                    BigInt            @id @default(autoincrement())
@@ -140,9 +136,9 @@ model Conversation {
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
   status                String            @default("IN_PROGRESS")
-  lastMessageFrom       String            @default("USER") // USER или ASSISTANT для отслеживания отправителя последнего сообщения
-  assistantResponseTimes Json             @default("[]") // Массив времен ответа ассистента
-  lastUserMessageAt     DateTime?         // Время последнего сообщения от пользователя
+  lastMessageFrom       String            @default("USER") 
+  assistantResponseTimes Json             @default("[]") 
+  lastUserMessageAt     DateTime?         
 }
 
 
@@ -162,7 +158,7 @@ model AssistantRequest {
   ignoredAssistants BigInt[]
   requestActions   RequestAction[]   @relation("RequestActionsOnAssistantRequest")
 
-  conversation     Conversation?     // Убираем здесь `references` и `fields`
+  conversation     Conversation?     
 }
 
 
@@ -179,15 +175,15 @@ model Arbitration {
   id               BigInt            @id @default(autoincrement())
   user             User              @relation(fields: [userId], references: [telegramId])
   userId           BigInt
-  userNickname     String?           // Добавлено поле для хранения никнейма пользователя
+  userNickname     String?           
   assistant        Assistant         @relation(fields: [assistantId], references: [telegramId])
   assistantId      BigInt
-  assistantNickname String?          // Добавлено поле для хранения никнейма ассистента
+  assistantNickname String?          
   moderator        Moderator?        @relation(fields: [moderatorId], references: [id])
-  moderatorId      BigInt?           // Поле может быть null
+  moderatorId      BigInt?           
   reason           String
-  assignedAt    DateTime?  // Дата и время назначения модератора
-  ignoredModerators BigInt[]         @default([])  // Поле для хранения списка ID проигнорировавших модераторов
+  assignedAt    DateTime?  
+  ignoredModerators BigInt[]         @default([])  
   decision         String?
   status           ArbitrationStatus @default(PENDING)
   createdAt        DateTime          @default(now())
@@ -195,11 +191,11 @@ model Arbitration {
 }
 
 enum ArbitrationStatus {
-  PENDING // Арбитраж создан, ожидает решения
-  IN_PROGRESS // Арбитраж в процессе рассмотрения
-  ACCEPTED // Решение в пользу ассистента
-  REJECTED // Решение в пользу пользователя
-  CANCELLED // Арбитраж отменен
+  PENDING 
+  IN_PROGRESS 
+  ACCEPTED 
+  REJECTED 
+  CANCELLED 
 }
 
 model WithdrawalRequest {
@@ -233,14 +229,14 @@ model Tariff {
 
 model Complaint {
   id            BigInt   @id @default(autoincrement())
-  userId        BigInt   // ID пользователя
-  assistantId   BigInt   // ID ассистента
-  text          String   // Текст жалобы
-  status        String   @default("PENDING") // Статус жалобы (PENDING/REVIEWED)
-  decision      String?  // Решение (если рассмотрено)
-  photoUrls     String[] // Массив ссылок на фотографии
-  createdAt     DateTime @default(now()) // Дата создания
-  updatedAt     DateTime @updatedAt      // Дата обновления
+  userId        BigInt   
+  assistantId   BigInt   
+  text          String   
+  status        String   @default("PENDING") 
+  decision      String?  
+  photoUrls     String[] 
+  createdAt     DateTime @default(now()) 
+  updatedAt     DateTime @updatedAt      
 }
 
 model RequestAction {
@@ -250,5 +246,5 @@ model RequestAction {
   action           String
   createdAt        DateTime        @default(now())
   Assistant        Assistant       @relation(fields: [assistantId], references: [telegramId])
-  AssistantRequest AssistantRequest @relation(fields: [requestId], references: [id], name: "RequestActionsOnAssistantRequest") // Добавлено имя отношения
+  AssistantRequest AssistantRequest @relation(fields: [requestId], references: [id], name: "RequestActionsOnAssistantRequest") 
 }

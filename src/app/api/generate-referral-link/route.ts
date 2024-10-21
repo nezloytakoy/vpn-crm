@@ -19,8 +19,9 @@ const sendLogToTelegram = async (message: string) => {
         text: message,
       }),
     });
-  } catch (error) {
-    console.error('Ошибка при отправке логов в Telegram:', error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Ошибка при отправке логов в Telegram:', err.message);
   }
 };
 
@@ -34,14 +35,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Не указан userId' }, { status: 400 });
     }
 
-    
     const referralCode = nanoid(10);
 
-    
     const botUsername = 'vpn_srm_userbot'; 
     const referralLink = `https://t.me/${botUsername}?start=ref_${referralCode}`;
 
-    
     await prisma.referral.create({
       data: {
         userId: BigInt(userId),
@@ -54,10 +52,11 @@ export async function POST(req: NextRequest) {
     await sendLogToTelegram(`Новая реферальная ссылка сгенерирована для пользователя ${userId}: ${referralLink}`);
 
     return NextResponse.json({ referralLink }, { status: 200 });
-  } catch (error) {
-    console.error('Ошибка при генерации реферальной ссылки:', error);
+  } catch (error: unknown) {
+    const err = error as Error; 
+    console.error('Ошибка при генерации реферальной ссылки:', err.message);
 
-    const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+    const errorMessage = err.message || 'Неизвестная ошибка';
     await sendLogToTelegram(`Ошибка при генерации реферальной ссылки для пользователя: ${errorMessage}`);
     return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
   }

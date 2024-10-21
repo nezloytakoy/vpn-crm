@@ -349,7 +349,6 @@ bot.command('start', async (ctx) => {
     if (referralCode && referralCode.startsWith('ref_')) {
       const code = referralCode.replace('ref_', '');
 
-      
       console.log(`Поиск реферального кода: ${code}`);
 
       const referral = await prisma.referral.findUnique({
@@ -361,7 +360,6 @@ bot.command('start', async (ctx) => {
         return;
       }
 
-      
       if (referral.referredUserId) {
         await ctx.reply('Эта реферальная ссылка уже использована.');
         return;
@@ -370,7 +368,6 @@ bot.command('start', async (ctx) => {
       referrerId = referral.userId; 
     }
 
-    
     const lastUser = await prisma.user.findFirst({
       orderBy: { orderNumber: 'desc' },
       select: { orderNumber: true },
@@ -378,10 +375,8 @@ bot.command('start', async (ctx) => {
 
     const nextOrderNumber = lastUser?.orderNumber ? lastUser.orderNumber + 1 : 1;
 
-    
     console.log(`Создаем или обновляем пользователя с Telegram ID: ${telegramId}`);
 
-    
     const newUser = await prisma.user.upsert({
       where: { telegramId },
       update: { username },
@@ -392,9 +387,7 @@ bot.command('start', async (ctx) => {
       },
     });
 
-    
     if (referrerId && referralCode) {
-      
       console.log(`Обновляем счетчик рефералов для пользователя с ID: ${referrerId}`);
 
       await prisma.user.update({
@@ -404,7 +397,6 @@ bot.command('start', async (ctx) => {
         },
       });
 
-      
       console.log(`Обновляем реферальную запись с кодом: ${referralCode}`);
 
       const updatedReferral = await prisma.referral.update({
@@ -414,9 +406,8 @@ bot.command('start', async (ctx) => {
         },
       });
 
-      console.log(`Реферальная запись успешно обновлена: ${updatedReferral}`);
+      console.log(`Реферальная запись успешно обновлена: ${JSON.stringify(updatedReferral)}`);
 
-      
       console.log(`Получаем данные о пользователе, создавшем реферальную ссылку: ${referrerId}`);
 
       const referrer = await prisma.user.findUnique({
@@ -426,11 +417,9 @@ bot.command('start', async (ctx) => {
 
       const referrerUsername = referrer?.username || 'неизвестный пользователь';
 
-      
       await ctx.reply(`Вы успешно зарегистрировались, используя реферальную ссылку от пользователя @${referrerUsername}.`);
     }
 
-    
     await ctx.reply(getTranslation(languageCode, 'start_message'), {
       reply_markup: {
         inline_keyboard: [
@@ -443,8 +432,14 @@ bot.command('start', async (ctx) => {
         ],
       },
     });
-  } catch (error) {
-    console.error('Ошибка при обработке команды /start:', error);
+  } catch (error: unknown) {
+    const err = error as Error;  
+    console.error('Ошибка при обработке команды /start:', err.message);
+
+    
+    const errorData = `Error: ${err.message} \nUser ID: ${ctx.from?.id}, Username: ${ctx.from?.username}`;
+    await ctx.reply(`Произошла ошибка: ${errorData}`);
+
     const languageCode = ctx.from?.language_code || 'en';
     await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
   }
