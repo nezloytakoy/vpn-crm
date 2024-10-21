@@ -176,7 +176,7 @@ bot.command('end_dialog', async (ctx) => {
 
     const telegramId = BigInt(ctx.from.id);
 
-    // Получаем активный запрос для этого пользователя
+    
     const activeRequest = await prisma.assistantRequest.findFirst({
       where: {
         user: { telegramId: telegramId },
@@ -190,7 +190,7 @@ bot.command('end_dialog', async (ctx) => {
       return;
     }
 
-    // Получаем разговор, связанный с этим запросом
+    
     const conversation = await prisma.conversation.findUnique({
       where: { requestId: activeRequest.id },
     });
@@ -201,19 +201,19 @@ bot.command('end_dialog', async (ctx) => {
       return;
     }
 
-    // Обновляем статус разговора на 'COMPLETED'
+    
     await prisma.conversation.update({
       where: { id: conversation.id },
       data: { status: 'COMPLETED' },
     });
 
-    // Обновляем статус запроса ассистента на 'COMPLETED' и устанавливаем isActive в false
+    
     await prisma.assistantRequest.update({
       where: { id: activeRequest.id },
       data: { status: 'COMPLETED', isActive: false },
     });
 
-    // Если есть ассистент, связанный с этим запросом, устанавливаем его статус isBusy в false
+    
     if (activeRequest.assistant) {
       await prisma.assistant.update({
         where: { telegramId: activeRequest.assistant.telegramId },
@@ -223,11 +223,11 @@ bot.command('end_dialog', async (ctx) => {
       console.error('Ошибка: ассистент не найден для запроса');
     }
 
-    // Проверяем сообщения в разговоре
+    
     const messages = conversation.messages as JsonArray | null; 
     if (!Array.isArray(messages) || messages.length === 0 || conversation.lastMessageFrom === 'USER') {
-      // Если разговор не содержит сообщений или последнее сообщение от пользователя,
-      // не начисляем коины ассистенту
+      
+      
 
       if (activeRequest.assistant) {
         await sendMessageToAssistant(
@@ -238,19 +238,19 @@ bot.command('end_dialog', async (ctx) => {
         console.error('Ошибка: ассистент не найден для активного запроса');
       }
     } else {
-      // Начисляем коины ассистенту
+      
 
       if (activeRequest.assistant) {
-        const coinsToAdd = 1; // Количество начисляемых коинов
-        const reason = 'Завершение диалога'; // Причина начисления
+        const coinsToAdd = 1; 
+        const reason = 'Завершение диалога'; 
 
-        // Обновляем баланс ассистента
+        
         const updatedAssistant = await prisma.assistant.update({
           where: { telegramId: activeRequest.assistant.telegramId },
           data: { coins: { increment: coinsToAdd } }, 
         });
 
-        // Создаем запись в AssistantCoinTransaction
+        
         await prisma.assistantCoinTransaction.create({
           data: {
             assistantId: activeRequest.assistant.telegramId,
@@ -259,7 +259,7 @@ bot.command('end_dialog', async (ctx) => {
           },
         });
 
-        // Отправляем сообщение ассистенту
+        
         await sendMessageToAssistant(
           updatedAssistant.telegramId.toString(),
           `${getTranslation(languageCode, 'user_ended_dialog')} ${getTranslation(languageCode, 'coin_awarded')}`
@@ -329,6 +329,8 @@ bot.command('end_ai', async (ctx) => {
   }
 });
 
+
+
 bot.command('start', async (ctx) => {
   try {
     const languageCode = ctx.from?.language_code || 'en';
@@ -341,27 +343,33 @@ bot.command('start', async (ctx) => {
     const telegramId = BigInt(ctx.from.id);
     const username = ctx.from.username || null;
 
-    // Проверка на реферальный код
+    
     const referralCode = ctx.message?.text?.split(' ')[1]; 
     let referrerId: bigint | null = null;
 
     if (referralCode && referralCode.startsWith('ref_')) {
       const code = referralCode.replace('ref_', '');
 
-      // Ищем реферальную запись по коду
+      
       const referral = await prisma.referral.findUnique({
         where: { code },
       });
 
-      if (referral) {
-        referrerId = referral.userId; // Присваиваем ID пользователя, создавшего ссылку
-      } else {
+      if (!referral) {
         await ctx.reply('Неверный реферальный код.');
         return;
       }
+
+      
+      if (referral.referredUserId) {
+        await ctx.reply('Эта реферальная ссылка уже использована.');
+        return;
+      }
+
+      referrerId = referral.userId; 
     }
 
-    // Поиск наименьшего неиспользованного порядкового номера
+    
     const lastUser = await prisma.user.findFirst({
       orderBy: { orderNumber: 'desc' },
       select: { orderNumber: true },
@@ -369,38 +377,48 @@ bot.command('start', async (ctx) => {
 
     const nextOrderNumber = lastUser?.orderNumber ? lastUser.orderNumber + 1 : 1;
 
-    // Создаем или обновляем пользователя
+    
     const newUser = await prisma.user.upsert({
       where: { telegramId },
       update: { username },
       create: {
         telegramId,
         username,
-        orderNumber: nextOrderNumber, // Присваиваем порядковый номер
+        orderNumber: nextOrderNumber, 
       },
     });
 
-    // Обновление данных о реферальном пользователе
+    
     if (referrerId && referralCode) {
+      
       await prisma.user.update({
         where: { telegramId: referrerId },
         data: {
-          referralCount: { increment: 1 }, // Увеличиваем счетчик рефералов
+          referralCount: { increment: 1 },
         },
       });
 
-      // Создаем запись о реферале
-      await prisma.referral.create({
+      
+      await prisma.referral.update({
+        where: { code: referralCode },
         data: {
-          userId: referrerId, // ID пользователя, создавшего реферальную ссылку
-          referredUserId: newUser.telegramId, // ID нового пользователя
-          code: referralCode, // Код реферальной ссылки
-          link: `https://t.me/vpn_srm_userbot?start=ref_${referralCode}`, // Ссылка с реферальным кодом
+          referredUserId: newUser.telegramId, 
         },
       });
+
+      
+      const referrer = await prisma.user.findUnique({
+        where: { telegramId: referrerId },
+        select: { username: true },
+      });
+
+      const referrerUsername = referrer?.username || 'неизвестный пользователь';
+
+      
+      await ctx.reply(`Вы успешно зарегистрировались, используя реферальную ссылку от пользователя @${referrerUsername}.`);
     }
 
-    // Ответное сообщение пользователю
+    
     await ctx.reply(getTranslation(languageCode, 'start_message'), {
       reply_markup: {
         inline_keyboard: [
@@ -419,6 +437,7 @@ bot.command('start', async (ctx) => {
     await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
   }
 });
+
 
 
 const TELEGRAM_LOG_USER_ID = 5829159515; 
@@ -611,7 +630,7 @@ bot.on('message:text', async (ctx: Context) => {
       return;
     }
 
-    // Получаем пользователя, активный запрос и арбитраж
+    
     const [user, activeRequest, arbitration] = await Promise.all([
       prisma.user.findUnique({ where: { telegramId } }),
       prisma.assistantRequest.findFirst({
@@ -629,7 +648,7 @@ bot.on('message:text', async (ctx: Context) => {
       return;
     }
 
-    // Если пользователь ждет возможности добавить текст к жалобе, обновляем жалобу
+    
     if (user.isWaitingForComplaint) {
       await handleUserComplaint(telegramId, userMessage, languageCode, ctx);
       return;
@@ -675,13 +694,13 @@ bot.on('message:photo', async (ctx: Context) => {
     }
 
     if (ctx.message?.photo) {
-      // Берем последнее фото из массива (самое большое разрешение)
+      
       const largestPhoto = ctx.message.photo[ctx.message.photo.length - 1];
 
       const file = await ctx.api.getFile(largestPhoto.file_id);
       const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${file.file_path}`;
       
-      // Ищем активную жалобу
+      
       const lastComplaint = await prisma.complaint.findFirst({
         where: {
           userId: telegramId,
@@ -697,7 +716,7 @@ bot.on('message:photo', async (ctx: Context) => {
         return;
       }
 
-      // Добавляем URL картинки к жалобе
+      
       await prisma.complaint.update({
         where: { id: lastComplaint.id },
         data: {
@@ -720,36 +739,36 @@ bot.on('message:photo', async (ctx: Context) => {
 
 async function handleUserComplaint(telegramId: bigint, userMessage: string, languageCode: string, ctx: Context) {
   try {
-    // Находим последнюю активную жалобу (в статусе "PENDING")
+    
     const lastComplaint = await prisma.complaint.findFirst({
       where: {
         userId: telegramId,
-        status: 'PENDING', // Ищем активную жалобу
+        status: 'PENDING', 
       },
       orderBy: {
         createdAt: 'desc',
       },
     });
 
-    // Проверяем, есть ли активная жалоба
+    
     if (!lastComplaint) {
-      await ctx.reply("Жалоба не найдена"); // Выводим сообщение, если активная жалоба не найдена
+      await ctx.reply("Жалоба не найдена"); 
       return;
     }
 
-    // Обновляем жалобу, добавляем текст от пользователя
+    
     await prisma.complaint.update({
       where: { id: lastComplaint.id },
-      data: { text: userMessage }, // Обновляем текст жалобы
+      data: { text: userMessage }, 
     });
 
-    // Обновляем статус пользователя, что он больше не ожидает ввода жалобы
+    
     await prisma.user.update({
       where: { telegramId },
       data: { isWaitingForComplaint: false },
     });
 
-    await ctx.reply(getTranslation(languageCode, 'complaint_submitted')); // Сообщение об успешной отправке жалобы
+    await ctx.reply(getTranslation(languageCode, 'complaint_submitted')); 
   } catch (error) {
     console.error('Ошибка при обновлении жалобы:', error);
     await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
