@@ -53,9 +53,7 @@ model Assistant {
   avatarFileId String?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
-
   mentorId     BigInt?  
-
   requests        AssistantRequest[]
   arbitrations    Arbitration[]
   conversations   Conversation[]
