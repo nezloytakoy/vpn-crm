@@ -343,12 +343,10 @@ bot.command('start', async (ctx) => {
     const telegramId = BigInt(ctx.from.id);  
     const username = ctx.from.username || null;  
 
-    
     const referralCode = ctx.message?.text?.split(' ')[1]; 
     let referrerId = null;
-
-    
     let code = '';
+
     if (referralCode && referralCode.startsWith('ref_')) {
       code = referralCode.replace('ref_', '');  
 
@@ -375,7 +373,6 @@ bot.command('start', async (ctx) => {
       referrerId = referral.userId;  
     }
 
-    
     const lastUser = await prisma.user.findFirst({
       orderBy: { orderNumber: 'desc' },
       select: { orderNumber: true },
@@ -384,8 +381,7 @@ bot.command('start', async (ctx) => {
 
     console.log(`Создаем или обновляем пользователя с Telegram ID: ${telegramId}`);
 
-    
-    await prisma.user.upsert({
+    const newUser = await prisma.user.upsert({
       where: { telegramId },
       update: { username },  
       create: {
@@ -395,7 +391,6 @@ bot.command('start', async (ctx) => {
       },
     });
 
-    
     if (referrerId && code) {
       console.log(`Обновляем счетчик рефералов для пользователя с ID: ${referrerId}`);
 
@@ -412,12 +407,12 @@ bot.command('start', async (ctx) => {
         where: { code },  
         data: {
           isUsed: true,  
+          referredUserId: newUser.telegramId, // Сохраняем ID нового пользователя как referredUserId
         },
       });
 
       console.log('Реферальная запись успешно обновлена');
 
-      
       const referrer = await prisma.user.findUnique({
         where: { telegramId: referrerId },
         select: { username: true },
@@ -427,7 +422,6 @@ bot.command('start', async (ctx) => {
       await ctx.reply(`🎉Вы успешно зарегистрировались, используя реферальную ссылку от пользователя @${referrerUsername}.🎉`);
     }
 
-    
     await ctx.reply(getTranslation(languageCode, 'start_message'), {
       reply_markup: {
         inline_keyboard: [
@@ -447,6 +441,7 @@ bot.command('start', async (ctx) => {
     await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
   }
 });
+
 
 
 
