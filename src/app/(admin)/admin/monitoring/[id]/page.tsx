@@ -29,6 +29,7 @@ interface AssistantData {
     username: string;
     telegramId: string;
     avatarFileId: string | null;
+    avatarUrl: string | null;  
   };
   allRequests: number;
   requestsThisMonth: number;
@@ -39,24 +40,33 @@ interface AssistantData {
   complaints: number;
   sessionCount: number;
   averageSessionTime: number;
+  averageResponseTime: number;
   transactions: {
     id: number;
-    amount: number;
+    amount: string; 
     reason: string;
     time: string;
   }[];
   pupils: {
     telegramId: string;
     username: string;
+    lastActiveAt: Date;
+    orderNumber: number;
+    isWorking: boolean;
+    isBusy: boolean;
   }[];
 }
+
 
 interface Pupil {
   telegramId: string;
   username: string;
-  lastActiveAt: Date;  // Дата последней активности
-  orderNumber: number;  // Номер ассистента
+  lastActiveAt: Date;  
+  orderNumber: number;  
+  isWorking: boolean;   
+  isBusy: boolean;      
 }
+
 
 
 function Page() {
@@ -94,6 +104,8 @@ function Page() {
     if (currentAssistantId) {
       fetchAssistantData();
     }
+
+    
   }, [currentAssistantId, fetchAssistantData]);
 
 
@@ -203,6 +215,8 @@ function Page() {
     setIsMessageboxVisible(!isMessageboxVisible);
   };
 
+
+
   return (
     <div className={styles.main}>
 
@@ -221,7 +235,17 @@ function Page() {
         <div className={styles.infoblock}>
           <div className={styles.metricsblock}>
             <div className={styles.logoparent}>
-              <div className={styles.avatarblock}></div>
+              <div className={styles.avatarblock}>
+                {assistantData?.assistant.avatarUrl ? (
+                  <img
+                    src={assistantData.assistant.avatarUrl}
+                    alt={`Аватар ассистента ${assistantData.assistant.username}`}
+                    className={styles.avatarImage}
+                  />
+                ) : (
+                  <p>Нет аватара</p>
+                )}
+              </div>
               <div className={styles.numbers}>
                 <div className={styles.metric}>
                   <p className={styles.number}>{assistantData?.allRequests}</p>
@@ -261,7 +285,7 @@ function Page() {
                         <p className={styles.smalltitle}>Запросы/сутки</p>
                       </div>
                       <div className={styles.dropdownItem}>
-                        <p className={styles.number}>{assistantData?.averageSessionTime}</p>
+                        <p className={styles.number}>{assistantData?.averageSessionTime || 0}</p>
                         <p className={styles.smalltitle}>Время ответа(с)</p>
                       </div>
                     </div>
@@ -274,7 +298,7 @@ function Page() {
             <div className={styles.datablock}>
               <div className={styles.nameblock}>
                 <p className={styles.name}>@{assistantData?.assistant.username}</p>
-                <p className={styles.undername}>{assistantData?.assistant.telegramId}</p>
+                <p className={styles.undername}>ID: {assistantData?.assistant.telegramId}</p>
               </div>
               <div className={styles.numberstwo}>
                 <div className={styles.metric}>
@@ -368,16 +392,40 @@ function Page() {
                 const now = new Date();
                 const minutesAgo = Math.floor((now.getTime() - lastActiveAt.getTime()) / 60000);
 
+                
+                const formatTimeAgo = (minutesAgo: number) => {
+                  if (minutesAgo < 10) {
+                    return "Сейчас в сети"; 
+                  } else if (minutesAgo < 60) {
+                    return `${minutesAgo}м&nbsp;назад`; 
+                  } else if (minutesAgo < 1440) { 
+                    const hoursAgo = Math.floor(minutesAgo / 60);
+                    return `${hoursAgo}ч&nbsp;назад`; 
+                  } else if (minutesAgo < 525600) { 
+                    const daysAgo = Math.floor(minutesAgo / 1440);
+                    return `${daysAgo}д&nbsp;назад`; 
+                  } else {
+                    const yearsAgo = Math.floor(minutesAgo / 525600); 
+                    return `${yearsAgo}г&nbsp;назад`; 
+                  }
+                };
+
+                
+                const circleClass = `${styles.activecircle} ${!pupil.isWorking ? styles.grayCircle :
+                  pupil.isWorking && !pupil.isBusy ? styles.redCircle :
+                    styles.greenCircle
+                  }`;
+
                 return (
                   <div key={pupil.telegramId} className={styles.pupilblock}>
                     <div className={styles.pupillogo}>
-                      <div className={styles.activecircle}></div>
+                      <div className={circleClass}></div>
                     </div>
                     <div className={styles.pupilnameblock}>
                       <div className={styles.pupilinnername}>
                         <p className={styles.nametext}>{pupil.username}</p>
                         <div className={styles.pupilinfo}>
-                          <p className={styles.infotext}>В сети - {minutesAgo}м назад</p>
+                          <p className={styles.infotext} dangerouslySetInnerHTML={{ __html: formatTimeAgo(minutesAgo) }} />
                         </div>
                       </div>
                       <div className={styles.pupilunderblock}>
@@ -392,6 +440,8 @@ function Page() {
               <p>Подопечные не найдены или данные загружаются...</p>
             )}
           </div>
+
+
         </div>
       </div>
       <div className={styles.tablebox}>

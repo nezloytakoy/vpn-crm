@@ -115,19 +115,38 @@
 .nameblock {
     display: flex;
     flex-direction: column;
-    padding-top: 20px;
+    padding-top: 6px;
 }
 
 .name {
     margin-bottom: 10px;
 }
 
+
+.undername {
+    font-size: 13px;
+}
 .numberstwo {
     width: 70%;
     height: 100px;
     display: flex;
     justify-content: space-around;
 }
+
+.avatarblock {
+    width: 100px; 
+    height: 100px;
+    border-radius: 50%; 
+    overflow: hidden; 
+    background-color: #f0f0f0; 
+  }
+  
+  .avatarImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; 
+  }
+  
 
 .numbersthree {
     width: 100%;
@@ -955,6 +974,7 @@
     width: 100%;
     height: 80px;
     padding: 15px;
+    padding-top: 18px;
     display: flex;
     background-color: white;
     border-radius: 10px;
@@ -990,16 +1010,24 @@
 .activecircle {
     width: 13px;
     height: 13px;
-    background-color: red;
     border-radius: 50%;
     position: absolute;
-    
     bottom: 1px;
-    
     right: 1px;
-    
     border: 1px solid white;
-}
+  }
+  
+  .grayCircle {
+    background-color: gray;
+  }
+  
+  .redCircle {
+    background-color: red;
+  }
+  
+  .greenCircle {
+    background-color: green;
+  }
 
 .pupilnameblock {
     width: 80%;
@@ -1040,7 +1068,7 @@
 }
 
 .infotext {
-    font-size: 10px;
+    font-size: 11px;
     display: flex;
     justify-content: flex-end;
 }
