@@ -343,36 +343,27 @@ bot.command('start', async (ctx) => {
     const telegramId = BigInt(ctx.from.id);
     const username = ctx.from.username || null;
 
-    console.log(`User telegramId: ${telegramId}, username: ${username}`);
-
     const referralCode = ctx.message?.text?.split(' ')[1]; 
     let referrerId: bigint | null = null;
 
     if (referralCode && referralCode.startsWith('ref_')) {
       const code = referralCode.replace('ref_', '');
 
-      console.log(`Referral code provided: ${code}`);
-
       const referral = await prisma.referral.findUnique({
         where: { code },
       });
 
       if (!referral) {
-        console.log('Referral code not found in database');
         await ctx.reply('Неверный реферальный код.');
         return;
       }
 
-      console.log(`Referral found: ${JSON.stringify(referral)}`);
-
       if (referral.referredUserId) {
-        console.log(`Referral link already used by user: ${referral.referredUserId}`);
         await ctx.reply('Эта реферальная ссылка уже использована.');
         return;
       }
 
       referrerId = referral.userId;
-      console.log(`Referrer ID set to: ${referrerId}`);
     }
 
     const lastUser = await prisma.user.findFirst({
@@ -381,7 +372,6 @@ bot.command('start', async (ctx) => {
     });
 
     const nextOrderNumber = lastUser?.orderNumber ? lastUser.orderNumber + 1 : 1;
-    console.log(`Next order number: ${nextOrderNumber}`);
 
     const newUser = await prisma.user.upsert({
       where: { telegramId },
@@ -393,14 +383,7 @@ bot.command('start', async (ctx) => {
       },
     });
 
-    console.log(`New user upserted: ${JSON.stringify({
-      ...newUser,
-      telegramId: newUser.telegramId.toString(),  
-    })}`);
-
     if (referrerId && referralCode) {
-      console.log(`Updating referral count for referrerId: ${referrerId}`);
-
       await prisma.user.update({
         where: { telegramId: referrerId },
         data: {
@@ -408,19 +391,12 @@ bot.command('start', async (ctx) => {
         },
       });
 
-      console.log('Referral count updated successfully');
-
-      const referralUpdate = await prisma.referral.update({
+      await prisma.referral.update({
         where: { code: referralCode },
         data: {
-          referredUserId: newUser.telegramId, 
+          referredUserId: newUser.telegramId,
         },
       });
-
-      console.log(`Referral link updated: ${JSON.stringify({
-        ...referralUpdate,
-        referredUserId: referralUpdate.referredUserId?.toString(), 
-      })}`);
 
       const referrer = await prisma.user.findUnique({
         where: { telegramId: referrerId },
@@ -428,7 +404,6 @@ bot.command('start', async (ctx) => {
       });
 
       const referrerUsername = referrer?.username || 'неизвестный пользователь';
-
       await ctx.reply(`Вы успешно зарегистрировались, используя реферальную ссылку от пользователя @${referrerUsername}.`);
     }
 
@@ -444,14 +419,30 @@ bot.command('start', async (ctx) => {
         ],
       },
     });
-
-    console.log('Start command processed successfully');
   } catch (error) {
     console.error('Ошибка при обработке команды /start:', error);
+
+    try {
+      // Проверяем наличие ctx.from
+      if (ctx.from && ctx.from.id) {
+        const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+        const userId = ctx.from.id.toString();  // Конвертируем Telegram ID в строку
+        const errorData = `Пользователь: ${userId}, Телеграм ID: ${BigInt(ctx.from.id).toString()}`;
+
+        // Отправляем сообщение с деталями ошибки пользователю
+        await ctx.reply(`Произошла ошибка: ${errorMessage}\nДополнительные данные: ${errorData}`);
+      } else {
+        await ctx.reply('Произошла ошибка, но идентификатор пользователя не был найден.');
+      }
+    } catch (sendError) {
+      console.error('Ошибка при отправке сообщения с ошибкой пользователю:', sendError);
+    }
+
     const languageCode = ctx.from?.language_code || 'en';
     await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
   }
 });
+
 
 
 
