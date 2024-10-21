@@ -349,6 +349,9 @@ bot.command('start', async (ctx) => {
     if (referralCode && referralCode.startsWith('ref_')) {
       const code = referralCode.replace('ref_', '');
 
+      
+      console.log(`Поиск реферального кода: ${code}`);
+
       const referral = await prisma.referral.findUnique({
         where: { code },
       });
@@ -358,14 +361,16 @@ bot.command('start', async (ctx) => {
         return;
       }
 
+      
       if (referral.referredUserId) {
         await ctx.reply('Эта реферальная ссылка уже использована.');
         return;
       }
 
-      referrerId = referral.userId;
+      referrerId = referral.userId; 
     }
 
+    
     const lastUser = await prisma.user.findFirst({
       orderBy: { orderNumber: 'desc' },
       select: { orderNumber: true },
@@ -373,17 +378,25 @@ bot.command('start', async (ctx) => {
 
     const nextOrderNumber = lastUser?.orderNumber ? lastUser.orderNumber + 1 : 1;
 
+    
+    console.log(`Создаем или обновляем пользователя с Telegram ID: ${telegramId}`);
+
+    
     const newUser = await prisma.user.upsert({
       where: { telegramId },
       update: { username },
       create: {
         telegramId,
         username,
-        orderNumber: nextOrderNumber,
+        orderNumber: nextOrderNumber, 
       },
     });
 
+    
     if (referrerId && referralCode) {
+      
+      console.log(`Обновляем счетчик рефералов для пользователя с ID: ${referrerId}`);
+
       await prisma.user.update({
         where: { telegramId: referrerId },
         data: {
@@ -391,12 +404,20 @@ bot.command('start', async (ctx) => {
         },
       });
 
-      await prisma.referral.update({
+      
+      console.log(`Обновляем реферальную запись с кодом: ${referralCode}`);
+
+      const updatedReferral = await prisma.referral.update({
         where: { code: referralCode },
         data: {
-          referredUserId: newUser.telegramId,
+          referredUserId: newUser.telegramId, 
         },
       });
+
+      console.log(`Реферальная запись успешно обновлена: ${updatedReferral}`);
+
+      
+      console.log(`Получаем данные о пользователе, создавшем реферальную ссылку: ${referrerId}`);
 
       const referrer = await prisma.user.findUnique({
         where: { telegramId: referrerId },
@@ -404,9 +425,12 @@ bot.command('start', async (ctx) => {
       });
 
       const referrerUsername = referrer?.username || 'неизвестный пользователь';
+
+      
       await ctx.reply(`Вы успешно зарегистрировались, используя реферальную ссылку от пользователя @${referrerUsername}.`);
     }
 
+    
     await ctx.reply(getTranslation(languageCode, 'start_message'), {
       reply_markup: {
         inline_keyboard: [
@@ -421,23 +445,6 @@ bot.command('start', async (ctx) => {
     });
   } catch (error) {
     console.error('Ошибка при обработке команды /start:', error);
-
-    try {
-      // Проверяем наличие ctx.from
-      if (ctx.from && ctx.from.id) {
-        const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-        const userId = ctx.from.id.toString();  // Конвертируем Telegram ID в строку
-        const errorData = `Пользователь: ${userId}, Телеграм ID: ${BigInt(ctx.from.id).toString()}`;
-
-        // Отправляем сообщение с деталями ошибки пользователю
-        await ctx.reply(`Произошла ошибка: ${errorMessage}\nДополнительные данные: ${errorData}`);
-      } else {
-        await ctx.reply('Произошла ошибка, но идентификатор пользователя не был найден.');
-      }
-    } catch (sendError) {
-      console.error('Ошибка при отправке сообщения с ошибкой пользователю:', sendError);
-    }
-
     const languageCode = ctx.from?.language_code || 'en';
     await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
   }
