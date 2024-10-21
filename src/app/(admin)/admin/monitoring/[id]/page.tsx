@@ -8,6 +8,7 @@ import { FaEllipsisH } from 'react-icons/fa';
 import Table from '@/components/Table/Table';
 import { Column } from 'react-table';
 import confetti from 'canvas-confetti';
+import Image from 'next/image';
 
 interface RequestData {
   requestId: number;
@@ -29,7 +30,7 @@ interface AssistantData {
     username: string;
     telegramId: string;
     avatarFileId: string | null;
-    avatarUrl: string | null;  
+    avatarUrl: string | null;
   };
   allRequests: number;
   requestsThisMonth: number;
@@ -43,7 +44,7 @@ interface AssistantData {
   averageResponseTime: number;
   transactions: {
     id: number;
-    amount: string; 
+    amount: string;
     reason: string;
     time: string;
   }[];
@@ -61,10 +62,10 @@ interface AssistantData {
 interface Pupil {
   telegramId: string;
   username: string;
-  lastActiveAt: Date;  
-  orderNumber: number;  
-  isWorking: boolean;   
-  isBusy: boolean;      
+  lastActiveAt: Date;
+  orderNumber: number;
+  isWorking: boolean;
+  isBusy: boolean;
 }
 
 
@@ -86,27 +87,25 @@ function Page() {
 
   const [assistantData, setAssistantData] = useState<AssistantData | null>(null);
 
-  const fetchAssistantData = async () => {
-    try {
-      const response = await fetch(`/api/get-assistant?assistantId=${currentAssistantId}`);
-      const data = await response.json();
-      if (response.ok) {
-        setAssistantData(data);
-      } else {
-        console.error('Ошибка:', data.error);
-      }
-    } catch (error) {
-      console.error('Ошибка при получении данных:', error);
-    }
-  };
-
   useEffect(() => {
+    const fetchAssistantData = async () => {
+      try {
+        const response = await fetch(`/api/get-assistant?assistantId=${currentAssistantId}`);
+        const data = await response.json();
+        if (response.ok) {
+          setAssistantData(data);
+        } else {
+          console.error('Ошибка:', data.error);
+        }
+      } catch (error) {
+        console.error('Ошибка при получении данных:', error);
+      }
+    };
+
     if (currentAssistantId) {
       fetchAssistantData();
     }
-
-    
-  }, [currentAssistantId, fetchAssistantData]);
+  }, [currentAssistantId]); 
 
 
 
@@ -237,10 +236,13 @@ function Page() {
             <div className={styles.logoparent}>
               <div className={styles.avatarblock}>
                 {assistantData?.assistant.avatarUrl ? (
-                  <img
+                  <Image
                     src={assistantData.assistant.avatarUrl}
                     alt={`Аватар ассистента ${assistantData.assistant.username}`}
                     className={styles.avatarImage}
+                    width={100}  
+                    height={100} 
+                    objectFit="cover"  
                   />
                 ) : (
                   <p>Нет аватара</p>
@@ -392,25 +394,25 @@ function Page() {
                 const now = new Date();
                 const minutesAgo = Math.floor((now.getTime() - lastActiveAt.getTime()) / 60000);
 
-                
+
                 const formatTimeAgo = (minutesAgo: number) => {
                   if (minutesAgo < 10) {
-                    return "Сейчас в сети"; 
+                    return "Сейчас в сети";
                   } else if (minutesAgo < 60) {
-                    return `${minutesAgo}м&nbsp;назад`; 
-                  } else if (minutesAgo < 1440) { 
+                    return `${minutesAgo}м&nbsp;назад`;
+                  } else if (minutesAgo < 1440) {
                     const hoursAgo = Math.floor(minutesAgo / 60);
-                    return `${hoursAgo}ч&nbsp;назад`; 
-                  } else if (minutesAgo < 525600) { 
+                    return `${hoursAgo}ч&nbsp;назад`;
+                  } else if (minutesAgo < 525600) {
                     const daysAgo = Math.floor(minutesAgo / 1440);
-                    return `${daysAgo}д&nbsp;назад`; 
+                    return `${daysAgo}д&nbsp;назад`;
                   } else {
-                    const yearsAgo = Math.floor(minutesAgo / 525600); 
-                    return `${yearsAgo}г&nbsp;назад`; 
+                    const yearsAgo = Math.floor(minutesAgo / 525600);
+                    return `${yearsAgo}г&nbsp;назад`;
                   }
                 };
 
-                
+
                 const circleClass = `${styles.activecircle} ${!pupil.isWorking ? styles.grayCircle :
                   pupil.isWorking && !pupil.isBusy ? styles.redCircle :
                     styles.greenCircle

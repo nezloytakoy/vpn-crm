@@ -4,7 +4,7 @@ import React, { useMemo, useEffect, useState, useRef } from 'react';
 import { Column } from 'react-table';
 import { FaEnvelope } from 'react-icons/fa';
 import Table from '@/components/Table/Table';
-import { useRouter } from 'next/navigation'; // Импортируем useRouter для навигации
+import { useRouter } from 'next/navigation'; 
 import styles from './Monitoring.module.css';
 
 export const fetchCache = 'force-no-store';
@@ -28,7 +28,7 @@ const Monitoring: React.FC = () => {
   const [currentAssistantTelegramId, setCurrentAssistantTelegramId] = useState<string | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
 
-  const router = useRouter(); // Инициализируем роутер для перенаправления
+  const router = useRouter(); 
 
   useEffect(() => {
     const fetchData = async () => {
@@ -57,7 +57,7 @@ const Monitoring: React.FC = () => {
   }, []);
 
   const handleRowClick = (telegramId: string) => {
-    // Перенаправляем пользователя на страницу ассистента по его telegramId
+    
     router.push(`/admin/monitoring/${telegramId}`);
   };
 
@@ -180,8 +180,10 @@ const Monitoring: React.FC = () => {
         ),
       },
     ],
-    []
+    [handleRowClick] 
   );
+  
+
 
   return (
     <div className={styles.main}>
@@ -194,7 +196,7 @@ const Monitoring: React.FC = () => {
         <Table columns={columns} data={assistantsData} />
       </div>
 
-      {/* Попап для отправки сообщения */}
+      
       {isPopupOpen && (
         <div className={styles.popupOverlay}>
           <div className={styles.popup} ref={popupRef}>

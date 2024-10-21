@@ -383,7 +383,7 @@ bot.command('start', async (ctx) => {
 
     console.log(`Создаем или обновляем пользователя с Telegram ID: ${telegramId}`);
 
-    const newUser = await prisma.user.upsert({
+    await prisma.user.upsert({
       where: { telegramId },
       update: { username },
       create: {
