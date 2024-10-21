@@ -48,8 +48,9 @@ const WaveComponent = () => {
     const [price, setPrice] = useState<number>(0);
     const [telegramUsername, setTelegramUsername] = useState('');
     const [fontSize, setFontSize] = useState('24px');
-    
-    const [assistantRequests, setAssistantRequests] = useState<number>(0);
+
+    const [assistantRequests, setAssistantRequests] = useState<number | null>(null);
+
 
     const [tariffs, setTariffs] = useState<{ [key: string]: number }>({});
 
@@ -97,18 +98,18 @@ const WaveComponent = () => {
                 const subscriptionData = await subscriptionResponse.json();
                 const requestsData = await requestsResponse.json();
 
-                
+
                 await sendLogToTelegram(`Subscription data from API: ${JSON.stringify(subscriptionData)}`);
                 await sendLogToTelegram(`Requests data from API: ${JSON.stringify(requestsData)}`);
 
-                
+
                 setAssistantRequests(requestsData.assistantRequests || '...');
-                
-                
+
+
 
             } catch (error) {
                 console.error('Ошибка при получении данных:', error);
-                
+
                 await sendLogToTelegram(`Error fetching subscription or requests: ${error}`);
             }
         };
@@ -125,7 +126,7 @@ const WaveComponent = () => {
                 }
                 const data = await response.json();
 
-                
+
                 await sendLogToTelegram(`Tariffs data from API: ${JSON.stringify(data)}`);
 
                 const tariffsMap: { [key: string]: number } = {};
@@ -186,9 +187,12 @@ const WaveComponent = () => {
             </div>
             <div className={styles.backbotom}>
                 <div className={styles.backbotom}>
-                    
-                    
-                    <p className={styles.time}>{t('time')}: {assistantRequests} {t('requests')}</p>
+
+
+                    <p className={styles.time}>
+                        {t('time')}: {assistantRequests !== null ? `${assistantRequests}` : '...'} {t('requests')}
+                    </p>
+
                     <div className={styles.parent}>
                         <div className={styles.buttons}>
                             <div className={styles.leftblock} onClick={() => handleButtonClick(t('only_ai'), tariffs[tariffMapping['only_ai']])}>
@@ -255,7 +259,7 @@ const WaveComponent = () => {
                         isVisible={isPopupVisible}
                         onClose={handleClosePopup}
                         buttonText={buttonText}
-                        price={price} 
+                        price={price}
                     />
                 )}
             </div>
