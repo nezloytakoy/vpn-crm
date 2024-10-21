@@ -93,6 +93,8 @@ model User {
   telegramId             BigInt             @id @unique
   username               String?
   referralCount          Int                @default(0) 
+  referrer               Referral[]         @relation("Referrer")
+  referredUsers          Referral[]         @relation("Referred")
   subscriptionType       SubscriptionType   @default(FREE)
   hasUpdatedSubscription Boolean            @default(false)
   totalRequests          Int                @default(0)
@@ -103,25 +105,25 @@ model User {
   orderNumber            Int?               
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
-
-  
-  referrals              Referral[]         @relation("Referrer")
-
   conversations          Conversation[]
   requests               AssistantRequest[]
   arbitrations           Arbitration[]
-  isWaitingForComplaint  Boolean            @default(false)
+  isWaitingForComplaint  Boolean            @default(false)  
 }
 
 model Referral {
   id             BigInt   @id @default(autoincrement())
-  user           User     @relation("Referrer", fields: [userId], references: [telegramId]) 
+  user           User     @relation("Referrer", fields: [userId], references: [telegramId])
   userId         BigInt
-  code           String   @unique             
-  link           String                      
-  isUsed         Boolean   @default(false)    
-  createdAt      DateTime  @default(now())    
+  referredUser   User?    @relation("Referred", fields: [referredUserId], references: [telegramId])
+  referredUserId BigInt?  @unique
+  code           String   @unique
+  link           String
+  isUsed         Boolean  @default(false)  
+  createdAt      DateTime @default(now())
 }
+
+
 
 
 model Conversation {
