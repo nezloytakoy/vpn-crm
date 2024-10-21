@@ -351,8 +351,13 @@ bot.command('start', async (ctx) => {
 
       console.log(`Поиск реферального кода: ${code}`);
 
+      
       const referral = await prisma.referral.findUnique({
         where: { code },
+        select: {
+          isUsed: true,  
+          userId: true,  
+        },
       });
 
       if (!referral) {
@@ -360,7 +365,8 @@ bot.command('start', async (ctx) => {
         return;
       }
 
-      if (referral.referredUserId) {
+      
+      if (referral.isUsed) {
         await ctx.reply('Эта реферальная ссылка уже использована.');
         return;
       }
@@ -402,11 +408,11 @@ bot.command('start', async (ctx) => {
       const updatedReferral = await prisma.referral.update({
         where: { code: referralCode },
         data: {
-          referredUserId: newUser.telegramId, 
+          isUsed: true,  
         },
       });
 
-      console.log(`Реферальная запись успешно обновлена: ${JSON.stringify(updatedReferral)}`);
+      console.log(`Реферальная запись успешно обновлена: ${updatedReferral}`);
 
       console.log(`Получаем данные о пользователе, создавшем реферальную ссылку: ${referrerId}`);
 
@@ -432,18 +438,14 @@ bot.command('start', async (ctx) => {
         ],
       },
     });
-  } catch (error: unknown) {
-    const err = error as Error;  
-    console.error('Ошибка при обработке команды /start:', err.message);
-
-    
-    const errorData = `Error: ${err.message} \nUser ID: ${ctx.from?.id}, Username: ${ctx.from?.username}`;
-    await ctx.reply(`Произошла ошибка: ${errorData}`);
-
+  } catch (error) {
+    console.error('Ошибка при обработке команды /start:', error);
     const languageCode = ctx.from?.language_code || 'en';
     await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
   }
 });
+
+
 
 
 
