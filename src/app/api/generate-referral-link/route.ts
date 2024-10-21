@@ -35,15 +35,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Не указан userId' }, { status: 400 });
     }
 
-    const referralCode = nanoid(10);
+    const referralCode = nanoid(10);  
 
     const botUsername = 'vpn_srm_userbot'; 
-    const referralLink = `https://t.me/${botUsername}?start=ref_${referralCode}`;
+    const referralLink = `https://t.me/${botUsername}?start=ref_${referralCode}`;  
 
+    
     await prisma.referral.create({
       data: {
         userId: BigInt(userId),
-        code: referralCode,
+        code: referralCode,  
         link: referralLink,
         createdAt: new Date(),
       },
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ referralLink }, { status: 200 });
   } catch (error: unknown) {
-    const err = error as Error; 
+    const err = error as Error;
     console.error('Ошибка при генерации реферальной ссылки:', err.message);
 
     const errorMessage = err.message || 'Неизвестная ошибка';

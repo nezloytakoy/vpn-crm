@@ -340,20 +340,21 @@ bot.command('start', async (ctx) => {
       return;
     }
 
-    const telegramId = BigInt(ctx.from.id);
-    const username = ctx.from.username || null;
+    const telegramId = BigInt(ctx.from.id);  
+    const username = ctx.from.username || null;  
 
+    
     const referralCode = ctx.message?.text?.split(' ')[1]; 
-    let referrerId: bigint | null = null;
+    let referrerId = null;
 
+    
     if (referralCode && referralCode.startsWith('ref_')) {
-      const code = referralCode.replace('ref_', '');
+      const code = referralCode.replace('ref_', '');  
 
       console.log(`Поиск реферального кода: ${code}`);
 
-      
       const referral = await prisma.referral.findUnique({
-        where: { code },
+        where: { code },  
         select: {
           isUsed: true,  
           userId: true,  
@@ -365,34 +366,35 @@ bot.command('start', async (ctx) => {
         return;
       }
 
-      
       if (referral.isUsed) {
         await ctx.reply('Эта реферальная ссылка уже использована.');
         return;
       }
 
-      referrerId = referral.userId; 
+      referrerId = referral.userId;  
     }
 
+    
     const lastUser = await prisma.user.findFirst({
       orderBy: { orderNumber: 'desc' },
       select: { orderNumber: true },
     });
-
     const nextOrderNumber = lastUser?.orderNumber ? lastUser.orderNumber + 1 : 1;
 
     console.log(`Создаем или обновляем пользователя с Telegram ID: ${telegramId}`);
 
+    
     await prisma.user.upsert({
       where: { telegramId },
-      update: { username },
+      update: { username },  
       create: {
         telegramId,
         username,
-        orderNumber: nextOrderNumber, 
+        orderNumber: nextOrderNumber,  
       },
     });
 
+    
     if (referrerId && referralCode) {
       console.log(`Обновляем счетчик рефералов для пользователя с ID: ${referrerId}`);
 
@@ -405,45 +407,46 @@ bot.command('start', async (ctx) => {
 
       console.log(`Обновляем реферальную запись с кодом: ${referralCode}`);
 
-      const updatedReferral = await prisma.referral.update({
+      await prisma.referral.update({
         where: { code: referralCode },
         data: {
           isUsed: true,  
         },
       });
 
-      console.log(`Реферальная запись успешно обновлена: ${updatedReferral}`);
+      console.log('Реферальная запись успешно обновлена');
 
-      console.log(`Получаем данные о пользователе, создавшем реферальную ссылку: ${referrerId}`);
-
+      
       const referrer = await prisma.user.findUnique({
         where: { telegramId: referrerId },
         select: { username: true },
       });
-
       const referrerUsername = referrer?.username || 'неизвестный пользователь';
 
       await ctx.reply(`Вы успешно зарегистрировались, используя реферальную ссылку от пользователя @${referrerUsername}.`);
     }
 
+    
     await ctx.reply(getTranslation(languageCode, 'start_message'), {
       reply_markup: {
         inline_keyboard: [
           [
             {
               text: getTranslation(languageCode, 'webapp_button'),
-              web_app: { url: 'https://crm-vpn.vercel.app/user-profile' },
+              web_app: { url: 'https://crm-vpn.vercel.app/user-profile' },  
             },
           ],
         ],
       },
     });
-  } catch (error) {
-    console.error('Ошибка при обработке команды /start:', error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Ошибка при обработке команды /start:', err.message);
     const languageCode = ctx.from?.language_code || 'en';
     await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
   }
 });
+
 
 
 
