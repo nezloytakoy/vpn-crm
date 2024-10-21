@@ -48,7 +48,7 @@ const WaveComponent = () => {
     const [price, setPrice] = useState<number>(0);
     const [telegramUsername, setTelegramUsername] = useState('');
     const [fontSize, setFontSize] = useState('24px');
-    // const [subscriptionType, setSubscriptionType] = useState<string | null>(null); // null by default
+    
     const [assistantRequests, setAssistantRequests] = useState<number>(0);
 
     const [tariffs, setTariffs] = useState<{ [key: string]: number }>({});
@@ -97,18 +97,18 @@ const WaveComponent = () => {
                 const subscriptionData = await subscriptionResponse.json();
                 const requestsData = await requestsResponse.json();
 
-                // Логирование данных, полученных из API
+                
                 await sendLogToTelegram(`Subscription data from API: ${JSON.stringify(subscriptionData)}`);
                 await sendLogToTelegram(`Requests data from API: ${JSON.stringify(requestsData)}`);
 
-                // Устанавливаем тип подписки напрямую из API без изменения позже
-                setAssistantRequests(requestsData.assistantRequests || 0);
-                // const subType = subscriptionData.subscriptionType?.toUpperCase();
-                // setSubscriptionType(subType || 'SUBSCRIPTION_NOT_FOUND'); // Устанавливаем начальное значение один раз
+                
+                setAssistantRequests(requestsData.assistantRequests || '...');
+                
+                
 
             } catch (error) {
                 console.error('Ошибка при получении данных:', error);
-                // setSubscriptionType('SUBSCRIPTION_NOT_FOUND');
+                
                 await sendLogToTelegram(`Error fetching subscription or requests: ${error}`);
             }
         };
@@ -125,7 +125,7 @@ const WaveComponent = () => {
                 }
                 const data = await response.json();
 
-                // Логирование полученных данных о тарифах
+                
                 await sendLogToTelegram(`Tariffs data from API: ${JSON.stringify(data)}`);
 
                 const tariffsMap: { [key: string]: number } = {};
@@ -186,8 +186,8 @@ const WaveComponent = () => {
             </div>
             <div className={styles.backbotom}>
                 <div className={styles.backbotom}>
-                    {/* Только если subscriptionType уже загружен */}
-                    {/* <p className={styles.time}>Подписка: {subscriptionType !== null ? t(subscriptionType.toLowerCase()) : t('...')}</p> */}
+                    
+                    
                     <p className={styles.time}>{t('time')}: {assistantRequests} {t('requests')}</p>
                     <div className={styles.parent}>
                         <div className={styles.buttons}>
