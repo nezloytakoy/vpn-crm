@@ -1,3 +1,4 @@
+import fetch from 'node-fetch';
 import { Bot } from 'grammy';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -13,24 +14,33 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        // Получаем данные о пользователе, включая юзернейм и аватар
+        
         const userChat = await bot.api.getChat(Number(telegramId));
         const username = userChat.username || 'Username not set';
 
-        // Получаем фото профиля
+        
         const userProfilePhotos = await bot.api.getUserProfilePhotos(Number(telegramId));
 
-        let avatarUrl = null;
+        let avatarBase64 = null;
         if (userProfilePhotos.total_count > 0) {
             const largestPhoto = userProfilePhotos.photos[0].pop();
             if (largestPhoto) {
                 const file = await bot.api.getFile(largestPhoto.file_id);
-                avatarUrl = `https://api.telegram.org/file/bot${botToken}/${file.file_path}`;
+                const fileUrl = `https://api.telegram.org/file/bot${botToken}/${file.file_path}`;
+
+                
+                const response = await fetch(fileUrl);
+                const buffer = await response.arrayBuffer(); 
+                const base64 = Buffer.from(buffer).toString('base64');
+                avatarBase64 = `data:image/jpeg;base64,${base64}`;
             }
         }
 
-        // Возвращаем юзернейм и URL аватара
-        return NextResponse.json({ username, avatarUrl });
+        
+        return NextResponse.json({
+            username,
+            avatarBase64: avatarBase64 ? avatarBase64 : null
+        });
     } catch (error) {
         console.error('Error fetching user data:', error);
         return NextResponse.json({ error: 'Error fetching user data' }, { status: 500 });

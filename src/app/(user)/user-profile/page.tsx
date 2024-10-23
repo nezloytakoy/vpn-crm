@@ -89,36 +89,52 @@ const WaveComponent = () => {
                     throw new Error('Telegram ID не найден');
                 }
 
-                const profileResponse = await fetch(`/api/get-profile-data?telegramId=${telegramId}`);
-                const subscriptionResponse = await fetch(`/api/get-subscription?telegramId=${telegramId}`);
-                const requestsResponse = await fetch(`/api/get-requests?telegramId=${telegramId}`);
+                
+                const [profileResponse, subscriptionResponse, requestsResponse] = await Promise.all([
+                    fetch(`/api/get-profile-data?telegramId=${telegramId}`),
+                    fetch(`/api/get-subscription?telegramId=${telegramId}`),
+                    fetch(`/api/get-requests?telegramId=${telegramId}`)
+                ]);
 
+                
                 if (!profileResponse.ok || !subscriptionResponse.ok || !requestsResponse.ok) {
                     throw new Error('Ошибка при получении данных');
                 }
 
+                
                 const profileData = await profileResponse.json();
                 const subscriptionData = await subscriptionResponse.json();
                 const requestsData = await requestsResponse.json();
 
-                setAvatarUrl(profileData.avatarUrl); // Устанавливаем URL аватара
+                
+                await sendLogToTelegram(`Profile data: ${JSON.stringify(profileData)}`);
+                await sendLogToTelegram(`Subscription data from API: ${JSON.stringify(subscriptionData)}`);
+                await sendLogToTelegram(`Requests data from API: ${JSON.stringify(requestsData)}`);
 
+                
+                setAvatarUrl(profileData.avatarUrl);
+
+                
                 if (requestsData.assistantRequests > 0) {
                     setAssistantRequests(requestsData.assistantRequests);
                 } else {
+                    
                     setTimeout(() => {
                         setDots('0');
                         setAssistantRequests(0);
                     }, 2000);
                 }
-
-                await sendLogToTelegram(`Subscription data from API: ${JSON.stringify(subscriptionData)}`);
-                await sendLogToTelegram(`Requests data from API: ${JSON.stringify(requestsData)}`);
             } catch (error) {
                 console.error('Ошибка при получении данных:', error);
-                await sendLogToTelegram(`Error fetching subscription or requests: ${error}`);
+
+                
+                const errorMessage = error instanceof Error ? error.message : String(error);
+
+                await sendLogToTelegram(`Error fetching subscription or requests: ${errorMessage}`);
             }
+
         };
+
 
         fetchUserData();
     }, []);
