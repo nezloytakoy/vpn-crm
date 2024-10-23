@@ -28,8 +28,8 @@ model Moderator {
   reviewedComplaintsCount Int           @default(0)  // Счетчик рассмотренных жалоб
   userMessagesCount       Int           @default(0)  // Счетчик сообщений пользователю
   assistantMessagesCount  Int           @default(0)  // Счетчик сообщений ассистенту
+  username                String        @default("Отсутствует")  // Новое поле для юзернейма
 }
-
 
 model Invitation {
   id        BigInt   @id @default(autoincrement()) 

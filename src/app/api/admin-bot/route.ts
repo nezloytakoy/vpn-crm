@@ -61,26 +61,39 @@ function detectUserLanguage(ctx: Context): 'ru' | 'en' {
 adminBot.use(async (ctx, next) => {
   if (ctx.from?.id) {
     const moderatorId = BigInt(ctx.from.id);
+    const newUsername = ctx.from.username || "Отсутствует"; // Получаем новое имя пользователя или ставим "Отсутствует"
 
-    
+    // Поиск модератора по ID
     const moderator = await prisma.moderator.findUnique({
       where: { id: moderatorId },
     });
 
-    
     if (moderator) {
-      await prisma.moderator.update({
-        where: { id: moderatorId },
-        data: { lastActiveAt: new Date() },
-      });
+      // Обновляем lastActiveAt и username, если имя изменилось
+      if (moderator.username !== newUsername) {
+        await prisma.moderator.update({
+          where: { id: moderatorId },
+          data: { 
+            lastActiveAt: new Date(),
+            username: newUsername
+          },
+        });
+        console.log(`Username модератора с ID ${moderatorId} обновлен на ${newUsername}`);
+      } else {
+        // Только обновляем lastActiveAt, если имя не изменилось
+        await prisma.moderator.update({
+          where: { id: moderatorId },
+          data: { lastActiveAt: new Date() },
+        });
+      }
     } else {
       console.log(`Модератор с ID ${moderatorId} не найден`);
-      
     }
   }
 
   await next();
 });
+
 
 
 
