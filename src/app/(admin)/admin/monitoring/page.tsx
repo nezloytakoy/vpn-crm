@@ -4,8 +4,9 @@ import React, { useMemo, useEffect, useState, useRef } from 'react';
 import { Column } from 'react-table';
 import { FaEnvelope } from 'react-icons/fa';
 import Table from '@/components/Table/Table';
-import { useRouter } from 'next/navigation'; 
+import { useRouter } from 'next/navigation';
 import styles from './Monitoring.module.css';
+import { useCallback } from 'react';
 
 export const fetchCache = 'force-no-store';
 
@@ -28,7 +29,7 @@ const Monitoring: React.FC = () => {
   const [currentAssistantTelegramId, setCurrentAssistantTelegramId] = useState<string | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
 
-  const router = useRouter(); 
+  const router = useRouter();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -56,10 +57,9 @@ const Monitoring: React.FC = () => {
     fetchData();
   }, []);
 
-  const handleRowClick = (telegramId: string) => {
-    
+  const handleRowClick = useCallback((telegramId: string) => {
     router.push(`/admin/monitoring/${telegramId}`);
-  };
+  }, [router]);
 
   const handleSendMessage = async () => {
     try {
@@ -182,7 +182,7 @@ const Monitoring: React.FC = () => {
     ],
     [handleRowClick] 
   );
-  
+
 
 
   return (
@@ -196,7 +196,7 @@ const Monitoring: React.FC = () => {
         <Table columns={columns} data={assistantsData} />
       </div>
 
-      
+
       {isPopupOpen && (
         <div className={styles.popupOverlay}>
           <div className={styles.popup} ref={popupRef}>

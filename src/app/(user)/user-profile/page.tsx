@@ -88,37 +88,36 @@ const WaveComponent = () => {
                 if (!telegramId) {
                     throw new Error('Telegram ID не найден');
                 }
-
+    
                 const subscriptionResponse = await fetch(`/api/get-subscription?telegramId=${telegramId}`);
                 const requestsResponse = await fetch(`/api/get-requests?telegramId=${telegramId}`);
-
+    
                 if (!subscriptionResponse.ok || !requestsResponse.ok) {
                     throw new Error('Ошибка при получении данных');
                 }
-
+    
                 const subscriptionData = await subscriptionResponse.json();
                 const requestsData = await requestsResponse.json();
-
-
-                await sendLogToTelegram(`Subscription data from API: ${JSON.stringify(subscriptionData)}`);
-                await sendLogToTelegram(`Requests data from API: ${JSON.stringify(requestsData)}`);
-
-
-                if (requestsData.assistantRequests === 0) {
+    
+                // Устанавливаем количество запросов, если они есть
+                if (requestsData.assistantRequests > 0) {
+                    setAssistantRequests(requestsData.assistantRequests);
+                } else {
                     // Если запросов 0, то изменяем "..." на "0" через некоторое время
                     setTimeout(() => {
                         setDots('0');
+                        setAssistantRequests(0);  // Устанавливаем "0" после таймера
                     }, 2000); // Задержка 2 секунды перед сменой "..." на "0"
                 }
-
-
+    
+                await sendLogToTelegram(`Subscription data from API: ${JSON.stringify(subscriptionData)}`);
+                await sendLogToTelegram(`Requests data from API: ${JSON.stringify(requestsData)}`);
             } catch (error) {
                 console.error('Ошибка при получении данных:', error);
-
                 await sendLogToTelegram(`Error fetching subscription or requests: ${error}`);
             }
         };
-
+    
         fetchData();
     }, []);
 
