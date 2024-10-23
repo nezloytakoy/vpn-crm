@@ -1,14 +1,15 @@
 import { Bot } from 'grammy';
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 
-const botToken = process.env.TELEGRAM_BOT_TOKEN;
+const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
 const bot = new Bot(botToken!);
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    const { telegramId } = req.query;
+export async function GET(req: NextRequest) {
+    const { searchParams } = new URL(req.url);
+    const telegramId = searchParams.get('telegramId');
 
     if (!telegramId) {
-        return res.status(400).json({ error: 'Telegram ID is missing' });
+        return NextResponse.json({ error: 'Telegram ID is missing' }, { status: 400 });
     }
 
     try {
@@ -29,9 +30,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // Возвращаем юзернейм и URL аватара
-        res.status(200).json({ username, avatarUrl });
+        return NextResponse.json({ username, avatarUrl });
     } catch (error) {
         console.error('Error fetching user data:', error);
-        res.status(500).json({ error: 'Error fetching user data' });
+        return NextResponse.json({ error: 'Error fetching user data' }, { status: 500 });
     }
 }
