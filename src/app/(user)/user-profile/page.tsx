@@ -47,11 +47,11 @@ const WaveComponent = () => {
     const [buttonText, setButtonText] = useState('');
     const [price, setPrice] = useState<number>(0);
     const [telegramUsername, setTelegramUsername] = useState('');
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [fontSize, setFontSize] = useState('24px');
     const [dots, setDots] = useState('...');
 
     const [assistantRequests, setAssistantRequests] = useState<number | null>(null);
-
 
     const [tariffs, setTariffs] = useState<{ [key: string]: number }>({});
 
@@ -83,33 +83,35 @@ const WaveComponent = () => {
         sendLogToTelegram(`Detected language: ${userLang || 'en'}`);
         sendLogToTelegram(`Username: ${displayName}`);
 
-        const fetchData = async () => {
+        const fetchUserData = async () => {
             try {
                 if (!telegramId) {
                     throw new Error('Telegram ID не найден');
                 }
-    
+
+                const profileResponse = await fetch(`/api/get-profile-data?telegramId=${telegramId}`);
                 const subscriptionResponse = await fetch(`/api/get-subscription?telegramId=${telegramId}`);
                 const requestsResponse = await fetch(`/api/get-requests?telegramId=${telegramId}`);
-    
-                if (!subscriptionResponse.ok || !requestsResponse.ok) {
+
+                if (!profileResponse.ok || !subscriptionResponse.ok || !requestsResponse.ok) {
                     throw new Error('Ошибка при получении данных');
                 }
-    
+
+                const profileData = await profileResponse.json();
                 const subscriptionData = await subscriptionResponse.json();
                 const requestsData = await requestsResponse.json();
-    
-                // Устанавливаем количество запросов, если они есть
+
+                setAvatarUrl(profileData.avatarUrl); // Устанавливаем URL аватара
+
                 if (requestsData.assistantRequests > 0) {
                     setAssistantRequests(requestsData.assistantRequests);
                 } else {
-                    // Если запросов 0, то изменяем "..." на "0" через некоторое время
                     setTimeout(() => {
                         setDots('0');
-                        setAssistantRequests(0);  // Устанавливаем "0" после таймера
-                    }, 2000); // Задержка 2 секунды перед сменой "..." на "0"
+                        setAssistantRequests(0);
+                    }, 2000);
                 }
-    
+
                 await sendLogToTelegram(`Subscription data from API: ${JSON.stringify(subscriptionData)}`);
                 await sendLogToTelegram(`Requests data from API: ${JSON.stringify(requestsData)}`);
             } catch (error) {
@@ -117,8 +119,8 @@ const WaveComponent = () => {
                 await sendLogToTelegram(`Error fetching subscription or requests: ${error}`);
             }
         };
-    
-        fetchData();
+
+        fetchUserData();
     }, []);
 
     useEffect(() => {
@@ -129,7 +131,6 @@ const WaveComponent = () => {
                     throw new Error('Ошибка при получении тарифов');
                 }
                 const data = await response.json();
-
 
                 await sendLogToTelegram(`Tariffs data from API: ${JSON.stringify(data)}`);
 
@@ -177,13 +178,17 @@ const WaveComponent = () => {
                     <div className={styles.greetings}>
                         {t('greeting')},
                         <div className={styles.avatarbox}>
-                            <Image
-                                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg"
-                                alt="avatar"
-                                width={130}
-                                height={130}
-                                className={styles.avatar}
-                            />
+                            {avatarUrl ? (
+                                <Image
+                                    src={avatarUrl}
+                                    alt="avatar"
+                                    width={130}
+                                    height={130}
+                                    className={styles.avatar}
+                                />
+                            ) : (
+                                <p>Нет аватара</p>
+                            )}
                             <p className={styles.name} style={{ fontSize }}>{telegramUsername}</p>
                         </div>
                     </div>
@@ -191,8 +196,6 @@ const WaveComponent = () => {
             </div>
             <div className={styles.backbotom}>
                 <div className={styles.backbotom}>
-
-
                     <p className={styles.time}>
                         {t('time')}: {assistantRequests !== null ? `${assistantRequests}` : dots} {t('requests')}
                     </p>
