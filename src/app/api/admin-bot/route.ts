@@ -116,7 +116,6 @@ adminBot.command('start', async (ctx) => {
   const lang = detectUserLanguage(ctx);
 
   if (ctx.from?.id) {
-    // Проверка приглашения через токен
     if (ctx.message?.text) {
       const args = ctx.message.text.split(' ');
       if (args.length > 1) {
@@ -132,8 +131,8 @@ adminBot.command('start', async (ctx) => {
         });
 
         if (invitation) {
-          if (!invitation.login) {
-            await ctx.reply('Логин отсутствует в приглашении.');
+          if (!invitation.login || !invitation.password) {
+            await ctx.reply('Логин или пароль отсутствуют в приглашении.');
             return;
           }
 
@@ -153,7 +152,7 @@ adminBot.command('start', async (ctx) => {
             await prisma.moderator.create({
               data: {
                 login: invitation.login,
-                password: invitation.password || 'defaultPassword',
+                password: invitation.password, // Пароль берем из приглашения
                 id: moderatorId,
               },
             });
