@@ -62,30 +62,23 @@ adminBot.use(async (ctx, next) => {
   if (ctx.from?.id) {
     const moderatorId = BigInt(ctx.from.id);
 
-    // Проверка, существует ли модератор
+    
     const moderator = await prisma.moderator.findUnique({
       where: { id: moderatorId },
     });
 
-    // Если модератор не найден, создаем новую запись
-    if (!moderator) {
-      await prisma.moderator.create({
-        data: {
-          id: moderatorId,
-          lastActiveAt: new Date(),
-          login: `moderator_${moderatorId}`, // Пример создания логина
-          password: 'defaultPassword123',    // Пример создания пароля
-        },
-      });
-      console.log(`Создан новый модератор с ID ${moderatorId}`);
-    } else {
-      // Если модератор существует, обновляем его
+    
+    if (moderator) {
       await prisma.moderator.update({
         where: { id: moderatorId },
         data: { lastActiveAt: new Date() },
       });
+    } else {
+      console.log(`Модератор с ID ${moderatorId} не найден`);
+      
     }
   }
+
   await next();
 });
 
@@ -95,16 +88,16 @@ adminBot.command('menu', async (ctx) => {
   const lang = detectUserLanguage(ctx);
 
   if (ctx.from?.id) {
-    // Проверяем, является ли пользователь модератором
+    
     const moderator = await prisma.moderator.findFirst({
       where: { id: BigInt(ctx.from.id) },
     });
 
     if (moderator) {
-      // Если пользователь модератор, показываем меню
+      
       await showModeratorMenu(ctx, lang);
     } else {
-      // Если пользователь не модератор, выводим сообщение об ошибке
+      
       await ctx.reply(getTranslation(lang, 'command_error'));
     }
   } else {
@@ -121,7 +114,7 @@ adminBot.command('start', async (ctx) => {
       if (args.length > 1) {
         const inviteToken = args[1].replace('invite_', '');
 
-        // Ищем токен в таблице Invitation
+        
         const invitation = await prisma.invitation.findFirst({
           where: {
             token: inviteToken,
@@ -138,32 +131,32 @@ adminBot.command('start', async (ctx) => {
 
           const moderatorId = BigInt(ctx.from.id);
 
-          // Проверяем, существует ли модератор с таким ID
+          
           const existingModerator = await prisma.moderator.findUnique({
             where: { id: moderatorId },
           });
 
           if (existingModerator) {
-            // Если модератор уже существует, отправляем сообщение
+            
             await ctx.reply('Вы уже являетесь модератором.');
-            await showModeratorMenu(ctx, lang); // Показываем меню модератора
+            await showModeratorMenu(ctx, lang); 
           } else {
-            // Переносим данные из таблицы Invitation в таблицу Moderator
+            
             await prisma.moderator.create({
               data: {
                 login: invitation.login,
-                password: invitation.password, // Пароль берем из приглашения
+                password: invitation.password, 
                 id: moderatorId,
               },
             });
 
-            // Обновляем статус приглашения как использованное
+            
             await prisma.invitation.update({
               where: { id: invitation.id },
               data: { used: true },
             });
 
-            // Приветственное сообщение и меню для модератора
+            
             await ctx.reply(getTranslation(lang, 'welcome'));
             await showModeratorMenu(ctx, lang);
           }
@@ -248,7 +241,7 @@ adminBot.callbackQuery('message_assistant', async (ctx) => {
 adminBot.callbackQuery('current_arbitrations', async (ctx) => {
   await ctx.answerCallbackQuery();
 
-  // Получаем список текущих арбитражей со статусом 'PENDING'
+  
   const arbitrations = await prisma.arbitration.findMany({
     where: {
       status: 'PENDING' as ArbitrationStatus,
@@ -264,7 +257,7 @@ adminBot.callbackQuery('current_arbitrations', async (ctx) => {
     return;
   }
 
-  // Формируем сообщение со списком арбитражей и кнопками для рассмотрения
+  
   for (const arbitration of arbitrations) {
     const message = `Арбитраж ID: ${arbitration.id}\nПользователь: ${arbitration.user.telegramId}\nАссистент: ${arbitration.assistant.telegramId}\nПричина: ${arbitration.reason}`;
     const keyboard = new InlineKeyboard().text('Рассмотреть', `review_${arbitration.id.toString()}`);
@@ -282,7 +275,7 @@ adminBot.command('end_arbitration', async (ctx) => {
   }
 
   try {
-    // Находим активный арбитраж, в котором участвует модератор
+    
     const arbitration = await prisma.arbitration.findFirst({
       where: {
         moderatorId: moderatorTelegramId,
@@ -299,7 +292,7 @@ adminBot.command('end_arbitration', async (ctx) => {
       return;
     }
 
-    // Отправляем модератору сообщение с кнопками для выбора победителя
+    
     const keyboard = new InlineKeyboard()
       .text('Пользователь', `arbitration_decision_user_${arbitration.id}`)
       .row()
@@ -346,7 +339,7 @@ adminBot.on('callback_query:data', async (ctx) => {
     await sendLogToUser(`Получен callback_query с данными: ${data}`);
 
     if (data.startsWith('review_')) {
-      await ctx.answerCallbackQuery(); // Подтверждаем получение колбэка
+      await ctx.answerCallbackQuery(); 
 
       const arbitrationId = BigInt(data.split('_')[1]);
       const moderatorTelegramId = BigInt(ctx.from?.id || 0);
@@ -360,7 +353,7 @@ adminBot.on('callback_query:data', async (ctx) => {
       await sendLogToUser(`Обработка арбитража ID: ${arbitrationId} модератором ID: ${moderatorTelegramId}`);
 
       try {
-        // Обновляем запись арбитража: назначаем модератора и устанавливаем статус 'IN_PROGRESS'
+        
         const arbitration = await prisma.arbitration.update({
           where: { id: arbitrationId },
           data: {
@@ -375,7 +368,7 @@ adminBot.on('callback_query:data', async (ctx) => {
 
         await sendLogToUser(`Арбитраж ID: ${arbitrationId} обновлён. Статус: IN_PROGRESS`);
 
-        // Отправляем сообщения модератору, пользователю и ассистенту
+        
         await ctx.reply('Вы присоединились к обсуждению. Все сообщения будут пересылаться между участниками.');
 
         await sendMessageToUser(
@@ -399,7 +392,7 @@ adminBot.on('callback_query:data', async (ctx) => {
       await ctx.answerCallbackQuery();
 
       const parts = data.split('_');
-      const decision = parts[2]; // 'user' или 'assistant'
+      const decision = parts[2]; 
       const arbitrationId = BigInt(parts[3]);
       const moderatorTelegramId = BigInt(ctx.from?.id || 0);
 
@@ -410,7 +403,7 @@ adminBot.on('callback_query:data', async (ctx) => {
       }
 
       try {
-        // Находим арбитраж
+        
         const arbitration = await prisma.arbitration.findFirst({
           where: {
             id: arbitrationId,
@@ -429,19 +422,19 @@ adminBot.on('callback_query:data', async (ctx) => {
           return;
         }
 
-        // Определяем новый статус арбитража и решение
+        
         let newStatus: ArbitrationStatus;
         let decisionText = '';
         let winnerTelegramId: bigint;
         let winnerRole: 'user' | 'assistant';
 
         if (decision === 'user') {
-          newStatus = 'REJECTED' as ArbitrationStatus; // Решение в пользу пользователя
+          newStatus = 'REJECTED' as ArbitrationStatus; 
           decisionText = 'USER';
           winnerTelegramId = arbitration.user.telegramId;
           winnerRole = 'user';
         } else if (decision === 'assistant') {
-          newStatus = 'ACCEPTED' as ArbitrationStatus; // Решение в пользу ассистента
+          newStatus = 'ACCEPTED' as ArbitrationStatus; 
           decisionText = 'ASSISTANT';
           winnerTelegramId = arbitration.assistant.telegramId;
           winnerRole = 'assistant';
@@ -451,10 +444,10 @@ adminBot.on('callback_query:data', async (ctx) => {
           return;
         }
 
-        // Логируем айди победителя
+        
         await sendLogToUser(`Победитель арбитража: ID = ${winnerTelegramId}, роль = ${winnerRole}`);
 
-        // Обновляем арбитраж
+        
         await prisma.arbitration.update({
           where: { id: arbitration.id },
           data: {
@@ -465,7 +458,7 @@ adminBot.on('callback_query:data', async (ctx) => {
 
         await sendLogToUser(`Арбитраж ID: ${arbitrationId} завершён с решением: ${decisionText}`);
 
-        // Обновляем статус ассистента, если решение в его пользу
+        
         if (winnerRole === 'assistant') {
           await prisma.assistant.update({
             where: { telegramId: arbitration.assistant.telegramId },
@@ -474,7 +467,7 @@ adminBot.on('callback_query:data', async (ctx) => {
           await sendLogToUser(`Ассистент ID: ${arbitration.assistant.telegramId} обновлён: isBusy = false`);
         }
 
-        // Завершаем активный диалог между пользователем и ассистентом
+        
         await prisma.assistantRequest.updateMany({
           where: { userId: arbitration.userId, assistantId: arbitration.assistantId, isActive: true },
           data: { isActive: false, status: 'COMPLETED' },
@@ -482,7 +475,7 @@ adminBot.on('callback_query:data', async (ctx) => {
 
         await sendLogToUser(`Диалог между пользователем и ассистентом завершён для арбитража ID: ${arbitrationId}`);
 
-        // Начисляем койн победителю арбитража в зависимости от его роли
+        
         if (winnerRole === 'assistant') {
           await prisma.assistant.update({
             where: { telegramId: winnerTelegramId },
@@ -497,10 +490,10 @@ adminBot.on('callback_query:data', async (ctx) => {
 
         await sendLogToUser(`Победителю арбитража ID: ${winnerTelegramId} начислен 1 койн`);
 
-        // Отправляем подтверждение модератору
+        
         await ctx.reply('Арбитраж завершён. Победителю начислен 1 койн.');
 
-        // Уведомляем участников
+        
         let userMessage = '';
         let assistantMessage = '';
 
@@ -526,7 +519,7 @@ adminBot.on('callback_query:data', async (ctx) => {
       await ctx.answerCallbackQuery();
 
       try {
-        // Получаем список текущих арбитражей со статусом 'PENDING'
+        
         const arbitrations = await prisma.arbitration.findMany({
           where: {
             status: 'PENDING' as ArbitrationStatus,
@@ -544,7 +537,7 @@ adminBot.on('callback_query:data', async (ctx) => {
           return;
         }
 
-        // Формируем сообщение со списком арбитражей и кнопками для рассмотрения
+        
         for (const arbitration of arbitrations) {
           const message = `Арбитраж ID: ${arbitration.id}\nПользователь: ${arbitration.user.telegramId}\nАссистент: ${arbitration.assistant.telegramId}\nПричина: ${arbitration.reason}`;
           const keyboard = new InlineKeyboard().text('Рассмотреть', `review_${arbitration.id.toString()}`);
@@ -582,7 +575,7 @@ adminBot.on('message', async (ctx) => {
     return;
   }
 
-  // Логика для активного арбитража
+  
   const arbitration = await prisma.arbitration.findFirst({
     where: {
       moderatorId: BigInt(modId),
@@ -595,33 +588,33 @@ adminBot.on('message', async (ctx) => {
   });
 
   if (arbitration) {
-    // Если есть активный арбитраж, пересылаем сообщение пользователю и ассистенту
+    
     const messageToSend = `Модератор:\n${messageText}`;
     await sendMessageToUser(arbitration.user.telegramId.toString(), messageToSend);
     await sendMessageToAssistant(arbitration.assistant.telegramId.toString(), messageToSend);
     return;
   }
 
-  // Если нет активного арбитража, проверяем состояние ожидания ID
+  
   const currentState = moderatorState[modId]?.state;
 
   if (!currentState) {
-    // Если нет активного состояния, возвращаем ошибку
+    
     await ctx.reply('У вас нет активных арбитражей или текущих запросов.');
     return;
   }
 
-  // Логика ожидания ввода ID и отправки сообщений
+  
   if (currentState === 'awaiting_user_id' || currentState === 'awaiting_assistant_id') {
     const id = messageText;
 
-    // Проверяем ID
+    
     if (!/^\d{9,10}$/.test(id)) {
       await ctx.reply('ID должен состоять из 9-10 цифр. Попробуйте снова.');
       return;
     }
 
-    // Сохраняем введенный ID
+    
     moderatorState[modId].targetId = id;
 
     if (currentState === 'awaiting_user_id') {
@@ -649,7 +642,7 @@ adminBot.on('message', async (ctx) => {
       }
     }
 
-    // Очищаем состояние
+    
     delete moderatorState[modId];
   }
 });
