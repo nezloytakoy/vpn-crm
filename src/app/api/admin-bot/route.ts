@@ -575,10 +575,12 @@ adminBot.on('message', async (ctx) => {
     return;
   }
 
-  
+  const moderatorId = BigInt(modId);
+
+  // Поиск арбитража, если он есть
   const arbitration = await prisma.arbitration.findFirst({
     where: {
-      moderatorId: BigInt(modId),
+      moderatorId,
       status: 'IN_PROGRESS' as ArbitrationStatus,
     },
     include: {
@@ -588,33 +590,44 @@ adminBot.on('message', async (ctx) => {
   });
 
   if (arbitration) {
-    
     const messageToSend = `Модератор:\n${messageText}`;
+    
+    // Отправка сообщения пользователю
     await sendMessageToUser(arbitration.user.telegramId.toString(), messageToSend);
+    // Инкрементируем счетчик сообщений пользователю
+    await prisma.moderator.update({
+      where: { id: moderatorId },
+      data: { userMessagesCount: { increment: 1 } },
+    });
+
+    // Отправка сообщения ассистенту
     await sendMessageToAssistant(arbitration.assistant.telegramId.toString(), messageToSend);
+    // Инкрементируем счетчик сообщений ассистенту
+    await prisma.moderator.update({
+      where: { id: moderatorId },
+      data: { assistantMessagesCount: { increment: 1 } },
+    });
+
     return;
   }
 
-  
+  // Проверка состояния модератора
   const currentState = moderatorState[modId]?.state;
 
   if (!currentState) {
-    
     await ctx.reply('У вас нет активных арбитражей или текущих запросов.');
     return;
   }
 
-  
+  // Обработка получения ID пользователя или ассистента
   if (currentState === 'awaiting_user_id' || currentState === 'awaiting_assistant_id') {
     const id = messageText;
 
-    
     if (!/^\d{9,10}$/.test(id)) {
       await ctx.reply('ID должен состоять из 9-10 цифр. Попробуйте снова.');
       return;
     }
 
-    
     moderatorState[modId].targetId = id;
 
     if (currentState === 'awaiting_user_id') {
@@ -631,21 +644,34 @@ adminBot.on('message', async (ctx) => {
       const targetMessage = `Сообщение от модератора:\n\n${messageText}`;
       try {
         if (currentState === 'awaiting_message_user') {
+          // Отправка сообщения пользователю
           await userBot.api.sendMessage(Number(targetId), targetMessage);
+          // Инкрементируем счетчик сообщений пользователю
+          await prisma.moderator.update({
+            where: { id: moderatorId },
+            data: { userMessagesCount: { increment: 1 } },
+          });
         } else {
+          // Отправка сообщения ассистенту
           await supportBot.api.sendMessage(Number(targetId), targetMessage);
+          // Инкрементируем счетчик сообщений ассистенту
+          await prisma.moderator.update({
+            where: { id: moderatorId },
+            data: { assistantMessagesCount: { increment: 1 } },
+          });
         }
+
         await ctx.reply('Сообщение отправлено.');
       } catch (error) {
-        console.log(error)
+        console.log(error);
         await ctx.reply('Ошибка при отправке сообщения.');
       }
     }
 
-    
     delete moderatorState[modId];
   }
 });
+
 
 
 

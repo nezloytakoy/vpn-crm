@@ -159,22 +159,33 @@ const Complaints: React.FC = () => {
         }. Объяснение: ${explanation}`
       );
       try {
-        
-        const token = localStorage.getItem('token'); 
+        // Сначала получаем moderatorId с помощью запроса к вашему роуту
+        const moderResponse = await fetch('/api/get-moder-id', {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
   
+        if (!moderResponse.ok) {
+          throw new Error('Не удалось получить moderatorId');
+        }
+  
+        const moderResult = await moderResponse.json();
+        const moderatorId = moderResult.userId;
+  
+        console.log(`Получен moderatorId: ${moderatorId}`);
+  
+        // Затем выполняем запрос на approve-complaint или reject-complaint
         const response = await fetch(
           `/api/${action === "approve" ? "approve-complaint" : "reject-complaint"}?id=${
             selectedComplaint.id
           }`,
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`,  
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               complaintId: selectedComplaint.id,
               explanation,
+              moderatorId,  // Передаем moderatorId вместе с остальными данными
             }),
           }
         );
@@ -195,6 +206,7 @@ const Complaints: React.FC = () => {
           result
         );
   
+        // Перезагрузка страницы через 3 секунды после успешного выполнения
         setTimeout(() => {
           window.location.reload();
         }, 3000);

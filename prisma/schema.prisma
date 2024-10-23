@@ -26,6 +26,8 @@ model Moderator {
   updatedAt               DateTime      @updatedAt
   arbitrations            Arbitration[] 
   reviewedComplaintsCount Int           @default(0)  // Счетчик рассмотренных жалоб
+  userMessagesCount       Int           @default(0)  // Счетчик сообщений пользователю
+  assistantMessagesCount  Int           @default(0)  // Счетчик сообщений ассистенту
 }
 
 

@@ -1,11 +1,13 @@
 import { PrismaClient } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
-import * as jose from 'jose';
 
 const prisma = new PrismaClient();
 
+// Функция для отправки сообщений в Telegram
 async function sendMessageToTelegram(telegramId: bigint, message: string, token: string) {
   const apiUrl = `https://api.telegram.org/bot${token}/sendMessage`;
+
+  console.log(`Отправка сообщения в Telegram ID: ${telegramId}, Текст: ${message}`);
 
   const response = await fetch(apiUrl, {
     method: 'POST',
@@ -18,56 +20,57 @@ async function sendMessageToTelegram(telegramId: bigint, message: string, token:
 
   if (!response.ok) {
     const errorDetails = await response.json();
+    console.error('Ошибка при отправке сообщения в Telegram:', errorDetails);
     throw new Error(`Ошибка при отправке сообщения в Telegram: ${errorDetails.description}`);
   }
+
+  console.log('Сообщение успешно отправлено в Telegram');
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     console.log("Запрос получен, начало обработки");
 
-    
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Токен авторизации не предоставлен' }, { status: 401 });
-    }
-    const token = authHeader.split(' ')[1];
+    // Парсим тело запроса для получения данных
+    const { complaintId, explanation, moderatorId } = await request.json();
+    console.log("Тело запроса:", { complaintId, explanation, moderatorId });
 
-    
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-    const { payload } = await jose.jwtVerify(token, secret);
-    const moderatorId = payload.sub ? BigInt(payload.sub) : null;
-
-    if (!moderatorId) {
-      return NextResponse.json({ error: 'Invalid token: moderator ID is missing' }, { status: 400 });
-    }
-
-
-    console.log(`Модератор с ID ${moderatorId} выполняет запрос`);
-
-    const { complaintId, explanation } = await req.json();
-    console.log("Тело запроса:", { complaintId, explanation });
-
-    if (!complaintId || !explanation) {
+    if (!complaintId || !explanation || !moderatorId) {
+      console.log('Отсутствуют необходимые данные в запросе');
       return NextResponse.json({ error: 'Отсутствуют необходимые данные' }, { status: 400 });
     }
 
+    // Проверяем, существует ли модератор с таким ID
+    const moderator = await prisma.moderator.findUnique({
+      where: { id: BigInt(moderatorId) },
+    });
+
+    if (!moderator) {
+      console.log(`Модератор с ID ${moderatorId} не найден`);
+      return NextResponse.json({ error: 'Модератор не найден' }, { status: 404 });
+    }
+
+    // Поиск жалобы по ID
+    console.log(`Поиск жалобы с ID ${complaintId}`);
     const complaint = await prisma.complaint.findUnique({
       where: { id: BigInt(complaintId) },
     });
 
     if (!complaint) {
+      console.log(`Жалоба с ID ${complaintId} не найдена`);
       return NextResponse.json({ error: 'Жалоба не найдена' }, { status: 404 });
     }
 
     console.log('Жалоба найдена:', complaint);
 
-    
+    // Начисление коина пользователю
+    console.log(`Начисление коина пользователю с Telegram ID ${complaint.userId}`);
     await prisma.user.update({
       where: { telegramId: complaint.userId },
       data: { coins: { increment: 1 } },
     });
 
+    // Формирование сообщений для пользователя и ассистента
     const userMessage = `Ваша жалоба одобрена. Вам начислен 1 койн. ${explanation}`;
     const assistantMessage = `Жалоба пользователя показалась модератору убедительной. ${explanation}`;
 
@@ -75,15 +78,21 @@ export async function POST(req: NextRequest) {
     const userBotToken = process.env.TELEGRAM_USER_BOT_TOKEN;
 
     if (!supportBotToken || !userBotToken) {
+      console.log('Токены для Telegram ботов не найдены');
       return NextResponse.json({ error: 'Не найдены токены Telegram для отправки сообщений' }, { status: 500 });
     }
 
+    // Отправка сообщений пользователю и ассистенту
+    console.log('Отправка сообщения пользователю');
     await sendMessageToTelegram(complaint.userId, userMessage, userBotToken);
+
+    console.log('Отправка сообщения ассистенту');
     await sendMessageToTelegram(complaint.assistantId, assistantMessage, supportBotToken);
 
     console.log('Сообщения успешно отправлены');
 
-    
+    // Обновление статуса жалобы
+    console.log(`Обновление статуса жалобы с ID ${complaint.id} на REVIEWED`);
     await prisma.complaint.update({
       where: { id: complaint.id },
       data: {
@@ -92,17 +101,18 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    
+    // Увеличение счетчика рассмотренных жалоб для модератора
+    console.log(`Увеличение счетчика рассмотренных жалоб для модератора с ID ${moderatorId}`);
     await prisma.moderator.update({
-      where: { id: moderatorId },
+      where: { id: BigInt(moderatorId) },
       data: { reviewedComplaintsCount: { increment: 1 } },
     });
 
     console.log('Счетчик рассмотренных жалоб успешно увеличен');
-
     return NextResponse.json({ success: true });
+
   } catch (error) {
-    console.error('Ошибка при обработке жалобы:', error);
+    console.error('Ошибка при обработке жалобы:', error instanceof Error ? error.message : error);
     return NextResponse.json({ error: 'Произошла ошибка' }, { status: 500 });
   }
 }
