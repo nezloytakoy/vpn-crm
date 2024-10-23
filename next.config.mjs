@@ -11,7 +11,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'example.com',  // Добавлен еще один хост для изображений
+        hostname: 'example.com',
       },
     ],
   },

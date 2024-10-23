@@ -157,7 +157,6 @@ model AssistantRequest {
   updatedAt        DateTime          @updatedAt
   ignoredAssistants BigInt[]
   requestActions   RequestAction[]   @relation("RequestActionsOnAssistantRequest")
-
   conversation     Conversation?     
 }
 
