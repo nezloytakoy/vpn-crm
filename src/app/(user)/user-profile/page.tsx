@@ -50,6 +50,8 @@ const WaveComponent = () => {
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [fontSize, setFontSize] = useState('24px');
     const [dots, setDots] = useState('...');
+    const defaultAvatarUrl = 'https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg';
+
 
     const [assistantRequests, setAssistantRequests] = useState<number | null>(null);
 
@@ -88,13 +90,13 @@ const WaveComponent = () => {
                 if (!telegramId) {
                     throw new Error('Telegram ID не найден');
                 }
-
+        
                 console.log(`Fetching data for Telegram ID: ${telegramId}`);
-
+        
                 const profileResponse = await fetch(`/api/get-profile-data?telegramId=${telegramId}`);
                 const subscriptionResponse = await fetch(`/api/get-subscription?telegramId=${telegramId}`);
                 const requestsResponse = await fetch(`/api/get-requests?telegramId=${telegramId}`);
-
+        
                 if (!profileResponse.ok) {
                     console.log('Error fetching profile data', await profileResponse.text());
                     throw new Error('Ошибка при получении данных профиля');
@@ -107,22 +109,26 @@ const WaveComponent = () => {
                     console.log('Error fetching requests data', await requestsResponse.text());
                     throw new Error('Ошибка при получении данных запросов');
                 }
-
+        
                 const profileData = await profileResponse.json();
                 const subscriptionData = await subscriptionResponse.json();
                 const requestsData = await requestsResponse.json();
-
+        
                 console.log('Profile data:', profileData);
                 console.log('Subscription data:', subscriptionData);
                 console.log('Requests data:', requestsData);
-
+        
+                
+                const defaultAvatarUrl = 'https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg';
+        
                 if (profileData.avatarUrl) {
                     console.log(`Setting avatar URL: ${profileData.avatarUrl}`);
-                    setAvatarUrl(profileData.avatarUrl); // Устанавливаем URL аватара
+                    setAvatarUrl(profileData.avatarUrl); 
                 } else {
-                    console.log('No avatar URL found');
+                    console.log('No avatar URL found, setting default avatar.');
+                    setAvatarUrl(defaultAvatarUrl); 
                 }
-
+        
                 if (requestsData.assistantRequests > 0) {
                     setAssistantRequests(requestsData.assistantRequests);
                 } else {
@@ -131,16 +137,17 @@ const WaveComponent = () => {
                         setAssistantRequests(0);
                     }, 2000);
                 }
-
+        
                 await sendLogToTelegram(`Subscription data from API: ${JSON.stringify(subscriptionData)}`);
                 await sendLogToTelegram(`Requests data from API: ${JSON.stringify(requestsData)}`);
             } catch (error) {
                 console.error('Ошибка при получении данных:', error);
-
+        
                 const errorMessage = error instanceof Error ? error.message : String(error);
                 await sendLogToTelegram(`Error fetching subscription or requests: ${errorMessage}`);
             }
         };
+        
 
 
 
@@ -202,17 +209,15 @@ const WaveComponent = () => {
                     <div className={styles.greetings}>
                         {t('greeting')},
                         <div className={styles.avatarbox}>
-                            {avatarUrl ? (
-                                <Image
-                                    src={avatarUrl}
-                                    alt="avatar"
-                                    width={130}
-                                    height={130}
-                                    className={styles.avatar}
-                                />
-                            ) : (
-                                <p>Нет аватара</p>
-                            )}
+                            <Image
+                                src={avatarUrl || defaultAvatarUrl}
+                                alt="avatar"
+                                width={130}
+                                height={130}
+                                className={styles.avatar}
+                                onError={() => setAvatarUrl(defaultAvatarUrl)} 
+                            />
+
                             <p className={styles.name} style={{ fontSize }}>{telegramUsername}</p>
                         </div>
                     </div>
