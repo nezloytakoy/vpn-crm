@@ -26,10 +26,10 @@ export async function POST(req: NextRequest) {
   try {
     console.log("Запрос получен, начало обработки");
     
-    const { complaintId, explanation } = await req.json();
-    console.log("Тело запроса:", { complaintId, explanation });
+    const { complaintId, explanation, moderatorId } = await req.json();
+    console.log("Тело запроса:", { complaintId, explanation, moderatorId });
 
-    if (!complaintId || !explanation) {
+    if (!complaintId || !explanation || !moderatorId) {
       console.error("Отсутствуют необходимые данные");
       return NextResponse.json({ error: 'Отсутствуют необходимые данные' }, { status: 400 });
     }
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     console.log("Жалоба найдена:", complaint);
 
-    // Начисляем коин ассистенту
+    
     await prisma.assistant.update({
       where: { telegramId: complaint.assistantId },
       data: { coins: { increment: 1 } },
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`Коин успешно начислен ассистенту с ID: ${complaint.assistantId}`);
 
-    // Добавляем запись в AssistantCoinTransaction
+    
     await prisma.assistantCoinTransaction.create({
       data: {
         assistantId: complaint.assistantId,
@@ -86,6 +86,15 @@ export async function POST(req: NextRequest) {
     });
 
     console.log("Жалоба обновлена, статус REVIEWED");
+
+    
+    console.log(`Увеличение счетчика рассмотренных жалоб для модератора с ID: ${moderatorId}`);
+    await prisma.moderator.update({
+      where: { id: BigInt(moderatorId) },
+      data: { reviewedComplaintsCount: { increment: 1 } },
+    });
+
+    console.log('Счетчик рассмотренных жалоб успешно увеличен');
 
     return NextResponse.json({ success: true });
   } catch (error) {

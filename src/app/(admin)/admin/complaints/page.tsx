@@ -152,27 +152,33 @@ const Complaints: React.FC = () => {
 
   const handleFormSubmit = async () => {
     if (selectedComplaint) {
-      setIsSubmitting(true); 
+      setIsSubmitting(true);
       console.log(
         `${action === "approve" ? "Одобрение" : "Отклонение"} жалобы с ID: ${
           selectedComplaint.id
         }. Объяснение: ${explanation}`
       );
       try {
+        
+        const token = localStorage.getItem('token'); 
+  
         const response = await fetch(
           `/api/${action === "approve" ? "approve-complaint" : "reject-complaint"}?id=${
             selectedComplaint.id
           }`,
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`,  
+            },
             body: JSON.stringify({
               complaintId: selectedComplaint.id,
               explanation,
             }),
           }
         );
-
+  
         if (!response.ok) {
           throw new Error(
             `Ошибка при ${
@@ -180,7 +186,7 @@ const Complaints: React.FC = () => {
             } жалобы: ${response.status}`
           );
         }
-
+  
         const result = await response.json();
         console.log(
           `Результат ${
@@ -188,12 +194,11 @@ const Complaints: React.FC = () => {
           } жалобы:`,
           result
         );
-
-        
+  
         setTimeout(() => {
           window.location.reload();
         }, 3000);
-
+  
         setSelectedComplaint(null);
         setIsFormVisible(false);
       } catch (error) {
@@ -203,10 +208,11 @@ const Complaints: React.FC = () => {
           } жалобы:`,
           error
         );
-        setIsSubmitting(false); 
+        setIsSubmitting(false);
       }
     }
   };
+  
 
   const openImageModal = (imageUrl: string) => {
     setSelectedImage(imageUrl);

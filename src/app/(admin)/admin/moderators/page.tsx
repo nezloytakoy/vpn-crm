@@ -12,8 +12,7 @@ interface ModeratorData {
     lastActiveAt: string;
     currentStatus: string;
     messagesToAssistants: number;
-    timeInDialogs: number; // Time in minutes
-    averageResponseTime: number; // Time in seconds
+    messagesToUsers: number;
     reviewedComplaints: number;
 }
 
@@ -23,9 +22,8 @@ const data: ModeratorData[] = [
         username: '@username1',
         lastActiveAt: '21/12/24 14:00',
         currentStatus: 'Онлайн',
+        messagesToUsers: 24,
         messagesToAssistants: 24,
-        timeInDialogs: 120, // 2 hours
-        averageResponseTime: 30,
         reviewedComplaints: 5,
     },
     {
@@ -33,9 +31,8 @@ const data: ModeratorData[] = [
         username: '@username2',
         lastActiveAt: '22/12/24 16:30',
         currentStatus: 'Оффлайн',
+        messagesToUsers: 24,
         messagesToAssistants: 12,
-        timeInDialogs: 45, // 45 minutes
-        averageResponseTime: 45,
         reviewedComplaints: 3,
     },
     {
@@ -43,9 +40,8 @@ const data: ModeratorData[] = [
         username: '@username3',
         lastActiveAt: '23/12/24 12:15',
         currentStatus: 'Занят',
+        messagesToUsers: 24,
         messagesToAssistants: 44,
-        timeInDialogs: 200, // 3 hours 20 minutes
-        averageResponseTime: 25,
         reviewedComplaints: 7,
     },
 ];
@@ -73,12 +69,8 @@ const columns: Array<Column<ModeratorData>> = [
         accessor: 'messagesToAssistants',
     },
     {
-        Header: 'Время в диалогах (мин)',
-        accessor: 'timeInDialogs',
-    },
-    {
-        Header: 'Среднее время ответа (сек)',
-        accessor: 'averageResponseTime',
+        Header: 'Сообщений пользователям',
+        accessor: 'messagesToUsers',
     },
     {
         Header: 'Рассмотренных жалоб',
@@ -87,16 +79,16 @@ const columns: Array<Column<ModeratorData>> = [
 ];
 
 export default function Page() {
-    const [generatedLink, setGeneratedLink] = useState<string>(''); // Сгенерированная ссылка
-    const [copySuccess, setCopySuccess] = useState<boolean>(false); // Успех копирования
-    const [login, setLogin] = useState<string>(''); // Логин для входа
-    const [password, setPassword] = useState<string>(''); // Пароль для входа
-    const [step, setStep] = useState<number>(0); // Шаг: 0 - генерация, 1 - ввод данных
-    const [errorMessage, setErrorMessage] = useState<string>(''); // Сообщение об ошибке
+    const [generatedLink, setGeneratedLink] = useState<string>(''); 
+    const [copySuccess, setCopySuccess] = useState<boolean>(false); 
+    const [login, setLogin] = useState<string>(''); 
+    const [password, setPassword] = useState<string>(''); 
+    const [step, setStep] = useState<number>(0); 
+    const [errorMessage, setErrorMessage] = useState<string>(''); 
 
     const handleGenerateLink = () => {
-        setStep(1); // Переходим на шаг 1 (ввод данных)
-        setGeneratedLink(''); // Очищаем прошлую ссылку
+        setStep(1); 
+        setGeneratedLink(''); 
     };
 
     const handleConfirmCredentials = async () => {
@@ -106,13 +98,13 @@ export default function Page() {
         }
 
         try {
-            // Отправляем запрос на генерацию ссылки
+            
             const response = await fetch('/api/generateModeratorLink', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ login, password }), // Передаем только логин и пароль
+                body: JSON.stringify({ login, password }), 
             });
 
             if (!response.ok) {
@@ -120,12 +112,12 @@ export default function Page() {
             }
 
             const data = await response.json();
-            setGeneratedLink(data.link); // Устанавливаем сгенерированную ссылку
+            setGeneratedLink(data.link); 
             setCopySuccess(false);
-            setStep(2); // Переходим на шаг 2 (отображение ссылки)
-            setErrorMessage(''); // Очищаем сообщение об ошибке
+            setStep(2); 
+            setErrorMessage(''); 
         } catch (error) {
-            console.error('Ошибка:', error); // Выводим ошибку для отладки
+            console.error('Ошибка:', error); 
             setErrorMessage('Ошибка генерации ссылки');
         }
     };
@@ -137,7 +129,7 @@ export default function Page() {
                 setTimeout(() => setCopySuccess(false), 2000);
             })
             .catch((error) => {
-                console.error('Ошибка копирования:', error); // Логируем ошибки копирования
+                console.error('Ошибка копирования:', error); 
             });
     };
 

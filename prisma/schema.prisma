@@ -16,16 +16,18 @@ model Admin {
 }
 
 model Moderator {
-  id           BigInt        @id @unique @default(autoincrement()) 
-  login        String        @unique
-  password     String
-  inviteToken  String?       @unique 
-  role         String        @default("moderator") 
-  lastActiveAt DateTime      @default(now()) 
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  arbitrations Arbitration[] 
+  id                      BigInt        @id @unique @default(autoincrement()) 
+  login                   String        @unique
+  password                String
+  inviteToken             String?       @unique 
+  role                    String        @default("moderator") 
+  lastActiveAt            DateTime      @default(now()) 
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+  arbitrations            Arbitration[] 
+  reviewedComplaintsCount Int           @default(0)  // Счетчик рассмотренных жалоб
 }
+
 
 model Invitation {
   id        BigInt   @id @default(autoincrement()) 
