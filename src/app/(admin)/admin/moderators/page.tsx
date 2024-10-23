@@ -1,91 +1,102 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Column } from 'react-table';
 import Table from '@/components/Table/Table';
 import styles from './Moderators.module.css';
 import Image from 'next/image';
+import { formatDistanceToNow, parseISO } from 'date-fns';
+import { ru } from 'date-fns/locale';
+import { useRouter } from 'next/navigation'; 
 
 interface ModeratorData {
-    telegramId: string;
+    id: string;
     username: string;
     lastActiveAt: string;
-    currentStatus: string;
-    messagesToAssistants: number;
-    messagesToUsers: number;
-    reviewedComplaints: number;
+    userMessagesCount: number;
+    assistantMessagesCount: number;
+    reviewedComplaintsCount: number;
 }
 
-const data: ModeratorData[] = [
-    {
-        telegramId: '2332323232',
-        username: '@username1',
-        lastActiveAt: '21/12/24 14:00',
-        currentStatus: 'Онлайн',
-        messagesToUsers: 24,
-        messagesToAssistants: 24,
-        reviewedComplaints: 5,
-    },
-    {
-        telegramId: '2332323233',
-        username: '@username2',
-        lastActiveAt: '22/12/24 16:30',
-        currentStatus: 'Оффлайн',
-        messagesToUsers: 24,
-        messagesToAssistants: 12,
-        reviewedComplaints: 3,
-    },
-    {
-        telegramId: '2332323234',
-        username: '@username3',
-        lastActiveAt: '23/12/24 12:15',
-        currentStatus: 'Занят',
-        messagesToUsers: 24,
-        messagesToAssistants: 44,
-        reviewedComplaints: 7,
-    },
-];
+// Функция для форматирования последнего времени активности
+function formatLastActive(lastActiveAt: string): string {
+    const lastActiveDate = parseISO(lastActiveAt);
+    const diffInMinutes = (new Date().getTime() - lastActiveDate.getTime()) / (1000 * 60);
 
-// Определение колонок
-const columns: Array<Column<ModeratorData>> = [
-    {
-        Header: 'Telegram ID',
-        accessor: 'telegramId',
-    },
-    {
-        Header: 'Ник пользователя',
-        accessor: 'username',
-    },
-    {
-        Header: 'Последнее время активности',
-        accessor: 'lastActiveAt',
-    },
-    {
-        Header: 'Текущий статус',
-        accessor: 'currentStatus',
-    },
-    {
-        Header: 'Сообщений ассистентам',
-        accessor: 'messagesToAssistants',
-    },
-    {
-        Header: 'Сообщений пользователям',
-        accessor: 'messagesToUsers',
-    },
-    {
-        Header: 'Рассмотренных жалоб',
-        accessor: 'reviewedComplaints',
-    },
-];
+    if (diffInMinutes < 60) {
+        return "В сети"; 
+    }
+
+    return `Был ${formatDistanceToNow(lastActiveDate, { addSuffix: true, locale: ru })}`;
+}
 
 export default function Page() {
+    const [data, setData] = useState<ModeratorData[]>([]); 
     const [generatedLink, setGeneratedLink] = useState<string>(''); 
     const [copySuccess, setCopySuccess] = useState<boolean>(false); 
     const [login, setLogin] = useState<string>(''); 
     const [password, setPassword] = useState<string>(''); 
     const [step, setStep] = useState<number>(0); 
     const [errorMessage, setErrorMessage] = useState<string>(''); 
+    const [loading, setLoading] = useState<boolean>(true); 
 
+    const router = useRouter(); 
+
+    
+    const columns: Array<Column<ModeratorData>> = [
+        {
+            Header: 'Telegram ID',
+            accessor: 'id',
+        },
+        {
+            Header: 'Ник пользователя',
+            accessor: 'username',
+        },
+        {
+            Header: 'Последнее время активности',
+            accessor: (row) => formatLastActive(row.lastActiveAt),
+        },
+        {
+            Header: 'Сообщений ассистентам',
+            accessor: 'assistantMessagesCount',
+        },
+        {
+            Header: 'Сообщений пользователям',
+            accessor: 'userMessagesCount',
+        },
+        {
+            Header: 'Рассмотренных жалоб',
+            accessor: 'reviewedComplaintsCount',
+        },
+    ];
+
+    
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const response = await fetch('/api/get-moderators');
+                const result = await response.json();
+                if (Array.isArray(result)) {
+                    setData(result);
+                } else {
+                    console.error('Данные не являются массивом:', result);
+                }
+            } catch (error) {
+                console.error('Ошибка получения данных модераторов:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    
+    const handleRowClick = (id: string) => {
+        router.push(`/admin/moderators/${id}`); 
+    };
+
+    
     const handleGenerateLink = () => {
         setStep(1); 
         setGeneratedLink(''); 
@@ -98,7 +109,6 @@ export default function Page() {
         }
 
         try {
-            
             const response = await fetch('/api/generateModeratorLink', {
                 method: 'POST',
                 headers: {
@@ -133,6 +143,10 @@ export default function Page() {
             });
     };
 
+    if (loading) {
+        return <div>Загрузка данных...</div>;
+    }
+
     return (
         <div className={styles.parent}>
             <div className={styles.main}>
@@ -143,7 +157,15 @@ export default function Page() {
                                 Статистика модераторов <span>({data.length})</span>
                             </h3>
                         </div>
-                        <Table columns={columns} data={data} />
+                        {data.length > 0 ? (
+                            <Table
+                                columns={columns}
+                                data={data}
+                                onRowClick={(row) => handleRowClick(row.id)} 
+                            />
+                        ) : (
+                            <div>Нет данных для отображения</div>
+                        )}
                     </div>
                 </div>
             </div>

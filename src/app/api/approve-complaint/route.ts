@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   try {
     console.log("Запрос получен, начало обработки");
 
-    // Парсим тело запроса для получения данных
+    
     const { complaintId, explanation, moderatorId } = await request.json();
     console.log("Тело запроса:", { complaintId, explanation, moderatorId });
 
@@ -40,17 +40,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Отсутствуют необходимые данные' }, { status: 400 });
     }
 
-    // Проверяем, существует ли модератор с таким ID
+    
     const moderator = await prisma.moderator.findUnique({
       where: { id: BigInt(moderatorId) },
     });
 
-    if (!moderator) {
-      console.log(`Модератор с ID ${moderatorId} не найден`);
-      return NextResponse.json({ error: 'Модератор не найден' }, { status: 404 });
+    if (moderator) {
+      console.log(`Модератор с ID ${moderatorId} найден`);
+
+      
+      await prisma.moderator.update({
+        where: { id: BigInt(moderatorId) },
+        data: { lastActiveAt: new Date() },
+      });
+      console.log(`Последнее время активности модератора с ID ${moderatorId} обновлено`);
+    } else {
+      console.log(`Модератор с ID ${moderatorId} не найден. Логика, связанная с модератором, пропущена.`);
     }
 
-    // Поиск жалобы по ID
+    
     console.log(`Поиск жалобы с ID ${complaintId}`);
     const complaint = await prisma.complaint.findUnique({
       where: { id: BigInt(complaintId) },
@@ -63,14 +71,14 @@ export async function POST(request: NextRequest) {
 
     console.log('Жалоба найдена:', complaint);
 
-    // Начисление коина пользователю
+    
     console.log(`Начисление коина пользователю с Telegram ID ${complaint.userId}`);
     await prisma.user.update({
       where: { telegramId: complaint.userId },
       data: { coins: { increment: 1 } },
     });
 
-    // Формирование сообщений для пользователя и ассистента
+    
     const userMessage = `Ваша жалоба одобрена. Вам начислен 1 койн. ${explanation}`;
     const assistantMessage = `Жалоба пользователя показалась модератору убедительной. ${explanation}`;
 
@@ -82,7 +90,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Не найдены токены Telegram для отправки сообщений' }, { status: 500 });
     }
 
-    // Отправка сообщений пользователю и ассистенту
+    
     console.log('Отправка сообщения пользователю');
     await sendMessageToTelegram(complaint.userId, userMessage, userBotToken);
 
@@ -91,7 +99,7 @@ export async function POST(request: NextRequest) {
 
     console.log('Сообщения успешно отправлены');
 
-    // Обновление статуса жалобы
+    
     console.log(`Обновление статуса жалобы с ID ${complaint.id} на REVIEWED`);
     await prisma.complaint.update({
       where: { id: complaint.id },
@@ -101,14 +109,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Увеличение счетчика рассмотренных жалоб для модератора
-    console.log(`Увеличение счетчика рассмотренных жалоб для модератора с ID ${moderatorId}`);
-    await prisma.moderator.update({
-      where: { id: BigInt(moderatorId) },
-      data: { reviewedComplaintsCount: { increment: 1 } },
-    });
+    
+    if (moderator) {
+      console.log(`Увеличение счетчика рассмотренных жалоб для модератора с ID ${moderatorId}`);
+      await prisma.moderator.update({
+        where: { id: BigInt(moderatorId) },
+        data: { reviewedComplaintsCount: { increment: 1 } },
+      });
+      console.log('Счетчик рассмотренных жалоб успешно увеличен');
+    }
 
-    console.log('Счетчик рассмотренных жалоб успешно увеличен');
     return NextResponse.json({ success: true });
 
   } catch (error) {

@@ -4,6 +4,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import styles from './Users.module.css';
 import Table from '@/components/Table/Table';
 import { Column, CellProps } from 'react-table';
+import { useRouter } from 'next/navigation'; 
+
 
 interface UserData {
     username: string;
@@ -34,6 +36,12 @@ function Page() {
 
     const [inputValuesAssistant, setInputValuesAssistant] = useState<string[]>(['5', '14', '30', '3']);
 
+    const router = useRouter(); 
+
+
+    const handleRowClick = (userId: string) => {
+        router.push(`/admin/users/${userId}`); 
+    };
 
 
 
@@ -55,7 +63,7 @@ function Page() {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const response = await fetch('/api/get-users'); 
+                const response = await fetch('/api/get-users');
                 const data = await response.json();
                 setUsers(data);
             } catch (error) {
@@ -131,27 +139,27 @@ function Page() {
     const columnsData: MyColumn<UserData, keyof UserData>[] = [
         {
             Header: 'Ник пользователя',
-            accessor: 'username',  
+            accessor: 'username',
             id: 'username',
         },
         {
             Header: 'Количество рефералов',
-            accessor: 'referralCount',  
+            accessor: 'referralCount',
             id: 'referralCount',
         },
         {
             Header: 'Подписка',
-            accessor: 'subscriptionType',  
+            accessor: 'subscriptionType',
             id: 'subscriptionType',
         },
         {
             Header: 'Количество запросов',
-            accessor: 'assistantRequests',  
+            accessor: 'assistantRequests',
             id: 'assistantRequests',
         },
         {
             Header: 'Постоянный клиент',
-            accessor: 'hasUpdatedSubscription',  
+            accessor: 'hasUpdatedSubscription',
             id: 'hasUpdatedSubscription',
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => (
                 <span>{typeof value === 'boolean' ? (value ? 'Да' : 'Нет') : value}</span>
@@ -507,7 +515,11 @@ function Page() {
                         </div>
 
                         {!isLoading && (
-                            <Table columns={columnsData as Column<UserData>[]} data={sortedData} />
+                            <Table
+                                columns={columnsData as Column<UserData>[]}
+                                data={sortedData}
+                                onRowClick={(row) => handleRowClick(row.username)} 
+                            />
                         )}
                     </div>
                 </div>

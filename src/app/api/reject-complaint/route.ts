@@ -26,18 +26,18 @@ export async function POST(req: NextRequest) {
   try {
     console.log("Запрос получен, начало обработки");
 
-    // Получаем данные из тела запроса
+    
     const { complaintId, explanation, moderatorId } = await req.json();
     console.log("Тело запроса:", { complaintId, explanation, moderatorId });
 
-    // Проверка на наличие всех данных
+    
     if (!complaintId || !explanation || !moderatorId) {
       return NextResponse.json({ error: 'Отсутствуют необходимые данные' }, { status: 400 });
     }
 
-    console.log(`Модератор с ID ${moderatorId} выполняет запрос`);
+    console.log(`Пользователь с ID ${moderatorId} выполняет запрос`);
 
-    // Поиск жалобы по ID
+    
     const complaint = await prisma.complaint.findUnique({
       where: { id: BigInt(complaintId) },
     });
@@ -48,13 +48,13 @@ export async function POST(req: NextRequest) {
 
     console.log('Жалоба найдена:', complaint);
 
-    // Начисление коина пользователю
+    
     await prisma.user.update({
       where: { telegramId: complaint.userId },
       data: { coins: { increment: 1 } },
     });
 
-    // Формирование сообщений для пользователя и ассистента
+    
     const userMessage = `Ваша жалоба одобрена. Вам начислен 1 койн. ${explanation}`;
     const assistantMessage = `Жалоба пользователя показалась модератору убедительной. ${explanation}`;
 
@@ -65,13 +65,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Не найдены токены Telegram для отправки сообщений' }, { status: 500 });
     }
 
-    // Отправка сообщений пользователю и ассистенту
+    
     await sendMessageToTelegram(complaint.userId, userMessage, userBotToken);
     await sendMessageToTelegram(complaint.assistantId, assistantMessage, supportBotToken);
 
     console.log('Сообщения успешно отправлены');
 
-    // Обновление статуса жалобы
+    
     await prisma.complaint.update({
       where: { id: complaint.id },
       data: {
@@ -80,13 +80,25 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Увеличение счетчика рассмотренных жалоб для модератора
-    await prisma.moderator.update({
+    
+    const moderator = await prisma.moderator.findUnique({
       where: { id: BigInt(moderatorId) },
-      data: { reviewedComplaintsCount: { increment: 1 } },
     });
 
-    console.log('Счетчик рассмотренных жалоб успешно увеличен');
+    if (moderator) {
+      
+      await prisma.moderator.update({
+        where: { id: BigInt(moderatorId) },
+        data: { 
+          reviewedComplaintsCount: { increment: 1 }, 
+          lastActiveAt: new Date() 
+        },
+      });
+
+      console.log('Счетчик рассмотренных жалоб успешно увеличен и время активности обновлено');
+    } else {
+      console.log(`Пользователь с ID ${moderatorId} не является модератором. Логика, связанная с модератором, пропущена.`);
+    }
 
     return NextResponse.json({ success: true });
 
