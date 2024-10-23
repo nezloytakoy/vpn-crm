@@ -87,6 +87,8 @@ function Page() {
 
   const [assistantData, setAssistantData] = useState<AssistantData | null>(null);
 
+  const [isLoadingPupils, setIsLoadingPupils] = useState(true);
+
   useEffect(() => {
     const fetchAssistantData = async () => {
       try {
@@ -99,13 +101,15 @@ function Page() {
         }
       } catch (error) {
         console.error('Ошибка при получении данных:', error);
+      } finally {
+        setIsLoadingPupils(false); // Устанавливаем состояние, когда загрузка завершена
       }
     };
 
     if (currentAssistantId) {
       fetchAssistantData();
     }
-  }, [currentAssistantId]); 
+  }, [currentAssistantId]);
 
 
 
@@ -240,9 +244,9 @@ function Page() {
                     src={assistantData.assistant.avatarUrl}
                     alt={`Аватар ассистента ${assistantData.assistant.username}`}
                     className={styles.avatarImage}
-                    width={100}  
-                    height={100} 
-                    objectFit="cover"  
+                    width={100}
+                    height={100}
+                    objectFit="cover"
                   />
                 ) : (
                   <p>Нет аватара</p>
@@ -388,12 +392,13 @@ function Page() {
             </div>
           </div>
           <div className={`${styles.pupilsblock} ${isMessageboxVisible ? styles.hidePupils : styles.showPupils}`}>
-            {pupils?.length > 0 ? (
+            {isLoadingPupils ? (
+              <p>Данные загружаются...</p>
+            ) : pupils?.length > 0 ? (
               pupils.map((pupil) => {
                 const lastActiveAt = new Date(pupil.lastActiveAt);
                 const now = new Date();
                 const minutesAgo = Math.floor((now.getTime() - lastActiveAt.getTime()) / 60000);
-
 
                 const formatTimeAgo = (minutesAgo: number) => {
                   if (minutesAgo < 10) {
@@ -412,11 +417,9 @@ function Page() {
                   }
                 };
 
-
                 const circleClass = `${styles.activecircle} ${!pupil.isWorking ? styles.grayCircle :
                   pupil.isWorking && !pupil.isBusy ? styles.redCircle :
-                    styles.greenCircle
-                  }`;
+                    styles.greenCircle}`;
 
                 return (
                   <div key={pupil.telegramId} className={styles.pupilblock}>
@@ -439,7 +442,7 @@ function Page() {
                 );
               })
             ) : (
-              <p>Подопечные не найдены или данные загружаются...</p>
+              <p className={styles.nopupils}>Подопечные не найдены.</p> // Теперь выводится только когда загрузка завершена, но подопечных нет
             )}
           </div>
 

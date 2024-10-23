@@ -48,6 +48,7 @@ const WaveComponent = () => {
     const [price, setPrice] = useState<number>(0);
     const [telegramUsername, setTelegramUsername] = useState('');
     const [fontSize, setFontSize] = useState('24px');
+    const [dots, setDots] = useState('...');
 
     const [assistantRequests, setAssistantRequests] = useState<number | null>(null);
 
@@ -103,8 +104,12 @@ const WaveComponent = () => {
                 await sendLogToTelegram(`Requests data from API: ${JSON.stringify(requestsData)}`);
 
 
-                setAssistantRequests(requestsData.assistantRequests || '...');
-
+                if (requestsData.assistantRequests === 0) {
+                    // Если запросов 0, то изменяем "..." на "0" через некоторое время
+                    setTimeout(() => {
+                        setDots('0');
+                    }, 2000); // Задержка 2 секунды перед сменой "..." на "0"
+                }
 
 
             } catch (error) {
@@ -190,7 +195,7 @@ const WaveComponent = () => {
 
 
                     <p className={styles.time}>
-                        {t('time')}: {assistantRequests !== null ? `${assistantRequests}` : '...'} {t('requests')}
+                        {t('time')}: {assistantRequests !== null ? `${assistantRequests}` : dots} {t('requests')}
                     </p>
 
                     <div className={styles.parent}>
