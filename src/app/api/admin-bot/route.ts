@@ -61,15 +61,15 @@ function detectUserLanguage(ctx: Context): 'ru' | 'en' {
 adminBot.use(async (ctx, next) => {
   if (ctx.from?.id) {
     const moderatorId = BigInt(ctx.from.id);
-    const newUsername = ctx.from.username || "Отсутствует"; // Получаем новое имя пользователя или ставим "Отсутствует"
+    const newUsername = ctx.from.username || "Отсутствует"; 
 
-    // Поиск модератора по ID
+    
     const moderator = await prisma.moderator.findUnique({
       where: { id: moderatorId },
     });
 
     if (moderator) {
-      // Обновляем lastActiveAt и username, если имя изменилось
+      
       if (moderator.username !== newUsername) {
         await prisma.moderator.update({
           where: { id: moderatorId },
@@ -80,7 +80,7 @@ adminBot.use(async (ctx, next) => {
         });
         console.log(`Username модератора с ID ${moderatorId} обновлен на ${newUsername}`);
       } else {
-        // Только обновляем lastActiveAt, если имя не изменилось
+        
         await prisma.moderator.update({
           where: { id: moderatorId },
           data: { lastActiveAt: new Date() },
@@ -279,45 +279,6 @@ adminBot.callbackQuery('current_arbitrations', async (ctx) => {
   }
 });
 
-adminBot.command('end_arbitration', async (ctx) => {
-  const moderatorTelegramId = BigInt(ctx.from?.id || 0);
-
-  if (!moderatorTelegramId) {
-    await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
-    return;
-  }
-
-  try {
-    
-    const arbitration = await prisma.arbitration.findFirst({
-      where: {
-        moderatorId: moderatorTelegramId,
-        status: 'IN_PROGRESS' as ArbitrationStatus,
-      },
-      include: {
-        user: true,
-        assistant: true,
-      },
-    });
-
-    if (!arbitration) {
-      await ctx.reply('У вас нет активных арбитражей.');
-      return;
-    }
-
-    
-    const keyboard = new InlineKeyboard()
-      .text('Пользователь', `arbitration_decision_user_${arbitration.id}`)
-      .row()
-      .text('Ассистент', `arbitration_decision_assistant_${arbitration.id}`);
-
-    await ctx.reply('Кто прав?', { reply_markup: keyboard });
-
-  } catch (error) {
-    console.error('Ошибка при завершении арбитража:', error);
-    await ctx.reply('Произошла ошибка при завершении арбитража.');
-  }
-});
 
 
 async function sendLogToUser(logMessage: string) {
@@ -415,119 +376,7 @@ adminBot.on('callback_query:data', async (ctx) => {
         return;
       }
 
-      try {
-        
-        const arbitration = await prisma.arbitration.findFirst({
-          where: {
-            id: arbitrationId,
-            moderatorId: moderatorTelegramId,
-            status: 'IN_PROGRESS' as ArbitrationStatus,
-          },
-          include: {
-            user: true,
-            assistant: true,
-          },
-        });
-
-        if (!arbitration) {
-          await ctx.reply('Арбитраж не найден или уже завершен.');
-          await sendLogToUser(`Арбитраж ID: ${arbitrationId} не найден или уже завершён.`);
-          return;
-        }
-
-        
-        let newStatus: ArbitrationStatus;
-        let decisionText = '';
-        let winnerTelegramId: bigint;
-        let winnerRole: 'user' | 'assistant';
-
-        if (decision === 'user') {
-          newStatus = 'REJECTED' as ArbitrationStatus; 
-          decisionText = 'USER';
-          winnerTelegramId = arbitration.user.telegramId;
-          winnerRole = 'user';
-        } else if (decision === 'assistant') {
-          newStatus = 'ACCEPTED' as ArbitrationStatus; 
-          decisionText = 'ASSISTANT';
-          winnerTelegramId = arbitration.assistant.telegramId;
-          winnerRole = 'assistant';
-        } else {
-          await ctx.reply('Неверное решение.');
-          await sendLogToUser(`Ошибка: Неверное решение ${decision}`);
-          return;
-        }
-
-        
-        await sendLogToUser(`Победитель арбитража: ID = ${winnerTelegramId}, роль = ${winnerRole}`);
-
-        
-        await prisma.arbitration.update({
-          where: { id: arbitration.id },
-          data: {
-            status: newStatus,
-            decision: decisionText,
-          },
-        });
-
-        await sendLogToUser(`Арбитраж ID: ${arbitrationId} завершён с решением: ${decisionText}`);
-
-        
-        if (winnerRole === 'assistant') {
-          await prisma.assistant.update({
-            where: { telegramId: arbitration.assistant.telegramId },
-            data: { isBusy: false },
-          });
-          await sendLogToUser(`Ассистент ID: ${arbitration.assistant.telegramId} обновлён: isBusy = false`);
-        }
-
-        
-        await prisma.assistantRequest.updateMany({
-          where: { userId: arbitration.userId, assistantId: arbitration.assistantId, isActive: true },
-          data: { isActive: false, status: 'COMPLETED' },
-        });
-
-        await sendLogToUser(`Диалог между пользователем и ассистентом завершён для арбитража ID: ${arbitrationId}`);
-
-        
-        if (winnerRole === 'assistant') {
-          await prisma.assistant.update({
-            where: { telegramId: winnerTelegramId },
-            data: { coins: { increment: 1 } },
-          });
-        } else if (winnerRole === 'user') {
-          await prisma.user.update({
-            where: { telegramId: winnerTelegramId },
-            data: { coins: { increment: 1 } },
-          });
-        }
-
-        await sendLogToUser(`Победителю арбитража ID: ${winnerTelegramId} начислен 1 койн`);
-
-        
-        await ctx.reply('Арбитраж завершён. Победителю начислен 1 койн.');
-
-        
-        let userMessage = '';
-        let assistantMessage = '';
-
-        if (decision === 'user') {
-          userMessage = 'Арбитраж завершён в вашу пользу.';
-          assistantMessage = 'Арбитраж завершён в пользу пользователя.';
-        } else {
-          userMessage = 'Арбитраж завершён в пользу ассистента.';
-          assistantMessage = 'Арбитраж завершён в вашу пользу.';
-        }
-
-        await sendMessageToUser(arbitration.user.telegramId.toString(), userMessage);
-        await sendMessageToAssistant(arbitration.assistant.telegramId.toString(), assistantMessage);
-
-        await sendLogToUser(`Уведомления отправлены участникам арбитража ID: ${arbitrationId}`);
-
-      } catch (error) {
-        console.error('Ошибка при обработке решения арбитража:', error);
-        await ctx.reply('Произошла ошибка при обработке решения арбитража.');
-        await sendLogToUser(`Ошибка при обработке арбитража: ${error instanceof Error ? error.message : String(error)}`);
-      }
+      
     } else if (data === 'current_arbitrations') {
       await ctx.answerCallbackQuery();
 
@@ -590,41 +439,9 @@ adminBot.on('message', async (ctx) => {
 
   const moderatorId = BigInt(modId);
 
-  // Поиск арбитража, если он есть
-  const arbitration = await prisma.arbitration.findFirst({
-    where: {
-      moderatorId,
-      status: 'IN_PROGRESS' as ArbitrationStatus,
-    },
-    include: {
-      user: true,
-      assistant: true,
-    },
-  });
 
-  if (arbitration) {
-    const messageToSend = `Модератор:\n${messageText}`;
-    
-    // Отправка сообщения пользователю
-    await sendMessageToUser(arbitration.user.telegramId.toString(), messageToSend);
-    // Инкрементируем счетчик сообщений пользователю
-    await prisma.moderator.update({
-      where: { id: moderatorId },
-      data: { userMessagesCount: { increment: 1 } },
-    });
 
-    // Отправка сообщения ассистенту
-    await sendMessageToAssistant(arbitration.assistant.telegramId.toString(), messageToSend);
-    // Инкрементируем счетчик сообщений ассистенту
-    await prisma.moderator.update({
-      where: { id: moderatorId },
-      data: { assistantMessagesCount: { increment: 1 } },
-    });
-
-    return;
-  }
-
-  // Проверка состояния модератора
+  
   const currentState = moderatorState[modId]?.state;
 
   if (!currentState) {
@@ -632,7 +449,7 @@ adminBot.on('message', async (ctx) => {
     return;
   }
 
-  // Обработка получения ID пользователя или ассистента
+  
   if (currentState === 'awaiting_user_id' || currentState === 'awaiting_assistant_id') {
     const id = messageText;
 
@@ -657,17 +474,17 @@ adminBot.on('message', async (ctx) => {
       const targetMessage = `Сообщение от модератора:\n\n${messageText}`;
       try {
         if (currentState === 'awaiting_message_user') {
-          // Отправка сообщения пользователю
+          
           await userBot.api.sendMessage(Number(targetId), targetMessage);
-          // Инкрементируем счетчик сообщений пользователю
+          
           await prisma.moderator.update({
             where: { id: moderatorId },
             data: { userMessagesCount: { increment: 1 } },
           });
         } else {
-          // Отправка сообщения ассистенту
+          
           await supportBot.api.sendMessage(Number(targetId), targetMessage);
-          // Инкрементируем счетчик сообщений ассистенту
+          
           await prisma.moderator.update({
             where: { id: moderatorId },
             data: { assistantMessagesCount: { increment: 1 } },

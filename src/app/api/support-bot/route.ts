@@ -906,7 +906,7 @@ bot.on('message', async (ctx) => {
     }
 
     
-    const [activeRequest, arbitration] = await Promise.all([
+    const [activeRequest] = await Promise.all([
       prisma.assistantRequest.findFirst({
         where: {
           assistant: { telegramId: assistantTelegramId },
@@ -914,36 +914,9 @@ bot.on('message', async (ctx) => {
         },
         include: { user: true },
       }),
-      prisma.arbitration.findFirst({
-        where: {
-          assistantId: assistantTelegramId,
-          status: 'IN_PROGRESS' as ArbitrationStatus,
-        },
-        include: {
-          user: true,
-          moderator: true,
-        },
-      }),
     ]);
 
-    if (arbitration) {
-      
-      const messageToSend = `Ассистент:\n${assistantMessage}`;
-
-      
-      await sendTelegramMessageToUser(
-        arbitration.user.telegramId.toString(),
-        messageToSend
-      );
-
-      
-      if (arbitration.moderator) {
-        await sendTelegramMessageToModerator(
-          arbitration.moderator.id.toString(),
-          messageToSend
-        );
-      }
-    } else if (activeRequest) {
+    if (activeRequest) {
       
       await sendTelegramMessageToUser(
         activeRequest.user.telegramId.toString(),
