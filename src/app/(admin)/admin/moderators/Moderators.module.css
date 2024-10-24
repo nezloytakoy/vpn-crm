@@ -164,6 +164,11 @@
     animation: fadeIn 0.5s;
 }
 
+.credentialsBox h2 {
+    margin-bottom: 8px;
+}
+
+
 .inputField {
     width: 80%;
     padding: 10px;

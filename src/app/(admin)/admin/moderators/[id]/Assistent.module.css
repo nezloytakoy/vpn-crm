@@ -18,12 +18,12 @@
 }
 
 .pointerblock {
-    width: 200px;
+    width: 300px;
     height: 100px;
     display: flex;
     align-items: center;
+    justify-content: flex-end;
 }
-
 .pointertext {
     font-size: 16px;
 }
@@ -41,7 +41,7 @@
 
 .infoblock {
     width: 65%;
-    height: 650px;
+    height: 300px;
     background-image: url('https://92eaarerohohicw5.public.blob.vercel-storage.com/loading-ecwQMeViO0GeoY0j8MAQ8w3CiFZBiZ.gif');
     background-size: 100px 100px;
     background-repeat: repeat;
@@ -1112,6 +1112,128 @@
 }
 
 
+
+
+.messageboxfour {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    background-color: white;
+    width: 400px;
+    height: auto;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 30px;
+    font-weight: 500;
+    margin-bottom: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.invitetitle {
+    font-size: 22px;
+}
+
+.generateButton {
+    padding: 12px 24px;
+    font-size: 16px;
+    background-color: #365CF5;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+    margin-top: 30px;
+}
+
+.generateButton:hover {
+    background-color: #2d4cb3;
+}
+
+.generateButton:active {
+    transform: scale(0.98);
+}
+
+.credentialsBox {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+    animation: fadeIn 0.5s;
+}
+
+.credentialsBox h2 {
+    margin-bottom: 8px;
+}
+
+.error {
+    color: red;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.inputField {
+    width: 80%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.confirmButton {
+    padding: 12px 24px;
+    font-size: 16px;
+    background-color: #365CF5;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.confirmButton:hover {
+    background-color: #2d4cb3;
+}
+
+.linkContainer {
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+    animation: fadeIn 0.5s;
+}
+
+.linkInput {
+    flex: 1;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    margin-right: 10px;
+}
+
+.copyButton {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4CAF50;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.copyButton:hover {
+    background-color: #45a049;
+}
+
+.successMessage {
+    color: green;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+
 @media(min-width: 1300px) {
     .infoblock {
         width: 70%;
@@ -1165,6 +1287,45 @@
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
 
+}
+
+@media (max-width: 1200px) {
+
+    .messagebox,
+    .messageboxtwo,
+    .messageboxthree,
+    .messageboxfour,
+    .messageboxfive {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        background-color: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        padding: 30px;
+        font-weight: 500;
+        margin-bottom: 40px;
+        width: 100%;
+        height: auto;
+    }
+
+    .messagebox,
+    .messageboxtwo,
+    .messageboxthree,
+    .messageboxfour,
+    .messageboxfive {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        background-color: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        padding: 20px;
+        font-weight: 500;
+        margin-bottom: 40px;
+        width: 100%;
+        height: auto;
+    }
+
+    .messageboxfour {
+        height: auto;
+    }
 }
 
 @media(max-width: 1100px) {

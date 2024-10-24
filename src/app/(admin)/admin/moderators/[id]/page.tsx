@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+
 import styles from './Assistent.module.css';
 import Link from 'next/link';
-import { FaEllipsisH } from 'react-icons/fa';
+
 import Table from '@/components/Table/Table';
 import { Column } from 'react-table';
-import confetti from 'canvas-confetti';
+
 import Image from 'next/image';
 
 interface RequestData {
@@ -17,12 +17,7 @@ interface RequestData {
   userId: number;
 }
 
-interface TransactionData {
-  id: number;
-  amount: number;
-  reason: string;
-  time: string;
-}
+
 
 interface AssistantData {
   assistant: {
@@ -71,90 +66,72 @@ interface Pupil {
 
 
 function Page() {
-  const { id: currentAssistantId } = useParams();
-  const [showDropdown, setShowDropdown] = useState(false);
+
+
   const [showPopup, setShowPopup] = useState(false);
-  const [showPupilDropdown, setShowPupilDropdown] = useState(false);
-  const [isMessageboxVisible, setIsMessageboxVisible] = useState(true);
+
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pupilDropdownRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
 
 
-  const [pupilId, setPupilId] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+
 
   const [assistantData, setAssistantData] = useState<AssistantData | null>(null);
 
-  const [isLoadingPupils, setIsLoadingPupils] = useState(true);
 
-  useEffect(() => {
-    const fetchAssistantData = async () => {
-      try {
-        const response = await fetch(`/api/get-assistant?assistantId=${currentAssistantId}`);
-        const data = await response.json();
-        if (response.ok) {
-          setAssistantData(data);
-        } else {
-          console.error('Ошибка:', data.error);
-        }
-      } catch (error) {
-        console.error('Ошибка при получении данных:', error);
-      } finally {
-        setIsLoadingPupils(false); 
-      }
-    };
 
-    if (currentAssistantId) {
-      fetchAssistantData();
+
+
+
+
+  
+
+
+  const [login, setLogin] = useState<string>(''); 
+  const [password, setPassword] = useState<string>(''); 
+  const [step, setStep] = useState<number>(0); 
+  const [errorMessage, setErrorMessage] = useState<string>(''); 
+
+
+  
+  const handleGenerateLink = () => {
+    setStep(1);
+
+    setErrorMessage('');
+  };
+
+  
+  const handleConfirmCredentials = async () => {
+    if (!login || !password) {
+      setErrorMessage('Введите новый логин и пароль!');
+      return;
     }
-  }, [currentAssistantId]);
-
-
-
-
-
-  const handleAddPupil = async () => {
-    setIsLoading(true);
 
     try {
-      if (!currentAssistantId) {
-        throw new Error('ID ассистента не найден в роуте');
-      }
-
-      const response = await fetch('/api/add-pupil', {
+      
+      const response = await fetch('/api/changeModeratorCredentials', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ pupilId, assistantId: currentAssistantId }),
+        body: JSON.stringify({ login, password }), 
       });
 
       if (!response.ok) {
-        throw new Error('Ошибка при добавлении подопечного');
+        throw new Error('Ошибка при смене логина и пароля');
       }
 
+      
+      setStep(2);
 
-      confetti({
-        particleCount: 200,
-        spread: 70,
-        origin: { y: 0.6 },
-      });
-
-      alert('Подопечный успешно добавлен 🎉');
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        alert('Ошибка: ' + error.message + ' ❌❌❌');
-      } else {
-        alert('Произошла неизвестная ошибка ❌❌❌');
-      }
-    } finally {
-      setIsLoading(false);
+      setErrorMessage('');
+    } catch (error) {
+      console.error('Ошибка:', error);
+      setErrorMessage('Ошибка при смене логина и пароля');
     }
   };
-
-  const pupils = assistantData?.pupils as Pupil[];
 
 
   const columns: Column<RequestData>[] = [
@@ -170,18 +147,6 @@ function Page() {
     { requestId: 3, action: 'Удален', log: 'Удаление записи', userId: 1003 }
   ];
 
-  const transactionColumns: Column<TransactionData>[] = [
-    { Header: 'ID', accessor: 'id' },
-    { Header: 'Количество', accessor: 'amount' },
-    { Header: 'Причина', accessor: 'reason' },
-    { Header: 'Время', accessor: 'time' }
-  ];
-
-  const transactionData: TransactionData[] = [
-    { id: 1, amount: 500, reason: 'Оплата услуг', time: '2023-10-20 14:30' },
-    { id: 2, amount: 300, reason: 'Возврат средств', time: '2023-10-19 10:15' },
-    { id: 3, amount: 200, reason: 'Пополнение счета', time: '2023-10-18 16:45' }
-  ];
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -189,16 +154,12 @@ function Page() {
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node) &&
         !(event.target as HTMLElement).closest(`.${styles.iconButton}`)
-      ) {
-        setShowDropdown(false);
-      }
+      ) 
 
       if (
         pupilDropdownRef.current &&
         !pupilDropdownRef.current.contains(event.target as Node)
-      ) {
-        setShowPupilDropdown(false);
-      }
+      ) 
 
       if (
         popupRef.current &&
@@ -214,27 +175,67 @@ function Page() {
     };
   }, []);
 
-  const toggleMessagebox = () => {
-    setIsMessageboxVisible(!isMessageboxVisible);
-  };
-
 
 
   return (
     <div className={styles.main}>
 
       <div className={styles.titlebox}>
-        <h1 className={styles.title}>Ассистент</h1>
+        <h1 className={styles.title}>Модератор</h1>
         <div className={styles.pointerblock}>
           <p className={styles.pointertext}>
-            <Link href="/admin/monitoring" className={styles.link}>Мониторинг</Link> &nbsp;&nbsp;/&nbsp;&nbsp;
-            Ассистент
+            <Link href="/admin/moderators" className={styles.link}>Модераторы</Link> &nbsp;&nbsp;/&nbsp;&nbsp;
+            Модератор
           </p>
         </div>
       </div>
 
 
       <div className={styles.assistantblock}>
+        <div className={styles.messageboxfour}>
+          <Image
+            src="https://92eaarerohohicw5.public.blob.vercel-storage.com/HLA59jMt2S3n7N2d2O-NF0jQKdkPmFmPomQgf9VIONuWrctwA.gif"
+            alt="Referral"
+            width={350}
+            height={350}
+          />
+          <h1 className={styles.invitetitle}>Смена пароля для модератора</h1>
+
+          {step === 0 && (
+            <button className={styles.generateButton} onClick={handleGenerateLink}>
+              Сменить пароль для модератора
+            </button>
+          )}
+
+          {step === 1 && (
+            <div className={styles.credentialsBox}>
+              <h2>Придумайте новый логин и пароль для модератора</h2>
+              {errorMessage && <p className={styles.error}>{errorMessage}</p>}
+              <input
+                type="text"
+                className={styles.inputField}
+                placeholder="Новый логин"
+                value={login}
+                onChange={(e) => setLogin(e.target.value)}
+              />
+              <input
+                type="password"
+                className={styles.inputField}
+                placeholder="Новый пароль"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button className={styles.confirmButton} onClick={handleConfirmCredentials}>
+                Подтвердить
+              </button>
+            </div>
+          )}
+
+          
+          {step === 2 && (
+            <p className={styles.successMessage}>Успех!</p>
+          )}
+        </div>
         <div className={styles.infoblock}>
           <div className={styles.metricsblock}>
             <div className={styles.logoparent}>
@@ -255,47 +256,19 @@ function Page() {
               <div className={styles.numbers}>
                 <div className={styles.metric}>
                   <p className={styles.number}>{assistantData?.allRequests}</p>
-                  <p className={styles.smalltitle}>Запросы</p>
+                  <p className={styles.smalltitle}>Рассмотренные жалобы</p>
                 </div>
                 <div className={styles.metric}>
                   <p className={styles.number}>{assistantData?.rejectedRequests}</p>
-                  <p className={styles.smalltitle}>Отказы</p>
+                  <p className={styles.smalltitle}>Жалобы/месяц</p>
                 </div>
                 <div className={styles.metric}>
                   <p className={styles.number}>{assistantData?.complaints}</p>
-                  <p className={styles.smalltitle}>Жалобы</p>
+                  <p className={styles.smalltitle}>Жалобы/неделя</p>
                 </div>
-                <div className={styles.metrictwo}>
-
-                  <button
-                    className={styles.iconButton}
-                    onClick={() => setShowDropdown(!showDropdown)}
-                    aria-haspopup="true"
-                    aria-expanded={showDropdown}
-                  >
-                    <FaEllipsisH />
-                  </button>
-
-                  {showDropdown && (
-                    <div className={`${styles.dropdownMenu} ${showDropdown ? styles.fadeIn : styles.fadeOut}`} ref={dropdownRef}>
-                      <div className={styles.dropdownItem}>
-                        <p className={styles.number}>{assistantData?.requestsThisMonth}</p>
-                        <p className={styles.smalltitle}>Запросы/месяц</p>
-                      </div>
-                      <div className={styles.dropdownItem}>
-                        <p className={styles.number}>{assistantData?.requestsThisWeek}</p>
-                        <p className={styles.smalltitle}>Запросы/неделя</p>
-                      </div>
-                      <div className={styles.dropdownItem}>
-                        <p className={styles.number}>{assistantData?.requestsToday}</p>
-                        <p className={styles.smalltitle}>Запросы/сутки</p>
-                      </div>
-                      <div className={styles.dropdownItem}>
-                        <p className={styles.number}>{assistantData?.averageSessionTime || 0}</p>
-                        <p className={styles.smalltitle}>Время ответа(с)</p>
-                      </div>
-                    </div>
-                  )}
+                <div className={styles.metric}>
+                  <p className={styles.number}>{assistantData?.complaints}</p>
+                  <p className={styles.smalltitle}>Жалобы/сутки</p>
                 </div>
               </div>
             </div>
@@ -306,167 +279,20 @@ function Page() {
                 <p className={styles.name}>@{assistantData?.assistant.username}</p>
                 <p className={styles.undername}>ID: {assistantData?.assistant.telegramId}</p>
               </div>
-              <div className={styles.numberstwo}>
-                <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.sessionCount}</p>
-                  <p className={styles.smalltitle}>Рабочие сессии</p>
-                </div>
-                <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.averageSessionTime || 0}</p>
-                  <p className={styles.smalltitle}>Время сессии</p>
-                </div>
-                <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.ignoredRequests}</p>
-                  <p className={styles.smalltitle}>Пропусков запросов</p>
-                </div>
-                <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.assistant.orderNumber}</p>
-                  <p className={styles.smalltitle}>Номер(№) ассистента</p>
-                </div>
-              </div>
-            </div>
-            <div className={styles.numbersthree}>
-              <div className={styles.messagebox}>
-                <h1 className={styles.gifttitle}>Заблокировать ассистента</h1>
-                <h1 className={styles.undertitletwo}>Введите на какое время (в часах)</h1>
-                <div className={styles.inputContainertwo}>
-                  <input type="text" className={styles.inputFieldtwo} placeholder="7" />
-                  <span className={styles.label}>Часов</span>
-                </div>
-                <div className={styles.buttonblock}>
-                  <button className={styles.submitButtontwo}>Подтвердить</button>
-                  <button
-                    className={styles.submitButtonthree}
-                    onClick={() => setShowPopup(true)}
-                  >
-                    Удалить ассистента
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         </div>
 
 
-        <div className={styles.pupil}>
-          <div className={styles.pupiltitleblock}>
-            <p className={styles.pupiltitle}>Подопечные</p>
-            <button
-              className={styles.iconButton}
-              onClick={() => setShowPupilDropdown(!showPupilDropdown)}
-            >
-              <FaEllipsisH />
-            </button>
-          </div>
-
-
-          {showPupilDropdown && (
-            <div className={`${styles.pupilDropdown} ${showPupilDropdown ? styles.fadeIn : styles.fadeOut}`} ref={pupilDropdownRef}>
-              <div onClick={toggleMessagebox} className={styles.pupilDropdownItem}>
-                {isMessageboxVisible ? 'Список' : 'Добавить'}
-              </div>
-            </div>
-          )}
-
-
-          <div className={`${styles.messageboxtwo} ${isMessageboxVisible ? styles.show : styles.hide}`}>
-            <h1 className={styles.gifttitle}>Добавить подопечного</h1>
-            <h1 className={styles.undertitletwo}>Введите айди подопечного</h1>
-            <div className={styles.inputContainerthree}>
-              <input
-                type="text"
-                className={styles.inputFieldtwo}
-                placeholder="7"
-                value={pupilId}
-                onChange={(e) => setPupilId(e.target.value)}
-              />
-            </div>
-            <div className={styles.buttonblock}>
-              <button
-                className={styles.submitButtonfour}
-                onClick={handleAddPupil}
-                disabled={isLoading}
-              >
-                {isLoading ? 'Загрузка...' : 'Подтвердить'}
-              </button>
-            </div>
-          </div>
-          <div className={`${styles.pupilsblock} ${isMessageboxVisible ? styles.hidePupils : styles.showPupils}`}>
-            {isLoadingPupils ? (
-              <p>Данные загружаются...</p>
-            ) : pupils?.length > 0 ? (
-              pupils.map((pupil) => {
-                const lastActiveAt = new Date(pupil.lastActiveAt);
-                const now = new Date();
-                const minutesAgo = Math.floor((now.getTime() - lastActiveAt.getTime()) / 60000);
-
-                const formatTimeAgo = (minutesAgo: number) => {
-                  if (minutesAgo < 10) {
-                    return "Сейчас в сети";
-                  } else if (minutesAgo < 60) {
-                    return `${minutesAgo}м&nbsp;назад`;
-                  } else if (minutesAgo < 1440) {
-                    const hoursAgo = Math.floor(minutesAgo / 60);
-                    return `${hoursAgo}ч&nbsp;назад`;
-                  } else if (minutesAgo < 525600) {
-                    const daysAgo = Math.floor(minutesAgo / 1440);
-                    return `${daysAgo}д&nbsp;назад`;
-                  } else {
-                    const yearsAgo = Math.floor(minutesAgo / 525600);
-                    return `${yearsAgo}г&nbsp;назад`;
-                  }
-                };
-
-                const circleClass = `${styles.activecircle} ${!pupil.isWorking ? styles.grayCircle :
-                  pupil.isWorking && !pupil.isBusy ? styles.redCircle :
-                    styles.greenCircle}`;
-
-                return (
-                  <div key={pupil.telegramId} className={styles.pupilblock}>
-                    <div className={styles.pupillogo}>
-                      <div className={circleClass}></div>
-                    </div>
-                    <div className={styles.pupilnameblock}>
-                      <div className={styles.pupilinnername}>
-                        <p className={styles.nametext}>{pupil.username}</p>
-                        <div className={styles.pupilinfo}>
-                          <p className={styles.infotext} dangerouslySetInnerHTML={{ __html: formatTimeAgo(minutesAgo) }} />
-                        </div>
-                      </div>
-                      <div className={styles.pupilunderblock}>
-                        <p className={styles.undertext}>{pupil.telegramId}</p>
-                        <p className={styles.undertext}>№{pupil.orderNumber}</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <p className={styles.nopupils}>Подопечные не найдены.</p> 
-            )}
-          </div>
-
-
-        </div>
       </div>
       <div className={styles.tablebox}>
         <div className={styles.tableWrapper}>
           <div className={styles.header}>
             <h3>
-              История запросов <span>({data.length})</span>
+              Решенные жалобы <span>({data.length})</span>
             </h3>
           </div>
           <Table columns={columns} data={data} />
-        </div>
-      </div>
-      <div className={styles.tablebox}>
-        <div className={styles.tableWrapper}>
-          <div className={styles.header}>
-            <h3>
-              История транзакций <span>({data.length})</span>
-            </h3>
-          </div>
-          <Table columns={transactionColumns} data={transactionData} />
         </div>
       </div>
 

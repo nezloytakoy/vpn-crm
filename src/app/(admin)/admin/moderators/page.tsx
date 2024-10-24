@@ -18,7 +18,7 @@ interface ModeratorData {
     reviewedComplaintsCount: number;
 }
 
-// Функция для форматирования последнего времени активности
+
 function formatLastActive(lastActiveAt: string): string {
     const lastActiveDate = parseISO(lastActiveAt);
     const diffInMinutes = (new Date().getTime() - lastActiveDate.getTime()) / (1000 * 60);
@@ -186,7 +186,7 @@ export default function Page() {
 
                 {step === 1 && (
                     <div className={styles.credentialsBox}>
-                        <h2>Введите логин и пароль</h2>
+                        <h2>Придумайте логин и пароль для модератора</h2>
                         {errorMessage && <p className={styles.error}>{errorMessage}</p>}
                         <input
                             type="text"
