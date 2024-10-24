@@ -19,51 +19,6 @@ interface RequestData {
 
 
 
-interface AssistantData {
-  assistant: {
-    orderNumber: number;
-    username: string;
-    telegramId: string;
-    avatarFileId: string | null;
-    avatarUrl: string | null;
-  };
-  allRequests: number;
-  requestsThisMonth: number;
-  requestsThisWeek: number;
-  requestsToday: number;
-  ignoredRequests: number;
-  rejectedRequests: number;
-  complaints: number;
-  sessionCount: number;
-  averageSessionTime: number;
-  averageResponseTime: number;
-  transactions: {
-    id: number;
-    amount: string;
-    reason: string;
-    time: string;
-  }[];
-  pupils: {
-    telegramId: string;
-    username: string;
-    lastActiveAt: Date;
-    orderNumber: number;
-    isWorking: boolean;
-    isBusy: boolean;
-  }[];
-}
-
-
-interface Pupil {
-  telegramId: string;
-  username: string;
-  lastActiveAt: Date;
-  orderNumber: number;
-  isWorking: boolean;
-  isBusy: boolean;
-}
-
-
 
 function Page() {
 
@@ -74,11 +29,6 @@ function Page() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pupilDropdownRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
-
-
-
-
-  const [assistantData, setAssistantData] = useState<AssistantData | null>(null);
 
 
 
@@ -240,34 +190,25 @@ function Page() {
           <div className={styles.metricsblock}>
             <div className={styles.logoparent}>
               <div className={styles.avatarblock}>
-                {assistantData?.assistant.avatarUrl ? (
-                  <Image
-                    src={assistantData.assistant.avatarUrl}
-                    alt={`Аватар ассистента ${assistantData.assistant.username}`}
-                    className={styles.avatarImage}
-                    width={100}
-                    height={100}
-                    objectFit="cover"
-                  />
-                ) : (
+                
                   <p>Нет аватара</p>
-                )}
+           
               </div>
               <div className={styles.numbers}>
                 <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.allRequests}</p>
+                  <p className={styles.number}>0</p>
                   <p className={styles.smalltitle}>Рассмотренные жалобы</p>
                 </div>
                 <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.rejectedRequests}</p>
+                  <p className={styles.number}>0</p>
                   <p className={styles.smalltitle}>Жалобы/месяц</p>
                 </div>
                 <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.complaints}</p>
+                  <p className={styles.number}>0</p>
                   <p className={styles.smalltitle}>Жалобы/неделя</p>
                 </div>
                 <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.complaints}</p>
+                  <p className={styles.number}>0</p>
                   <p className={styles.smalltitle}>Жалобы/сутки</p>
                 </div>
               </div>
@@ -276,8 +217,8 @@ function Page() {
 
             <div className={styles.datablock}>
               <div className={styles.nameblock}>
-                <p className={styles.name}>@{assistantData?.assistant.username}</p>
-                <p className={styles.undername}>ID: {assistantData?.assistant.telegramId}</p>
+                <p className={styles.name}>@space_driver</p>
+                <p className={styles.undername}>ID: 523491343</p>
               </div>
             </div>
           </div>

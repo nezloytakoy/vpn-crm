@@ -53,16 +53,6 @@ interface AssistantData {
 }
 
 
-interface Pupil {
-  telegramId: string;
-  username: string;
-  lastActiveAt: Date;
-  orderNumber: number;
-  isWorking: boolean;
-  isBusy: boolean;
-}
-
-
 
 function Page() {
   const { id: currentAssistantId } = useParams();
