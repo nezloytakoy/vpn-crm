@@ -31,11 +31,8 @@ function Page() {
   const popupRef = useRef<HTMLDivElement>(null);
   const [percentage, setPercentage] = useState<number>(60);
 
-  const [isToggled, setIsToggled] = useState(false);
+  const [isToggled] = useState(false);
 
-  const handleToggleChange = () => {
-    setIsToggled(!isToggled);
-  };
 
 
   const options = [
