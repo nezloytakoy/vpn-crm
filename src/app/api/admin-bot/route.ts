@@ -197,45 +197,7 @@ async function showModeratorMenu(ctx: Context, lang: 'ru' | 'en') {
   await ctx.reply(getTranslation(lang, 'menu'), { reply_markup: keyboard });
 }
 
-async function sendMessageToUser(chatId: string, text: string) {
-  const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
-  if (!botToken) {
-    console.error('Ошибка: TELEGRAM_USER_BOT_TOKEN не установлен');
-    return;
-  }
 
-  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-
-  try {
-    await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text }),
-    });
-  } catch (error) {
-    console.error('Ошибка при отправке сообщения пользователю:', error);
-  }
-}
-
-async function sendMessageToAssistant(chatId: string, text: string) {
-  const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
-  if (!botToken) {
-    console.error('Ошибка: TELEGRAM_SUPPORT_BOT_TOKEN не установлен');
-    return;
-  }
-
-  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-
-  try {
-    await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text }),
-    });
-  } catch (error) {
-    console.error('Ошибка при отправке сообщения ассистенту:', error);
-  }
-}
 
 adminBot.callbackQuery('message_user', async (ctx) => {
   const lang = detectUserLanguage(ctx);
