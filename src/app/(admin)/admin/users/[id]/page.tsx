@@ -4,7 +4,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import styles from './Assistent.module.css';
 import Link from 'next/link';
-import { FaEllipsisH } from 'react-icons/fa';
 import Table from '@/components/Table/Table';
 import { Column } from 'react-table';
 
@@ -55,9 +54,16 @@ interface AssistantData {
 
 
 function Page() {
-  const { id: currentAssistantId } = useParams();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
+
+  const [inputValuesAssistant, setInputValuesAssistant] = useState<string[]>(['5', '14', '30', '3']);
+
+  const handleInputChangeAssistant = (index: number, value: string) => {
+    const updatedValues = [...inputValuesAssistant];
+    updatedValues[index] = value;
+    setInputValuesAssistant(updatedValues);
+};
 
 
 
@@ -67,30 +73,10 @@ function Page() {
   const [percentage, setPercentage] = useState<number>(60);
 
 
-  
+
 
   const [assistantData, setAssistantData] = useState<AssistantData | null>(null);
 
-
-  useEffect(() => {
-    const fetchAssistantData = async () => {
-      try {
-        const response = await fetch(`/api/get-assistant?assistantId=${currentAssistantId}`);
-        const data = await response.json();
-        if (response.ok) {
-          setAssistantData(data);
-        } else {
-          console.error('Ошибка:', data.error);
-        }
-      } catch (error) {
-        console.error('Ошибка при получении данных:', error);
-      } 
-    };
-
-    if (currentAssistantId) {
-      fetchAssistantData();
-    }
-  }, [currentAssistantId]);
 
 
   const sliderStyle = {
@@ -125,7 +111,7 @@ function Page() {
         setShowDropdown(false);
       }
 
-     
+
 
       if (
         popupRef.current &&
@@ -189,38 +175,7 @@ function Page() {
                   <p className={styles.number}>{assistantData?.complaints}</p>
                   <p className={styles.smalltitle}>Запросы/неделя</p>
                 </div>
-                <div className={styles.metrictwo}>
 
-                  <button
-                    className={styles.iconButton}
-                    onClick={() => setShowDropdown(!showDropdown)}
-                    aria-haspopup="true"
-                    aria-expanded={showDropdown}
-                  >
-                    <FaEllipsisH />
-                  </button>
-
-                  {showDropdown && (
-                    <div className={`${styles.dropdownMenu} ${showDropdown ? styles.fadeIn : styles.fadeOut}`} ref={dropdownRef}>
-                      <div className={styles.dropdownItem}>
-                        <p className={styles.number}>{assistantData?.requestsThisMonth}</p>
-                        <p className={styles.smalltitle}>Запросы/месяц</p>
-                      </div>
-                      <div className={styles.dropdownItem}>
-                        <p className={styles.number}>{assistantData?.requestsThisWeek}</p>
-                        <p className={styles.smalltitle}>Запросы/неделя</p>
-                      </div>
-                      <div className={styles.dropdownItem}>
-                        <p className={styles.number}>{assistantData?.requestsToday}</p>
-                        <p className={styles.smalltitle}>Запросы/сутки</p>
-                      </div>
-                      <div className={styles.dropdownItem}>
-                        <p className={styles.number}>{assistantData?.averageSessionTime || 0}</p>
-                        <p className={styles.smalltitle}>Время ответа(с)</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
 
@@ -229,6 +184,8 @@ function Page() {
               <div className={styles.nameblock}>
                 <p className={styles.name}>@{assistantData?.assistant.username}</p>
                 <p className={styles.undername}>ID: {assistantData?.assistant.telegramId}</p>
+                <p className={styles.undername}>Номер телефона: {assistantData?.assistant.telegramId}</p>
+                <p className={styles.undername}>Платежная система: {assistantData?.assistant.telegramId}</p>
               </div>
               <div className={styles.numberstwo}>
                 <div className={styles.metric}>
@@ -238,14 +195,6 @@ function Page() {
                 <div className={styles.metric}>
                   <p className={styles.number}>{assistantData?.averageSessionTime || 0}</p>
                   <p className={styles.smalltitle}>Запросы к ИИ</p>
-                </div>
-                <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.ignoredRequests}</p>
-                  <p className={styles.smalltitle}>Пропусков запросов</p>
-                </div>
-                <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.assistant.orderNumber}</p>
-                  <p className={styles.smalltitle}>Номер(№) ассистента</p>
                 </div>
               </div>
             </div>
@@ -271,26 +220,49 @@ function Page() {
           </div>
         </div>
 
+        <div className={styles.containerone}>
+          <div className={styles.messagebox}>
+            <h1 className={styles.gifttitle}>Процент от приглашенных пользователей</h1>
+            <div className={styles.percentageHeader}>
 
-        <div className={styles.messagebox}>
-          <h1 className={styles.gifttitle}>Процент от приглашенных пользователей</h1>
-          <div className={styles.percentageHeader}>
+              <h1 className={styles.undertitletwo}>Выберите процент</h1>
+              <div className={styles.percentageDisplay}>{percentage}%</div>
+            </div>
+            <div className={styles.percentageSliderContainer}>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={percentage}
+                className={styles.percentageSlider}
+                onChange={(e) => setPercentage(Number(e.target.value))}
+                style={sliderStyle}
+              />
+            </div>
+            <button className={styles.submitButton}>Подтвердить</button>
+          </div>
+          <div className={styles.messageboxfour}>
+            <h1 className={styles.gifttitle}>Количество запросов к ИИ</h1>
+            {inputValuesAssistant.map((value, index) => (
+              <div key={index}>
+                <h1 className={styles.undertitletwo}>
+                  {index === 3 ? 'Только AI' : `Введите количество для категории AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}
+                </h1>
+                <div className={styles.inputContainertwo}>
+                  <input
+                    type="text"
+                    className={styles.inputFieldtwo}
+                    placeholder={value}
+                    value={value}
+                    onChange={(e) => handleInputChangeAssistant(index, e.target.value)}
+                  />
+                  <span className={styles.label}>Запросов</span>
+                </div>
+              </div>
+            ))}
 
-            <h1 className={styles.undertitletwo}>Выберите процент</h1>
-            <div className={styles.percentageDisplay}>{percentage}%</div>
+            <button className={styles.submitButton}>Подтвердить</button>
           </div>
-          <div className={styles.percentageSliderContainer}>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={percentage}
-              className={styles.percentageSlider}
-              onChange={(e) => setPercentage(Number(e.target.value))}
-              style={sliderStyle}
-            />
-          </div>
-          <button className={styles.submitButton}>Подтвердить</button>
         </div>
       </div>
       <div className={styles.tablebox}>
