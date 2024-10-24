@@ -365,9 +365,6 @@ adminBot.on('callback_query:data', async (ctx) => {
     } else if (data.startsWith('arbitration_decision_')) {
       await ctx.answerCallbackQuery();
 
-      const parts = data.split('_');
-      const decision = parts[2]; 
-      const arbitrationId = BigInt(parts[3]);
       const moderatorTelegramId = BigInt(ctx.from?.id || 0);
 
       if (!moderatorTelegramId) {

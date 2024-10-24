@@ -1,5 +1,5 @@
 import { Bot, webhookCallback, Context } from 'grammy';
-import { PrismaClient, ArbitrationStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 
 
@@ -143,52 +143,6 @@ async function sendTelegramMessageToUser(chatId: string, text: string) {
     }
   } catch (error) {
     console.error('Ошибка при отправке сообщения пользователю:', error);
-  }
-}
-
-
-async function sendTelegramMessageToModerator(chatId: string, text: string, arbitrationId?: bigint) {
-  const botToken = process.env.TELEGRAM_ADMIN_BOT_TOKEN;
-  if (!botToken) {
-    console.error('Ошибка: TELEGRAM_ADMIN_BOT_TOKEN не установлен');
-    return;
-  }
-
-  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-
-  try {
-    const messageData: MessageData = {
-      chat_id: chatId,
-      text,
-    };
-
-   
-    if (arbitrationId) {
-      messageData.reply_markup = {
-        inline_keyboard: [
-          [
-            {
-              text: 'Рассмотреть',
-              callback_data: `review_${arbitrationId.toString()}`,
-            },
-          ],
-        ],
-      };
-    }
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(messageData),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Ошибка отправки сообщения модератору: ${response.statusText}`);
-    }
-
-    console.log(`Сообщение успешно отправлено модератору с ID: ${chatId}`);
-  } catch (error) {
-    console.error('Ошибка при отправке сообщения модератору:', error);
   }
 }
 
