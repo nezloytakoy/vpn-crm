@@ -26,18 +26,18 @@ export async function POST(req: NextRequest) {
   try {
     console.log("Запрос получен, начало обработки");
 
-    
+
     const { complaintId, explanation, moderatorId } = await req.json();
     console.log("Тело запроса:", { complaintId, explanation, moderatorId });
 
-    
+
     if (!complaintId || !explanation || !moderatorId) {
       return NextResponse.json({ error: 'Отсутствуют необходимые данные' }, { status: 400 });
     }
 
     console.log(`Пользователь с ID ${moderatorId} выполняет запрос`);
 
-    
+
     const complaint = await prisma.complaint.findUnique({
       where: { id: BigInt(complaintId) },
     });
@@ -48,13 +48,13 @@ export async function POST(req: NextRequest) {
 
     console.log('Жалоба найдена:', complaint);
 
-    
+
     await prisma.user.update({
       where: { telegramId: complaint.userId },
       data: { coins: { increment: 1 } },
     });
 
-    
+
     const userMessage = `Ваша жалоба одобрена. Вам начислен 1 койн. ${explanation}`;
     const assistantMessage = `Жалоба пользователя показалась модератору убедительной. ${explanation}`;
 
@@ -65,13 +65,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Не найдены токены Telegram для отправки сообщений' }, { status: 500 });
     }
 
-    
+
     await sendMessageToTelegram(complaint.userId, userMessage, userBotToken);
     await sendMessageToTelegram(complaint.assistantId, assistantMessage, supportBotToken);
 
     console.log('Сообщения успешно отправлены');
 
-    
+
     await prisma.complaint.update({
       where: { id: complaint.id },
       data: {
@@ -80,20 +80,25 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    
+
     const moderator = await prisma.moderator.findUnique({
       where: { id: BigInt(moderatorId) },
     });
 
     if (moderator) {
-      
+
+
+      console.log(`Увеличение счетчика рассмотренных жалоб для модератора с ID ${moderatorId}`);
       await prisma.moderator.update({
         where: { id: BigInt(moderatorId) },
-        data: { 
-          reviewedComplaintsCount: { increment: 1 }, 
-          lastActiveAt: new Date() 
+        data: {
+          reviewedComplaintsCount: { increment: 1 },
+          arbitrations: {
+            connect: { id: complaint.id },  
+          },
         },
       });
+
 
       console.log('Счетчик рассмотренных жалоб успешно увеличен и время активности обновлено');
     } else {
