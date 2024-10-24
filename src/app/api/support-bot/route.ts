@@ -9,16 +9,6 @@ if (!token) throw new Error('TELEGRAM_SUPPORT_BOT_TOKEN not found.');
 const bot = new Bot(token);
 const prisma = new PrismaClient();
 
-interface MessageData {
-  chat_id: string;
-  text: string;
-  reply_markup?: {
-    inline_keyboard: Array<Array<{
-      text: string;
-      callback_data: string;
-    }>>;
-  };
-}
 
 type TelegramButton = {
   text: string;
