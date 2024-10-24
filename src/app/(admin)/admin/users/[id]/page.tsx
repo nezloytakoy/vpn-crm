@@ -1,13 +1,10 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import React, { useState, useRef } from 'react';
 import styles from './Assistent.module.css';
 import Link from 'next/link';
 import Table from '@/components/Table/Table';
 import { Column } from 'react-table';
-
-import Image from 'next/image';
 
 interface RequestData {
   requestId: number;
@@ -17,44 +14,8 @@ interface RequestData {
 }
 
 
-interface AssistantData {
-  assistant: {
-    orderNumber: number;
-    username: string;
-    telegramId: string;
-    avatarFileId: string | null;
-    avatarUrl: string | null;
-  };
-  allRequests: number;
-  requestsThisMonth: number;
-  requestsThisWeek: number;
-  requestsToday: number;
-  ignoredRequests: number;
-  rejectedRequests: number;
-  complaints: number;
-  sessionCount: number;
-  averageSessionTime: number;
-  averageResponseTime: number;
-  transactions: {
-    id: number;
-    amount: string;
-    reason: string;
-    time: string;
-  }[];
-  pupils: {
-    telegramId: string;
-    username: string;
-    lastActiveAt: Date;
-    orderNumber: number;
-    isWorking: boolean;
-    isBusy: boolean;
-  }[];
-}
-
-
 
 function Page() {
-  const [showDropdown, setShowDropdown] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
 
   const [inputValuesAssistant, setInputValuesAssistant] = useState<string[]>(['5', '14', '30', '3']);
@@ -66,16 +27,11 @@ function Page() {
 };
 
 
-
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
   const popupRef = useRef<HTMLDivElement>(null);
   const [percentage, setPercentage] = useState<number>(60);
 
 
 
-
-  const [assistantData, setAssistantData] = useState<AssistantData | null>(null);
 
 
 
@@ -101,32 +57,6 @@ function Page() {
 
 
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
-        !(event.target as HTMLElement).closest(`.${styles.iconButton}`)
-      ) {
-        setShowDropdown(false);
-      }
-
-
-
-      if (
-        popupRef.current &&
-        !popupRef.current.contains(event.target as Node)
-      ) {
-        setShowPopup(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
 
 
 
@@ -149,30 +79,21 @@ function Page() {
           <div className={styles.metricsblock}>
             <div className={styles.logoparent}>
               <div className={styles.avatarblock}>
-                {assistantData?.assistant.avatarUrl ? (
-                  <Image
-                    src={assistantData.assistant.avatarUrl}
-                    alt={`Аватар ассистента ${assistantData.assistant.username}`}
-                    className={styles.avatarImage}
-                    width={100}
-                    height={100}
-                    objectFit="cover"
-                  />
-                ) : (
+                
                   <p>Нет аватара</p>
-                )}
+         
               </div>
               <div className={styles.numbers}>
                 <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.allRequests}</p>
+                  <p className={styles.number}>0</p>
                   <p className={styles.smalltitle}>Запросы</p>
                 </div>
                 <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.rejectedRequests}</p>
+                  <p className={styles.number}>0</p>
                   <p className={styles.smalltitle}>Запросы/месяц</p>
                 </div>
                 <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.complaints}</p>
+                  <p className={styles.number}>0</p>
                   <p className={styles.smalltitle}>Запросы/неделя</p>
                 </div>
 
@@ -182,18 +103,18 @@ function Page() {
 
             <div className={styles.datablock}>
               <div className={styles.nameblock}>
-                <p className={styles.name}>@{assistantData?.assistant.username}</p>
-                <p className={styles.undername}>ID: {assistantData?.assistant.telegramId}</p>
-                <p className={styles.undername}>Номер телефона: {assistantData?.assistant.telegramId}</p>
-                <p className={styles.undername}>Платежная система: {assistantData?.assistant.telegramId}</p>
+                <p className={styles.name}>@space_driver</p>
+                <p className={styles.undername}>ID: 543234634</p>
+                <p className={styles.undername}>Номер телефона: отсутствует</p>
+                <p className={styles.undername}>Платежная система: звезды telegram</p>
               </div>
               <div className={styles.numberstwo}>
                 <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.sessionCount}</p>
+                  <p className={styles.number}>0</p>
                   <p className={styles.smalltitle}>Запросы/сутки</p>
                 </div>
                 <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.averageSessionTime || 0}</p>
+                  <p className={styles.number}>0</p>
                   <p className={styles.smalltitle}>Запросы к ИИ</p>
                 </div>
               </div>
