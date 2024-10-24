@@ -5,6 +5,7 @@ import styles from './Assistent.module.css';
 import Link from 'next/link';
 import Table from '@/components/Table/Table';
 import { Column } from 'react-table';
+import Select from 'react-select';
 
 interface RequestData {
   requestId: number;
@@ -24,11 +25,25 @@ function Page() {
     const updatedValues = [...inputValuesAssistant];
     updatedValues[index] = value;
     setInputValuesAssistant(updatedValues);
-};
+  };
 
 
   const popupRef = useRef<HTMLDivElement>(null);
   const [percentage, setPercentage] = useState<number>(60);
+
+  const [isToggled, setIsToggled] = useState(false);
+
+  const handleToggleChange = () => {
+    setIsToggled(!isToggled);
+  };
+
+
+  const options = [
+    { value: 'ai5', label: 'AI + 5 запросов ассистенту' },
+    { value: 'ai14', label: 'AI + 14 запросов ассистенту' },
+    { value: 'ai30', label: 'AI + 30 запросов ассистенту' },
+    { value: 'only-ai', label: 'Только AI' }
+  ];
 
 
 
@@ -75,70 +90,112 @@ function Page() {
 
 
       <div className={styles.assistantblock}>
-        <div className={styles.infoblock}>
-          <div className={styles.metricsblock}>
-            <div className={styles.logoparent}>
-              <div className={styles.avatarblock}>
-                
+        <div className={styles.containertwo}>
+          <div className={styles.infoblock}>
+            <div className={styles.metricsblock}>
+              <div className={styles.logoparent}>
+                <div className={styles.avatarblock}>
+
                   <p>Нет аватара</p>
-         
-              </div>
-              <div className={styles.numbers}>
-                <div className={styles.metric}>
-                  <p className={styles.number}>0</p>
-                  <p className={styles.smalltitle}>Запросы</p>
-                </div>
-                <div className={styles.metric}>
-                  <p className={styles.number}>0</p>
-                  <p className={styles.smalltitle}>Запросы/месяц</p>
-                </div>
-                <div className={styles.metric}>
-                  <p className={styles.number}>0</p>
-                  <p className={styles.smalltitle}>Запросы/неделя</p>
-                </div>
 
+                </div>
+                <div className={styles.numbers}>
+                  <div className={styles.metric}>
+                    <p className={styles.number}>0</p>
+                    <p className={styles.smalltitle}>Запросы/все время</p>
+                  </div>
+                  <div className={styles.metric}>
+                    <p className={styles.number}>0</p>
+                    <p className={styles.smalltitle}>Запросы/месяц</p>
+                  </div>
+                  <div className={styles.metric}>
+                    <p className={styles.number}>0</p>
+                    <p className={styles.smalltitle}>Запросы/неделя</p>
+                  </div>
+
+                </div>
               </div>
-            </div>
 
 
-            <div className={styles.datablock}>
-              <div className={styles.nameblock}>
-                <p className={styles.name}>@space_driver</p>
-                <p className={styles.undername}>ID: 543234634</p>
-                <p className={styles.undername}>Номер телефона: отсутствует</p>
-                <p className={styles.undername}>Платежная система: звезды telegram</p>
+              <div className={styles.datablock}>
+                <div className={styles.nameblock}>
+                  <p className={styles.name}>@space_driver</p>
+                  <p className={styles.undername}>ID: 543234634</p>
+                  <p className={styles.undername}>Номер телефона: отсутствует</p>
+                  <p className={styles.undername}>Платежная система: звезды telegram</p>
+                </div>
+                <div className={styles.numberstwo}>
+                  <div className={styles.metric}>
+                    <p className={styles.number}>0</p>
+                    <p className={styles.smalltitle}>Запросы/сутки</p>
+                  </div>
+                  <div className={styles.metric}>
+                    <p className={styles.number}>0</p>
+                    <p className={styles.smalltitle}>Запросы к ИИ</p>
+                  </div>
+                </div>
               </div>
-              <div className={styles.numberstwo}>
-                <div className={styles.metric}>
-                  <p className={styles.number}>0</p>
-                  <p className={styles.smalltitle}>Запросы/сутки</p>
-                </div>
-                <div className={styles.metric}>
-                  <p className={styles.number}>0</p>
-                  <p className={styles.smalltitle}>Запросы к ИИ</p>
-                </div>
-              </div>
-            </div>
-            <div className={styles.numbersthree}>
-              <div className={styles.messageboxthree}>
-                <h1 className={styles.gifttitle}>Заблокировать пользователя</h1>
-                <h1 className={styles.undertitletwo}>Введите на какое время (в часах)</h1>
-                <div className={styles.inputContainertwo}>
-                  <input type="text" className={styles.inputFieldtwo} placeholder="7" />
-                  <span className={styles.label}>Часов</span>
-                </div>
-                <div className={styles.buttonblock}>
-                  <button className={styles.submitButtontwo}>Подтвердить</button>
-                  <button
-                    className={styles.submitButtonthree}
-                    onClick={() => setShowPopup(true)}
-                  >
-                    Удалить ассистента
-                  </button>
+              <div className={styles.numbersthree}>
+                <div className={styles.messageboxthree}>
+                  <h1 className={styles.gifttitle}>Заблокировать пользователя</h1>
+                  <h1 className={styles.undertitletwo}>Введите на какое время (в часах)</h1>
+                  <div className={styles.inputContainertwo}>
+                    <input type="text" className={styles.inputFieldtwo} placeholder="7" />
+                    <span className={styles.label}>Часов</span>
+                  </div>
+                  <div className={styles.buttonblock}>
+                    <button className={styles.submitButtontwo}>Подтвердить</button>
+                    <button
+                      className={styles.submitButtonthree}
+                      onClick={() => setShowPopup(true)}
+                    >
+                      Удалить ассистента
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+          <div className={styles.containerthree}>
+            <div className={styles.messageboxfive}>
+              <h1 className={styles.gifttitle}>Текущее количество запросов к ИИ</h1>
+              <h1 className={styles.undertitletwo}>Изменить количество</h1>
+              <div className={`${styles.inputContainertwo} ${isToggled ? styles.active : ''}`}>
+                <input type="text" className={styles.inputFieldtwo} placeholder="7" />
+                <span className={`${styles.label} ${isToggled ? styles.activeLabel : ''}`}>Отказов</span>
+              </div>
+              <button className={styles.submitButton}>Подтвердить</button>
+            </div>
+            <div className={styles.messageboxfive}>
+              <h1 className={styles.gifttitle}>Текущее количество запросов к ассистенту</h1>
+              <h1 className={styles.undertitletwo}>Изменить количество</h1>
+              <div className={`${styles.inputContainertwo} ${isToggled ? styles.active : ''}`}>
+                <input type="text" className={styles.inputFieldtwo} placeholder="7" />
+                <span className={`${styles.label} ${isToggled ? styles.activeLabel : ''}`}>Отказов</span>
+              </div>
+              <button className={styles.submitButton}>Подтвердить</button>
+            </div>
+          </div>
+          <div className={styles.containerthree}>
+            <div className={styles.messageboxseven}>
+              <h1 className={styles.title}>Уведомления всем ассистентам</h1>
+              <h1 className={styles.undertitle}>Форма для сообщения</h1>
+              <textarea className={styles.input} placeholder="Сообщение" />
+              <button className={styles.submitButton}>Отправить</button>
+            </div>
+            <div className={styles.messageboxsix}>
+              <h1 className={styles.gifttitle}>Выдать подписку</h1>
+              <h1 className={styles.undertitletwo}>Выберите тип</h1>
+
+              <div className={styles.selectWrapper}>
+                <Select options={options} />
+                <div className={styles.selectArrow}></div>
+              </div>
+
+              <button className={styles.submitButton}>Подтвердить</button>
+            </div>
+          </div>
+
         </div>
 
         <div className={styles.containerone}>

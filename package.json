@@ -36,6 +36,7 @@
     "react-native-animated-nav-tab-bar": "^3.1.11",
     "react-native-vector-icons": "^10.2.0",
     "react-router-dom": "^5.3.4",
+    "react-select": "^5.8.1",
     "react-spring": "^9.7.4",
     "react-table": "^7.8.0",
     "react-wavify": "^1.11.1",
