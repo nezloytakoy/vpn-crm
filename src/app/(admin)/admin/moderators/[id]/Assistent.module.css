@@ -40,7 +40,7 @@
 }
 
 .infoblock {
-    width: 65%;
+    width: 60%;
     height: 300px;
     background-image: url('https://92eaarerohohicw5.public.blob.vercel-storage.com/loading-ecwQMeViO0GeoY0j8MAQ8w3CiFZBiZ.gif');
     background-size: 100px 100px;
@@ -1236,17 +1236,17 @@
 
 @media(min-width: 1300px) {
     .infoblock {
-        width: 70%;
+        width: 65%;
     }
     .avatarblock {
-        width: 170px;
+        width: 190px;
         height: 140px;
     }
 }
 
 @media(max-width: 1300px) {
     .infoblock {
-        width: 65%;
+        width: 63%;
     }
     .avatarblock {
         width: 190px;
@@ -1326,19 +1326,39 @@
     .messageboxfour {
         height: auto;
     }
+
+    .infoblock {
+        width: 100%;
+    }
+
+    .avatarblock {
+        width: 190px;
+    }
 }
 
 @media(max-width: 1100px) {
     .avatarblock {
-        width: 230px;
+        width: 190px;
         height: 150px;
+    }
+
+    .infoblock {
+        width: 100%;
     }
 }
 
 @media(max-width: 1000px) {
     .avatarblock {
-        width: 230px;
+        width: 190px;
         height: 140px;
+    }
+
+    .infoblock {
+        width: 100%;
+    }
+
+    .messageboxfour {
+        height: 600px;
     }
 }
 
@@ -1416,6 +1436,20 @@
         border-radius: 10px;
         border: 1px solid rgb(218, 214, 214);
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .metric {
+        margin-right: 25px;
+    }
+
+    .nameblock, .datablock {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .numbers {
+        padding-left: 10px;
     }
 
 }
