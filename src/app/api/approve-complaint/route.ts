@@ -112,17 +112,26 @@ export async function POST(request: NextRequest) {
 
     if (moderator) {
       console.log(`Увеличение счетчика рассмотренных жалоб для модератора с ID ${moderatorId}`);
+      
+      
       await prisma.moderator.update({
         where: { id: BigInt(moderatorId) },
         data: {
           reviewedComplaintsCount: { increment: 1 },
-          arbitrations: {
-            connect: { id: complaint.id },  
-          },
         },
       });
-      console.log('Счетчик рассмотренных жалоб успешно увеличен');
+    
+      
+      await prisma.arbitration.update({
+        where: { id: complaint.id },
+        data: {
+          moderator: { connect: { id: BigInt(moderatorId) } },
+        },
+      });
+    
+      console.log('Счетчик рассмотренных жалоб успешно увеличен, арбитраж добавлен');
     }
+    
 
     return NextResponse.json({ success: true });
 
