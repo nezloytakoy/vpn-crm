@@ -672,7 +672,6 @@ bot.on('message:text', async (ctx: Context) => {
         where: { user: { telegramId }, isActive: true },
         include: { assistant: true },
       }),
-     
     ]);
 
     if (!user) {
@@ -687,11 +686,23 @@ bot.on('message:text', async (ctx: Context) => {
     }
 
     
+    if (user.isActiveAIChat) {
+      await handleAIChat(telegramId, userMessage, ctx);
+    } else if (activeRequest) {
+      if (activeRequest.assistant) {
+        await sendMessageToAssistant(activeRequest.assistant.telegramId.toString(), userMessage);
+      } else {
+        console.error('Ошибка: Ассистент не найден для активного запроса.');
+      }
+    } else {
+      await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
+    }
   } catch (error) {
     console.error('Ошибка при обработке сообщения:', error);
     await ctx.reply("Не получилось обработать сообщение");
   }
 });
+
 
 
 bot.on('message:photo', async (ctx: Context) => {
