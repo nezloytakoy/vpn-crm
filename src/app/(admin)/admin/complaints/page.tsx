@@ -41,7 +41,7 @@ const Complaints: React.FC = () => {
   const [fadeOut, setFadeOut] = useState(false);
   const [explanation, setExplanation] = useState("");
   const [action, setAction] = useState<"approve" | "reject" | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false); 
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     console.log("Начало загрузки жалоб...");
@@ -73,6 +73,27 @@ const Complaints: React.FC = () => {
 
     fetchComplaints();
   }, []);
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString("en-GB", {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  };
+
+  const generateLogContent = (conversationLogs: ConversationLog[]) => {
+    return conversationLogs
+      .map(
+        (log) =>
+          `${formatTimestamp(log.timestamp)}: ${log.sender} - ${log.message}`
+      )
+      .join("\n");
+  };
 
   const columns: Array<Column<ComplaintData>> = [
     {
@@ -154,30 +175,28 @@ const Complaints: React.FC = () => {
     if (selectedComplaint) {
       setIsSubmitting(true);
       console.log(
-        `${action === "approve" ? "Одобрение" : "Отклонение"} жалобы с ID: ${
-          selectedComplaint.id
+        `${action === "approve" ? "Одобрение" : "Отклонение"} жалобы с ID: ${selectedComplaint.id
         }. Объяснение: ${explanation}`
       );
       try {
-        // Сначала получаем moderatorId с помощью запроса к вашему роуту
+        
         const moderResponse = await fetch('/api/get-moder-id', {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
-  
+
         if (!moderResponse.ok) {
           throw new Error('Не удалось получить moderatorId');
         }
-  
+
         const moderResult = await moderResponse.json();
         const moderatorId = moderResult.userId;
-  
+
         console.log(`Получен moderatorId: ${moderatorId}`);
-  
-        // Затем выполняем запрос на approve-complaint или reject-complaint
+
+        
         const response = await fetch(
-          `/api/${action === "approve" ? "approve-complaint" : "reject-complaint"}?id=${
-            selectedComplaint.id
+          `/api/${action === "approve" ? "approve-complaint" : "reject-complaint"}?id=${selectedComplaint.id
           }`,
           {
             method: "POST",
@@ -185,38 +204,35 @@ const Complaints: React.FC = () => {
             body: JSON.stringify({
               complaintId: selectedComplaint.id,
               explanation,
-              moderatorId,  // Передаем moderatorId вместе с остальными данными
+              moderatorId,  
             }),
           }
         );
-  
+
         if (!response.ok) {
           throw new Error(
-            `Ошибка при ${
-              action === "approve" ? "одобрении" : "отклонении"
+            `Ошибка при ${action === "approve" ? "одобрении" : "отклонении"
             } жалобы: ${response.status}`
           );
         }
-  
+
         const result = await response.json();
         console.log(
-          `Результат ${
-            action === "approve" ? "одобрения" : "отклонения"
+          `Результат ${action === "approve" ? "одобрения" : "отклонения"
           } жалобы:`,
           result
         );
-  
-        // Перезагрузка страницы через 3 секунды после успешного выполнения
+
+        
         setTimeout(() => {
           window.location.reload();
         }, 3000);
-  
+
         setSelectedComplaint(null);
         setIsFormVisible(false);
       } catch (error) {
         console.error(
-          `Ошибка при ${
-            action === "approve" ? "одобрении" : "отклонении"
+          `Ошибка при ${action === "approve" ? "одобрении" : "отклонении"
           } жалобы:`,
           error
         );
@@ -224,7 +240,7 @@ const Complaints: React.FC = () => {
       }
     }
   };
-  
+
 
   const openImageModal = (imageUrl: string) => {
     setSelectedImage(imageUrl);
@@ -293,7 +309,7 @@ const Complaints: React.FC = () => {
 
                 <a
                   href={`data:text/plain;charset=utf-8,${encodeURIComponent(
-                    JSON.stringify(selectedComplaint.conversationLogs, null, 2)
+                    generateLogContent(selectedComplaint.conversationLogs)
                   )}`}
                   download="dialog-logs.txt"
                   className={styles.link}

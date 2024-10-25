@@ -1233,6 +1233,13 @@
     margin-top: 10px;
 }
 
+.downloadLink {
+    color: #007bff !important;
+    text-decoration: underline !important;
+    cursor: pointer !important;
+}
+  
+
 
 @media(min-width: 1300px) {
     .infoblock {
