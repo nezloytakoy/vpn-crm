@@ -16,19 +16,21 @@ model Admin {
 }
 
 model Moderator {
-  id                      BigInt        @id @unique @default(autoincrement()) 
-  login                   String        @unique
+  id                      BigInt         @id @unique @default(autoincrement())
+  login                   String         @unique
   password                String
-  inviteToken             String?       @unique 
-  role                    String        @default("moderator") 
-  lastActiveAt            DateTime      @default(now()) 
-  createdAt               DateTime      @default(now())
-  updatedAt               DateTime      @updatedAt
-  arbitrations            BigInt[]      
-  reviewedComplaintsCount Int           @default(0)  
-  userMessagesCount       Int           @default(0)  
-  assistantMessagesCount  Int           @default(0)  
-  username                String        @default("Отсутствует")  
+  inviteToken             String?        @unique
+  role                    String         @default("moderator")
+  lastActiveAt            DateTime       @default(now())
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  reviewedComplaintsCount Int            @default(0)
+  userMessagesCount       Int            @default(0)
+  assistantMessagesCount  Int            @default(0)
+  username                String         @default("Отсутствует")
+
+  
+  complaints              Complaint[]    @relation("ModeratorComplaints")
 }
 
 model Invitation {
@@ -203,17 +205,20 @@ model Tariff {
 }
 
 model Complaint {
-  id            BigInt   @id @default(autoincrement())
-  userId        BigInt   
-  assistantId   BigInt   
-  text          String   
-  status        String   @default("PENDING") 
-  decision      String?  
-  photoUrls     String[] 
-  createdAt     DateTime @default(now()) 
-  updatedAt     DateTime @updatedAt      
-}
+  id            BigInt      @id @default(autoincrement())
+  userId        BigInt
+  assistantId   BigInt
+  text          String
+  status        String      @default("PENDING")
+  decision      String?
+  photoUrls     String[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
+  
+  moderatorId   BigInt?     
+  moderator     Moderator?  @relation("ModeratorComplaints", fields: [moderatorId], references: [id])
+}
 model RequestAction {
   id               BigInt          @id @default(autoincrement())
   requestId        BigInt

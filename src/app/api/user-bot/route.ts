@@ -407,7 +407,7 @@ bot.command('start', async (ctx) => {
         where: { code },  
         data: {
           isUsed: true,  
-          referredUserId: newUser.telegramId, // Сохраняем ID нового пользователя как referredUserId
+          referredUserId: newUser.telegramId, 
         },
       });
 
@@ -666,16 +666,13 @@ bot.on('message:text', async (ctx: Context) => {
     }
 
     
-    const [user, activeRequest, arbitration] = await Promise.all([
+    const [user, activeRequest] = await Promise.all([
       prisma.user.findUnique({ where: { telegramId } }),
       prisma.assistantRequest.findFirst({
         where: { user: { telegramId }, isActive: true },
         include: { assistant: true },
       }),
-      prisma.arbitration.findFirst({
-        where: { userId: telegramId, status: 'IN_PROGRESS' },
-        include: { assistant: true, moderator: true },
-      }),
+     
     ]);
 
     if (!user) {
@@ -689,19 +686,7 @@ bot.on('message:text', async (ctx: Context) => {
       return;
     }
 
-    if (arbitration) {
-      console.log('deleted function');
-    } else if (user.isActiveAIChat) {
-      await handleAIChat(telegramId, userMessage, ctx);
-    } else if (activeRequest) {
-      if (activeRequest.assistant) {
-        await sendMessageToAssistant(activeRequest.assistant.telegramId.toString(), userMessage);
-      } else {
-        console.error('Ошибка: Ассистент не найден для активного запроса.');
-      }
-    } else {
-      await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
-    }
+    
   } catch (error) {
     console.error('Ошибка при обработке сообщения:', error);
     await ctx.reply("Не получилось обработать сообщение");
