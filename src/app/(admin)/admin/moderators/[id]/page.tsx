@@ -21,6 +21,19 @@ interface RequestData {
   messages: Message[]; 
 }
 
+interface Complaint {
+  id: string;
+  userId: string;
+  messages: ConversationLog[];
+}
+
+interface ConversationLog {
+  sender: "USER" | "ASSISTANT";
+  message: string;
+  timestamp: string;
+}
+
+
 
 function Page() {
   const pathname = usePathname();
@@ -35,18 +48,21 @@ function Page() {
 
   const popupRef = useRef<HTMLDivElement>(null);
 
+  
+
   useEffect(() => {
     const fetchComplaints = async () => {
       try {
         const response = await fetch(`/api/get-moderator-complaints?moderatorId=${moderatorId}`);
         const complaints = await response.json();
-        const formattedData = complaints.map((complaint: any) => ({
+        const formattedData = complaints.map((complaint: Complaint) => ({
           requestId: complaint.id,
           action: 'Рассмотрена',
           log: 'Скачать',
           userId: complaint.userId,
           messages: complaint.messages,
         }));
+        
         setData(formattedData);
       } catch (error) {
         console.error('Ошибка при загрузке жалоб:', error);
