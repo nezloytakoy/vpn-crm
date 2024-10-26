@@ -7,6 +7,7 @@ import Table from '@/components/Table/Table';
 import { Column } from 'react-table';
 import Select from 'react-select';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 
 interface UserData {
   userId: string;
@@ -31,18 +32,30 @@ interface UserInfo {
   avatarUrl: string | null;
 }
 
+interface Message {
+  sender: 'USER' | 'ASSISTANT'; // Можно указать конкретные роли отправителя
+  content: string;
+  timestamp: string; // Укажите точный тип, например, ISO-строка времени
+}
+
 interface UserRequest {
   requestId: number;
   status: string;
   assistantId: number | null;
-  messages: any[];
+  messages: Message[]; // Заменяем any[] на Message[]
+}
+interface Message {
+  sender: 'USER' | 'ASSISTANT'; // Роли отправителя, если они известны
+  content: string;              // Содержимое сообщения
+  timestamp: string;            // Время отправки в формате строки
 }
 
 interface ComplaintData {
   complaintId: number;
   status: string;
-  messages: any[];
+  messages: Message[]; // Используем конкретный тип вместо any[]
 }
+
 
 interface ReferralData {
   telegramId: string;
@@ -59,7 +72,7 @@ function Page() {
   const [percentage, setPercentage] = useState<number>(60);
   const [isToggled] = useState(false);
 
-  
+
   const pathname = usePathname();
   const userId = pathname.split('/').pop();
 
@@ -102,18 +115,18 @@ function Page() {
     background: `linear-gradient(to right, #365CF5 0%, #365CF5 ${percentage}%, #e5e5e5 ${percentage}%, #e5e5e5 100%)`,
   };
 
-  
+
   const requestColumns: Column<UserRequest>[] = [
     { Header: 'ID запроса', accessor: 'requestId' },
     { Header: 'Статус', accessor: 'status' },
     { Header: 'ID ассистента', accessor: 'assistantId' },
-    
+
   ];
 
   const complaintColumns: Column<ComplaintData>[] = [
     { Header: 'ID жалобы', accessor: 'complaintId' },
     { Header: 'Статус', accessor: 'status' },
-    
+
   ];
 
   const referralColumns: Column<ReferralData>[] = [
@@ -149,7 +162,13 @@ function Page() {
               <div className={styles.logoparent}>
                 <div className={styles.avatarblock}>
                   {userData?.userInfo?.avatarUrl ? (
-                    <img src={userData.userInfo.avatarUrl} alt="Avatar" className={styles.avatarImage} />
+                    <Image
+                      src={userData.userInfo.avatarUrl || '/path/to/default/avatar.png'} // Укажите путь к изображению по умолчанию, если avatarUrl отсутствует
+                      alt="Avatar"
+                      width={100} // Укажите ширину изображения
+                      height={100} // Укажите высоту изображения
+                      className={styles.avatarImage}
+                    />
                   ) : (
                     <p>Нет аватара</p>
                   )}
@@ -298,7 +317,7 @@ function Page() {
           </div>
         </div>
       </div>
-      
+
       <div className={styles.tablebox}>
         <div className={styles.tableWrapper}>
           <div className={styles.header}>
