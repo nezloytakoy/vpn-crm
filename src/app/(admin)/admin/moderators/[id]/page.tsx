@@ -18,7 +18,7 @@ interface RequestData {
   action: string;
   log: string;
   userId: number;
-  messages: Message[]; 
+  messages: Message[];
 }
 
 interface Complaint {
@@ -48,7 +48,7 @@ function Page() {
 
   const popupRef = useRef<HTMLDivElement>(null);
 
-  
+
 
   useEffect(() => {
     const fetchComplaints = async () => {
@@ -62,7 +62,7 @@ function Page() {
           userId: complaint.userId,
           messages: complaint.messages,
         }));
-        
+
         setData(formattedData);
       } catch (error) {
         console.error('Ошибка при загрузке жалоб:', error);
@@ -73,15 +73,15 @@ function Page() {
 
   function downloadMessages(messages: Message[]) {
     const formattedMessages = messages.map(({ sender, message, timestamp }) => {
-        const date = new Date(timestamp);
-        const formattedTimestamp = date.toLocaleString("en-GB", {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
-        return `${formattedTimestamp}: ${sender} - ${message}`;
+      const date = new Date(timestamp);
+      const formattedTimestamp = date.toLocaleString("en-GB", {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      return `${formattedTimestamp}: ${sender} - ${message}`;
     });
 
     const blob = new Blob([formattedMessages.join("\n")], { type: "text/plain" });
@@ -91,7 +91,7 @@ function Page() {
     link.download = "chat_log.txt";
     link.click();
     URL.revokeObjectURL(url);
-}
+  }
 
 
 
@@ -180,7 +180,22 @@ function Page() {
             <div className={styles.logoparent}>
               <div className={styles.avatarblock}><p>Нет аватара</p></div>
               <div className={styles.numbers}>
-                <div className={styles.metric}><p className={styles.number}>0</p><p className={styles.smalltitle}>Рассмотренные жалобы</p></div>
+                <div className={styles.metric}>
+                  <p className={styles.number}>0</p>
+                  <p className={styles.smalltitle}>Рассмотренные жалобы</p>
+                </div>
+                <div className={styles.metric}>
+                  <p className={styles.number}>0</p>
+                  <p className={styles.smalltitle}>Жалобы/месяц</p>
+                </div>
+                <div className={styles.metric}>
+                  <p className={styles.number}>0</p>
+                  <p className={styles.smalltitle}>Жалобы/неделя</p>
+                </div>
+                <div className={styles.metric}>
+                  <p className={styles.number}>0</p>
+                  <p className={styles.smalltitle}>Жалобы/сутки</p>
+                </div>
               </div>
             </div>
             <div className={styles.datablock}>

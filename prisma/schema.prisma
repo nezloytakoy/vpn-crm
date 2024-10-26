@@ -101,7 +101,8 @@ model User {
   subscriptionType       SubscriptionType   @default(FREE)
   hasUpdatedSubscription Boolean            @default(false)
   totalRequests          Int                @default(0)
-  aiRequests             Int                @default(0)
+  aiRequests             Int                @default(0)        
+  usedAIRequests         Int                @default(0)        
   assistantRequests      Int                @default(0)
   coins                  Int                @default(0)
   isActiveAIChat         Boolean            @default(false)
@@ -110,8 +111,11 @@ model User {
   updatedAt              DateTime           @updatedAt
   conversations          Conversation[]
   requests               AssistantRequest[]
-  isWaitingForComplaint  Boolean            @default(false)  
+  isWaitingForComplaint  Boolean            @default(false)
+  paymentSystems         String[]           
 }
+
+
 
 model Referral {
   id             BigInt   @id @default(autoincrement())
@@ -214,8 +218,6 @@ model Complaint {
   photoUrls     String[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
-
-  
   moderatorId   BigInt?     
   moderator     Moderator?  @relation("ModeratorComplaints", fields: [moderatorId], references: [id])
 }

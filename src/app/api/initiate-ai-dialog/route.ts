@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
     console.log(`Включаем режим общения с ИИ для пользователя с ID: ${userId}`);
 
-    // Проверяем, есть ли у пользователя доступные запросы
+    
     const user = await prisma.user.findUnique({
       where: { telegramId: BigInt(userId) },
     });
@@ -47,12 +47,14 @@ export async function POST(request: Request) {
       });
     }
 
-    // Обновляем информацию о пользователе: уменьшаем количество доступных AI запросов на 1
+    
+    
     const updatedUser = await prisma.user.update({
       where: { telegramId: BigInt(userId) },
       data: {
         isActiveAIChat: true,
-        aiRequests: { decrement: 1 }, // Уменьшаем количество запросов на 1
+        aiRequests: { decrement: 1 },      
+        usedAIRequests: { increment: 1 },  
       },
     });
 

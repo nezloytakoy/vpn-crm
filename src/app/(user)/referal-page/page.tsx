@@ -174,11 +174,11 @@ function Page() {
 
       
       if (displayName.length > 12) {
-        setFontSize('19px');
+        setFontSize('15px');
       } else if (displayName.length > 8) {
-        setFontSize('21px');
+        setFontSize('17px');
       } else {
-        setFontSize('25px');
+        setFontSize('21px');
       }
 
     } else {

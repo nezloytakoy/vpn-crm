@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "usedAIRequests" INTEGER NOT NULL DEFAULT 0;

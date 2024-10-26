@@ -7,6 +7,7 @@ export async function GET() {
     try {
         const usersData = await prisma.user.findMany({
             select: {
+                telegramId: true,
                 username: true,
                 referralCount: true,
                 subscriptionType: true,
@@ -15,12 +16,13 @@ export async function GET() {
             }
         });
 
-        // Возвращаем данные без преобразования в строки
+        
         const serializedUsers = usersData.map(user => ({
+            telegramId: user.telegramId.toString(),
             username: user.username,
-            referralCount: user.referralCount, // оставляем как есть
+            referralCount: user.referralCount, 
             subscriptionType: user.subscriptionType,
-            assistantRequests: user.assistantRequests, // оставляем как есть
+            assistantRequests: user.assistantRequests, 
             hasUpdatedSubscription: user.hasUpdatedSubscription,
         }));
 

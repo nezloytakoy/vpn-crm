@@ -1175,6 +1175,13 @@
 }
 
 .title {
+    font-size: 27px;
+    font-weight: 500;
+    margin-bottom: 0px;
+    font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.titletwo {
     font-size: 18px;
     font-weight: 500;
     margin-bottom: 30px;
@@ -1459,7 +1466,6 @@
     padding: 30px;
     font-weight: 500;
     margin-bottom: 20px;
-    margin-top: 5px;
     margin-right: 20px;
 }
 

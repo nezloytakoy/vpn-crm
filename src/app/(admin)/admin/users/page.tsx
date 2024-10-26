@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 
 
 interface UserData {
+    telegramId: string,
     username: string;
     referralCount: number;
     subscriptionType: string;
@@ -518,7 +519,7 @@ function Page() {
                             <Table
                                 columns={columnsData as Column<UserData>[]}
                                 data={sortedData}
-                                onRowClick={(row) => handleRowClick(row.username)} 
+                                onRowClick={(row) => handleRowClick(row.telegramId)} 
                             />
                         )}
                     </div>

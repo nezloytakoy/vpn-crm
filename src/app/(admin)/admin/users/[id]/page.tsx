@@ -1,39 +1,95 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styles from './Assistent.module.css';
 import Link from 'next/link';
 import Table from '@/components/Table/Table';
 import { Column } from 'react-table';
 import Select from 'react-select';
+import { usePathname } from 'next/navigation';
 
-interface RequestData {
-  requestId: number;
-  action: string;
-  log: string;
-  userId: number;
+interface UserData {
+  userId: string;
+  username: string;
+  requestsToday: number;
+  requestsThisWeek: number;
+  requestsThisMonth: number;
+  totalCoins: number;
+  aiRequestCount: number;
+  assistantRequestCount: number;
+  userRequests: UserRequest[];
+  complaints: ComplaintData[];
+  referrals: ReferralData[];
+  userInfo: UserInfo;
 }
 
+interface UserInfo {
+  username: string;
+  telegramId: string;
+  phoneNumber: string | null;
+  paymentSystem: string | null;
+  avatarUrl: string | null;
+}
 
+interface UserRequest {
+  requestId: number;
+  status: string;
+  assistantId: number | null;
+  messages: any[];
+}
+
+interface ComplaintData {
+  complaintId: number;
+  status: string;
+  messages: any[];
+}
+
+interface ReferralData {
+  telegramId: string;
+  username: string;
+  hasUpdatedSubscription: boolean;
+  referralCount: number;
+}
 
 function Page() {
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [showPopup, setShowPopup] = useState(false);
-
   const [inputValuesAssistant, setInputValuesAssistant] = useState<string[]>(['5', '14', '30', '3']);
+  const popupRef = useRef<HTMLDivElement>(null);
+  const [percentage, setPercentage] = useState<number>(60);
+  const [isToggled] = useState(false);
+
+  
+  const pathname = usePathname();
+  const userId = pathname.split('/').pop();
+
+  useEffect(() => {
+    console.log('userId из маршрута:', userId);
+    const fetchData = async () => {
+      try {
+        console.log('Начинаем fetch запрос к /api/get-user-data');
+        const response = await fetch(`/api/get-user-data?userId=${userId}`);
+        console.log('Ответ от fetch запроса получен:', response);
+        const data = await response.json();
+        console.log('Данные после парсинга JSON:', data);
+        setUserData(data);
+      } catch (error) {
+        console.error('Ошибка при получении данных пользователя:', error);
+      }
+    };
+    if (userId) {
+      fetchData();
+    } else {
+      console.error('userId не определён');
+    }
+  }, [userId]);
+
 
   const handleInputChangeAssistant = (index: number, value: string) => {
     const updatedValues = [...inputValuesAssistant];
     updatedValues[index] = value;
     setInputValuesAssistant(updatedValues);
   };
-
-
-  const popupRef = useRef<HTMLDivElement>(null);
-  const [percentage, setPercentage] = useState<number>(60);
-
-  const [isToggled] = useState(false);
-
-
 
   const options = [
     { value: 'ai5', label: 'AI + 5 запросов ассистенту' },
@@ -42,39 +98,40 @@ function Page() {
     { value: 'only-ai', label: 'Только AI' }
   ];
 
-
-
-
-
-
   const sliderStyle = {
     background: `linear-gradient(to right, #365CF5 0%, #365CF5 ${percentage}%, #e5e5e5 ${percentage}%, #e5e5e5 100%)`,
   };
 
-
-
-
-  const columns: Column<RequestData>[] = [
+  
+  const requestColumns: Column<UserRequest>[] = [
     { Header: 'ID запроса', accessor: 'requestId' },
-    { Header: 'Действие', accessor: 'action' },
-    { Header: 'Лог', accessor: 'log' },
-    { Header: 'ID пользователя', accessor: 'userId' }
+    { Header: 'Статус', accessor: 'status' },
+    { Header: 'ID ассистента', accessor: 'assistantId' },
+    
   ];
 
-  const data: RequestData[] = [
-    { requestId: 1, action: 'Создан', log: 'Создание запроса', userId: 1001 },
-    { requestId: 2, action: 'Изменен', log: 'Изменение статуса', userId: 1002 },
-    { requestId: 3, action: 'Удален', log: 'Удаление записи', userId: 1003 }
+  const complaintColumns: Column<ComplaintData>[] = [
+    { Header: 'ID жалобы', accessor: 'complaintId' },
+    { Header: 'Статус', accessor: 'status' },
+    
   ];
 
-
-
-
-
+  const referralColumns: Column<ReferralData>[] = [
+    { Header: 'ID пользователя', accessor: 'telegramId' },
+    { Header: 'Юзернейм пользователя', accessor: 'username' },
+    {
+      Header: 'Постоянный пользователь',
+      accessor: 'hasUpdatedSubscription',
+      Cell: ({ value }: { value: boolean }) => (value ? 'Да' : 'Нет'),
+    },
+    {
+      Header: 'Количество рефералов',
+      accessor: 'referralCount',
+    },
+  ];
 
   return (
     <div className={styles.main}>
-
       <div className={styles.titlebox}>
         <h1 className={styles.title}>Пользователь</h1>
         <div className={styles.pointerblock}>
@@ -85,50 +142,53 @@ function Page() {
         </div>
       </div>
 
-
       <div className={styles.assistantblock}>
         <div className={styles.containertwo}>
           <div className={styles.infoblock}>
             <div className={styles.metricsblock}>
               <div className={styles.logoparent}>
                 <div className={styles.avatarblock}>
-
-                  <p>Нет аватара</p>
-
+                  {userData?.userInfo?.avatarUrl ? (
+                    <img src={userData.userInfo.avatarUrl} alt="Avatar" className={styles.avatarImage} />
+                  ) : (
+                    <p>Нет аватара</p>
+                  )}
                 </div>
                 <div className={styles.numbers}>
                   <div className={styles.metric}>
-                    <p className={styles.number}>0</p>
+                    <p className={styles.number}>{userData?.assistantRequestCount || 0}</p>
                     <p className={styles.smalltitle}>Запросы/все время</p>
                   </div>
                   <div className={styles.metric}>
-                    <p className={styles.number}>0</p>
+                    <p className={styles.number}>{userData?.requestsThisMonth || 0}</p>
                     <p className={styles.smalltitle}>Запросы/месяц</p>
                   </div>
                   <div className={styles.metric}>
-                    <p className={styles.number}>0</p>
+                    <p className={styles.number}>{userData?.requestsThisWeek || 0}</p>
                     <p className={styles.smalltitle}>Запросы/неделя</p>
                   </div>
-
                 </div>
               </div>
 
-
               <div className={styles.datablock}>
                 <div className={styles.nameblock}>
-                  <p className={styles.name}>@space_driver</p>
-                  <p className={styles.undername}>ID: 543234634</p>
-                  <p className={styles.undername}>Номер телефона: отсутствует</p>
+                  <p className={styles.name}>@{userData?.username || 'N/A'}</p>
+                  <p className={styles.undername}>ID: {userData?.userId || 'N/A'}</p>
+
                   <p className={styles.undername}>Платежная система: звезды telegram</p>
                 </div>
                 <div className={styles.numberstwo}>
                   <div className={styles.metric}>
-                    <p className={styles.number}>0</p>
+                    <p className={styles.number}>{userData?.requestsToday || 0}</p>
                     <p className={styles.smalltitle}>Запросы/сутки</p>
                   </div>
                   <div className={styles.metric}>
-                    <p className={styles.number}>0</p>
+                    <p className={styles.number}>{userData?.aiRequestCount || 0}</p>
                     <p className={styles.smalltitle}>Запросы к ИИ</p>
+                  </div>
+                  <div className={styles.metric}>
+                    <p className={styles.number}>{userData?.totalCoins || 0}</p>
+                    <p className={styles.smalltitle}>Койнов</p>
                   </div>
                 </div>
               </div>
@@ -175,7 +235,7 @@ function Page() {
           </div>
           <div className={styles.containerthree}>
             <div className={styles.messageboxseven}>
-              <h1 className={styles.title}>Уведомления всем ассистентам</h1>
+              <h1 className={styles.titletwo}>Уведомления всем ассистентам</h1>
               <h1 className={styles.undertitle}>Форма для сообщения</h1>
               <textarea className={styles.input} placeholder="Сообщение" />
               <button className={styles.submitButton}>Отправить</button>
@@ -192,14 +252,12 @@ function Page() {
               <button className={styles.submitButton}>Подтвердить</button>
             </div>
           </div>
-
         </div>
 
         <div className={styles.containerone}>
           <div className={styles.messagebox}>
             <h1 className={styles.gifttitle}>Процент от приглашенных пользователей</h1>
             <div className={styles.percentageHeader}>
-
               <h1 className={styles.undertitletwo}>Выберите процент</h1>
               <div className={styles.percentageDisplay}>{percentage}%</div>
             </div>
@@ -240,37 +298,35 @@ function Page() {
           </div>
         </div>
       </div>
+      
       <div className={styles.tablebox}>
         <div className={styles.tableWrapper}>
           <div className={styles.header}>
             <h3>
-              Запросы <span>({data.length})</span>
+              Запросы <span>({userData?.userRequests?.length || 0})</span>
             </h3>
           </div>
-          <Table columns={columns} data={data} />
+          <Table columns={requestColumns} data={userData?.userRequests || []} />
         </div>
       </div>
       <div className={styles.tablebox}>
         <div className={styles.tableWrapper}>
           <div className={styles.header}>
             <h3>
-              Жалобы <span>({data.length})</span>
+              Жалобы <span>({userData?.complaints.length || 0})</span>
             </h3>
           </div>
-          <Table columns={columns} data={data} />
+          <Table columns={complaintColumns} data={userData?.complaints || []} />
         </div>
       </div>
       <div className={styles.tablebox}>
         <div className={styles.tableWrapper}>
           <div className={styles.header}>
-            <h3>
-              Рефералы <span>({data.length})</span>
-            </h3>
+            <h3>Рефералы <span>({userData?.referrals.length || 0})</span></h3>
           </div>
-          <Table columns={columns} data={data} />
+          <Table columns={referralColumns} data={userData?.referrals || []} />
         </div>
       </div>
-
 
       {showPopup && (
         <>
