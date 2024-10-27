@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
     try {
         userId = BigInt(userIdParam);
     } catch (error) {
+        console.log(error)
         console.error('Некорректный userId:', userIdParam);
         return NextResponse.json({ error: 'Некорректный userId' }, { status: 400 });
     }
