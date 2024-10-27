@@ -2,6 +2,7 @@ import { Bot, webhookCallback } from 'grammy';
 import { Context } from 'grammy';
 import OpenAI from 'openai';
 import { PrismaClient, SubscriptionType } from '@prisma/client';
+import { InputFile } from 'grammy';
 
 import axios from 'axios';
 import FormData from 'form-data';
@@ -19,9 +20,42 @@ type ChatMessage = {
   content: string;
 };
 
+async function getFileLink(ctx: Context, fileId: string): Promise<string> {
+  try {
+    // Получаем файл, чтобы получить file_path
+    const file = await ctx.api.getFile(fileId);
+    const filePath = file.file_path;
 
+    if (!filePath) throw new Error("File path не найден");
+
+    // Создаем ссылку на файл
+    const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${filePath}`;
+    return fileLink;
+  } catch (error) {
+    console.error("Ошибка при получении ссылки на файл:", error);
+    throw error;
+  }
+}
 
 const userConversations = new Map<bigint, ChatMessage[]>();
+
+async function sendFileToAssistant(assistantChatId: string, fileBuffer: Buffer, fileName: string) { 
+  const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
+  if (!botToken) {
+    console.error('Ошибка: TELEGRAM_SUPPORT_BOT_TOKEN не установлен');
+    return;
+  }
+
+  const assistantBot = new Bot(botToken);
+
+  try {
+    // Отправляем файл ассистенту
+    await assistantBot.api.sendDocument(assistantChatId, new InputFile(fileBuffer, fileName));
+  } catch (error) {
+    console.error('Ошибка при отправке файла ассистенту:', error);
+  }
+}
+
 
 async function sendMessageToAssistant(
   ctx: Context | null,
@@ -291,7 +325,7 @@ bot.command('end_dialog', async (ctx) => {
           ctx,  // Pass ctx as the first argument
           activeRequest.assistant.telegramId.toString(),
           `${getTranslation(languageCode, 'user_ended_dialog_no_reward')}`
-      );
+        );
       } else {
         console.error('Ошибка: ассистент не найден для активного запроса');
       }
@@ -322,7 +356,7 @@ bot.command('end_dialog', async (ctx) => {
           ctx, // Add `ctx` as the first argument
           updatedAssistant.telegramId.toString(),
           `${getTranslation(languageCode, 'user_ended_dialog')} ${getTranslation(languageCode, 'coin_awarded')}`
-      );
+        );
       } else {
         console.error('Ошибка: ассистент не найден для активного запроса');
       }
@@ -947,38 +981,46 @@ bot.on('message:document', async (ctx) => {
     }
 
     const telegramId = BigInt(ctx.from.id);
-
-    const [user, activeRequest] = await Promise.all([
-      prisma.user.findUnique({ where: { telegramId } }),
-      prisma.assistantRequest.findFirst({
-        where: { user: { telegramId }, isActive: true },
-        include: { assistant: true },
-      }),
-    ]);
+    const user = await prisma.user.findUnique({ where: { telegramId } });
 
     if (!user) {
       await ctx.reply(getTranslation(languageCode, 'no_user_found'));
       return;
     }
 
-    if (user.isWaitingForComplaint) {
-      await ctx.reply('Пожалуйста, завершите оформление жалобы.');
+    const activeRequest = await prisma.assistantRequest.findFirst({
+      where: { userId: telegramId, isActive: true },
+      include: { assistant: true },
+    });
+
+    if (!activeRequest || !activeRequest.assistant) {
+      await ctx.reply(getTranslation(languageCode, 'no_active_dialog'));
       return;
     }
 
-    if (user.isActiveAIChat) {
-      await ctx.reply('Отправка файлов ИИ недоступна.');
-    } else if (activeRequest && activeRequest.assistant) {
-      // Пересылка файла ассистенту
-      await sendMessageToAssistant(ctx, activeRequest.assistant.telegramId.toString(), '');
-    } else {
-      await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
-    }
+    const document = ctx.message.document;
+    const fileId = document.file_id;
+    const fileInfo = await ctx.api.getFile(fileId);
+
+    // Построение ссылки на файл вручную
+    const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileInfo.file_path}`;
+
+    // Загрузка файла
+    const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
+    const fileBuffer = Buffer.from(response.data, 'binary');
+    const fileName = document.file_name || 'document';
+
+    await sendFileToAssistant(activeRequest.assistant.telegramId.toString(), fileBuffer, fileName);
+
+
+    await ctx.reply('Файл успешно отправлен ассистенту.');
   } catch (error) {
-    console.error('Ошибка при обработке файла:', error);
-    await ctx.reply('Не получилось отправить файл.');
+    console.error('Ошибка при обработке документа:', error);
+    await ctx.reply('Произошла ошибка при обработке вашего файла.');
   }
 });
+
+
 
 
 
