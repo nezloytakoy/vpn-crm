@@ -23,7 +23,11 @@ type ChatMessage = {
 
 const userConversations = new Map<bigint, ChatMessage[]>();
 
-async function sendMessageToAssistant(ctx: Context, assistantChatId: string, message: string) {
+async function sendMessageToAssistant(
+  ctx: Context | null,
+  assistantChatId: string,
+  message?: string
+) {
   const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
   if (!botToken) {
     console.error('Ошибка: TELEGRAM_SUPPORT_BOT_TOKEN не установлен');
@@ -33,60 +37,65 @@ async function sendMessageToAssistant(ctx: Context, assistantChatId: string, mes
   const assistantBot = new Bot(botToken);
 
   try {
-    if (ctx.chat && ctx.message) {
-      // Копируем сообщение пользователя и отправляем его ассистенту
+    if (message) {
+      // Если передано текстовое сообщение, отправляем его ассистенту
+      await assistantBot.api.sendMessage(assistantChatId, message);
+    } else if (ctx && ctx.chat && ctx.message) {
+      // Если нет текстового сообщения, копируем сообщение из контекста
       await assistantBot.api.copyMessage(
         assistantChatId,
         ctx.chat.id,
         ctx.message.message_id
       );
+    } else {
+      console.error('Ошибка: ни message, ни ctx не определены или ctx.chat/ctx.message отсутствуют');
+      return;
+    }
 
-      // Обновляем запись разговора в базе данных
-      const assistantTelegramId = BigInt(assistantChatId);
+    // Обновляем запись разговора в базе данных
+    const assistantTelegramId = BigInt(assistantChatId);
 
-      const activeConversation = await prisma.conversation.findFirst({
-        where: {
-          assistantId: assistantTelegramId,
-          status: 'IN_PROGRESS',
+    const activeConversation = await prisma.conversation.findFirst({
+      where: {
+        assistantId: assistantTelegramId,
+        status: 'IN_PROGRESS',
+      },
+    });
+
+    if (activeConversation) {
+      const currentTime = new Date();
+
+      const newMessage = {
+        sender: 'USER',
+        message: message || 'Media message', // Используем переданное сообщение или указатель на медиа
+        timestamp: currentTime.toISOString(),
+      };
+
+      const updatedMessages = [
+        ...(activeConversation.messages as Array<{
+          sender: string;
+          message: string;
+          timestamp: string;
+        }>),
+        newMessage,
+      ];
+
+      await prisma.conversation.update({
+        where: { id: activeConversation.id },
+        data: {
+          lastMessageFrom: 'USER',
+          lastUserMessageAt: currentTime,
+          messages: updatedMessages,
         },
       });
-
-      if (activeConversation) {
-        const currentTime = new Date();
-
-        const newMessage = {
-          sender: 'USER',
-          message: 'Media message', // Можно уточнить тип сообщения, если нужно
-          timestamp: currentTime.toISOString(),
-        };
-
-        const updatedMessages = [
-          ...(activeConversation.messages as Array<{
-            sender: string;
-            message: string;
-            timestamp: string;
-          }>),
-          newMessage,
-        ];
-
-        await prisma.conversation.update({
-          where: { id: activeConversation.id },
-          data: {
-            lastMessageFrom: 'USER',
-            lastUserMessageAt: currentTime,
-            messages: updatedMessages,
-          },
-        });
-      } else {
-        console.error('Ошибка: активный разговор не найден для ассистента');
-      }
     } else {
-      console.error('Ошибка: ctx.chat или ctx.message не определены');
+      console.error('Ошибка: активный разговор не найден для ассистента');
     }
   } catch (error) {
     console.error('Ошибка при отправке сообщения ассистенту:', error);
   }
 }
+
 
 
 
