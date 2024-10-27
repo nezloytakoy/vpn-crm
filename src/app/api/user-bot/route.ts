@@ -23,68 +23,70 @@ type ChatMessage = {
 
 const userConversations = new Map<bigint, ChatMessage[]>();
 
-async function sendMessageToAssistant(chatId: string, text: string) {
+async function sendMessageToAssistant(ctx: Context, assistantChatId: string, message: string) {
   const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
   if (!botToken) {
     console.error('Ошибка: TELEGRAM_SUPPORT_BOT_TOKEN не установлен');
     return;
   }
 
-  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+  const assistantBot = new Bot(botToken);
 
   try {
+    if (ctx.chat && ctx.message) {
+      // Копируем сообщение пользователя и отправляем его ассистенту
+      await assistantBot.api.copyMessage(
+        assistantChatId,
+        ctx.chat.id,
+        ctx.message.message_id
+      );
 
-    await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text }),
-    });
+      // Обновляем запись разговора в базе данных
+      const assistantTelegramId = BigInt(assistantChatId);
 
-
-    const assistantTelegramId = BigInt(chatId);
-
-
-    const activeConversation = await prisma.conversation.findFirst({
-      where: {
-        assistantId: assistantTelegramId,
-        status: 'IN_PROGRESS',
-      },
-    });
-
-    if (activeConversation) {
-
-      const currentTime = new Date();
-
-
-      const newMessage = {
-        sender: 'USER',
-        message: text,
-        timestamp: currentTime.toISOString(),
-      };
-
-
-      const updatedMessages = [
-        ...(activeConversation.messages as Array<{ sender: string; message: string; timestamp: string }>),
-        newMessage,
-      ];
-
-
-      await prisma.conversation.update({
-        where: { id: activeConversation.id },
-        data: {
-          lastMessageFrom: 'USER',
-          lastUserMessageAt: currentTime,
-          messages: updatedMessages,
+      const activeConversation = await prisma.conversation.findFirst({
+        where: {
+          assistantId: assistantTelegramId,
+          status: 'IN_PROGRESS',
         },
       });
+
+      if (activeConversation) {
+        const currentTime = new Date();
+
+        const newMessage = {
+          sender: 'USER',
+          message: 'Media message', // Можно уточнить тип сообщения, если нужно
+          timestamp: currentTime.toISOString(),
+        };
+
+        const updatedMessages = [
+          ...(activeConversation.messages as Array<{
+            sender: string;
+            message: string;
+            timestamp: string;
+          }>),
+          newMessage,
+        ];
+
+        await prisma.conversation.update({
+          where: { id: activeConversation.id },
+          data: {
+            lastMessageFrom: 'USER',
+            lastUserMessageAt: currentTime,
+            messages: updatedMessages,
+          },
+        });
+      } else {
+        console.error('Ошибка: активный разговор не найден для ассистента');
+      }
     } else {
-      console.error('Ошибка: активный разговор не найден для ассистента');
+      console.error('Ошибка: ctx.chat или ctx.message не определены');
     }
   } catch (error) {
     console.error('Ошибка при отправке сообщения ассистенту:', error);
   }
 }
-
 
 
 
@@ -277,9 +279,10 @@ bot.command('end_dialog', async (ctx) => {
 
       if (activeRequest.assistant) {
         await sendMessageToAssistant(
+          ctx,  // Pass ctx as the first argument
           activeRequest.assistant.telegramId.toString(),
           `${getTranslation(languageCode, 'user_ended_dialog_no_reward')}`
-        );
+      );
       } else {
         console.error('Ошибка: ассистент не найден для активного запроса');
       }
@@ -307,9 +310,10 @@ bot.command('end_dialog', async (ctx) => {
 
 
         await sendMessageToAssistant(
+          ctx, // Add `ctx` as the first argument
           updatedAssistant.telegramId.toString(),
           `${getTranslation(languageCode, 'user_ended_dialog')} ${getTranslation(languageCode, 'coin_awarded')}`
-        );
+      );
       } else {
         console.error('Ошибка: ассистент не найден для активного запроса');
       }
@@ -736,7 +740,7 @@ bot.on('message:text', async (ctx: Context) => {
       await handleAIChat(telegramId, userMessage, ctx);
     } else if (activeRequest) {
       if (activeRequest.assistant) {
-        await sendMessageToAssistant(activeRequest.assistant.telegramId.toString(), userMessage);
+        await sendMessageToAssistant(ctx, activeRequest.assistant.telegramId.toString(), userMessage);
       } else {
         console.error('Ошибка: Ассистент не найден для активного запроса.');
       }
@@ -822,58 +826,148 @@ bot.on('message:voice', async (ctx) => {
 
     const telegramId = BigInt(ctx.from.id);
 
-    
-    const user = await prisma.user.findUnique({
-      where: { telegramId },
-    });
+    const [user, activeRequest] = await Promise.all([
+      prisma.user.findUnique({ where: { telegramId } }),
+      prisma.assistantRequest.findFirst({
+        where: { user: { telegramId }, isActive: true },
+        include: { assistant: true },
+      }),
+    ]);
 
     if (!user) {
       await ctx.reply(getTranslation(languageCode, 'no_user_found'));
       return;
     }
 
-    if (!user.isActiveAIChat) {
-      await ctx.reply(getTranslation(languageCode, 'ai_chat_not_active'));
+    if (user.isWaitingForComplaint) {
+      await ctx.reply('Пожалуйста, завершите оформление жалобы.');
       return;
     }
 
-    
-    const voice = ctx.message.voice;
-    const fileId = voice.file_id;
+    if (user.isActiveAIChat) {
+      // Обработка голосового сообщения с ИИ
+      const voice = ctx.message.voice;
+      const fileId = voice.file_id;
 
-    
-    const file = await ctx.api.getFile(fileId);
-    const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${file.file_path}`;
+      const file = await ctx.api.getFile(fileId);
+      const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${file.file_path}`;
 
+      const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
+      const audioBuffer = Buffer.from(response.data, 'binary');
 
-    
-    const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
-    const audioBuffer = Buffer.from(response.data, 'binary');
+      const formData = new FormData();
+      formData.append('file', audioBuffer, { filename: 'audio.ogg' });
+      formData.append('model', 'whisper-1');
 
-    
-    const formData = new FormData();
-    formData.append('file', audioBuffer, { filename: 'audio.ogg' });
-    formData.append('model', 'whisper-1');
+      const transcriptionResponse = await axios.post(
+        'https://api.openai.com/v1/audio/transcriptions',
+        formData,
+        {
+          headers: {
+            'Content-Type': `multipart/form-data; boundary=${formData.getBoundary()}`,
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          },
+        }
+      );
 
-    
-    const transcriptionResponse = await axios.post(
-      'https://api.openai.com/v1/audio/transcriptions',
-      formData,
-      {
-        headers: {
-          'Content-Type': `multipart/form-data; boundary=${formData.getBoundary()}`,
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-      }
-    );
+      const transcribedText = transcriptionResponse.data.text;
 
-    const transcribedText = transcriptionResponse.data.text;
-
-    
-    await handleAIChat(telegramId, transcribedText, ctx);
+      await handleAIChat(telegramId, transcribedText, ctx);
+    } else if (activeRequest && activeRequest.assistant) {
+      // Пересылка голосового сообщения ассистенту
+      await sendMessageToAssistant(ctx, activeRequest.assistant.telegramId.toString(), '');
+    } else {
+      await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
+    }
   } catch (error) {
     console.error('Ошибка при обработке голосового сообщения:', error);
-    await ctx.reply('Произошла ошибка при обработке вашего голосового сообщения.');
+    await ctx.reply('Не получилось отправить голосовое сообщение.');
+  }
+});
+
+bot.on('message:video', async (ctx) => {
+  try {
+    const languageCode = ctx.from?.language_code || 'en';
+
+    if (!ctx.from?.id) {
+      await ctx.reply(getTranslation(languageCode, 'no_user_id'));
+      return;
+    }
+
+    const telegramId = BigInt(ctx.from.id);
+
+    const [user, activeRequest] = await Promise.all([
+      prisma.user.findUnique({ where: { telegramId } }),
+      prisma.assistantRequest.findFirst({
+        where: { user: { telegramId }, isActive: true },
+        include: { assistant: true },
+      }),
+    ]);
+
+    if (!user) {
+      await ctx.reply(getTranslation(languageCode, 'no_user_found'));
+      return;
+    }
+
+    if (user.isWaitingForComplaint) {
+      await ctx.reply('Пожалуйста, завершите оформление жалобы.');
+      return;
+    }
+
+    if (user.isActiveAIChat) {
+      await ctx.reply('Отправка видео сообщений ИИ недоступна.');
+    } else if (activeRequest && activeRequest.assistant) {
+      // Пересылка видео сообщения ассистенту
+      await sendMessageToAssistant(ctx, activeRequest.assistant.telegramId.toString(), '');
+    } else {
+      await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
+    }
+  } catch (error) {
+    console.error('Ошибка при обработке видео сообщения:', error);
+    await ctx.reply('Не получилось отправить видео сообщение.');
+  }
+});
+
+bot.on('message:document', async (ctx) => {
+  try {
+    const languageCode = ctx.from?.language_code || 'en';
+
+    if (!ctx.from?.id) {
+      await ctx.reply(getTranslation(languageCode, 'no_user_id'));
+      return;
+    }
+
+    const telegramId = BigInt(ctx.from.id);
+
+    const [user, activeRequest] = await Promise.all([
+      prisma.user.findUnique({ where: { telegramId } }),
+      prisma.assistantRequest.findFirst({
+        where: { user: { telegramId }, isActive: true },
+        include: { assistant: true },
+      }),
+    ]);
+
+    if (!user) {
+      await ctx.reply(getTranslation(languageCode, 'no_user_found'));
+      return;
+    }
+
+    if (user.isWaitingForComplaint) {
+      await ctx.reply('Пожалуйста, завершите оформление жалобы.');
+      return;
+    }
+
+    if (user.isActiveAIChat) {
+      await ctx.reply('Отправка файлов ИИ недоступна.');
+    } else if (activeRequest && activeRequest.assistant) {
+      // Пересылка файла ассистенту
+      await sendMessageToAssistant(ctx, activeRequest.assistant.telegramId.toString(), '');
+    } else {
+      await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
+    }
+  } catch (error) {
+    console.error('Ошибка при обработке файла:', error);
+    await ctx.reply('Не получилось отправить файл.');
   }
 });
 
