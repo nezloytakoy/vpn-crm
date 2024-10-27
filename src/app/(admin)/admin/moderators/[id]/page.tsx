@@ -33,7 +33,17 @@ interface ConversationLog {
   timestamp: string;
 }
 
+interface ComplaintsStatistics {
+  allTime: number;
+  thisMonth: number;
+  thisWeek: number;
+  today: number;
+}
 
+interface ModeratorData {
+  id: string;
+  username: string;
+}
 
 function Page() {
   const pathname = usePathname();
@@ -45,17 +55,20 @@ function Page() {
   const [step, setStep] = useState<number>(0);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [data, setData] = useState<RequestData[]>([]);
+  const [complaintsStatistics, setComplaintsStatistics] = useState<ComplaintsStatistics | null>(null);
+  const [moderatorData, setModeratorData] = useState<ModeratorData | null>(null);
+  const [isLoadingData, setIsLoadingData] = useState(true); // Добавлено состояние загрузки
 
   const popupRef = useRef<HTMLDivElement>(null);
-
-
 
   useEffect(() => {
     const fetchComplaints = async () => {
       try {
         const response = await fetch(`/api/get-moderator-complaints?moderatorId=${moderatorId}`);
-        const complaints = await response.json();
-        const formattedData = complaints.map((complaint: Complaint) => ({
+        const { complaintData, complaintsStatistics, moderator } = await response.json();
+
+        // Форматирование данных для таблицы
+        const formattedData = complaintData.map((complaint: Complaint) => ({
           requestId: complaint.id,
           action: 'Рассмотрена',
           log: 'Скачать',
@@ -64,8 +77,12 @@ function Page() {
         }));
 
         setData(formattedData);
+        setComplaintsStatistics(complaintsStatistics);
+        setModeratorData(moderator);
       } catch (error) {
         console.error('Ошибка при загрузке жалоб:', error);
+      } finally {
+        setIsLoadingData(false); // Снимаем состояние загрузки после завершения запроса
       }
     };
     fetchComplaints();
@@ -92,8 +109,6 @@ function Page() {
     link.click();
     URL.revokeObjectURL(url);
   }
-
-
 
   const handleGenerateLink = () => setStep(1);
 
@@ -144,6 +159,14 @@ function Page() {
     };
   }, []);
 
+  if (isLoadingData) {
+    return (
+      <div className={styles.loaderContainer}>
+        <div className={styles.loader}></div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.main}>
       <div className={styles.titlebox}>
@@ -181,25 +204,28 @@ function Page() {
               <div className={styles.avatarblock}><p>Нет аватара</p></div>
               <div className={styles.numbers}>
                 <div className={styles.metric}>
-                  <p className={styles.number}>0</p>
+                  <p className={styles.number}>{complaintsStatistics?.allTime ?? 0}</p>
                   <p className={styles.smalltitle}>Рассмотренные жалобы</p>
                 </div>
                 <div className={styles.metric}>
-                  <p className={styles.number}>0</p>
+                  <p className={styles.number}>{complaintsStatistics?.thisMonth ?? 0}</p>
                   <p className={styles.smalltitle}>Жалобы/месяц</p>
                 </div>
                 <div className={styles.metric}>
-                  <p className={styles.number}>0</p>
+                  <p className={styles.number}>{complaintsStatistics?.thisWeek ?? 0}</p>
                   <p className={styles.smalltitle}>Жалобы/неделя</p>
                 </div>
                 <div className={styles.metric}>
-                  <p className={styles.number}>0</p>
+                  <p className={styles.number}>{complaintsStatistics?.today ?? 0}</p>
                   <p className={styles.smalltitle}>Жалобы/сутки</p>
                 </div>
               </div>
             </div>
             <div className={styles.datablock}>
-              <div className={styles.nameblock}><p className={styles.name}>@space_driver</p><p className={styles.undername}>ID: 523491343</p></div>
+              <div className={styles.nameblock}>
+                <p className={styles.name}>@{moderatorData?.username || 'N/A'}</p>
+                <p className={styles.undername}>ID: {moderatorData?.id || 'N/A'}</p>
+              </div>
             </div>
           </div>
         </div>

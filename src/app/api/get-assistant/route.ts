@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'; 
 import { PrismaClient } from '@prisma/client';
 import { subDays, subMonths } from 'date-fns';
 
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   try {
     const assistantBigInt = BigInt(assistantId);
 
-
+    
     const assistant = await prisma.assistant.findUnique({
       where: { telegramId: assistantBigInt },
       select: {
@@ -30,13 +30,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Ассистент не найден' }, { status: 404 });
     }
 
-
     const serializedAssistant = {
       ...assistant,
       telegramId: assistant.telegramId.toString(),
     };
 
-
+    
     const allRequests = await prisma.assistantRequest.count({
       where: { assistantId: assistantBigInt },
     });
@@ -62,7 +61,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-
+    
     const ignoredRequests = await prisma.requestAction.count({
       where: { assistantId: assistantBigInt, action: 'IGNORED' },
     });
@@ -71,12 +70,12 @@ export async function GET(request: NextRequest) {
       where: { assistantId: assistantBigInt, action: 'REJECTED' },
     });
 
-
+    
     const complaints = await prisma.complaint.count({
       where: { assistantId: assistantBigInt },
     });
 
-
+    
     const sessions = await prisma.assistantSession.findMany({
       where: { assistantId: assistantBigInt },
     });
@@ -88,25 +87,27 @@ export async function GET(request: NextRequest) {
       }
       return total;
     }, 0);
-    const averageSessionTime = totalSessionTime / sessionCount;
+    const averageSessionTime = sessionCount > 0 ? totalSessionTime / sessionCount : 0;
 
-
+    
     const transactions = await prisma.assistantCoinTransaction.findMany({
       where: { assistantId: assistantBigInt },
       select: {
+        id: true,
         amount: true,
         reason: true,
         createdAt: true,
       },
     });
 
-
     const serializedTransactions = transactions.map((transaction) => ({
-      ...transaction,
-      amount: transaction.amount.toString(),
+      id: transaction.id.toString(),
+      amount: transaction.amount,
+      reason: transaction.reason,
+      createdAt: transaction.createdAt.toISOString(),
     }));
 
-
+    
     const pupils = await prisma.assistant.findMany({
       where: { mentorId: assistantBigInt },
       select: {
@@ -114,39 +115,56 @@ export async function GET(request: NextRequest) {
         username: true,
         lastActiveAt: true,
         orderNumber: true,
-        isWorking: true,  
-        isBusy: true      
+        isWorking: true,
+        isBusy: true,
       },
     });
 
     const serializedPupils = pupils.map((pupil) => ({
       ...pupil,
       telegramId: pupil.telegramId.toString(),
-      lastActiveAt: pupil.lastActiveAt,
-      orderNumber: pupil.orderNumber,
-      isWorking: pupil.isWorking,   
-      isBusy: pupil.isBusy          
     }));
 
-
+    
     const conversations = await prisma.conversation.findMany({
       where: { assistantId: assistantBigInt },
       select: { assistantResponseTimes: true },
     });
-
 
     const totalResponseTimes = conversations.reduce((total, conversation) => {
       const responseTimes = conversation.assistantResponseTimes as number[];
       return total + responseTimes.reduce((sum, time) => sum + time, 0);
     }, 0);
 
-
     const totalResponseCount = conversations.reduce((count, conversation) => {
-      return count + (conversation.assistantResponseTimes as number[]).length;
+      const responseTimes = conversation.assistantResponseTimes as number[];
+      return count + responseTimes.length;
     }, 0);
 
     const averageResponseTime =
-      totalResponseCount > 0 ? totalResponseTimes / totalResponseCount : 0;
+      totalResponseCount > 0 ? (totalResponseTimes / totalResponseCount) / 1000 : 0;
+
+    
+    const assistantRequests = await prisma.assistantRequest.findMany({
+      where: { assistantId: assistantBigInt },
+      select: {
+        id: true,
+        status: true,
+        userId: true,
+        conversation: {
+          select: {
+            messages: true,
+          },
+        },
+      },
+    });
+
+    const serializedAssistantRequests = assistantRequests.map((request) => ({
+      id: request.id.toString(),
+      status: request.status,
+      userId: request.userId.toString(),
+      messages: request.conversation?.messages || [],
+    }));
 
     return NextResponse.json({
       assistant: serializedAssistant,
@@ -159,11 +177,11 @@ export async function GET(request: NextRequest) {
       complaints,
       sessionCount,
       averageSessionTime,
-      averageResponseTime,
+      averageResponseTime, 
       transactions: serializedTransactions,
       pupils: serializedPupils,
+      assistantRequests: serializedAssistantRequests,
     });
-
   } catch (error) {
     console.error('Ошибка при получении информации ассистента:', error);
     return NextResponse.json({ error: 'Ошибка при получении ассистента' }, { status: 500 });

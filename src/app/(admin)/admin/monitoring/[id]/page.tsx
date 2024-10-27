@@ -10,18 +10,24 @@ import { Column } from 'react-table';
 import confetti from 'canvas-confetti';
 import Image from 'next/image';
 
-interface RequestData {
-  requestId: number;
-  action: string;
-  log: string;
-  userId: number;
+interface Message {
+  sender: 'USER' | 'ASSISTANT';
+  message: string;
+  timestamp: string;
+}
+
+interface AssistantRequest {
+  id: string;
+  status: string;
+  userId: string;
+  messages: Message[];
 }
 
 interface TransactionData {
-  id: number;
+  id: string;
   amount: number;
   reason: string;
-  time: string;
+  createdAt: string;
 }
 
 interface AssistantData {
@@ -42,22 +48,10 @@ interface AssistantData {
   sessionCount: number;
   averageSessionTime: number;
   averageResponseTime: number;
-  transactions: {
-    id: number;
-    amount: string;
-    reason: string;
-    time: string;
-  }[];
-  pupils: {
-    telegramId: string;
-    username: string;
-    lastActiveAt: Date;
-    orderNumber: number;
-    isWorking: boolean;
-    isBusy: boolean;
-  }[];
+  transactions: TransactionData[];
+  pupils: Pupil[];
+  assistantRequests: AssistantRequest[];
 }
-
 
 interface Pupil {
   telegramId: string;
@@ -67,8 +61,6 @@ interface Pupil {
   isWorking: boolean;
   isBusy: boolean;
 }
-
-
 
 function Page() {
   const { id: currentAssistantId } = useParams();
@@ -81,13 +73,16 @@ function Page() {
   const pupilDropdownRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
 
-
   const [pupilId, setPupilId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const [assistantData, setAssistantData] = useState<AssistantData | null>(null);
 
-  const [isLoadingPupils, setIsLoadingPupils] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(true); 
+
+  
+  const [blockHours, setBlockHours] = useState('');
+  const [isBlocking, setIsBlocking] = useState(false);
 
   useEffect(() => {
     const fetchAssistantData = async () => {
@@ -102,7 +97,7 @@ function Page() {
       } catch (error) {
         console.error('Ошибка при получении данных:', error);
       } finally {
-        setIsLoadingPupils(false); // Устанавливаем состояние, когда загрузка завершена
+        setIsLoadingData(false); 
       }
     };
 
@@ -110,10 +105,6 @@ function Page() {
       fetchAssistantData();
     }
   }, [currentAssistantId]);
-
-
-
-
 
   const handleAddPupil = async () => {
     setIsLoading(true);
@@ -135,7 +126,6 @@ function Page() {
         throw new Error('Ошибка при добавлении подопечного');
       }
 
-
       confetti({
         particleCount: 200,
         spread: 70,
@@ -154,34 +144,111 @@ function Page() {
     }
   };
 
+  
+  const handleBlockAssistant = async () => {
+    setIsBlocking(true);
+    try {
+      if (!currentAssistantId) {
+        throw new Error('ID ассистента не найден в роуте');
+      }
+      if (!blockHours) {
+        throw new Error('Введите количество часов');
+      }
+      const hours = parseInt(blockHours, 10);
+      if (isNaN(hours) || hours <= 0) {
+        throw new Error('Количество часов должно быть положительным числом');
+      }
+      const response = await fetch('/api/block-assistant', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ assistantId: currentAssistantId, hours }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Ошибка при блокировке ассистента');
+      }
+
+      alert('Ассистент успешно заблокирован');
+      setBlockHours(''); 
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        alert('Ошибка: ' + error.message);
+      } else {
+        alert('Произошла неизвестная ошибка');
+      }
+    } finally {
+      setIsBlocking(false);
+    }
+  };
+
   const pupils = assistantData?.pupils as Pupil[];
 
+  const handleDownload = (messages: Message[], filename: string) => {
+    const content = messages
+      .map(msg => `[${msg.timestamp}] ${msg.sender}: ${msg.message}`)
+      .join('\n');
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
 
-  const columns: Column<RequestData>[] = [
-    { Header: 'ID запроса', accessor: 'requestId' },
-    { Header: 'Действие', accessor: 'action' },
-    { Header: 'Лог', accessor: 'log' },
-    { Header: 'ID пользователя', accessor: 'userId' }
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}.txt`;
+    document.body.appendChild(link);
+    link.click();
+
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const requestColumns: Column<AssistantRequest>[] = [
+    { Header: 'ID запроса', accessor: 'id' },
+    { Header: 'Действие', accessor: 'status' },
+    {
+      Header: 'Лог',
+      accessor: 'messages',
+      Cell: ({ row }: { row: { original: AssistantRequest } }) => (
+        row.original.messages && row.original.messages.length > 0 ? (
+          <button
+            onClick={() => handleDownload(row.original.messages, `request_${row.original.id}`)}
+            className={styles.downloadButton}
+          >
+            Скачать
+          </button>
+        ) : (
+          <span>-</span>
+        )
+      ),
+    },
+    { Header: 'ID пользователя', accessor: 'userId' },
   ];
 
-  const data: RequestData[] = [
-    { requestId: 1, action: 'Создан', log: 'Создание запроса', userId: 1001 },
-    { requestId: 2, action: 'Изменен', log: 'Изменение статуса', userId: 1002 },
-    { requestId: 3, action: 'Удален', log: 'Удаление записи', userId: 1003 }
-  ];
+  const requestData: AssistantRequest[] = assistantData?.assistantRequests || [];
 
   const transactionColumns: Column<TransactionData>[] = [
     { Header: 'ID', accessor: 'id' },
     { Header: 'Количество', accessor: 'amount' },
     { Header: 'Причина', accessor: 'reason' },
-    { Header: 'Время', accessor: 'time' }
+    {
+      Header: 'Время',
+      accessor: 'createdAt',
+      Cell: ({ value }: { value: string }) => {
+        const date = new Date(value);
+        const formattedDate = date.toLocaleString('ru-RU', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+        return formattedDate;
+      },
+    },
   ];
 
-  const transactionData: TransactionData[] = [
-    { id: 1, amount: 500, reason: 'Оплата услуг', time: '2023-10-20 14:30' },
-    { id: 2, amount: 300, reason: 'Возврат средств', time: '2023-10-19 10:15' },
-    { id: 3, amount: 200, reason: 'Пополнение счета', time: '2023-10-18 16:45' }
-  ];
+  const transactionData: TransactionData[] = assistantData?.transactions || [];
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -218,7 +285,13 @@ function Page() {
     setIsMessageboxVisible(!isMessageboxVisible);
   };
 
-
+  if (isLoadingData) {
+    return (
+      <div className={styles.loaderContainer}>
+        <div className={styles.loader}></div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.main}>
@@ -232,7 +305,6 @@ function Page() {
           </p>
         </div>
       </div>
-
 
       <div className={styles.assistantblock}>
         <div className={styles.infoblock}>
@@ -291,7 +363,7 @@ function Page() {
                         <p className={styles.smalltitle}>Запросы/сутки</p>
                       </div>
                       <div className={styles.dropdownItem}>
-                        <p className={styles.number}>{assistantData?.averageSessionTime || 0}</p>
+                        <p className={styles.number}>{assistantData?.averageResponseTime ? assistantData.averageResponseTime.toFixed(2) : 0}</p>
                         <p className={styles.smalltitle}>Время ответа(с)</p>
                       </div>
                     </div>
@@ -299,7 +371,6 @@ function Page() {
                 </div>
               </div>
             </div>
-
 
             <div className={styles.datablock}>
               <div className={styles.nameblock}>
@@ -312,7 +383,7 @@ function Page() {
                   <p className={styles.smalltitle}>Рабочие сессии</p>
                 </div>
                 <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.averageSessionTime || 0}</p>
+                  <p className={styles.number}>{assistantData?.averageSessionTime ? assistantData.averageSessionTime.toFixed(2) : 0}</p>
                   <p className={styles.smalltitle}>Время сессии</p>
                 </div>
                 <div className={styles.metric}>
@@ -330,11 +401,23 @@ function Page() {
                 <h1 className={styles.gifttitle}>Заблокировать ассистента</h1>
                 <h1 className={styles.undertitletwo}>Введите на какое время (в часах)</h1>
                 <div className={styles.inputContainertwo}>
-                  <input type="text" className={styles.inputFieldtwo} placeholder="7" />
+                  <input
+                    type="text"
+                    className={styles.inputFieldtwo}
+                    placeholder="7"
+                    value={blockHours}
+                    onChange={(e) => setBlockHours(e.target.value)}
+                  />
                   <span className={styles.label}>Часов</span>
                 </div>
                 <div className={styles.buttonblock}>
-                  <button className={styles.submitButtontwo}>Подтвердить</button>
+                  <button
+                    className={styles.submitButtontwo}
+                    onClick={handleBlockAssistant}
+                    disabled={isBlocking}
+                  >
+                    {isBlocking ? 'Загрузка...' : 'Подтвердить'}
+                  </button>
                   <button
                     className={styles.submitButtonthree}
                     onClick={() => setShowPopup(true)}
@@ -347,7 +430,6 @@ function Page() {
           </div>
         </div>
 
-
         <div className={styles.pupil}>
           <div className={styles.pupiltitleblock}>
             <p className={styles.pupiltitle}>Подопечные</p>
@@ -359,7 +441,6 @@ function Page() {
             </button>
           </div>
 
-
           {showPupilDropdown && (
             <div className={`${styles.pupilDropdown} ${showPupilDropdown ? styles.fadeIn : styles.fadeOut}`} ref={pupilDropdownRef}>
               <div onClick={toggleMessagebox} className={styles.pupilDropdownItem}>
@@ -367,7 +448,6 @@ function Page() {
               </div>
             </div>
           )}
-
 
           <div className={`${styles.messageboxtwo} ${isMessageboxVisible ? styles.show : styles.hide}`}>
             <h1 className={styles.gifttitle}>Добавить подопечного</h1>
@@ -392,7 +472,7 @@ function Page() {
             </div>
           </div>
           <div className={`${styles.pupilsblock} ${isMessageboxVisible ? styles.hidePupils : styles.showPupils}`}>
-            {isLoadingPupils ? (
+            {isLoadingData ? (
               <p>Данные загружаются...</p>
             ) : pupils?.length > 0 ? (
               pupils.map((pupil) => {
@@ -442,34 +522,31 @@ function Page() {
                 );
               })
             ) : (
-              <p className={styles.nopupils}>Подопечные не найдены.</p> // Теперь выводится только когда загрузка завершена, но подопечных нет
+              <p className={styles.nopupils}>Подопечные не найдены.</p>
             )}
           </div>
-
-
         </div>
       </div>
       <div className={styles.tablebox}>
         <div className={styles.tableWrapper}>
           <div className={styles.header}>
             <h3>
-              История запросов <span>({data.length})</span>
+              История запросов <span>({requestData.length})</span>
             </h3>
           </div>
-          <Table columns={columns} data={data} />
+          <Table columns={requestColumns} data={requestData} />
         </div>
       </div>
       <div className={styles.tablebox}>
         <div className={styles.tableWrapper}>
           <div className={styles.header}>
             <h3>
-              История транзакций <span>({data.length})</span>
+              История транзакций <span>({transactionData.length})</span>
             </h3>
           </div>
           <Table columns={transactionColumns} data={transactionData} />
         </div>
       </div>
-
 
       {showPopup && (
         <>

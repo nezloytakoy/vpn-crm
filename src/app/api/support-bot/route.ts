@@ -272,6 +272,46 @@ async function findNewAssistant(requestId: bigint, ignoredAssistants: bigint[]) 
 }
 
 
+async function checkAssistantBlockStatus(ctx: Context) {
+  if (!ctx.from?.id) return;
+  
+  const telegramId = BigInt(ctx.from.id);
+
+  
+  const assistant = await prisma.assistant.findUnique({
+    where: { telegramId },
+    select: { isBlocked: true, unblockDate: true },
+  });
+
+  if (assistant?.isBlocked && assistant.unblockDate) {
+    const currentTime = new Date();
+    const remainingTime = Math.ceil((assistant.unblockDate.getTime() - currentTime.getTime()) / (1000 * 60 * 60));
+
+    if (remainingTime > 0) {
+      
+      await ctx.reply(`Вы заблокированы администратором, до разблокировки осталось ${remainingTime} часов.`);
+      return true;
+    } else {
+      
+      await prisma.assistant.update({
+        where: { telegramId },
+        data: { isBlocked: false, unblockDate: null },
+      });
+      await ctx.reply("Время блокировки вышло, вы можете продолжать пользоваться ботом.");
+    }
+  }
+  return false;
+}
+
+
+bot.use(async (ctx, next) => {
+  const isBlocked = await checkAssistantBlockStatus(ctx);
+  if (!isBlocked) {
+    await next(); 
+  }
+});
+
+
 
 bot.command('end_work', async (ctx) => {
   try {

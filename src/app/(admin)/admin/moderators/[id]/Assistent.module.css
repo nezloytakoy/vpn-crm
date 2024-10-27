@@ -1239,6 +1239,31 @@
     cursor: pointer !important;
 }
   
+.loaderContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.loader {
+    border: 8px solid rgba(0, 0, 0, 0.1);
+    width: 70px;
+    height: 70px;
+    border-radius: 100%;
+    border-left-color: #365cf5;
+    animation: spin 1s ease infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
 
 
 @media(min-width: 1300px) {

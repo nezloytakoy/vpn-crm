@@ -61,6 +61,7 @@ interface ReferralData {
 
 function Page() {
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [isLoadingData, setIsLoadingData] = useState(true); 
   const [showPopup, setShowPopup] = useState(false);
   const [inputValuesAssistant, setInputValuesAssistant] = useState<string[]>(['5', '14', '30', '3']);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -71,23 +72,19 @@ function Page() {
   const userId = pathname.split('/').pop();
 
   useEffect(() => {
-    console.log('userId из маршрута:', userId);
     const fetchData = async () => {
       try {
-        console.log('Начинаем fetch запрос к /api/get-user-data');
         const response = await fetch(`/api/get-user-data?userId=${userId}`);
-        console.log('Ответ от fetch запроса получен:', response);
         const data = await response.json();
-        console.log('Данные после парсинга JSON:', data);
         setUserData(data);
       } catch (error) {
         console.error('Ошибка при получении данных пользователя:', error);
+      } finally {
+        setIsLoadingData(false); 
       }
     };
     if (userId) {
       fetchData();
-    } else {
-      console.error('userId не определён');
     }
   }, [userId]);
 
@@ -108,7 +105,6 @@ function Page() {
     background: `linear-gradient(to right, #365CF5 0%, #365CF5 ${percentage}%, #e5e5e5 ${percentage}%, #e5e5e5 100%)`,
   };
 
-  
   const handleDownload = (messages: Message[], filename: string) => {
     const content = messages
       .map(msg => `[${msg.timestamp}] ${msg.sender}: ${msg.content}`)
@@ -116,14 +112,12 @@ function Page() {
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
 
-    
     const link = document.createElement('a');
     link.href = url;
     link.download = `${filename}.txt`;
     document.body.appendChild(link);
     link.click();
 
-    
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
@@ -180,10 +174,17 @@ function Page() {
     },
   ];
 
-
   const referralColumns: Column<ReferralData>[] = [
     { Header: 'ID пользователя', accessor: 'telegramId' },
-    { Header: 'Юзернейм пользователя', accessor: 'username' },
+    {
+      Header: 'Юзернейм пользователя',
+      accessor: 'username',
+      Cell: ({ row }: { row: { original: ReferralData } }) => (
+        <Link href={`/admin/users/${row.original.telegramId}`} className={styles.usernameLink}>
+          {row.original.username}
+        </Link>
+      ),
+    },
     {
       Header: 'Постоянный пользователь',
       accessor: 'hasUpdatedSubscription',
@@ -196,10 +197,13 @@ function Page() {
     },
   ];
 
-
-
-
-  console.log('Данные для таблицы жалоб:', userData?.complaints);
+  if (isLoadingData) {
+    return (
+      <div className={styles.loaderContainer}>
+        <div className={styles.loader}></div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.main}>

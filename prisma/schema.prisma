@@ -44,31 +44,30 @@ model Invitation {
 }
 
 model Assistant {
-  telegramId   BigInt     @id @unique
-  username     String?
-  role         String     @default("assistant")
-  isWorking    Boolean    @default(false)
-  isBusy       Boolean    @default(false)
-  startedAt    DateTime?
-  joinedAt     DateTime   @default(now())
-  coins        Int        @default(0)
-  lastActiveAt DateTime?
-  orderNumber  Int?
-  avatarFileId String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  mentorId     BigInt?  
-  requests        AssistantRequest[]
-  conversations   Conversation[]
-  requestActions  RequestAction[]
-  sessions        AssistantSession[]
-  coinTransactions AssistantCoinTransaction[] @relation("AssistantToCoinTransactions")
+  telegramId             BigInt                     @id @unique
+  username               String?
+  role                   String                     @default("assistant")
+  isWorking              Boolean                    @default(false)
+  isBusy                 Boolean                    @default(false)
+  startedAt              DateTime?
+  joinedAt               DateTime                   @default(now())
+  coins                  Int                        @default(0)
+  lastActiveAt           DateTime?
+  orderNumber            Int?
+  avatarFileId           String?
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+  mentorId               BigInt?  
+  requests               AssistantRequest[]
+  conversations          Conversation[]
+  requestActions         RequestAction[]
+  sessions               AssistantSession[]
+  coinTransactions       AssistantCoinTransaction[] @relation("AssistantToCoinTransactions")
+
+  
+  isBlocked              Boolean                    @default(false) 
+  unblockDate            DateTime?                                 
 }
-
-
-
-
-
 
 
 
@@ -111,6 +110,10 @@ model User {
   requests               AssistantRequest[]
   isWaitingForComplaint  Boolean            @default(false)
   paymentSystems         String[]           
+
+  
+  isBlocked              Boolean            @default(false)  
+  unblockDate            DateTime?                          
 }
 
 

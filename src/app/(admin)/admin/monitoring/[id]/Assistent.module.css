@@ -68,14 +68,14 @@
     height: 150px;
     display: flex;
     align-items: center;
-    
+
     justify-content: center;
-    
+
     border-radius: 50%;
     margin-top: -50px;
     margin-left: 50px;
     border: 5px solid #ffffff;
-    
+
 }
 
 .numbers {
@@ -126,6 +126,7 @@
 .undername {
     font-size: 13px;
 }
+
 .numberstwo {
     width: 70%;
     height: 100px;
@@ -134,19 +135,19 @@
 }
 
 .avatarblock {
-    width: 100px; 
+    width: 100px;
     height: 100px;
-    border-radius: 50%; 
-    overflow: hidden; 
-    background-color: #f0f0f0; 
-  }
-  
-  .avatarImage {
+    border-radius: 50%;
+    overflow: hidden;
+    background-color: #f0f0f0;
+}
+
+.avatarImage {
     width: 100%;
     height: 100%;
-    object-fit: cover; 
-  }
-  
+    object-fit: cover;
+}
+
 
 .numbersthree {
     width: 100%;
@@ -170,7 +171,7 @@
     border: none;
     cursor: pointer;
     font-size: 24px;
-    
+
 }
 
 .nopupils {
@@ -188,11 +189,38 @@
     border: 1px solid #ccc;
     border-radius: 4px;
     z-index: 1000;
-    
+
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    
+
     margin-top: 8px;
 }
+
+.loaderContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.loader {
+    border: 8px solid rgba(0, 0, 0, 0.1);
+    width: 70px;
+    height: 70px;
+    border-radius: 100%;
+    border-left-color: #365cf5;
+    animation: spin 1s ease infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
 
 
 .dropdownItem {
@@ -205,7 +233,7 @@
 
 .metrictwo {
     position: relative;
-    
+
 }
 
 
@@ -299,9 +327,9 @@
     margin-top: auto;
 
     display: flex;
-    
+
     flex-direction: column;
-    
+
 }
 
 
@@ -313,7 +341,7 @@
     font-size: 16px;
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    
+
     width: 40%;
     margin-top: 20px;
 }
@@ -346,41 +374,41 @@
 
 .submitButtontwo:hover {
     background-color: #2f4adb;
-    
+
     transform: translateY(-3px);
-    
+
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
-    
+
 }
 
 
 .submitButtontwo:active {
     background-color: #243d9a;
-    
+
     transform: translateY(0);
-    
+
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    
+
 }
 
 
 .submitButtonthree:hover {
     background-color: #d32f2f;
-    
+
     transform: translateY(-3px);
-    
+
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
-    
+
 }
 
 
 .submitButtonthree:active {
     background-color: #b71c1c;
-    
+
     transform: translateY(0);
-    
+
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    
+
 }
 
 
@@ -399,13 +427,13 @@
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
-    
+
     display: flex;
     align-items: center;
     justify-content: center;
     animation: fadeIn 0.3s ease;
     z-index: 2000;
-    
+
 }
 
 .modal {
@@ -435,7 +463,7 @@
 .modalButtonYes,
 .modalButtonNo {
     background-color: #365CF5;
-    
+
     color: white;
     border: none;
     border-radius: 5px;
@@ -449,7 +477,7 @@
 
 .modalButtonNo {
     background-color: #f53636;
-    
+
 }
 
 .modalButtonYes:hover {
@@ -621,7 +649,7 @@
     font-size: 16px;
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    
+
     width: 100%;
     margin-top: 20px;
     background-color: #365CF5;
@@ -631,21 +659,21 @@
 
 .submitButtonfour:hover {
     background-color: #2f4adb;
-    
+
     transform: translateY(-3px);
-    
+
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
-    
+
 }
 
 
 .submitButtonfour:active {
     background-color: #243d9a;
-    
+
     transform: translateY(0);
-    
+
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    
+
 }
 
 
@@ -676,7 +704,7 @@
     margin-top: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     right: 5%;
-    
+
 }
 
 .pupilDropdownItem {
@@ -695,7 +723,7 @@
     overflow: hidden;
     opacity: 1;
     max-height: 500px;
-    
+
 }
 
 .show {
@@ -891,7 +919,7 @@
     to {
         opacity: 1;
         max-height: 500px;
-        
+
     }
 }
 
@@ -923,10 +951,10 @@
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    
+
     padding-right: 10px;
     transition: max-height 0.3s ease;
-    
+
     margin-top: -40px;
 }
 
@@ -940,38 +968,38 @@
     border-radius: 4px;
     color: #111;
     font-size: 16px;
-    z-index: 1000; 
+    z-index: 1000;
     opacity: 0;
     transition: opacity 0.5s ease, top 0.5s ease;
-  }
-  
-  .alertTop.show {
+}
+
+.alertTop.show {
     opacity: 1;
     top: 20px;
-  }
-  
-  .alertTop.hide {
+}
+
+.alertTop.hide {
     opacity: 0;
     top: 0;
-  }
-  
-  .loading {
-    background-color: #f5a623; 
-  }
-  
+}
+
+.loading {
+    background-color: #f5a623;
+}
+
 
 
 .hidePupils {
     max-height: 0;
-    
+
     overflow: hidden;
-    
+
 }
 
 
 .showPupils {
     max-height: 450px;
-    
+
 }
 
 
@@ -991,16 +1019,16 @@
     background-color: aliceblue;
     cursor: pointer;
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-    
+
 }
 
 .pupilblock:active {
     transform: scale(0.98);
-    
+
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    
+
     background-color: #e0f7fa;
-    
+
 }
 
 .pupillogo {
@@ -1009,7 +1037,7 @@
     background-color: #365CF5;
     border-radius: 50%;
     position: relative;
-    
+
 }
 
 .activecircle {
@@ -1020,19 +1048,19 @@
     bottom: 1px;
     right: 1px;
     border: 1px solid white;
-  }
-  
-  .grayCircle {
+}
+
+.grayCircle {
     background-color: gray;
-  }
-  
-  .redCircle {
+}
+
+.redCircle {
     background-color: red;
-  }
-  
-  .greenCircle {
+}
+
+.greenCircle {
     background-color: green;
-  }
+}
 
 .pupilnameblock {
     width: 80%;
@@ -1116,6 +1144,7 @@
     .infoblock {
         width: 70%;
     }
+
     .avatarblock {
         width: 170px;
         height: 140px;
@@ -1126,6 +1155,7 @@
     .infoblock {
         width: 65%;
     }
+
     .avatarblock {
         width: 190px;
         height: 140px;
@@ -1187,6 +1217,7 @@
     .titlebox {
         width: 100%;
     }
+
     .infoblock {
         width: 100%;
     }
@@ -1233,6 +1264,7 @@
     .titlebox p {
         font-size: 13px;
     }
+
     .main {
         padding-left: 15px;
         padding-right: 15px;
@@ -1258,4 +1290,3 @@
     }
 
 }
-
