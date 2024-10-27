@@ -214,6 +214,7 @@ function Page() {
     } catch (error: unknown) {
       if (error instanceof Error) {
         setDeleteError(error.message);
+        console.log(deleteError)
         alert('Ошибка: ' + error.message);
       } else {
         setDeleteError('Произошла неизвестная ошибка');
