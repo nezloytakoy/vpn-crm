@@ -87,7 +87,7 @@
 
     border-radius: 50%;
     margin-top: -50px;
-    margin-left: 50px;
+    margin-left: 16px;
     border: 5px solid #ffffff;
 
 }
@@ -116,7 +116,7 @@
 .datablock {
     width: 100%;
     height: 200px;
-    padding-left: 65px;
+    padding-left: 30px;
     display: flex;
     justify-content: space-between;
 }
@@ -503,20 +503,9 @@
     background-color: transparent;
 }
 
-.label {
-    margin-left: 10px;
-    vertical-align: middle;
-    font-family: Arial, sans-serif;
-    font-size: 16px;
-    color: #333;
-}
-
-
-
-
 
 .label {
-    margin-left: 10px;
+    margin-left: 40px;
     vertical-align: middle;
     font-family: Arial, sans-serif;
     font-size: 16px;
@@ -1575,6 +1564,7 @@
         margin-top: 40px;
     }
 
+
 }
 
 @media (max-width: 1200px) {
@@ -1590,8 +1580,9 @@
 
     .containerthree {
         width: 100%;
-        margin-left: 0.6%;
+        margin-left: 0.8%;
     }
+
 
     .containerone {
         margin-top: 20px;

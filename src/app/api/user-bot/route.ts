@@ -164,6 +164,47 @@ interface JsonObject {
 }
 
 
+// Проверка блокировки пользователя
+async function checkUserBlockStatus(ctx: Context) {
+  if (!ctx.from?.id) return;
+
+  const telegramId = BigInt(ctx.from.id);
+
+  
+  const user = await prisma.user.findUnique({
+    where: { telegramId },
+    select: { isBlocked: true, unblockDate: true },
+  });
+
+  
+  if (user?.isBlocked && user.unblockDate) {
+    const currentTime = new Date();
+    const remainingTime = Math.ceil((user.unblockDate.getTime() - currentTime.getTime()) / (1000 * 60 * 60));
+
+    
+    if (remainingTime > 0) {
+      await ctx.reply(`Вы заблокированы администратором, до разблокировки осталось ${remainingTime}ч.`);
+      return true;
+    } else {
+      
+      await prisma.user.update({
+        where: { telegramId },
+        data: { isBlocked: false, unblockDate: null },
+      });
+      await ctx.reply("Время блокировки вышло, вы можете продолжать пользоваться ботом.");
+    }
+  }
+  return false;
+}
+
+// Применение проверки блокировки на каждый запрос к боту
+bot.use(async (ctx, next) => {
+  const isBlocked = await checkUserBlockStatus(ctx);
+  if (!isBlocked) {
+    await next();
+  }
+});
+
 
 bot.command('end_dialog', async (ctx) => {
   try {

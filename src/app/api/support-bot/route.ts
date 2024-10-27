@@ -289,7 +289,7 @@ async function checkAssistantBlockStatus(ctx: Context) {
 
     if (remainingTime > 0) {
       
-      await ctx.reply(`Вы заблокированы администратором, до разблокировки осталось ${remainingTime} часов.`);
+      await ctx.reply(`Вы заблокированы администратором, до разблокировки осталось ${remainingTime}ч.`);
       return true;
     } else {
       

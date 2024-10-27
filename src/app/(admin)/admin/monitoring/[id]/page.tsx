@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation'; 
 import styles from './Assistent.module.css';
 import Link from 'next/link';
 import { FaEllipsisH } from 'react-icons/fa';
@@ -64,6 +64,7 @@ interface Pupil {
 
 function Page() {
   const { id: currentAssistantId } = useParams();
+  const router = useRouter(); 
   const [showDropdown, setShowDropdown] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [showPupilDropdown, setShowPupilDropdown] = useState(false);
@@ -80,9 +81,12 @@ function Page() {
 
   const [isLoadingData, setIsLoadingData] = useState(true); 
 
-  
   const [blockHours, setBlockHours] = useState('');
   const [isBlocking, setIsBlocking] = useState(false);
+
+  
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAssistantData = async () => {
@@ -144,7 +148,6 @@ function Page() {
     }
   };
 
-  
   const handleBlockAssistant = async () => {
     setIsBlocking(true);
     try {
@@ -181,6 +184,43 @@ function Page() {
       }
     } finally {
       setIsBlocking(false);
+    }
+  };
+
+  
+  const handleDeleteAssistant = async () => {
+    setIsDeleting(true);
+    try {
+      if (!currentAssistantId) {
+        throw new Error('ID ассистента не найден в роуте');
+      }
+      const response = await fetch('/api/delete-assistant', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ telegramId: currentAssistantId }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Ошибка при удалении ассистента');
+      }
+
+      
+      setTimeout(() => {
+        router.push('/admin/monitoring');
+      }, 3000);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setDeleteError(error.message);
+        alert('Ошибка: ' + error.message);
+      } else {
+        setDeleteError('Произошла неизвестная ошибка');
+        alert('Произошла неизвестная ошибка');
+      }
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -554,7 +594,13 @@ function Page() {
           <div className={styles.popup} ref={popupRef}>
             <h2 className={styles.popupTitle}>Вы действительно хотите удалить ассистента?</h2>
             <div className={styles.popupButtons}>
-              <button className={styles.confirmButton}>Да</button>
+              <button
+                className={styles.confirmButton}
+                onClick={handleDeleteAssistant}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Удаление...' : 'Да'}
+              </button>
               <button className={styles.cancelButton} onClick={() => setShowPopup(false)}>Нет</button>
             </div>
           </div>

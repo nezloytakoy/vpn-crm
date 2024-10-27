@@ -68,6 +68,9 @@ function Page() {
   const [percentage, setPercentage] = useState<number>(60);
   const [isToggled] = useState(false);
 
+  const [blockHours, setBlockHours] = useState(''); 
+  const [isBlocking, setIsBlocking] = useState(false); 
+
   const pathname = usePathname();
   const userId = pathname.split('/').pop();
 
@@ -197,6 +200,46 @@ function Page() {
     },
   ];
 
+  
+  const handleBlockUser = async () => {
+    setIsBlocking(true);
+    try {
+      if (!userId) {
+        throw new Error('ID пользователя не найден');
+      }
+      if (!blockHours) {
+        throw new Error('Введите количество часов');
+      }
+      const hours = parseInt(blockHours, 10);
+      if (isNaN(hours) || hours <= 0) {
+        throw new Error('Количество часов должно быть положительным числом');
+      }
+      const response = await fetch('/api/block-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: userId, hours }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Ошибка при блокировке пользователя');
+      }
+
+      alert('Пользователь успешно заблокирован');
+      setBlockHours(''); 
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        alert('Ошибка: ' + error.message);
+      } else {
+        alert('Произошла неизвестная ошибка');
+      }
+    } finally {
+      setIsBlocking(false);
+    }
+  };
+
   if (isLoadingData) {
     return (
       <div className={styles.loaderContainer}>
@@ -278,16 +321,28 @@ function Page() {
                   <h1 className={styles.gifttitle}>Заблокировать пользователя</h1>
                   <h1 className={styles.undertitletwo}>Введите на какое время (в часах)</h1>
                   <div className={styles.inputContainertwo}>
-                    <input type="text" className={styles.inputFieldtwo} placeholder="7" />
+                    <input
+                      type="text"
+                      className={styles.inputFieldtwo}
+                      placeholder="7"
+                      value={blockHours}
+                      onChange={(e) => setBlockHours(e.target.value)}
+                    />
                     <span className={styles.label}>Часов</span>
                   </div>
                   <div className={styles.buttonblock}>
-                    <button className={styles.submitButtontwo}>Подтвердить</button>
+                    <button
+                      className={styles.submitButtontwo}
+                      onClick={handleBlockUser}
+                      disabled={isBlocking}
+                    >
+                      {isBlocking ? 'Загрузка...' : 'Подтвердить'}
+                    </button>
                     <button
                       className={styles.submitButtonthree}
                       onClick={() => setShowPopup(true)}
                     >
-                      Удалить ассистента
+                      Удалить пользователя
                     </button>
                   </div>
                 </div>
@@ -413,7 +468,7 @@ function Page() {
         <>
           <div className={styles.overlay} />
           <div className={styles.popup} ref={popupRef}>
-            <h2 className={styles.popupTitle}>Вы действительно хотите удалить ассистента?</h2>
+            <h2 className={styles.popupTitle}>Вы действительно хотите удалить пользователя?</h2>
             <div className={styles.popupButtons}>
               <button className={styles.confirmButton}>Да</button>
               <button className={styles.cancelButton} onClick={() => setShowPopup(false)}>Нет</button>
