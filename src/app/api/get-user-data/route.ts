@@ -162,6 +162,7 @@ export async function GET(req: NextRequest) {
             referrals: formattedReferrals
         });
     } catch (error) {
+        console.log(error)
         console.error('Ошибка при получении данных пользователя:', error);
         return NextResponse.json({ error: 'Произошла ошибка при обработке запроса' }, { status: 500 });
     }
