@@ -28,8 +28,6 @@ model Moderator {
   userMessagesCount       Int            @default(0)
   assistantMessagesCount  Int            @default(0)
   username                String         @default("Отсутствует")
-
-  
   complaints              Complaint[]    @relation("ModeratorComplaints")
 }
 

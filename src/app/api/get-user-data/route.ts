@@ -1,5 +1,3 @@
-// app/api/get-user-data/route.ts
-
 import { NextRequest, NextResponse } from 'next/server';  
 import { PrismaClient } from '@prisma/client';
 import { subDays } from 'date-fns';
@@ -21,23 +19,21 @@ export async function GET(req: NextRequest) {
     try {
         userId = BigInt(userIdParam);
     } catch (error) {
-        console.log(error)
         console.error('Некорректный userId:', userIdParam);
         return NextResponse.json({ error: 'Некорректный userId' }, { status: 400 });
     }
 
     try {
-        
         const now = new Date();
         const oneDayAgo = subDays(now, 1);
         const oneWeekAgo = subDays(now, 7);
         const oneMonthAgo = subDays(now, 30);
 
-        
         const [
             requestsToday,
             requestsThisWeek,
             requestsThisMonth,
+            totalRequests, 
             totalCoins,
             aiRequestCount,
             assistantRequestCount,
@@ -55,13 +51,16 @@ export async function GET(req: NextRequest) {
             prisma.assistantRequest.count({
                 where: { userId, createdAt: { gte: oneMonthAgo } }
             }),
+            prisma.assistantRequest.count({ 
+                where: { userId }
+            }),
             prisma.user.findUnique({
                 where: { telegramId: userId },
                 select: { coins: true }
             }),
             prisma.user.findUnique({
                 where: { telegramId: userId },
-                select: { aiRequests: true }
+                select: { usedAIRequests: true }
             }),
             prisma.user.findUnique({
                 where: { telegramId: userId },
@@ -109,7 +108,9 @@ export async function GET(req: NextRequest) {
             })
         ]);
 
-        
+        console.log(totalRequests)
+        console.log(assistantRequestCount)
+
         const formattedComplaints = await Promise.all(
             userComplaints.map(async (complaint) => {
                 const relatedRequest = await prisma.assistantRequest.findUnique({
@@ -120,20 +121,23 @@ export async function GET(req: NextRequest) {
                         }
                     }
                 });
-
+                
+                console.log(relatedRequest?.conversation?.messages)
+        
                 return {
-                    complaintId: complaint.id.toString(), 
+                    complaintId: complaint.id.toString(),
                     status: complaint.status === 'PENDING' ? 'Рассматривается' : complaint.decision,
+                    assistantId: complaint.assistantId ? complaint.assistantId.toString() : '-',
                     messages: relatedRequest?.conversation?.messages || []
                 };
             })
         );
 
-        
+
         const formattedUserRequests = userRequests.map((request) => ({
-            requestId: request.id.toString(), 
+            requestId: request.id.toString(),
             status: request.status,
-            assistantId: request.assistantId ? request.assistantId.toString() : null, 
+            assistantId: request.assistantId ? request.assistantId.toString() : '-',
             messages: request.conversation?.messages || []
         }));
 
@@ -151,8 +155,8 @@ export async function GET(req: NextRequest) {
             requestsThisWeek,
             requestsThisMonth,
             totalCoins: totalCoins?.coins || 0,
-            aiRequestCount: aiRequestCount?.aiRequests || 0,
-            assistantRequestCount: assistantRequestCount?.assistantRequests || 0,
+            aiRequestCount: aiRequestCount?.usedAIRequests || 0,
+            assistantRequestCount: totalRequests,
             userRequests: formattedUserRequests,
             complaints: formattedComplaints,
             referrals: formattedReferrals

@@ -1188,6 +1188,21 @@
     font-family: "Plus Jakarta Sans", sans-serif;
 }
 
+.downloadButton {
+    background: none;
+    border: none;
+    color: blue;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+    font-size: inherit;
+  }
+  
+  .downloadButton:hover {
+    color: darkblue;
+  }
+  
+
 
 .pupiltitleblock {
     width: 100%;

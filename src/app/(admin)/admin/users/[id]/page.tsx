@@ -33,29 +33,24 @@ interface UserInfo {
 }
 
 interface Message {
-  sender: 'USER' | 'ASSISTANT'; // Можно указать конкретные роли отправителя
+  sender: 'USER' | 'ASSISTANT';
   content: string;
-  timestamp: string; // Укажите точный тип, например, ISO-строка времени
+  timestamp: string;
 }
 
 interface UserRequest {
   requestId: number;
   status: string;
-  assistantId: number | null;
-  messages: Message[]; // Заменяем any[] на Message[]
-}
-interface Message {
-  sender: 'USER' | 'ASSISTANT'; // Роли отправителя, если они известны
-  content: string;              // Содержимое сообщения
-  timestamp: string;            // Время отправки в формате строки
+  assistantId: string; 
+  messages: Message[];
 }
 
 interface ComplaintData {
-  complaintId: number;
+  complaintId: string;
   status: string;
-  messages: Message[]; // Используем конкретный тип вместо any[]
+  assistantId: string; 
+  messages: Message[];
 }
-
 
 interface ReferralData {
   telegramId: string;
@@ -71,7 +66,6 @@ function Page() {
   const popupRef = useRef<HTMLDivElement>(null);
   const [percentage, setPercentage] = useState<number>(60);
   const [isToggled] = useState(false);
-
 
   const pathname = usePathname();
   const userId = pathname.split('/').pop();
@@ -97,7 +91,6 @@ function Page() {
     }
   }, [userId]);
 
-
   const handleInputChangeAssistant = (index: number, value: string) => {
     const updatedValues = [...inputValuesAssistant];
     updatedValues[index] = value;
@@ -115,19 +108,78 @@ function Page() {
     background: `linear-gradient(to right, #365CF5 0%, #365CF5 ${percentage}%, #e5e5e5 ${percentage}%, #e5e5e5 100%)`,
   };
 
+  
+  const handleDownload = (messages: Message[], filename: string) => {
+    const content = messages
+      .map(msg => `[${msg.timestamp}] ${msg.sender}: ${msg.content}`)
+      .join('\n');
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}.txt`;
+    document.body.appendChild(link);
+    link.click();
+
+    
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const requestColumns: Column<UserRequest>[] = [
     { Header: 'ID запроса', accessor: 'requestId' },
-    { Header: 'Статус', accessor: 'status' },
-    { Header: 'ID ассистента', accessor: 'assistantId' },
-
+    { Header: 'Действие', accessor: 'status' },
+    {
+      Header: 'Лог',
+      accessor: 'messages',
+      Cell: ({ row }: { row: { original: UserRequest } }) => (
+        row.original.assistantId !== '-' ? (
+          <button
+            onClick={() => handleDownload(row.original.messages, `request_${row.original.requestId}`)}
+            className={styles.downloadButton}
+          >
+            Скачать
+          </button>
+        ) : (
+          <span>-</span>
+        )
+      ),
+    },
+    {
+      Header: 'ID ассистента',
+      accessor: 'assistantId',
+      Cell: ({ value }) => value !== '-' ? value : <span>-</span>,
+    },
   ];
 
   const complaintColumns: Column<ComplaintData>[] = [
     { Header: 'ID жалобы', accessor: 'complaintId' },
-    { Header: 'Статус', accessor: 'status' },
-
+    { Header: 'Действие', accessor: 'status' },
+    {
+      Header: 'Лог',
+      accessor: 'messages',
+      Cell: ({ row }: { row: { original: ComplaintData } }) => (
+        row.original.assistantId !== '-' ? (
+          <button
+            onClick={() => handleDownload(row.original.messages, `complaint_${row.original.complaintId}`)}
+            className={styles.downloadButton}
+          >
+            Скачать
+          </button>
+        ) : (
+          <span>-</span>
+        )
+      ),
+    },
+    {
+      Header: 'ID ассистента',
+      accessor: 'assistantId',
+      Cell: ({ value }) => value !== '-' ? value : <span>-</span>,
+    },
   ];
+
 
   const referralColumns: Column<ReferralData>[] = [
     { Header: 'ID пользователя', accessor: 'telegramId' },
@@ -138,10 +190,16 @@ function Page() {
       Cell: ({ value }: { value: boolean }) => (value ? 'Да' : 'Нет'),
     },
     {
-      Header: 'Количество рефералов',
+      Header: 'Имеет рефералов',
       accessor: 'referralCount',
+      Cell: ({ value }: { value: number }) => (value > 0 ? 'Да' : 'Нет'),
     },
   ];
+
+
+
+
+  console.log('Данные для таблицы жалоб:', userData?.complaints);
 
   return (
     <div className={styles.main}>
@@ -163,10 +221,10 @@ function Page() {
                 <div className={styles.avatarblock}>
                   {userData?.userInfo?.avatarUrl ? (
                     <Image
-                      src={userData.userInfo.avatarUrl || '/path/to/default/avatar.png'} // Укажите путь к изображению по умолчанию, если avatarUrl отсутствует
+                      src={userData.userInfo.avatarUrl || '/path/to/default/avatar.png'} 
                       alt="Avatar"
-                      width={100} // Укажите ширину изображения
-                      height={100} // Укажите высоту изображения
+                      width={100} 
+                      height={100} 
                       className={styles.avatarImage}
                     />
                   ) : (
@@ -203,7 +261,7 @@ function Page() {
                   </div>
                   <div className={styles.metric}>
                     <p className={styles.number}>{userData?.aiRequestCount || 0}</p>
-                    <p className={styles.smalltitle}>Запросы к ИИ</p>
+                    <p className={styles.smalltitle}>Обращений к ИИ</p>
                   </div>
                   <div className={styles.metric}>
                     <p className={styles.number}>{userData?.totalCoins || 0}</p>

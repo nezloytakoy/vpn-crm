@@ -121,71 +121,84 @@ adminBot.command('menu', async (ctx) => {
 adminBot.command('start', async (ctx) => {
   const lang = detectUserLanguage(ctx);
 
-  if (ctx.from?.id) {
-    if (ctx.message?.text) {
-      const args = ctx.message.text.split(' ');
-      if (args.length > 1) {
-        const inviteToken = args[1].replace('invite_', '');
+  try {
+    if (ctx.from?.id) {
+      if (!ctx.from.username) {
+        await ctx.reply('У вас отсутствует имя пользователя в Telegram. Пожалуйста, установите его и повторите попытку.');
+        return;
+      }
 
-        
-        const invitation = await prisma.invitation.findFirst({
-          where: {
-            token: inviteToken,
-            used: false,
-            role: 'moderator',
-          },
-        });
+      if (ctx.message?.text) {
+        const args = ctx.message.text.split(' ');
+        if (args.length > 1) {
+          const inviteToken = args[1].replace('invite_', '');
 
-        if (invitation) {
-          if (!invitation.login || !invitation.password) {
-            await ctx.reply('Логин или пароль отсутствуют в приглашении.');
-            return;
-          }
-
-          const moderatorId = BigInt(ctx.from.id);
-
-          
-          const existingModerator = await prisma.moderator.findUnique({
-            where: { id: moderatorId },
+          const invitation = await prisma.invitation.findFirst({
+            where: {
+              token: inviteToken,
+              used: false,
+              role: 'moderator',
+            },
           });
 
-          if (existingModerator) {
-            
-            await ctx.reply('Вы уже являетесь модератором.');
-            await showModeratorMenu(ctx, lang); 
+          if (invitation) {
+            if (!invitation.login || !invitation.password) {
+              await ctx.reply('Логин или пароль отсутствуют в приглашении.');
+              return;
+            }
+
+            const moderatorId = BigInt(ctx.from.id);
+
+            const existingModerator = await prisma.moderator.findUnique({
+              where: { id: moderatorId },
+            });
+
+            if (existingModerator) {
+              
+              await prisma.moderator.update({
+                where: { id: moderatorId },
+                data: { username: ctx.from.username },
+              });
+
+              await ctx.reply('Вы уже являетесь модератором.');
+              await showModeratorMenu(ctx, lang); 
+            } else {
+              await prisma.moderator.create({
+                data: {
+                  login: invitation.login,
+                  password: invitation.password, 
+                  id: moderatorId,
+                  username: ctx.from.username,
+                },
+              });
+
+              await prisma.invitation.update({
+                where: { id: invitation.id },
+                data: { used: true },
+              });
+
+              await ctx.reply(getTranslation(lang, 'welcome'));
+              await showModeratorMenu(ctx, lang);
+            }
           } else {
-            
-            await prisma.moderator.create({
-              data: {
-                login: invitation.login,
-                password: invitation.password, 
-                id: moderatorId,
-              },
-            });
-
-            
-            await prisma.invitation.update({
-              where: { id: invitation.id },
-              data: { used: true },
-            });
-
-            
-            await ctx.reply(getTranslation(lang, 'welcome'));
-            await showModeratorMenu(ctx, lang);
+            await ctx.reply(getTranslation(lang, 'invalid_link'));
           }
         } else {
-          await ctx.reply(getTranslation(lang, 'invalid_link'));
+          await ctx.reply(getTranslation(lang, 'moderator_bot'));
         }
       } else {
-        await ctx.reply(getTranslation(lang, 'moderator_bot'));
+        await ctx.reply(getTranslation(lang, 'command_error'));
       }
     } else {
       await ctx.reply(getTranslation(lang, 'command_error'));
     }
-  } else {
-    await ctx.reply(getTranslation(lang, 'command_error'));
+  } catch (error) {
+    console.error('Ошибка в команде /start:', error);
+    await ctx.reply('Произошла ошибка. Пожалуйста, попробуйте позже.');
   }
 });
+
+
 
 
 async function showModeratorMenu(ctx: Context, lang: 'ru' | 'en') {
