@@ -74,6 +74,8 @@ function Page() {
   const [isDeleting, setIsDeleting] = useState(false); 
   const [deleteError, setDeleteError] = useState<string | null>(null); 
 
+
+
   const router = useRouter(); 
   const pathname = usePathname();
   const userId = pathname.split('/').pop();
@@ -247,6 +249,7 @@ function Page() {
   const handleDeleteUser = async () => {
     setIsDeleting(true);
     setDeleteError(null);
+    console.log(deleteError)
     try {
       if (!userId) {
         throw new Error('ID пользователя не найден');

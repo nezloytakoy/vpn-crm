@@ -119,7 +119,10 @@ function Page() {
         }
     };
 
-
+    interface AIRequest {
+        subscriptionType: string;
+        count: number; 
+    }
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -139,10 +142,10 @@ function Page() {
                 const response = await fetch('/api/get-user-requests');
                 const data = await response.json();
                 if (response.ok) {
-                    const counts = data.aiRequests.reduce((acc: any, item: any) => {
+                    const counts = data.aiRequests.reduce((acc: Record<string, AIRequest>, item: AIRequest) => {
                         acc[item.subscriptionType] = item;
                         return acc;
-                    }, {});
+                    }, {} as Record<string, AIRequest>);
                     setRequestCounts(counts);
                 } else {
                     console.error('Ошибка при получении данных запросов:', data.error);
@@ -301,13 +304,17 @@ function Page() {
 
 
 
-
+    interface RequestCount {
+        aiRequestCount: number;
+        assistantRequestCount: number;
+    }
 
 
     const [sortColumn, setSortColumn] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [showSortMenu, setShowSortMenu] = useState<boolean>(false);
-    const [requestCounts, setRequestCounts] = useState<Record<string, any> | null>(null);
+    const [requestCounts, setRequestCounts] = useState<Record<string, RequestCount> | null>(null);
+
 
 
 

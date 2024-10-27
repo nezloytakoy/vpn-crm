@@ -4,17 +4,17 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 // Рекурсивная функция для преобразования всех BigInt в строки
-function stringifyBigInt(obj: any): any {
-  if (typeof obj === 'bigint') {
-    return obj.toString();
-  } else if (Array.isArray(obj)) {
-    return obj.map(item => stringifyBigInt(item));
-  } else if (typeof obj === 'object' && obj !== null) {
-    return Object.fromEntries(
-      Object.entries(obj).map(([key, value]) => [key, stringifyBigInt(value)])
-    );
-  }
-  return obj;
+function stringifyBigInt<T>(obj: T): T {
+    if (typeof obj === 'bigint') {
+        return obj.toString() as unknown as T;  
+    } else if (Array.isArray(obj)) {
+        return obj.map((item) => stringifyBigInt(item)) as unknown as T;  
+    } else if (obj && typeof obj === 'object') {
+        return Object.fromEntries(
+            Object.entries(obj).map(([key, value]) => [key, stringifyBigInt(value)])
+        ) as T;
+    }
+    return obj;  
 }
 
 export async function GET() {
