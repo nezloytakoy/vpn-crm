@@ -350,6 +350,9 @@ input:checked+.slider:hover {
     margin-left: 30px;
 }
 
+.inputFieldtwo::placeholder {
+    color: #999; 
+  }
 
 .percentageHeader {
     display: flex;

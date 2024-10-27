@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Table from '@/components/Table/Table';
 import { Column } from 'react-table';
 import Select from 'react-select';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation'; 
 import Image from 'next/image';
 
 interface UserData {
@@ -71,6 +71,10 @@ function Page() {
   const [blockHours, setBlockHours] = useState(''); 
   const [isBlocking, setIsBlocking] = useState(false); 
 
+  const [isDeleting, setIsDeleting] = useState(false); 
+  const [deleteError, setDeleteError] = useState<string | null>(null); 
+
+  const router = useRouter(); 
   const pathname = usePathname();
   const userId = pathname.split('/').pop();
 
@@ -200,7 +204,6 @@ function Page() {
     },
   ];
 
-  
   const handleBlockUser = async () => {
     setIsBlocking(true);
     try {
@@ -237,6 +240,47 @@ function Page() {
       }
     } finally {
       setIsBlocking(false);
+    }
+  };
+
+  
+  const handleDeleteUser = async () => {
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      if (!userId) {
+        throw new Error('ID пользователя не найден');
+      }
+
+      const response = await fetch('/api/delete-user', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ telegramId: userId }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Ошибка при удалении пользователя');
+      }
+
+      alert('Пользователь успешно удален');
+
+      
+      setTimeout(() => {
+        router.push('/admin/users');
+      }, 3000);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setDeleteError(error.message);
+        alert('Ошибка: ' + error.message);
+      } else {
+        setDeleteError('Произошла неизвестная ошибка');
+        alert('Произошла неизвестная ошибка');
+      }
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -470,7 +514,13 @@ function Page() {
           <div className={styles.popup} ref={popupRef}>
             <h2 className={styles.popupTitle}>Вы действительно хотите удалить пользователя?</h2>
             <div className={styles.popupButtons}>
-              <button className={styles.confirmButton}>Да</button>
+              <button
+                className={styles.confirmButton}
+                onClick={handleDeleteUser}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Удаление...' : 'Да'}
+              </button>
               <button className={styles.cancelButton} onClick={() => setShowPopup(false)}>Нет</button>
             </div>
           </div>
@@ -479,5 +529,6 @@ function Page() {
     </div>
   );
 }
+
 
 export default Page;

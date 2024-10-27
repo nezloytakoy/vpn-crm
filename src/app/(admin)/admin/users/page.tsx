@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import styles from './Users.module.css';
 import Table from '@/components/Table/Table';
 import { Column, CellProps } from 'react-table';
-import { useRouter } from 'next/navigation'; 
+import { useRouter } from 'next/navigation';
 
 
 interface UserData {
@@ -15,6 +15,7 @@ interface UserData {
     assistantRequests: number;
     hasUpdatedSubscription: boolean;
 }
+
 
 type MyColumn<T extends object, K extends keyof T> = {
     Header: string;
@@ -37,11 +38,21 @@ function Page() {
 
     const [inputValuesAssistant, setInputValuesAssistant] = useState<string[]>(['5', '14', '30', '3']);
 
-    const router = useRouter(); 
+    const router = useRouter();
 
+    const [message, setMessage] = useState('');
+
+    const [aiRequestValues, setAiRequestValues] = useState<string[]>(['', '', '', '']);
+
+
+    const handleInputChangeAiRequests = (index: number, value: string) => {
+        const updatedValues = [...aiRequestValues];
+        updatedValues[index] = value;
+        setAiRequestValues(updatedValues);
+    };
 
     const handleRowClick = (userId: string) => {
-        router.push(`/admin/users/${userId}`); 
+        router.push(`/admin/users/${userId}`);
     };
 
 
@@ -60,6 +71,55 @@ function Page() {
     const [isToggledVideoAssistant, setIsToggledVideoAssistant] = useState<boolean>(false);
     const [isToggledFileAssistant, setIsToggledFileAssistant] = useState<boolean>(false);
 
+    const defaultAiRequestValues = ['5', '14', '30', '3'];
+
+    const [assistantRequestValues, setAssistantRequestValues] = useState<string[]>(['', '', '', '']);
+
+    const defaultAssistantRequestValues = ['5', '14', '30', '0']; 
+
+
+
+    const handleInputChangeAssistantRequests = (index: number, value: string) => {
+        const updatedValues = [...assistantRequestValues];
+        updatedValues[index] = value;
+        setAssistantRequestValues(updatedValues);
+    };
+
+    const handleConfirmAssistantRequests = async () => {
+        const valuesToSend = assistantRequestValues.map((value, index) =>
+            value.trim() !== '' ? Number(value) : Number(defaultAssistantRequestValues[index])
+        );
+
+        if (valuesToSend.every((value) => !isNaN(value))) {
+            const [first, second, third, fourth] = valuesToSend;
+
+            try {
+                const response = await fetch('/api/update-assistant-requests', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ first, second, third, fourth }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Количество запросов к ассистенту успешно обновлено.');
+                    setAssistantRequestValues(['', '', '', '']); 
+                } else {
+                    alert('Ошибка при обновлении: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Ошибка при обновлении запросов к ассистенту:', error);
+                alert('Произошла ошибка при обновлении запросов к ассистенту.');
+            }
+        } else {
+            alert('Пожалуйста, введите корректные числа во все поля.');
+        }
+    };
+
+
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -74,8 +134,42 @@ function Page() {
             }
         };
 
+        const fetchRequestCounts = async () => {
+            try {
+                const response = await fetch('/api/get-user-requests');
+                const data = await response.json();
+                if (response.ok) {
+                    const counts = data.aiRequests.reduce((acc: any, item: any) => {
+                        acc[item.subscriptionType] = item;
+                        return acc;
+                    }, {});
+                    setRequestCounts(counts);
+                } else {
+                    console.error('Ошибка при получении данных запросов:', data.error);
+                }
+            } catch (error) {
+                console.error('Ошибка при получении данных запросов:', error);
+            }
+        };
+
         fetchUsers();
+        fetchRequestCounts();
     }, []);
+
+    const subscriptionTypes = ['FIRST', 'SECOND', 'THIRD', 'FOURTH'];
+
+    const getAssistantRequestCount = (subscriptionType: string) => {
+        return requestCounts && requestCounts[subscriptionType]
+            ? requestCounts[subscriptionType].assistantRequestCount
+            : defaultAssistantRequestValues[subscriptionTypes.indexOf(subscriptionType)];
+    };
+
+    const getAiRequestCount = (subscriptionType: string) => {
+        return requestCounts && requestCounts[subscriptionType]
+            ? requestCounts[subscriptionType].aiRequestCount
+            : defaultAiRequestValues[subscriptionTypes.indexOf(subscriptionType)];
+    };
+
 
 
 
@@ -152,6 +246,9 @@ function Page() {
             Header: 'Подписка',
             accessor: 'subscriptionType',
             id: 'subscriptionType',
+            Cell: ({ value }: CellProps<UserData, string | number | boolean>) => (
+                <span>{getSubscriptionLabel(String(value))}</span>
+            ),
         },
         {
             Header: 'Количество запросов',
@@ -163,10 +260,45 @@ function Page() {
             accessor: 'hasUpdatedSubscription',
             id: 'hasUpdatedSubscription',
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => (
-                <span>{typeof value === 'boolean' ? (value ? 'Да' : 'Нет') : value}</span>
+                <span>{typeof value === 'boolean' ? (value ? 'Да' : 'Нет') : String(value)}</span>
             ),
         },
     ];
+
+    const handleConfirmAiRequests = async () => {
+        const valuesToSend = aiRequestValues.map((value, index) =>
+            value.trim() !== '' ? Number(value) : Number(defaultAiRequestValues[index])
+        );
+
+        if (valuesToSend.every((value) => !isNaN(value))) {
+            const [first, second, third, fourth] = valuesToSend;
+
+            try {
+                const response = await fetch('/api/update-ai-requests', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ first, second, third, fourth }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Количество запросов к ИИ успешно обновлено.');
+                    setAiRequestValues(['', '', '', '']); 
+                } else {
+                    alert('Ошибка при обновлении: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Ошибка при обновлении запросов к ИИ:', error);
+                alert('Произошла ошибка при обновлении запросов к ИИ.');
+            }
+        } else {
+            alert('Пожалуйста, введите корректные числа во все поля.');
+        }
+    };
+
 
 
 
@@ -175,11 +307,74 @@ function Page() {
     const [sortColumn, setSortColumn] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [showSortMenu, setShowSortMenu] = useState<boolean>(false);
+    const [requestCounts, setRequestCounts] = useState<Record<string, any> | null>(null);
+
 
 
     const handleSortButtonClick = () => {
         setShowSortMenu(!showSortMenu);
     };
+
+    const categoryMapping: Record<
+        'AI + 5 запросов ассистенту' | 'AI + 14 запросов ассистенту' | 'AI + 30 запросов ассистенту' | 'Только AI',
+        string
+    > = {
+        'AI + 5 запросов ассистенту': 'FIRST',
+        'AI + 14 запросов ассистенту': 'SECOND',
+        'AI + 30 запросов ассистенту': 'THIRD',
+        'Только AI': 'FOURTH',
+    };
+
+    const getSubscriptionLabel = (subscriptionType: string) => {
+        if (subscriptionType === 'FOURTH') {
+            return 'Только AI';
+        }
+        const assistantCount = getAssistantRequestCount(subscriptionType);
+        return `AI + ${assistantCount} запросов ассистенту`;
+    };
+
+
+    const handleSendMessage = async () => {
+        const selectedCategories = checkboxesNotifications
+            .map((checked, index) => (checked ? Object.keys(categoryMapping)[index] : null))
+            .filter((label): label is keyof typeof categoryMapping => label !== null) 
+            .map((label) => categoryMapping[label]);
+
+        if (selectedCategories.length === 0) {
+            alert('Пожалуйста, выберите хотя бы одну категорию пользователей.');
+            return;
+        }
+
+        if (!message.trim()) {
+            alert('Пожалуйста, введите сообщение.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/send-message-to-users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ categories: selectedCategories, message }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert('Сообщения успешно отправлены.');
+                setMessage('');
+                setCheckboxesNotifications([false, false, false, false]);
+            } else {
+                alert('Ошибка при отправке сообщений: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Ошибка при отправке сообщений:', error);
+            alert('Произошла ошибка при отправке сообщений.');
+        }
+    };
+
+
 
 
     const handleSortColumn = (columnId: string) => {
@@ -243,45 +438,68 @@ function Page() {
                                 <span className={styles.label}>Отправить всем категориям пользователей</span>
                             </div>
                             <div className={styles.checkboxContainer}>
-                                {checkboxesNotifications.map((checked, index) => (
-                                    <label key={index} className={styles.checkboxLabel}>
-                                        <input
-                                            type="checkbox"
-                                            checked={checked}
-                                            onChange={() => handleCheckboxChangeNotifications(index)}
-                                        />
-                                        <span className={styles.animatedCheckbox}></span>
-                                        <span>{index === 3 ? 'Только AI' : `AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}</span>
-                                    </label>
-                                ))}
+                                {checkboxesNotifications.map((checked, index) => {
+                                    const subscriptionType = subscriptionTypes[index];
+                                    const assistantCount = getAssistantRequestCount(subscriptionType);
+                                    return (
+                                        <label key={index} className={styles.checkboxLabel}>
+                                            <input
+                                                type="checkbox"
+                                                checked={checked}
+                                                onChange={() => handleCheckboxChangeNotifications(index)}
+                                            />
+                                            <span className={styles.animatedCheckbox}></span>
+                                            <span>
+                                                {subscriptionType === 'FOURTH'
+                                                    ? 'Только AI'
+                                                    : `AI + ${assistantCount} запросов ассистенту`}
+                                            </span>
+                                        </label>
+                                    );
+                                })}
                             </div>
 
                             <h1 className={styles.undertitle}>Форма для сообщения</h1>
-                            <textarea className={styles.input} placeholder="Сообщение" />
-                            <button className={styles.submitButton}>Отправить</button>
+                            <textarea
+                                className={styles.input}
+                                placeholder="Сообщение"
+                                value={message}
+                                onChange={(e) => setMessage(e.target.value)}
+                            />
+                            <button className={styles.submitButton} onClick={handleSendMessage}>
+                                Отправить
+                            </button>
                         </div>
 
                         <div className={styles.messagebox}>
                             <h1 className={styles.gifttitle}>Количество запросов к ассистенту</h1>
-                            {inputValuesAssistant.map((value, index) => (
-                                <div key={index}>
-                                    <h1 className={styles.undertitletwo}>
-                                        {index === 3 ? 'Только AI' : `Введите количество для категории AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}
-                                    </h1>
-                                    <div className={styles.inputContainertwo}>
-                                        <input
-                                            type="text"
-                                            className={styles.inputFieldtwo}
-                                            placeholder={value}
-                                            value={value}
-                                            onChange={(e) => handleInputChangeAssistant(index, e.target.value)}
-                                        />
-                                        <span className={styles.label}>Запросов</span>
+                            {assistantRequestValues.map((value, index) => {
+                                const subscriptionType = subscriptionTypes[index];
+                                const assistantCount = getAssistantRequestCount(subscriptionType);
+                                return (
+                                    <div key={index}>
+                                        <h1 className={styles.undertitletwo}>
+                                            {subscriptionType === 'FOURTH'
+                                                ? 'Только AI'
+                                                : `Введите количество для категории AI + ${assistantCount} запросов ассистенту`}
+                                        </h1>
+                                        <div className={styles.inputContainertwo}>
+                                            <input
+                                                type="text"
+                                                className={styles.inputFieldtwo}
+                                                placeholder={String(assistantCount)}
+                                                value={value}
+                                                onChange={(e) => handleInputChangeAssistantRequests(index, e.target.value)}
+                                            />
+                                            <span className={styles.label}>Запросов</span>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
 
-                            <button className={styles.submitButtontwo}>Подтвердить</button>
+                            <button className={styles.submitButtontwo} onClick={handleConfirmAssistantRequests}>
+                                Подтвердить
+                            </button>
                         </div>
                         <div className={styles.messagebox}>
                             <h1 className={styles.gifttitle}>Процент от приглашенных пользователей</h1>
@@ -305,26 +523,38 @@ function Page() {
                         </div>
                         <div className={styles.messagebox}>
                             <h1 className={styles.gifttitle}>Стоимость тарифов</h1>
-                            {inputValuesAssistant.map((value, index) => (
-                                <div key={index}>
-                                    <h1 className={styles.undertitletwo}>
-                                        {index === 3 ? 'Только AI' : `Стоимость тарифа AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}
-                                    </h1>
-                                    <div className={styles.inputContainertwo}>
-                                        <input
-                                            type="text"
-                                            className={styles.inputFieldtwo}
-                                            placeholder={value}
-                                            value={value}
-                                            onChange={(e) => handleInputChangeAssistant(index, e.target.value)}
-                                        />
-                                        <span className={styles.label}>$</span>
-                                    </div>
-                                </div>
-                            ))}
+                            {inputValuesAssistant.map((value, index) => {
+                                const subscriptionType = index === 3 ? 'FOURTH' : index === 0 ? 'FIRST' : index === 1 ? 'SECOND' : 'THIRD';
+                                const assistantCount = requestCounts ? requestCounts[subscriptionType]?.assistantRequestCount : value;
 
-                            <button className={styles.submitButtontwo}>Подтвердить</button>
+                                return (
+                                    <div key={index}>
+                                        <h1 className={styles.undertitletwo}>
+                                            {subscriptionType === 'FOURTH'
+                                                ? 'Только AI'
+                                                : `Стоимость тарифа AI + ${assistantCount} запросов ассистенту`}
+                                        </h1>
+                                        <div className={styles.inputContainertwo}>
+                                            <input
+                                                type="text"
+                                                className={styles.inputFieldtwo}
+                                                placeholder={String(assistantCount)} 
+                                                value={value}
+                                                onChange={(e) => handleInputChangeAssistant(index, e.target.value)}
+                                            />
+                                            <span className={styles.label}>$</span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+
+                            <button className={styles.submitButtontwo} onClick={handleConfirmAssistantRequests}>
+                                Подтвердить
+                            </button>
                         </div>
+
+
+
 
                     </div>
 
@@ -333,26 +563,39 @@ function Page() {
 
                         <div className={styles.messagebox}>
                             <h1 className={styles.gifttitle}>Количество запросов к ИИ</h1>
-                            {inputValuesAssistant.map((value, index) => (
-                                <div key={index}>
-                                    <h1 className={styles.undertitletwo}>
-                                        {index === 3 ? 'Только AI' : `Введите количество для категории AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}
-                                    </h1>
-                                    <div className={styles.inputContainertwo}>
-                                        <input
-                                            type="text"
-                                            className={styles.inputFieldtwo}
-                                            placeholder={value}
-                                            value={value}
-                                            onChange={(e) => handleInputChangeAssistant(index, e.target.value)}
-                                        />
-                                        <span className={styles.label}>Запросов</span>
-                                    </div>
-                                </div>
-                            ))}
+                            {aiRequestValues.map((value, index) => {
+                                const subscriptionType = subscriptionTypes[index];
+                                const assistantCount = getAssistantRequestCount(subscriptionType); 
+                                const aiCount = getAiRequestCount(subscriptionType); 
 
-                            <button className={styles.submitButtontwo}>Подтвердить</button>
+                                return (
+                                    <div key={index}>
+                                        <h1 className={styles.undertitletwo}>
+                                            {subscriptionType === 'FOURTH'
+                                                ? 'Только AI'
+                                                : `Введите количество для категории AI + ${assistantCount} запросов ассистенту`}
+                                        </h1>
+                                        <div className={styles.inputContainertwo}>
+                                            <input
+                                                type="text"
+                                                className={styles.inputFieldtwo}
+                                                placeholder={String(aiCount)}
+                                                value={value}
+                                                onChange={(e) => handleInputChangeAiRequests(index, e.target.value)}
+                                            />
+                                            <span className={styles.label}>Запросов</span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+
+                            <button className={styles.submitButtontwo} onClick={handleConfirmAiRequests}>
+                                Подтвердить
+                            </button>
                         </div>
+
+
+
 
                         <div className={styles.messagebox}>
                             <h1 className={styles.gifttitle}>Отправка пользователем контента</h1>
@@ -368,18 +611,28 @@ function Page() {
                                 </label>
                                 <span className={styles.label}>Разрешить отправку голосовых сообщений ИИ</span>
                             </div>
+
                             <div className={styles.checkboxContainer}>
-                                {checkboxesVoiceAI.map((checked, index) => (
-                                    <label key={index} className={styles.checkboxLabel}>
-                                        <input
-                                            type="checkbox"
-                                            checked={checked}
-                                            onChange={() => handleCheckboxChangeVoiceAI(index)}
-                                        />
-                                        <span className={styles.animatedCheckbox}></span>
-                                        <span>{index === 3 ? 'Только AI' : `AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}</span>
-                                    </label>
-                                ))}
+                                {checkboxesVoiceAI.map((checked, index) => {
+                                    const subscriptionType = subscriptionTypes[index];
+                                    const assistantCount = getAssistantRequestCount(subscriptionType);
+
+                                    return (
+                                        <label key={index} className={styles.checkboxLabel}>
+                                            <input
+                                                type="checkbox"
+                                                checked={checked}
+                                                onChange={() => handleCheckboxChangeVoiceAI(index)}
+                                            />
+                                            <span className={styles.animatedCheckbox}></span>
+                                            <span>
+                                                {subscriptionType === 'FOURTH'
+                                                    ? 'Только AI'
+                                                    : `AI + ${assistantCount} запросов ассистенту`}
+                                            </span>
+                                        </label>
+                                    );
+                                })}
                             </div>
 
                             <div className={styles.togglebox}>
@@ -393,18 +646,28 @@ function Page() {
                                 </label>
                                 <span className={styles.label}>Разрешить отправку голосовых сообщений ассистенту</span>
                             </div>
+
                             <div className={styles.checkboxContainer}>
-                                {checkboxesVoiceAI.map((checked, index) => (
-                                    <label key={index} className={styles.checkboxLabel}>
-                                        <input
-                                            type="checkbox"
-                                            checked={checked}
-                                            onChange={() => handleCheckboxChangeVoiceAI(index)}
-                                        />
-                                        <span className={styles.animatedCheckbox}></span>
-                                        <span>{index === 3 ? 'Только AI' : `AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}</span>
-                                    </label>
-                                ))}
+                                {checkboxesVoiceAI.map((checked, index) => {
+                                    const subscriptionType = subscriptionTypes[index];
+                                    const assistantCount = getAssistantRequestCount(subscriptionType);
+
+                                    return (
+                                        <label key={index} className={styles.checkboxLabel}>
+                                            <input
+                                                type="checkbox"
+                                                checked={checked}
+                                                onChange={() => handleCheckboxChangeVoiceAI(index)}
+                                            />
+                                            <span className={styles.animatedCheckbox}></span>
+                                            <span>
+                                                {subscriptionType === 'FOURTH'
+                                                    ? 'Только AI'
+                                                    : `AI + ${assistantCount} запросов ассистенту`}
+                                            </span>
+                                        </label>
+                                    );
+                                })}
                             </div>
 
                             <div className={styles.togglebox}>
@@ -418,18 +681,28 @@ function Page() {
                                 </label>
                                 <span className={styles.label}>Разрешить отправку видео ассистенту</span>
                             </div>
+
                             <div className={styles.checkboxContainer}>
-                                {checkboxesVoiceAI.map((checked, index) => (
-                                    <label key={index} className={styles.checkboxLabel}>
-                                        <input
-                                            type="checkbox"
-                                            checked={checked}
-                                            onChange={() => handleCheckboxChangeVoiceAI(index)}
-                                        />
-                                        <span className={styles.animatedCheckbox}></span>
-                                        <span>{index === 3 ? 'Только AI' : `AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}</span>
-                                    </label>
-                                ))}
+                                {checkboxesVoiceAI.map((checked, index) => {
+                                    const subscriptionType = subscriptionTypes[index];
+                                    const assistantCount = getAssistantRequestCount(subscriptionType);
+
+                                    return (
+                                        <label key={index} className={styles.checkboxLabel}>
+                                            <input
+                                                type="checkbox"
+                                                checked={checked}
+                                                onChange={() => handleCheckboxChangeVoiceAI(index)}
+                                            />
+                                            <span className={styles.animatedCheckbox}></span>
+                                            <span>
+                                                {subscriptionType === 'FOURTH'
+                                                    ? 'Только AI'
+                                                    : `AI + ${assistantCount} запросов ассистенту`}
+                                            </span>
+                                        </label>
+                                    );
+                                })}
                             </div>
 
                             <div className={styles.togglebox}>
@@ -443,22 +716,33 @@ function Page() {
                                 </label>
                                 <span className={styles.label}>Разрешить отправку файлов ассистенту</span>
                             </div>
+
                             <div className={styles.checkboxContainer}>
-                                {checkboxesVoiceAI.map((checked, index) => (
-                                    <label key={index} className={styles.checkboxLabel}>
-                                        <input
-                                            type="checkbox"
-                                            checked={checked}
-                                            onChange={() => handleCheckboxChangeVoiceAI(index)}
-                                        />
-                                        <span className={styles.animatedCheckbox}></span>
-                                        <span>{index === 3 ? 'Только AI' : `AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}</span>
-                                    </label>
-                                ))}
+                                {checkboxesVoiceAI.map((checked, index) => {
+                                    const subscriptionType = subscriptionTypes[index];
+                                    const assistantCount = getAssistantRequestCount(subscriptionType);
+
+                                    return (
+                                        <label key={index} className={styles.checkboxLabel}>
+                                            <input
+                                                type="checkbox"
+                                                checked={checked}
+                                                onChange={() => handleCheckboxChangeVoiceAI(index)}
+                                            />
+                                            <span className={styles.animatedCheckbox}></span>
+                                            <span>
+                                                {subscriptionType === 'FOURTH'
+                                                    ? 'Только AI'
+                                                    : `AI + ${assistantCount} запросов ассистенту`}
+                                            </span>
+                                        </label>
+                                    );
+                                })}
                             </div>
 
                             <button className={styles.submitButtonthree}>Подтвердить</button>
                         </div>
+
 
                     </div>
                 </div>
@@ -519,7 +803,7 @@ function Page() {
                             <Table
                                 columns={columnsData as Column<UserData>[]}
                                 data={sortedData}
-                                onRowClick={(row) => handleRowClick(row.telegramId)} 
+                                onRowClick={(row) => handleRowClick(row.telegramId)}
                             />
                         )}
                     </div>
