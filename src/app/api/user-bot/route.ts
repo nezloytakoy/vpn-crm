@@ -902,7 +902,18 @@ bot.on('message:voice', async (ctx) => {
       await handleAIChat(telegramId, transcribedText, ctx);
     } else if (activeRequest && activeRequest.assistant) {
       // Пересылка голосового сообщения ассистенту
-      await sendMessageToAssistant(ctx, activeRequest.assistant.telegramId.toString(), '');
+      const voice = ctx.message.voice;
+      const fileId = voice.file_id;
+
+      // Получаем файл и передаем его ассистенту
+      const fileInfo = await ctx.api.getFile(fileId);
+      const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileInfo.file_path}`;
+      const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
+      const voiceBuffer = Buffer.from(response.data, 'binary');
+
+      await sendFileToAssistant(activeRequest.assistant.telegramId.toString(), voiceBuffer, 'voice.ogg');
+
+      await ctx.reply('Голосовое сообщение успешно отправлено ассистенту.');
     } else {
       await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
     }
@@ -911,6 +922,7 @@ bot.on('message:voice', async (ctx) => {
     await ctx.reply('Не получилось отправить голосовое сообщение.');
   }
 });
+
 
 bot.on('message:video', async (ctx) => {
   try {
