@@ -20,22 +20,6 @@ type ChatMessage = {
   content: string;
 };
 
-async function getFileLink(ctx: Context, fileId: string): Promise<string> {
-  try {
-    // Получаем файл, чтобы получить file_path
-    const file = await ctx.api.getFile(fileId);
-    const filePath = file.file_path;
-
-    if (!filePath) throw new Error("File path не найден");
-
-    // Создаем ссылку на файл
-    const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${filePath}`;
-    return fileLink;
-  } catch (error) {
-    console.error("Ошибка при получении ссылки на файл:", error);
-    throw error;
-  }
-}
 
 const userConversations = new Map<bigint, ChatMessage[]>();
 
