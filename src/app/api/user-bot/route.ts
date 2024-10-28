@@ -956,9 +956,12 @@ bot.on('message:video', async (ctx) => {
     if (user.isActiveAIChat) {
       await ctx.reply('Отправка видео сообщений ИИ недоступна.');
     } else if (activeRequest && activeRequest.assistant) {
-      
-      const video = ctx.message.video;
-      const fileId = video.file_id;
+      const fileId = ctx.message.video?.file_id || ctx.message.video_note?.file_id;
+
+      if (!fileId) {
+        await ctx.reply('Не удалось получить файл видео.');
+        return;
+      }
 
       
       const fileInfo = await ctx.api.getFile(fileId);
@@ -966,7 +969,9 @@ bot.on('message:video', async (ctx) => {
       const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
       const videoBuffer = Buffer.from(response.data, 'binary');
 
-      await sendFileToAssistant(activeRequest.assistant.telegramId.toString(), videoBuffer, 'video.mp4');
+      const fileName = ctx.message.video ? 'video.mp4' : 'video_note.mp4';
+
+      await sendFileToAssistant(activeRequest.assistant.telegramId.toString(), videoBuffer, fileName);
 
       await ctx.reply('Видео успешно отправлено ассистенту.');
     } else {
@@ -977,6 +982,7 @@ bot.on('message:video', async (ctx) => {
     await ctx.reply('Не получилось отправить видео сообщение.');
   }
 });
+
 
 
 
