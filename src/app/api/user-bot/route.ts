@@ -33,7 +33,7 @@ async function sendFileToAssistant(assistantChatId: string, fileBuffer: Buffer, 
   const assistantBot = new Bot(botToken);
 
   try {
-    // Отправляем файл ассистенту
+    
     await assistantBot.api.sendDocument(assistantChatId, new InputFile(fileBuffer, fileName));
   } catch (error) {
     console.error('Ошибка при отправке файла ассистенту:', error);
@@ -56,10 +56,10 @@ async function sendMessageToAssistant(
 
   try {
     if (message) {
-      // Если передано текстовое сообщение, отправляем его ассистенту
+      
       await assistantBot.api.sendMessage(assistantChatId, message);
     } else if (ctx && ctx.chat && ctx.message) {
-      // Если нет текстового сообщения, копируем сообщение из контекста
+      
       await assistantBot.api.copyMessage(
         assistantChatId,
         ctx.chat.id,
@@ -70,7 +70,7 @@ async function sendMessageToAssistant(
       return;
     }
 
-    // Обновляем запись разговора в базе данных
+    
     const assistantTelegramId = BigInt(assistantChatId);
 
     const activeConversation = await prisma.conversation.findFirst({
@@ -85,7 +85,7 @@ async function sendMessageToAssistant(
 
       const newMessage = {
         sender: 'USER',
-        message: message || 'Media message', // Используем переданное сообщение или указатель на медиа
+        message: message || 'Media message', 
         timestamp: currentTime.toISOString(),
       };
 
@@ -306,7 +306,7 @@ bot.command('end_dialog', async (ctx) => {
 
       if (activeRequest.assistant) {
         await sendMessageToAssistant(
-          ctx,  // Pass ctx as the first argument
+          ctx,  
           activeRequest.assistant.telegramId.toString(),
           `${getTranslation(languageCode, 'user_ended_dialog_no_reward')}`
         );
@@ -337,7 +337,7 @@ bot.command('end_dialog', async (ctx) => {
 
 
         await sendMessageToAssistant(
-          ctx, // Add `ctx` as the first argument
+          ctx, 
           updatedAssistant.telegramId.toString(),
           `${getTranslation(languageCode, 'user_ended_dialog')} ${getTranslation(languageCode, 'coin_awarded')}`
         );
@@ -872,7 +872,7 @@ bot.on('message:voice', async (ctx) => {
     }
 
     if (user.isActiveAIChat) {
-      // Обработка голосового сообщения с ИИ
+      
       const voice = ctx.message.voice;
       const fileId = voice.file_id;
 
@@ -901,11 +901,11 @@ bot.on('message:voice', async (ctx) => {
 
       await handleAIChat(telegramId, transcribedText, ctx);
     } else if (activeRequest && activeRequest.assistant) {
-      // Пересылка голосового сообщения ассистенту
+      
       const voice = ctx.message.voice;
       const fileId = voice.file_id;
 
-      // Получаем файл и передаем его ассистенту
+      
       const fileInfo = await ctx.api.getFile(fileId);
       const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileInfo.file_path}`;
       const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
@@ -956,8 +956,19 @@ bot.on('message:video', async (ctx) => {
     if (user.isActiveAIChat) {
       await ctx.reply('Отправка видео сообщений ИИ недоступна.');
     } else if (activeRequest && activeRequest.assistant) {
-      // Пересылка видео сообщения ассистенту
-      await sendMessageToAssistant(ctx, activeRequest.assistant.telegramId.toString(), '');
+      
+      const video = ctx.message.video;
+      const fileId = video.file_id;
+
+      
+      const fileInfo = await ctx.api.getFile(fileId);
+      const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileInfo.file_path}`;
+      const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
+      const videoBuffer = Buffer.from(response.data, 'binary');
+
+      await sendFileToAssistant(activeRequest.assistant.telegramId.toString(), videoBuffer, 'video.mp4');
+
+      await ctx.reply('Видео успешно отправлено ассистенту.');
     } else {
       await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
     }
@@ -966,6 +977,8 @@ bot.on('message:video', async (ctx) => {
     await ctx.reply('Не получилось отправить видео сообщение.');
   }
 });
+
+
 
 bot.on('message:document', async (ctx) => {
   try {
@@ -998,10 +1011,10 @@ bot.on('message:document', async (ctx) => {
     const fileId = document.file_id;
     const fileInfo = await ctx.api.getFile(fileId);
 
-    // Построение ссылки на файл вручную
+    
     const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileInfo.file_path}`;
 
-    // Загрузка файла
+    
     const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
     const fileBuffer = Buffer.from(response.data, 'binary');
     const fileName = document.file_name || 'document';
