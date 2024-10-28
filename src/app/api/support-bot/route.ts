@@ -784,23 +784,39 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
       include: { user: true },
     });
 
-
     await prisma.assistant.update({
       where: { telegramId: assistantTelegramId },
       data: { isBusy: true },
     });
 
-
-    const existingConversation = await prisma.conversation.findUnique({
-      where: { requestId: assistantRequest.id },
+    const existingConversation = await prisma.conversation.findFirst({
+      where: { requestId: assistantRequest.id, status: 'ABORTED' },
     });
 
     if (existingConversation) {
+      
+      await prisma.conversation.update({
+        where: { id: existingConversation.id },
+        data: {
+          assistantId: assistantTelegramId,
+          messages: [],
+          status: 'PENDING',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          lastMessageFrom: '',
+          assistantResponseTimes: [],
+          lastUserMessageAt: null,
+        },
+      });
 
-      console.error(`Разговор для запроса с ID ${assistantRequest.id} уже существует.`);
-      await ctx.reply('Этот запрос уже имеет активный разговор.');
+      await ctx.reply('✅ Вы приняли запрос. Разговор возобновлен.');
+
+      await sendTelegramMessageToUser(
+        assistantRequest.user.telegramId.toString(),
+        'Ассистент присоединился к чату. Сформулируйте свой вопрос.'
+      );
     } else {
-
+      
       await prisma.conversation.create({
         data: {
           userId: assistantRequest.userId,
@@ -824,6 +840,7 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
     await ctx.reply('❌ Произошла ошибка при принятии запроса.');
   }
 }
+
 
 
 async function handleRejectRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
