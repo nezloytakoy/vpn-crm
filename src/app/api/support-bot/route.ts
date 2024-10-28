@@ -789,6 +789,7 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
       data: { isBusy: true },
     });
 
+    
     const existingConversation = await prisma.conversation.findFirst({
       where: { requestId: assistantRequest.id, status: 'ABORTED' },
     });
@@ -840,6 +841,7 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
     await ctx.reply('❌ Произошла ошибка при принятии запроса.');
   }
 }
+
 
 
 
