@@ -94,28 +94,25 @@ const WaveComponent = () => {
                 console.log(`Fetching data for Telegram ID: ${telegramId}`);
         
                 const profileResponse = await fetch(`/api/get-profile-data?telegramId=${telegramId}`);
-                const subscriptionResponse = await fetch(`/api/get-subscription?telegramId=${telegramId}`);
+        
                 const requestsResponse = await fetch(`/api/get-requests?telegramId=${telegramId}`);
         
                 if (!profileResponse.ok) {
                     console.log('Error fetching profile data', await profileResponse.text());
                     throw new Error('Ошибка при получении данных профиля');
                 }
-                if (!subscriptionResponse.ok) {
-                    console.log('Error fetching subscription data', await subscriptionResponse.text());
-                    throw new Error('Ошибка при получении данных подписки');
-                }
+               
                 if (!requestsResponse.ok) {
                     console.log('Error fetching requests data', await requestsResponse.text());
                     throw new Error('Ошибка при получении данных запросов');
                 }
         
                 const profileData = await profileResponse.json();
-                const subscriptionData = await subscriptionResponse.json();
+           
                 const requestsData = await requestsResponse.json();
         
                 console.log('Profile data:', profileData);
-                console.log('Subscription data:', subscriptionData);
+           
                 console.log('Requests data:', requestsData);
         
                 
@@ -138,7 +135,7 @@ const WaveComponent = () => {
                     }, 2000);
                 }
         
-                await sendLogToTelegram(`Subscription data from API: ${JSON.stringify(subscriptionData)}`);
+
                 await sendLogToTelegram(`Requests data from API: ${JSON.stringify(requestsData)}`);
             } catch (error) {
                 console.error('Ошибка при получении данных:', error);
