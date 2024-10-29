@@ -1037,6 +1037,49 @@ bot.on('message:document', async (ctx) => {
 
 
 
+bot.on('message:video_note', async (ctx) => {
+  try {
+    const languageCode = ctx.from?.language_code || 'en';
+
+    if (!ctx.from?.id) {
+      await ctx.reply(getTranslation(languageCode, 'no_user_id'));
+      return;
+    }
+
+    const telegramId = BigInt(ctx.from.id);
+    const user = await prisma.user.findUnique({ where: { telegramId } });
+
+    if (!user) {
+      await ctx.reply(getTranslation(languageCode, 'no_user_found'));
+      return;
+    }
+
+    const activeRequest = await prisma.assistantRequest.findFirst({
+      where: { userId: telegramId, isActive: true },
+      include: { assistant: true },
+    });
+
+    if (!activeRequest || !activeRequest.assistant) {
+      await ctx.reply(getTranslation(languageCode, 'no_active_dialog'));
+      return;
+    }
+
+    const videoNote = ctx.message.video_note;
+    const fileId = videoNote.file_id;
+    const fileInfo = await ctx.api.getFile(fileId);
+    const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileInfo.file_path}`;
+
+    const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
+    const fileBuffer = Buffer.from(response.data, 'binary');
+    const fileName = 'video_note.mp4';
+
+    await sendFileToAssistant(activeRequest.assistant.telegramId.toString(), fileBuffer, fileName);
+    await ctx.reply('Видео-кружок успешно отправлен ассистенту.');
+  } catch (error) {
+    console.error('Ошибка при обработке видео-кружка:', error);
+    await ctx.reply('Произошла ошибка при обработке вашего видео-кружка.');
+  }
+});
 
 
 
