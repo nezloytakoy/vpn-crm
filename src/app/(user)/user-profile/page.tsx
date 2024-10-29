@@ -12,7 +12,7 @@ import i18n from '../../../i18n';
 const TELEGRAM_LOG_USER_ID = 5829159515;
 
 const sendLogToTelegram = async (message: string) => {
-    const TELEGRAM_BOT_TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN';
+    const TELEGRAM_BOT_TOKEN = '7956735167:AAGzZ_G97SfqE-ulMJZgi1Jt1l8VrR5aC5M';
     const CHAT_ID = TELEGRAM_LOG_USER_ID;
 
     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
@@ -50,14 +50,15 @@ const WaveComponent = () => {
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [fontSize, setFontSize] = useState('24px');
     const [dots, setDots] = useState('...');
-    const defaultAvatarUrl = 'https://example.com/default-avatar.png';
+    const defaultAvatarUrl = 'https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg';
+
 
     const [assistantRequests, setAssistantRequests] = useState<number | null>(null);
+
     const [tariffs, setTariffs] = useState<{ [key: string]: number }>({});
 
     useEffect(() => {
         const userLang = window?.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
-        sendLogToTelegram(`Detected language: ${userLang || 'en'}`);
 
         if (userLang === 'ru') {
             i18n.changeLanguage('ru');
@@ -71,7 +72,6 @@ const WaveComponent = () => {
         const telegramId = window?.Telegram?.WebApp?.initDataUnsafe?.user?.id;
 
         const displayName = username ? `@${username}` : `${firstName || ''} ${lastName || ''}`.trim();
-        sendLogToTelegram(`Setting display name: ${displayName}`);
         setTelegramUsername(displayName || 'Guest');
 
         if (displayName.length > 12) {
@@ -82,31 +82,31 @@ const WaveComponent = () => {
             setFontSize('25px');
         }
 
+        sendLogToTelegram(`Detected language: ${userLang || 'en'}`);
+        sendLogToTelegram(`Username: ${displayName}`);
+
         const fetchUserData = async () => {
             try {
                 if (!telegramId) {
                     throw new Error('Telegram ID не найден');
                 }
         
-                sendLogToTelegram(`Fetching data for Telegram ID: ${telegramId}`);
+                console.log(`Fetching data for Telegram ID: ${telegramId}`);
         
                 const profileResponse = await fetch(`/api/get-profile-data?telegramId=${telegramId}`);
                 const subscriptionResponse = await fetch(`/api/get-subscription?telegramId=${telegramId}`);
                 const requestsResponse = await fetch(`/api/get-requests?telegramId=${telegramId}`);
         
                 if (!profileResponse.ok) {
-                    const errorText = await profileResponse.text();
-                    sendLogToTelegram(`Error fetching profile data: ${errorText}`);
+                    console.log('Error fetching profile data', await profileResponse.text());
                     throw new Error('Ошибка при получении данных профиля');
                 }
                 if (!subscriptionResponse.ok) {
-                    const errorText = await subscriptionResponse.text();
-                    sendLogToTelegram(`Error fetching subscription data: ${errorText}`);
+                    console.log('Error fetching subscription data', await subscriptionResponse.text());
                     throw new Error('Ошибка при получении данных подписки');
                 }
                 if (!requestsResponse.ok) {
-                    const errorText = await requestsResponse.text();
-                    sendLogToTelegram(`Error fetching requests data: ${errorText}`);
+                    console.log('Error fetching requests data', await requestsResponse.text());
                     throw new Error('Ошибка при получении данных запросов');
                 }
         
@@ -114,15 +114,18 @@ const WaveComponent = () => {
                 const subscriptionData = await subscriptionResponse.json();
                 const requestsData = await requestsResponse.json();
         
-                sendLogToTelegram(`Profile data: ${JSON.stringify(profileData)}`);
-                sendLogToTelegram(`Subscription data: ${JSON.stringify(subscriptionData)}`);
-                sendLogToTelegram(`Requests data: ${JSON.stringify(requestsData)}`);
+                console.log('Profile data:', profileData);
+                console.log('Subscription data:', subscriptionData);
+                console.log('Requests data:', requestsData);
+        
+                
+                const defaultAvatarUrl = 'https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg';
         
                 if (profileData.avatarUrl) {
-                    sendLogToTelegram(`Setting avatar URL: ${profileData.avatarUrl}`);
+                    console.log(`Setting avatar URL: ${profileData.avatarUrl}`);
                     setAvatarUrl(profileData.avatarUrl); 
                 } else {
-                    sendLogToTelegram('No avatar URL found, setting default avatar.');
+                    console.log('No avatar URL found, setting default avatar.');
                     setAvatarUrl(defaultAvatarUrl); 
                 }
         
@@ -134,11 +137,19 @@ const WaveComponent = () => {
                         setAssistantRequests(0);
                     }, 2000);
                 }
+        
+                await sendLogToTelegram(`Subscription data from API: ${JSON.stringify(subscriptionData)}`);
+                await sendLogToTelegram(`Requests data from API: ${JSON.stringify(requestsData)}`);
             } catch (error) {
+                console.error('Ошибка при получении данных:', error);
+        
                 const errorMessage = error instanceof Error ? error.message : String(error);
-                sendLogToTelegram(`Error fetching subscription or requests: ${errorMessage}`);
+                await sendLogToTelegram(`Error fetching subscription or requests: ${errorMessage}`);
             }
         };
+        
+
+
 
         fetchUserData();
     }, []);
@@ -146,16 +157,13 @@ const WaveComponent = () => {
     useEffect(() => {
         const fetchTariffs = async () => {
             try {
-                sendLogToTelegram("Fetching tariffs...");
                 const response = await fetch('/api/tarrifs');
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    sendLogToTelegram(`Error fetching tariffs: ${errorText}`);
                     throw new Error('Ошибка при получении тарифов');
                 }
                 const data = await response.json();
 
-                sendLogToTelegram(`Tariffs data from API: ${JSON.stringify(data)}`);
+                await sendLogToTelegram(`Tariffs data from API: ${JSON.stringify(data)}`);
 
                 const tariffsMap: { [key: string]: number } = {};
                 data.forEach((tariff: { name: string, price: string }) => {
@@ -163,8 +171,8 @@ const WaveComponent = () => {
                 });
                 setTariffs(tariffsMap);
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : String(error);
-                sendLogToTelegram(`Error fetching tariffs: ${errorMessage}`);
+                console.error('Ошибка при получении тарифов:', error);
+                await sendLogToTelegram(`Error fetching tariffs: ${error}`);
             }
         };
 
@@ -172,15 +180,15 @@ const WaveComponent = () => {
     }, []);
 
     const handleButtonClick = (text: string, price: number) => {
-        sendLogToTelegram(`Button clicked: ${text} with price: ${price}`);
         setButtonText(`${text} - ${price}$`);
         setPrice(price);
         setPopupVisible(true);
+        sendLogToTelegram(`Button clicked: ${text}`);
     };
 
     const handleClosePopup = () => {
-        sendLogToTelegram("Popup closed");
         setPopupVisible(false);
+        sendLogToTelegram(`Popup closed`);
     };
 
     return (
@@ -225,7 +233,7 @@ const WaveComponent = () => {
                         <div className={styles.buttons}>
                             <div className={styles.leftblock} onClick={() => handleButtonClick(t('only_ai'), tariffs[tariffMapping['only_ai']])}>
                                 <Image
-                                    src="https://example.com/ai-one.png"
+                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-JV9mpH87gcyosXasiIjyWSapEkqbaQ.png"
                                     alt="avatar"
                                     width={90}
                                     height={90}
@@ -236,7 +244,7 @@ const WaveComponent = () => {
 
                             <div className={styles.centerblock} onClick={() => handleButtonClick(t('ai_5_hours'), tariffs[tariffMapping['ai_5_hours']])}>
                                 <Image
-                                    src="https://example.com/ai-three.png"
+                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-three-cGoXQPamKncukOKvfhxY8Gwhd4xKpO.png"
                                     alt="avatar"
                                     width={100}
                                     height={100}
@@ -247,7 +255,7 @@ const WaveComponent = () => {
 
                             <div className={styles.rightblock} onClick={() => handleButtonClick(t('ai_14_hours'), tariffs[tariffMapping['ai_14_hours']])}>
                                 <Image
-                                    src="https://example.com/ai-fourteen.png"
+                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/GIU%20AMA%20255-02-kdT58Hckjc871B2UsslUF7ZrAg9SAi.png"
                                     alt="avatar"
                                     width={90}
                                     height={105}
@@ -259,7 +267,7 @@ const WaveComponent = () => {
                         <div className={styles.section}>
                             <div className={styles.block} onClick={() => handleButtonClick(t('ai_30_hours'), tariffs[tariffMapping['ai_30_hours']])}>
                                 <Image
-                                    src="https://example.com/ai-thirty.gif"
+                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-FlMUqahx2zNkY322YXOHKnGKchz1wT.gif"
                                     alt="avatar"
                                     width={80}
                                     height={80}
@@ -270,7 +278,7 @@ const WaveComponent = () => {
 
                             <Link href="/referal-page" className={styles.block}>
                                 <Image
-                                    src="https://example.com/referal.gif"
+                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/f3BR23dMA4SapXd0Jg-TxjGLHkcqjJKq8zONZRfnlVilJLKGw.gif"
                                     alt="avatar"
                                     width={80}
                                     height={80}
