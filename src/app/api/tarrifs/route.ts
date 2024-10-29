@@ -1,47 +1,70 @@
-import { PrismaClient } from "@prisma/client"
-import { NextResponse } from "next/server"
+import { PrismaClient } from "@prisma/client";
+import { NextResponse } from "next/server";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 export async function GET() {
     try {
-        const tariffsData = prisma.tariff.findMany({
+        
+        const subscriptions = await prisma.subscription.findMany({
             select: {
                 id: true,
                 name: true,
-                price: true
-            }
-        })
+                price: true,
+            },
+        });
 
-        const serializedTariffs = (await tariffsData).map(tarrif => ({
-            id: tarrif.id.toString(),
-            name: tarrif.name,
-            price: tarrif.price.toString()
-        }))
+        
+        const serializedSubscriptions = subscriptions.map((subscription) => ({
+            id: subscription.id.toString(),
+            name: subscription.name,
+            price: subscription.price.toString(),
+        }));
 
-        return NextResponse.json(serializedTariffs);
+        return NextResponse.json(serializedSubscriptions);
     } catch (error) {
-        console.log(error)
-        return NextResponse.json({error: "Не удалось получить данные"}, {status: 500})
+        console.error("Error fetching subscriptions:", error);
+        return NextResponse.json(
+            { error: "Не удалось получить данные" },
+            { status: 500 }
+        );
     }
 }
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { name, description, price } = body;
+        const { name, description, price, aiRequestCount } = body;
 
-        const newTariff = await prisma.tariff.create({
+        if (!name || price === undefined || aiRequestCount === undefined) {
+            return NextResponse.json(
+                { error: "Название, цена и количество AI запросов обязательны." },
+                { status: 400 }
+            );
+        }
+
+        const newSubscription = await prisma.subscription.create({
             data: {
                 name,
-                description,
-                price
-            }
+                description: description || "", 
+                price: parseFloat(price), 
+                aiRequestCount: parseInt(aiRequestCount, 10), 
+            },
         });
 
-        return NextResponse.json(newTariff);
+        
+        const serializedSubscription = {
+            ...newSubscription,
+            id: newSubscription.id.toString(),
+            price: newSubscription.price.toString(),
+        };
+
+        return NextResponse.json(serializedSubscription);
     } catch (error) {
-        console.log(error);
-        return NextResponse.json({ error: 'Не удалось создать тариф' }, { status: 500 });
+        console.error("Error creating subscription:", error);
+        return NextResponse.json(
+            { error: "Не удалось создать подписку" },
+            { status: 500 }
+        );
     }
 }
