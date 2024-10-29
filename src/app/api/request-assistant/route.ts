@@ -88,6 +88,7 @@ export async function POST(request: Request) {
       }
   
       const userIdBigInt = BigInt(userId);
+      await sendLogToTelegram(`Проверка пользователя с ID: ${userIdBigInt}`);
   
       await sendLogToTelegram(getTranslation(lang, 'logMessage'));
   
@@ -96,6 +97,7 @@ export async function POST(request: Request) {
       });
   
       if (!userExists) {
+        await sendLogToTelegram(`Пользователь с ID ${userIdBigInt} не найден`);
         return new Response(JSON.stringify({ error: getTranslation(lang, 'userNotFound') }), {
           status: 404,
           headers: { 'Content-Type': 'application/json' },
@@ -111,6 +113,7 @@ export async function POST(request: Request) {
       });
   
       if (existingActiveRequest) {
+        await sendLogToTelegram(`У пользователя ${userIdBigInt} уже есть активный запрос`);
         // Если активный запрос уже есть, отправляем сообщение пользователю
         await sendTelegramMessageToUser(userIdBigInt.toString(), 'У вас уже есть открытый запрос к ассистенту.');
         return new Response(JSON.stringify({ message: 'У вас уже есть открытый запрос к ассистенту.' }), {
@@ -121,6 +124,7 @@ export async function POST(request: Request) {
   
       // Проверяем, есть ли у пользователя доступные запросы к ассистенту
       if (userExists.assistantRequests <= 0) {
+        await sendLogToTelegram(`Недостаточно запросов у пользователя ${userIdBigInt}`);
         return new Response(JSON.stringify({ error: getTranslation(lang, 'notEnoughRequests') }), {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
@@ -134,6 +138,8 @@ export async function POST(request: Request) {
           assistantRequests: { decrement: 1 },
         },
       });
+
+      await sendLogToTelegram(`Запросов у пользователя ${userIdBigInt} уменьшено на 1`);
   
       await sendTelegramMessageToUser(userIdBigInt.toString(), getTranslation(lang, 'requestReceived'));
   
@@ -148,6 +154,8 @@ export async function POST(request: Request) {
           ignoredAssistants: [], // Инициализация массива проигнорированных ассистентов
         },
       });
+
+      await sendLogToTelegram(`Создан запрос к ассистенту для пользователя ${userIdBigInt}`);
   
       // Ищем всех доступных ассистентов
       const availableAssistants = await prisma.assistant.findMany({
@@ -180,6 +188,7 @@ export async function POST(request: Request) {
       });
   
       if (assistantsWithPenalties.length === 0) {
+        await sendLogToTelegram('Нет доступных ассистентов');
         return new Response(JSON.stringify({ message: getTranslation(lang, 'noAssistantsAvailable') }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
@@ -204,6 +213,8 @@ export async function POST(request: Request) {
           assistantId: selectedAssistant.telegramId,
         },
       });
+
+      await sendLogToTelegram(`Назначен ассистент ${selectedAssistant.telegramId} для пользователя ${userIdBigInt}`);
   
       // Отправляем сообщение ассистенту с кнопками для принятия или отклонения
       await sendTelegramMessageWithButtons(
@@ -221,6 +232,8 @@ export async function POST(request: Request) {
       });
     } catch (error) {
       console.error('Ошибка:', error);
+      await sendLogToTelegram(`Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
       return new Response(JSON.stringify({ error: getTranslation(detectLanguage(), 'serverError') }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
