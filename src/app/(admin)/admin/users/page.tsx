@@ -6,16 +6,14 @@ import Table from '@/components/Table/Table';
 import { Column, CellProps } from 'react-table';
 import { useRouter } from 'next/navigation';
 
-
 interface UserData {
-    telegramId: string,
+    telegramId: string;
     username: string;
     referralCount: number;
-    subscriptionType: string;
+    subscriptionType: string; 
     assistantRequests: number;
     hasUpdatedSubscription: boolean;
 }
-
 
 type MyColumn<T extends object, K extends keyof T> = {
     Header: string;
@@ -63,19 +61,42 @@ function Page() {
 
 
 
-    const [isToggledVoiceAI, setIsToggledVoiceAI] = useState<boolean>(false);
-    const [checkboxesVoiceAI, setCheckboxesVoiceAI] = useState<boolean[]>([false, false, false, false]);
-
-
-    const [isToggledVoiceAssistant, setIsToggledVoiceAssistant] = useState<boolean>(false);
-    const [isToggledVideoAssistant, setIsToggledVideoAssistant] = useState<boolean>(false);
-    const [isToggledFileAssistant, setIsToggledFileAssistant] = useState<boolean>(false);
-
     const defaultAiRequestValues = ['5', '14', '30', '3'];
 
     const [assistantRequestValues, setAssistantRequestValues] = useState<string[]>(['', '', '', '']);
 
-    const defaultAssistantRequestValues = ['5', '14', '30', '0']; 
+    const defaultAssistantRequestValues = ['5', '14', '30', '0'];
+
+    const [isToggledVoiceAI, setIsToggledVoiceAI] = useState(false);
+    const [checkboxesVoiceAI, setCheckboxesVoiceAI] = useState([false, false, false, false]);
+
+    const [isToggledVoiceAssistant, setIsToggledVoiceAssistant] = useState(false);
+    const [checkboxesVoiceAssistant, setCheckboxesVoiceAssistant] = useState([false, false, false, false]);
+
+    const [isToggledVideoAssistant, setIsToggledVideoAssistant] = useState(false);
+    const [checkboxesVideoAssistant, setCheckboxesVideoAssistant] = useState([false, false, false, false]);
+
+    const [isToggledFileAssistant, setIsToggledFileAssistant] = useState(false);
+    const [checkboxesFileAssistant, setCheckboxesFileAssistant] = useState([false, false, false, false]);
+
+    const handleToggleChange = (
+        toggleSetter: React.Dispatch<React.SetStateAction<boolean>>,
+        checkboxesSetter: React.Dispatch<React.SetStateAction<boolean[]>>
+    ) => {
+        toggleSetter((prevState) => !prevState);
+        checkboxesSetter((prevState) => prevState.map(() => !prevState.every((checked) => checked)));
+    };
+
+    const handleCheckboxChange = (
+        index: number,
+        checkboxesSetter: React.Dispatch<React.SetStateAction<boolean[]>>,
+        checkboxes: boolean[]
+    ) => {
+        const updatedCheckboxes = [...checkboxes];
+        updatedCheckboxes[index] = !updatedCheckboxes[index];
+        checkboxesSetter(updatedCheckboxes);
+    };
+
 
 
 
@@ -106,7 +127,7 @@ function Page() {
 
                 if (response.ok) {
                     alert('Количество запросов к ассистенту успешно обновлено.');
-                    setAssistantRequestValues(['', '', '', '']); 
+                    setAssistantRequestValues(['', '', '', '']);
                 } else {
                     alert('Ошибка при обновлении: ' + data.error);
                 }
@@ -121,23 +142,37 @@ function Page() {
 
     interface AIRequest {
         subscriptionType: string;
-        count: number; 
+        count: number;
     }
 
     useEffect(() => {
+        console.log('useEffect called');
+    
         const fetchUsers = async () => {
+            console.log('fetchUsers called');
             try {
                 const response = await fetch('/api/get-users');
                 const data = await response.json();
-                setUsers(data);
+                const usersWithSubscriptions = data.map((user: any) => ({
+                    ...user,
+                    subscriptionName: user.subscriptionName || 'Без подписки',
+                    subscriptionDescription: user.subscriptionDescription || '',
+                    price: user.price || 0,
+                    allowVoiceToAI: user.allowVoiceToAI || false,
+                    allowVoiceToAssistant: user.allowVoiceToAssistant || false,
+                    allowVideoToAssistant: user.allowVideoToAssistant || false,
+                    allowFilesToAssistant: user.allowFilesToAssistant || false,
+                }));
+                setUsers(usersWithSubscriptions);
             } catch (error) {
                 console.error('Ошибка при получении данных пользователей:', error);
             } finally {
                 setIsLoading(false);
             }
         };
-
+    
         const fetchRequestCounts = async () => {
+            console.log('fetchRequestCounts called');
             try {
                 const response = await fetch('/api/get-user-requests');
                 const data = await response.json();
@@ -154,17 +189,24 @@ function Page() {
                 console.error('Ошибка при получении данных запросов:', error);
             }
         };
-
+    
         fetchUsers();
         fetchRequestCounts();
-    }, []);
+    }, []); 
+    
 
     const subscriptionTypes = ['FIRST', 'SECOND', 'THIRD', 'FOURTH'];
 
-    const getAssistantRequestCount = (subscriptionType: string) => {
-        return requestCounts && requestCounts[subscriptionType]
+    const getAssistantRequestCount = (subscriptionType: string): number | undefined => {
+        console.log("Fetching assistant request count for subscription type:", subscriptionType);
+    
+        
+        const requestCount = requestCounts && requestCounts[subscriptionType]
             ? requestCounts[subscriptionType].assistantRequestCount
-            : defaultAssistantRequestValues[subscriptionTypes.indexOf(subscriptionType)];
+            : undefined;
+    
+        console.log(`Resulting assistant request count for ${subscriptionType}:`, requestCount);
+        return requestCount;
     };
 
     const getAiRequestCount = (subscriptionType: string) => {
@@ -193,31 +235,7 @@ function Page() {
     };
 
 
-    const handleToggleChangeVoiceAI = () => {
-        const newToggleState = !isToggledVoiceAI;
-        setIsToggledVoiceAI(newToggleState);
-        setCheckboxesVoiceAI(newToggleState ? [true, true, true, true] : [false, false, false, false]);
-    };
 
-    const handleCheckboxChangeVoiceAI = (index: number) => {
-        const updatedCheckboxes = [...checkboxesVoiceAI];
-        updatedCheckboxes[index] = !updatedCheckboxes[index];
-        setCheckboxesVoiceAI(updatedCheckboxes);
-        setIsToggledVoiceAI(updatedCheckboxes.every((checkbox) => checkbox));
-    };
-
-
-    const handleToggleChangeVoiceAssistant = () => {
-        setIsToggledVoiceAssistant(!isToggledVoiceAssistant);
-    };
-
-    const handleToggleChangeVideoAssistant = () => {
-        setIsToggledVideoAssistant(!isToggledVideoAssistant);
-    };
-
-    const handleToggleChangeFileAssistant = () => {
-        setIsToggledFileAssistant(!isToggledFileAssistant);
-    };
 
 
 
@@ -267,6 +285,7 @@ function Page() {
             ),
         },
     ];
+    
 
     const handleConfirmAiRequests = async () => {
         const valuesToSend = aiRequestValues.map((value, index) =>
@@ -289,7 +308,7 @@ function Page() {
 
                 if (response.ok) {
                     alert('Количество запросов к ИИ успешно обновлено.');
-                    setAiRequestValues(['', '', '', '']); 
+                    setAiRequestValues(['', '', '', '']);
                 } else {
                     alert('Ошибка при обновлении: ' + data.error);
                 }
@@ -332,19 +351,27 @@ function Page() {
         'Только AI': 'FOURTH',
     };
 
-    const getSubscriptionLabel = (subscriptionType: string) => {
-        if (subscriptionType === 'FOURTH') {
+    const getSubscriptionLabel = (subscriptionId: string): string => {
+        console.log("Checking subscription ID:", subscriptionId);
+    
+        if (subscriptionId === '4') { 
             return 'Только AI';
         }
-        const assistantCount = getAssistantRequestCount(subscriptionType);
-        return `AI + ${assistantCount} запросов ассистенту`;
+    
+        const assistantCount = getAssistantRequestCount(subscriptionId);
+        console.log(`Assistant request count for ID ${subscriptionId}:`, assistantCount);
+    
+        return assistantCount !== undefined
+            ? `AI + ${assistantCount} запросов ассистенту`
+            : 'Неизвестная подписка';
     };
+    
 
 
     const handleSendMessage = async () => {
         const selectedCategories = checkboxesNotifications
             .map((checked, index) => (checked ? Object.keys(categoryMapping)[index] : null))
-            .filter((label): label is keyof typeof categoryMapping => label !== null) 
+            .filter((label): label is keyof typeof categoryMapping => label !== null)
             .map((label) => categoryMapping[label]);
 
         if (selectedCategories.length === 0) {
@@ -397,20 +424,19 @@ function Page() {
 
     const sortedData = useMemo(() => {
         if (!sortColumn) return users;
-
         return [...users].sort((a, b) => {
             const aValue = a[sortColumn as keyof UserData];
             const bValue = b[sortColumn as keyof UserData];
-
-            if (aValue < bValue) {
-                return sortDirection === 'asc' ? -1 : 1;
-            }
-            if (aValue > bValue) {
-                return sortDirection === 'asc' ? 1 : -1;
-            }
+    
+            if (aValue === undefined) return 1; 
+            if (bValue === undefined) return -1; 
+    
+            if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+            if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
             return 0;
         });
     }, [users, sortColumn, sortDirection]);
+    
 
 
     return (
@@ -545,7 +571,7 @@ function Page() {
                                             <input
                                                 type="text"
                                                 className={styles.inputFieldtwo}
-                                                placeholder={String(assistantCount)} 
+                                                placeholder={String(assistantCount)}
                                                 value={value}
                                                 onChange={(e) => handleInputChangeAssistant(index, e.target.value)}
                                             />
@@ -572,8 +598,8 @@ function Page() {
                             <h1 className={styles.gifttitle}>Количество запросов к ИИ</h1>
                             {aiRequestValues.map((value, index) => {
                                 const subscriptionType = subscriptionTypes[index];
-                                const assistantCount = getAssistantRequestCount(subscriptionType); 
-                                const aiCount = getAiRequestCount(subscriptionType); 
+                                const assistantCount = getAssistantRequestCount(subscriptionType);
+                                const aiCount = getAiRequestCount(subscriptionType);
 
                                 return (
                                     <div key={index}>
@@ -607,12 +633,13 @@ function Page() {
                         <div className={styles.messagebox}>
                             <h1 className={styles.gifttitle}>Отправка пользователем контента</h1>
 
+                            
                             <div className={styles.togglebox}>
                                 <label className={styles.switch}>
                                     <input
                                         type="checkbox"
                                         checked={isToggledVoiceAI}
-                                        onChange={handleToggleChangeVoiceAI}
+                                        onChange={() => handleToggleChange(setIsToggledVoiceAI, setCheckboxesVoiceAI)}
                                     />
                                     <span className={styles.slider}></span>
                                 </label>
@@ -620,34 +647,26 @@ function Page() {
                             </div>
 
                             <div className={styles.checkboxContainer}>
-                                {checkboxesVoiceAI.map((checked, index) => {
-                                    const subscriptionType = subscriptionTypes[index];
-                                    const assistantCount = getAssistantRequestCount(subscriptionType);
-
-                                    return (
-                                        <label key={index} className={styles.checkboxLabel}>
-                                            <input
-                                                type="checkbox"
-                                                checked={checked}
-                                                onChange={() => handleCheckboxChangeVoiceAI(index)}
-                                            />
-                                            <span className={styles.animatedCheckbox}></span>
-                                            <span>
-                                                {subscriptionType === 'FOURTH'
-                                                    ? 'Только AI'
-                                                    : `AI + ${assistantCount} запросов ассистенту`}
-                                            </span>
-                                        </label>
-                                    );
-                                })}
+                                {checkboxesVoiceAI.map((checked, index) => (
+                                    <label key={index} className={styles.checkboxLabel}>
+                                        <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={() => handleCheckboxChange(index, setCheckboxesVoiceAI, checkboxesVoiceAI)}
+                                        />
+                                        <span className={styles.animatedCheckbox}></span>
+                                        <span>{subscriptionTypes[index] === 'FOURTH' ? 'Только AI' : `AI + ${getAssistantRequestCount(subscriptionTypes[index])} запросов ассистенту`}</span>
+                                    </label>
+                                ))}
                             </div>
 
+                            
                             <div className={styles.togglebox}>
                                 <label className={styles.switch}>
                                     <input
                                         type="checkbox"
                                         checked={isToggledVoiceAssistant}
-                                        onChange={handleToggleChangeVoiceAssistant}
+                                        onChange={() => handleToggleChange(setIsToggledVoiceAssistant, setCheckboxesVoiceAssistant)}
                                     />
                                     <span className={styles.slider}></span>
                                 </label>
@@ -655,34 +674,26 @@ function Page() {
                             </div>
 
                             <div className={styles.checkboxContainer}>
-                                {checkboxesVoiceAI.map((checked, index) => {
-                                    const subscriptionType = subscriptionTypes[index];
-                                    const assistantCount = getAssistantRequestCount(subscriptionType);
-
-                                    return (
-                                        <label key={index} className={styles.checkboxLabel}>
-                                            <input
-                                                type="checkbox"
-                                                checked={checked}
-                                                onChange={() => handleCheckboxChangeVoiceAI(index)}
-                                            />
-                                            <span className={styles.animatedCheckbox}></span>
-                                            <span>
-                                                {subscriptionType === 'FOURTH'
-                                                    ? 'Только AI'
-                                                    : `AI + ${assistantCount} запросов ассистенту`}
-                                            </span>
-                                        </label>
-                                    );
-                                })}
+                                {checkboxesVoiceAssistant.map((checked, index) => (
+                                    <label key={index} className={styles.checkboxLabel}>
+                                        <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={() => handleCheckboxChange(index, setCheckboxesVoiceAssistant, checkboxesVoiceAssistant)}
+                                        />
+                                        <span className={styles.animatedCheckbox}></span>
+                                        <span>{subscriptionTypes[index] === 'FOURTH' ? 'Только AI' : `AI + ${getAssistantRequestCount(subscriptionTypes[index])} запросов ассистенту`}</span>
+                                    </label>
+                                ))}
                             </div>
 
+                            
                             <div className={styles.togglebox}>
                                 <label className={styles.switch}>
                                     <input
                                         type="checkbox"
                                         checked={isToggledVideoAssistant}
-                                        onChange={handleToggleChangeVideoAssistant}
+                                        onChange={() => handleToggleChange(setIsToggledVideoAssistant, setCheckboxesVideoAssistant)}
                                     />
                                     <span className={styles.slider}></span>
                                 </label>
@@ -690,34 +701,26 @@ function Page() {
                             </div>
 
                             <div className={styles.checkboxContainer}>
-                                {checkboxesVoiceAI.map((checked, index) => {
-                                    const subscriptionType = subscriptionTypes[index];
-                                    const assistantCount = getAssistantRequestCount(subscriptionType);
-
-                                    return (
-                                        <label key={index} className={styles.checkboxLabel}>
-                                            <input
-                                                type="checkbox"
-                                                checked={checked}
-                                                onChange={() => handleCheckboxChangeVoiceAI(index)}
-                                            />
-                                            <span className={styles.animatedCheckbox}></span>
-                                            <span>
-                                                {subscriptionType === 'FOURTH'
-                                                    ? 'Только AI'
-                                                    : `AI + ${assistantCount} запросов ассистенту`}
-                                            </span>
-                                        </label>
-                                    );
-                                })}
+                                {checkboxesVideoAssistant.map((checked, index) => (
+                                    <label key={index} className={styles.checkboxLabel}>
+                                        <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={() => handleCheckboxChange(index, setCheckboxesVideoAssistant, checkboxesVideoAssistant)}
+                                        />
+                                        <span className={styles.animatedCheckbox}></span>
+                                        <span>{subscriptionTypes[index] === 'FOURTH' ? 'Только AI' : `AI + ${getAssistantRequestCount(subscriptionTypes[index])} запросов ассистенту`}</span>
+                                    </label>
+                                ))}
                             </div>
 
+                            
                             <div className={styles.togglebox}>
                                 <label className={styles.switch}>
                                     <input
                                         type="checkbox"
                                         checked={isToggledFileAssistant}
-                                        onChange={handleToggleChangeFileAssistant}
+                                        onChange={() => handleToggleChange(setIsToggledFileAssistant, setCheckboxesFileAssistant)}
                                     />
                                     <span className={styles.slider}></span>
                                 </label>
@@ -725,30 +728,22 @@ function Page() {
                             </div>
 
                             <div className={styles.checkboxContainer}>
-                                {checkboxesVoiceAI.map((checked, index) => {
-                                    const subscriptionType = subscriptionTypes[index];
-                                    const assistantCount = getAssistantRequestCount(subscriptionType);
-
-                                    return (
-                                        <label key={index} className={styles.checkboxLabel}>
-                                            <input
-                                                type="checkbox"
-                                                checked={checked}
-                                                onChange={() => handleCheckboxChangeVoiceAI(index)}
-                                            />
-                                            <span className={styles.animatedCheckbox}></span>
-                                            <span>
-                                                {subscriptionType === 'FOURTH'
-                                                    ? 'Только AI'
-                                                    : `AI + ${assistantCount} запросов ассистенту`}
-                                            </span>
-                                        </label>
-                                    );
-                                })}
+                                {checkboxesFileAssistant.map((checked, index) => (
+                                    <label key={index} className={styles.checkboxLabel}>
+                                        <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={() => handleCheckboxChange(index, setCheckboxesFileAssistant, checkboxesFileAssistant)}
+                                        />
+                                        <span className={styles.animatedCheckbox}></span>
+                                        <span>{subscriptionTypes[index] === 'FOURTH' ? 'Только AI' : `AI + ${getAssistantRequestCount(subscriptionTypes[index])} запросов ассистенту`}</span>
+                                    </label>
+                                ))}
                             </div>
 
                             <button className={styles.submitButtonthree}>Подтвердить</button>
                         </div>
+
 
 
                     </div>

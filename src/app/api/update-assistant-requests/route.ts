@@ -18,23 +18,23 @@ export async function POST(request: Request) {
     }
 
     
-    await prisma.aIRequests.update({
-      where: { subscriptionType: 'FIRST' },
+    await prisma.subscription.updateMany({
+      where: { name: 'AI + 5 запросов ассистенту' },
       data: { assistantRequestCount: first },
     });
 
-    await prisma.aIRequests.update({
-      where: { subscriptionType: 'SECOND' },
+    await prisma.subscription.updateMany({
+      where: { name: 'AI + 14 запросов ассистенту' },
       data: { assistantRequestCount: second },
     });
 
-    await prisma.aIRequests.update({
-      where: { subscriptionType: 'THIRD' },
+    await prisma.subscription.updateMany({
+      where: { name: 'AI + 30 запросов ассистенту' },
       data: { assistantRequestCount: third },
     });
 
-    await prisma.aIRequests.update({
-      where: { subscriptionType: 'FOURTH' },
+    await prisma.subscription.updateMany({
+      where: { name: 'Только AI' },
       data: { assistantRequestCount: fourth },
     });
 

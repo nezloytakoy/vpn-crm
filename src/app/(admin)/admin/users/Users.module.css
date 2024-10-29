@@ -257,15 +257,16 @@ input:checked+.slider:hover {
 .animatedCheckbox::after {
     content: '';
     position: absolute;
-    width: 6px;
-    height: 12px;
+    width: 5px;
+    height: 10px;
     border: solid white;
     border-width: 0 2px 2px 0;
-    top: 50%;
+    top: 42%;
     left: 50%;
     transform: translate(-50%, -50%) rotate(45deg) scale(0);
     opacity: 0;
     transition: transform 0.3s ease, opacity 0.3s ease;
+    
 }
 
 .checkboxLabel input:checked+.animatedCheckbox {

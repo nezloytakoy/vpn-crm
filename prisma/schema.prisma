@@ -16,169 +16,200 @@ model Admin {
 }
 
 model Moderator {
-  id                      BigInt         @id @unique @default(autoincrement())
-  login                   String         @unique
+  id                      BigInt      @id @unique @default(autoincrement())
+  login                   String      @unique
   password                String
-  inviteToken             String?        @unique
-  role                    String         @default("moderator")
-  lastActiveAt            DateTime       @default(now())
-  createdAt               DateTime       @default(now())
-  updatedAt               DateTime       @updatedAt
-  reviewedComplaintsCount Int            @default(0)
-  userMessagesCount       Int            @default(0)
-  assistantMessagesCount  Int            @default(0)
-  username                String         @default("Отсутствует")
-  complaints              Complaint[]    @relation("ModeratorComplaints")
+  role                    String      @default("moderator")
+  lastActiveAt            DateTime    @default(now())
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
+  inviteToken             String?     @unique
+  reviewedComplaintsCount Int         @default(0)
+  assistantMessagesCount  Int         @default(0)
+  userMessagesCount       Int         @default(0)
+  username                String      @default("Отсутствует")
+  complaints              Complaint[] @relation("ModeratorComplaints")
 }
 
 model Invitation {
-  id        BigInt   @id @default(autoincrement()) 
+  id        BigInt   @id @default(autoincrement())
   link      String   @unique
   token     String   @unique
   role      String
   used      Boolean  @default(false)
-  login     String? 
-  password  String? 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  login     String?
+  password  String?
 }
 
 model Assistant {
-  telegramId             BigInt                     @id @unique
-  username               String?
-  role                   String                     @default("assistant")
-  isWorking              Boolean                    @default(false)
-  isBusy                 Boolean                    @default(false)
-  startedAt              DateTime?
-  joinedAt               DateTime                   @default(now())
-  coins                  Int                        @default(0)
-  lastActiveAt           DateTime?
-  orderNumber            Int?
-  avatarFileId           String?
-  createdAt              DateTime                   @default(now())
-  updatedAt              DateTime                   @updatedAt
-  mentorId               BigInt?  
-  requests               AssistantRequest[]
-  conversations          Conversation[]
-  requestActions         RequestAction[]
-  sessions               AssistantSession[]
-  coinTransactions       AssistantCoinTransaction[] @relation("AssistantToCoinTransactions")
-
-  
-  isBlocked              Boolean                    @default(false) 
-  unblockDate            DateTime?                                 
+  role             String                     @default("assistant")
+  isWorking        Boolean                    @default(false)
+  isBusy           Boolean                    @default(false)
+  startedAt        DateTime?
+  joinedAt         DateTime                   @default(now())
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+  telegramId       BigInt                     @id @unique
+  coins            Int                        @default(0)
+  lastActiveAt     DateTime?
+  username         String?
+  orderNumber      Int?
+  avatarFileId     String?
+  mentorId         BigInt?
+  isBlocked        Boolean                    @default(false)
+  unblockDate      DateTime?
+  coinTransactions AssistantCoinTransaction[] @relation("AssistantToCoinTransactions")
+  requests         AssistantRequest[]
+  sessions         AssistantSession[]
+  conversations    Conversation[]
+  requestActions   RequestAction[]
 }
-
-
-
 
 model AssistantSession {
   id          BigInt    @id @default(autoincrement())
   assistantId BigInt
-  assistant   Assistant @relation(fields: [assistantId], references: [telegramId])
   startedAt   DateTime  @default(now())
   endedAt     DateTime?
-}
-
-
-enum SubscriptionType {
-  FREE
-  FIRST
-  SECOND
-  THIRD
-  FOURTH
-}
-
-model AIRequests {
-  id                  BigInt          @id @default(autoincrement())
-  subscriptionType    SubscriptionType @unique
-  assistantRequestCount Int           
-  aiRequestCount      Int             
-
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
+  assistant   Assistant @relation(fields: [assistantId], references: [telegramId])
 }
 
 model User {
-  telegramId             BigInt             @id @unique
   username               String?
-  referralCount          Int                @default(0) 
-  referrer               Referral[]         @relation("Referrer")
-  referredUsers          Referral[]         @relation("Referred")
-  subscriptionType       SubscriptionType   @default(FREE)
+  referralCount          Int                @default(0)
   hasUpdatedSubscription Boolean            @default(false)
   totalRequests          Int                @default(0)
-  aiRequests             Int                @default(0)        
-  usedAIRequests         Int                @default(0)        
+  aiRequests             Int                @default(0)
   assistantRequests      Int                @default(0)
-  coins                  Int                @default(0)
   isActiveAIChat         Boolean            @default(false)
-  orderNumber            Int?               
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
-  conversations          Conversation[]
-  requests               AssistantRequest[]
+  telegramId             BigInt             @id @unique
+  coins                  Int                @default(0)
   isWaitingForComplaint  Boolean            @default(false)
-  paymentSystems         String[]           
+  orderNumber            Int?
+  paymentSystems         String[]
+  usedAIRequests         Int                @default(0)
+  isBlocked              Boolean            @default(false)
+  unblockDate            DateTime?
+  lastPaidSubscriptionId BigInt?
+  lastPaidSubscription   Subscription?      @relation("User_lastPaidSubscription", fields: [lastPaidSubscriptionId], references: [id])
+  requests               AssistantRequest[]
+  conversations          Conversation[]
+  referredUsers          Referral?          @relation("Referred")
+  referrer               Referral[]         @relation("Referrer")
+}
 
-  
-  isBlocked              Boolean            @default(false)  
-  unblockDate            DateTime?                          
+model Subscription {
+  id                    BigInt   @id @default(autoincrement())
+  name                  String   @unique 
+  description           String?
+  price                 Float
+  allowVoiceToAI        Boolean  @default(false)
+  allowVoiceToAssistant Boolean  @default(false)
+  allowVideoToAssistant Boolean  @default(false)
+  allowFilesToAssistant Boolean  @default(false)
+  aiRequestCount        Int
+  assistantRequestCount Int?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @default(now()) @updatedAt
+
+  users                 User[]   @relation("User_lastPaidSubscription")
 }
 
 
 
 model Referral {
   id             BigInt   @id @default(autoincrement())
-  user           User     @relation("Referrer", fields: [userId], references: [telegramId])
   userId         BigInt
-  referredUser   User?    @relation("Referred", fields: [referredUserId], references: [telegramId])
-  referredUserId BigInt?  @unique
   code           String   @unique
   link           String
-  isUsed         Boolean  @default(false)  
   createdAt      DateTime @default(now())
+  isUsed         Boolean  @default(false)
+  referredUserId BigInt?  @unique
+  referredUser   User?    @relation("Referred", fields: [referredUserId], references: [telegramId])
+  user           User     @relation("Referrer", fields: [userId], references: [telegramId])
 }
-
-
-
 
 model Conversation {
-  id                    BigInt            @id @default(autoincrement())
-  user                  User              @relation(fields: [userId], references: [telegramId])
-  userId                BigInt
-  assistant             Assistant         @relation(fields: [assistantId], references: [telegramId])
-  assistantId           BigInt
-  messages              Json              @default("[]")
-  requestId             BigInt            @unique
-  assistantRequest      AssistantRequest? @relation(fields: [requestId], references: [id])
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
-  status                String            @default("IN_PROGRESS")
-  lastMessageFrom       String            @default("USER") 
-  assistantResponseTimes Json             @default("[]") 
-  lastUserMessageAt     DateTime?         
+  id                     BigInt           @id @default(autoincrement())
+  userId                 BigInt
+  messages               Json             @default("[]")
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  status                 String           @default("IN_PROGRESS")
+  assistantId            BigInt
+  requestId              BigInt           @unique
+  lastMessageFrom        String           @default("USER")
+  assistantResponseTimes Json             @default("[]")
+  lastUserMessageAt      DateTime?
+  assistant              Assistant        @relation(fields: [assistantId], references: [telegramId])
+  assistantRequest       AssistantRequest @relation(fields: [requestId], references: [id])
+  user                   User             @relation(fields: [userId], references: [telegramId])
 }
-
-
-
 
 model AssistantRequest {
-  id               BigInt            @id @default(autoincrement())
-  user             User              @relation(fields: [userId], references: [telegramId])
-  userId           BigInt
-  assistant        Assistant?        @relation(fields: [assistantId], references: [telegramId])
-  assistantId      BigInt?
-  message          String
-  status           RequestStatus     @default(PENDING)
-  isActive         Boolean           @default(false)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  id                BigInt          @id @default(autoincrement())
+  userId            BigInt
+  assistantId       BigInt?
+  message           String
+  status            RequestStatus   @default(PENDING)
+  isActive          Boolean         @default(false)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
   ignoredAssistants BigInt[]
-  requestActions   RequestAction[]   @relation("RequestActionsOnAssistantRequest")
-  conversation     Conversation?     
+  assistant         Assistant?      @relation(fields: [assistantId], references: [telegramId])
+  user              User            @relation(fields: [userId], references: [telegramId])
+  conversation      Conversation?
+  requestActions    RequestAction[] @relation("RequestActionsOnAssistantRequest")
 }
 
+model WithdrawalRequest {
+  id           BigInt   @id @default(autoincrement())
+  userId       BigInt
+  amount       Float
+  status       String   @default("Требует рассмотрения")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  userNickname String?
+  userRole     String   @default("user")
+}
+
+model AssistantCoinTransaction {
+  id          BigInt    @id @default(autoincrement())
+  assistantId BigInt
+  amount      Int
+  reason      String
+  createdAt   DateTime  @default(now())
+  assistant   Assistant @relation("AssistantToCoinTransactions", fields: [assistantId], references: [telegramId])
+}
+
+
+
+model Complaint {
+  id          BigInt     @id @default(autoincrement())
+  userId      BigInt
+  assistantId BigInt
+  text        String
+  status      String     @default("PENDING")
+  decision    String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  photoUrls   String[]
+  moderatorId BigInt?
+  moderator   Moderator? @relation("ModeratorComplaints", fields: [moderatorId], references: [id])
+}
+
+model RequestAction {
+  id               BigInt           @id @default(autoincrement())
+  requestId        BigInt
+  assistantId      BigInt
+  action           String
+  createdAt        DateTime         @default(now())
+  Assistant        Assistant        @relation(fields: [assistantId], references: [telegramId])
+  AssistantRequest AssistantRequest @relation("RequestActionsOnAssistantRequest", fields: [requestId], references: [id])
+}
 
 
 
@@ -187,57 +218,4 @@ enum RequestStatus {
   IN_PROGRESS
   COMPLETED
   REJECTED
-}
-
-
-model WithdrawalRequest {
-  id           BigInt   @id @default(autoincrement())
-  userId       BigInt
-  userNickname String?
-  userRole     String   @default("user")
-  amount       Float
-  status       String   @default("Требует рассмотрения")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-}
-
-model AssistantCoinTransaction {
-  id          BigInt    @id @default(autoincrement())
-  assistantId BigInt
-  assistant   Assistant @relation("AssistantToCoinTransactions", fields: [assistantId], references: [telegramId])
-  amount      Int
-  reason      String
-  createdAt   DateTime  @default(now())
-}
-
-model Tariff {
-  id          BigInt   @id @default(autoincrement())
-  name        String
-  description String?
-  price       Float
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
-}
-
-model Complaint {
-  id            BigInt      @id @default(autoincrement())
-  userId        BigInt
-  assistantId   BigInt
-  text          String
-  status        String      @default("PENDING")
-  decision      String?
-  photoUrls     String[]
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  moderatorId   BigInt?     
-  moderator     Moderator?  @relation("ModeratorComplaints", fields: [moderatorId], references: [id])
-}
-model RequestAction {
-  id               BigInt          @id @default(autoincrement())
-  requestId        BigInt
-  assistantId      BigInt
-  action           String
-  createdAt        DateTime        @default(now())
-  Assistant        Assistant       @relation(fields: [assistantId], references: [telegramId])
-  AssistantRequest AssistantRequest @relation(fields: [requestId], references: [id], name: "RequestActionsOnAssistantRequest") 
 }

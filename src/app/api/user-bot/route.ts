@@ -1,7 +1,7 @@
 import { Bot, webhookCallback } from 'grammy';
 import { Context } from 'grammy';
 import OpenAI from 'openai';
-import { PrismaClient, SubscriptionType } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { InputFile } from 'grammy';
 
 import axios from 'axios';
@@ -23,7 +23,7 @@ type ChatMessage = {
 
 const userConversations = new Map<bigint, ChatMessage[]>();
 
-async function sendFileToAssistant(assistantChatId: string, fileBuffer: Buffer, fileName: string) { 
+async function sendFileToAssistant(assistantChatId: string, fileBuffer: Buffer, fileName: string) {
   const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
   if (!botToken) {
     console.error('Ошибка: TELEGRAM_SUPPORT_BOT_TOKEN не установлен');
@@ -33,7 +33,7 @@ async function sendFileToAssistant(assistantChatId: string, fileBuffer: Buffer, 
   const assistantBot = new Bot(botToken);
 
   try {
-    
+
     await assistantBot.api.sendDocument(assistantChatId, new InputFile(fileBuffer, fileName));
   } catch (error) {
     console.error('Ошибка при отправке файла ассистенту:', error);
@@ -56,10 +56,10 @@ async function sendMessageToAssistant(
 
   try {
     if (message) {
-      
+
       await assistantBot.api.sendMessage(assistantChatId, message);
     } else if (ctx && ctx.chat && ctx.message) {
-      
+
       await assistantBot.api.copyMessage(
         assistantChatId,
         ctx.chat.id,
@@ -70,7 +70,7 @@ async function sendMessageToAssistant(
       return;
     }
 
-    
+
     const assistantTelegramId = BigInt(assistantChatId);
 
     const activeConversation = await prisma.conversation.findFirst({
@@ -85,7 +85,7 @@ async function sendMessageToAssistant(
 
       const newMessage = {
         sender: 'USER',
-        message: message || 'Media message', 
+        message: message || 'Media message',
         timestamp: currentTime.toISOString(),
       };
 
@@ -306,7 +306,7 @@ bot.command('end_dialog', async (ctx) => {
 
       if (activeRequest.assistant) {
         await sendMessageToAssistant(
-          ctx,  
+          ctx,
           activeRequest.assistant.telegramId.toString(),
           `${getTranslation(languageCode, 'user_ended_dialog_no_reward')}`
         );
@@ -337,7 +337,7 @@ bot.command('end_dialog', async (ctx) => {
 
 
         await sendMessageToAssistant(
-          ctx, 
+          ctx,
           updatedAssistant.telegramId.toString(),
           `${getTranslation(languageCode, 'user_ended_dialog')} ${getTranslation(languageCode, 'coin_awarded')}`
         );
@@ -563,62 +563,33 @@ bot.on("message:successful_payment", async (ctx) => {
       const payloadData = JSON.parse(payment.invoice_payload);
       const { userId: decodedUserId, tariffName } = payloadData;
 
-      let subscriptionType: SubscriptionType;
-      let assistantRequestsIncrement = 0;
-      let aiRequestsIncrement = 0;
-      let referralCoins = 0;
+      
+      const subscription = await prisma.subscription.findUnique({
+        where: { name: tariffName },
+      });
 
-
-      switch (tariffName.toLowerCase().replace(/ - \d+\$$/, '')) {
-        case "ai + 5 запросов ассистенту":
-        case "ai + 5 assistant requests":
-          subscriptionType = SubscriptionType.FIRST;
-          assistantRequestsIncrement = 5;
-          aiRequestsIncrement = 10;
-          referralCoins = 1;
-          break;
-        case "ai + 14 запросов ассистенту":
-        case "ai + 14 assistant requests":
-          subscriptionType = SubscriptionType.SECOND;
-          assistantRequestsIncrement = 14;
-          aiRequestsIncrement = 28;
-          referralCoins = 2.8;
-          break;
-        case "ai + 30 запросов":
-        case "ai + 30 assistant requests":
-          subscriptionType = SubscriptionType.THIRD;
-          assistantRequestsIncrement = 30;
-          aiRequestsIncrement = 60;
-          referralCoins = 6;
-          break;
-        case "только ai":
-        case "only ai":
-          subscriptionType = SubscriptionType.FOURTH;
-          aiRequestsIncrement = 100;
-          referralCoins = 0.6;
-          break;
-        default:
-          await sendLogToTelegram(`Invalid tariff name: ${tariffName}`);
-          throw new Error(`Invalid tariff name: ${tariffName}`);
+      if (!subscription) {
+        await sendLogToTelegram(`Invalid tariff name: ${tariffName}`);
+        throw new Error(`Invalid tariff name: ${tariffName}`);
       }
 
-
+      
       await prisma.user.update({
         where: {
           telegramId: BigInt(decodedUserId),
         },
         data: {
-          subscriptionType,
+          lastPaidSubscriptionId: subscription.id,
           hasUpdatedSubscription: true,
-          aiRequests: { increment: aiRequestsIncrement },
-          assistantRequests: { increment: assistantRequestsIncrement },
+          aiRequests: { increment: subscription.aiRequestCount },
+          assistantRequests: { increment: subscription.assistantRequestCount || 0 },
           updatedAt: new Date(),
         },
       });
 
-      await sendLogToTelegram(`User ${decodedUserId} updated with subscription: ${subscriptionType}`);
+      await sendLogToTelegram(`User ${decodedUserId} updated with subscription: ${tariffName}`);
 
-
+      
       const referral = await prisma.referral.findFirst({
         where: {
           referredUserId: BigInt(decodedUserId),
@@ -630,6 +601,7 @@ bot.on("message:successful_payment", async (ctx) => {
       });
 
       if (referral) {
+        const referralCoins = subscription.price * 0.1; 
 
         await prisma.user.update({
           where: {
@@ -642,7 +614,6 @@ bot.on("message:successful_payment", async (ctx) => {
 
         await sendLogToTelegram(`User ${referral.userId} received ${referralCoins} coins as a referral bonus.`);
       }
-
 
       await ctx.reply("Ваш платеж прошел успешно! Привилегии активированы.");
     }
@@ -852,6 +823,7 @@ bot.on('message:voice', async (ctx) => {
     }
 
     const telegramId = BigInt(ctx.from.id);
+    const currentTime = new Date();
 
     const [user, activeRequest] = await Promise.all([
       prisma.user.findUnique({ where: { telegramId } }),
@@ -872,7 +844,8 @@ bot.on('message:voice', async (ctx) => {
     }
 
     if (user.isActiveAIChat) {
-      
+
+
       const voice = ctx.message.voice;
       const fileId = voice.file_id;
 
@@ -901,85 +874,30 @@ bot.on('message:voice', async (ctx) => {
 
       await handleAIChat(telegramId, transcribedText, ctx);
     } else if (activeRequest && activeRequest.assistant) {
-      
       const voice = ctx.message.voice;
       const fileId = voice.file_id;
-
-      
       const fileInfo = await ctx.api.getFile(fileId);
       const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileInfo.file_path}`;
+
       const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
       const voiceBuffer = Buffer.from(response.data, 'binary');
 
       await sendFileToAssistant(activeRequest.assistant.telegramId.toString(), voiceBuffer, 'voice.ogg');
-
       await ctx.reply('Голосовое сообщение успешно отправлено ассистенту.');
+
+      await prisma.conversation.update({
+        where: { id: activeRequest.id },
+        data: {
+          lastMessageFrom: 'USER',
+          lastUserMessageAt: currentTime,
+        },
+      });
     } else {
       await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
     }
   } catch (error) {
     console.error('Ошибка при обработке голосового сообщения:', error);
     await ctx.reply('Не получилось отправить голосовое сообщение.');
-  }
-});
-
-
-bot.on('message:video', async (ctx) => {
-  try {
-    const languageCode = ctx.from?.language_code || 'en';
-
-    if (!ctx.from?.id) {
-      await ctx.reply(getTranslation(languageCode, 'no_user_id'));
-      return;
-    }
-
-    const telegramId = BigInt(ctx.from.id);
-
-    const [user, activeRequest] = await Promise.all([
-      prisma.user.findUnique({ where: { telegramId } }),
-      prisma.assistantRequest.findFirst({
-        where: { user: { telegramId }, isActive: true },
-        include: { assistant: true },
-      }),
-    ]);
-
-    if (!user) {
-      await ctx.reply(getTranslation(languageCode, 'no_user_found'));
-      return;
-    }
-
-    if (user.isWaitingForComplaint) {
-      await ctx.reply('Пожалуйста, завершите оформление жалобы.');
-      return;
-    }
-
-    if (user.isActiveAIChat) {
-      await ctx.reply('Отправка видео сообщений ИИ недоступна.');
-    } else if (activeRequest && activeRequest.assistant) {
-      const fileId = ctx.message.video?.file_id || ctx.message.video_note?.file_id;
-
-      if (!fileId) {
-        await ctx.reply('Не удалось получить файл видео.');
-        return;
-      }
-
-      
-      const fileInfo = await ctx.api.getFile(fileId);
-      const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileInfo.file_path}`;
-      const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
-      const videoBuffer = Buffer.from(response.data, 'binary');
-
-      const fileName = ctx.message.video ? 'video.mp4' : 'video_note.mp4';
-
-      await sendFileToAssistant(activeRequest.assistant.telegramId.toString(), videoBuffer, fileName);
-
-      await ctx.reply('Видео успешно отправлено ассистенту.');
-    } else {
-      await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
-    }
-  } catch (error) {
-    console.error('Ошибка при обработке видео сообщения:', error);
-    await ctx.reply('Не получилось отправить видео сообщение.');
   }
 });
 
@@ -996,6 +914,7 @@ bot.on('message:document', async (ctx) => {
     }
 
     const telegramId = BigInt(ctx.from.id);
+    const currentTime = new Date();
     const user = await prisma.user.findUnique({ where: { telegramId } });
 
     if (!user) {
@@ -1016,19 +935,22 @@ bot.on('message:document', async (ctx) => {
     const document = ctx.message.document;
     const fileId = document.file_id;
     const fileInfo = await ctx.api.getFile(fileId);
-
-    
     const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileInfo.file_path}`;
 
-    
     const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
     const fileBuffer = Buffer.from(response.data, 'binary');
     const fileName = document.file_name || 'document';
 
     await sendFileToAssistant(activeRequest.assistant.telegramId.toString(), fileBuffer, fileName);
-
-
     await ctx.reply('Файл успешно отправлен ассистенту.');
+
+    await prisma.conversation.update({
+      where: { id: activeRequest.id },
+      data: {
+        lastMessageFrom: 'USER',
+        lastUserMessageAt: currentTime,
+      },
+    });
   } catch (error) {
     console.error('Ошибка при обработке документа:', error);
     await ctx.reply('Произошла ошибка при обработке вашего файла.');
@@ -1047,6 +969,7 @@ bot.on('message:video_note', async (ctx) => {
     }
 
     const telegramId = BigInt(ctx.from.id);
+    const currentTime = new Date();
     const user = await prisma.user.findUnique({ where: { telegramId } });
 
     if (!user) {
@@ -1075,11 +998,20 @@ bot.on('message:video_note', async (ctx) => {
 
     await sendFileToAssistant(activeRequest.assistant.telegramId.toString(), fileBuffer, fileName);
     await ctx.reply('Видео-кружок успешно отправлен ассистенту.');
+
+    await prisma.conversation.update({
+      where: { id: activeRequest.id },
+      data: {
+        lastMessageFrom: 'USER',
+        lastUserMessageAt: currentTime,
+      },
+    });
   } catch (error) {
     console.error('Ошибка при обработке видео-кружка:', error);
     await ctx.reply('Произошла ошибка при обработке вашего видео-кружка.');
   }
 });
+
 
 
 

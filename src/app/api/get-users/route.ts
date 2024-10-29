@@ -5,37 +5,35 @@ const prisma = new PrismaClient();
 
 export async function GET() {
     try {
-        
         const usersData = await prisma.user.findMany({
             select: {
                 telegramId: true,
                 username: true,
                 referralCount: true,
-                subscriptionType: true,
+                lastPaidSubscription: {
+                    select: {
+                        name: true,
+                        assistantRequestCount: true
+                    }
+                },
                 hasUpdatedSubscription: true,
             }
         });
 
         
-        const serializedUsers = await Promise.all(usersData.map(async user => {
-            const assistantRequestCount = await prisma.assistantRequest.count({
-                where: { userId: user.telegramId }
-            });
-
-            return {
-                telegramId: user.telegramId.toString(),
-                username: user.username,
-                referralCount: user.referralCount,
-                subscriptionType: user.subscriptionType,
-                assistantRequests: assistantRequestCount, 
-                hasUpdatedSubscription: user.hasUpdatedSubscription,
-            };
+        const serializedUsers = usersData.map(user => ({
+            telegramId: user.telegramId.toString(),
+            username: user.username,
+            referralCount: user.referralCount,
+            subscriptionType: user.lastPaidSubscription?.name || "FREE",
+            assistantRequests: user.lastPaidSubscription?.assistantRequestCount || 0,
+            hasUpdatedSubscription: user.hasUpdatedSubscription,
         }));
 
         return NextResponse.json(serializedUsers);
 
     } catch (error) {
-        console.log(error);
+        console.error('Ошибка получения данных пользователей:', error);
         return NextResponse.json({ error: 'Не удалось получить данные' }, { status: 500 });
     }
 }
