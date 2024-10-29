@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Recursively converts all BigInt values to strings
+
 function stringifyBigInt<T>(obj: T): T {
     if (typeof obj === 'bigint') {
         return obj.toString() as unknown as T;

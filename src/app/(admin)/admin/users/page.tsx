@@ -160,10 +160,7 @@ function Page() {
         }
     };
 
-    interface AIRequest {
-        subscriptionType: string;
-        count: number;
-    }
+
 
     useEffect(() => {
         console.log("Simple useEffect called");
@@ -208,6 +205,12 @@ function Page() {
             aiRequestCount: number;
             assistantRequestCount: number;
         }
+        interface AIRequestItem {
+            subscriptionType: string;
+            aiRequestCount: string;  
+            assistantRequestCount: string;
+        }
+        
         
         const fetchRequestCounts = async () => {
             console.log('fetchRequestCounts called');
@@ -218,10 +221,10 @@ function Page() {
                 console.log("API response data:", data); 
         
                 if (response.ok && data.aiRequests) {
-                    const counts = data.aiRequests.reduce((acc: Record<string, RequestCount>, item: any) => {
+                    const counts = data.aiRequests.reduce((acc: Record<string, RequestCount>, item: AIRequestItem) => {
                         acc[item.subscriptionType] = {
                             aiRequestCount: parseInt(item.aiRequestCount) || 0,
-                            assistantRequestCount: parseInt(item.assistantRequestCount) || 0
+                            assistantRequestCount: parseInt(item.assistantRequestCount) || 0,
                         };
                         return acc;
                     }, {} as Record<string, RequestCount>);
