@@ -15,6 +15,21 @@ interface UserData {
     hasUpdatedSubscription: boolean;
 }
 
+interface UserResponse {
+    telegramId: string;
+    username: string;
+    referralCount: number;
+    subscriptionType: string;
+    subscriptionName?: string;
+    subscriptionDescription?: string;
+    price?: number;
+    allowVoiceToAI?: boolean;
+    allowVoiceToAssistant?: boolean;
+    allowVideoToAssistant?: boolean;
+    allowFilesToAssistant?: boolean;
+}
+
+
 type MyColumn<T extends object, K extends keyof T> = {
     Header: string;
     accessor: K;
@@ -152,9 +167,12 @@ function Page() {
             console.log('fetchUsers called');
             try {
                 const response = await fetch('/api/get-users');
-                const data = await response.json();
-                const usersWithSubscriptions = data.map((user: any) => ({
-                    ...user,
+                const data: UserResponse[] = await response.json();
+                const usersWithSubscriptions: UserData[] = data.map((user) => ({
+                    telegramId: user.telegramId,
+                    username: user.username,
+                    referralCount: user.referralCount,
+                    subscriptionType: user.subscriptionType,
                     subscriptionName: user.subscriptionName || 'Без подписки',
                     subscriptionDescription: user.subscriptionDescription || '',
                     price: user.price || 0,
@@ -162,7 +180,11 @@ function Page() {
                     allowVoiceToAssistant: user.allowVoiceToAssistant || false,
                     allowVideoToAssistant: user.allowVideoToAssistant || false,
                     allowFilesToAssistant: user.allowFilesToAssistant || false,
+                    assistantRequests: 0, // Default value since 'assistantRequests' is missing in 'UserResponse'
+                    hasUpdatedSubscription: false, // Default value since 'hasUpdatedSubscription' is missing in 'UserResponse'
                 }));
+                
+                
                 setUsers(usersWithSubscriptions);
             } catch (error) {
                 console.error('Ошибка при получении данных пользователей:', error);
