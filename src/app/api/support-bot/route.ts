@@ -570,7 +570,6 @@ bot.on('callback_query:data', async (ctx) => {
           ]
         );
 
-        await ctx.reply(getTranslation(lang, 'requestSent'));
         return;
       }
 
@@ -810,7 +809,7 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
         },
       });
 
-      await ctx.reply('✅ Вы приняли запрос. Разговор возобновлен.');
+      await ctx.reply('✅ Вы приняли запрос.');
 
       await sendTelegramMessageToUser(
         assistantRequest.user.telegramId.toString(),
