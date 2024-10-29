@@ -38,23 +38,23 @@ async function getPenaltyPointsForLast24Hours(assistantId: bigint): Promise<numb
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
 
-    // Получаем действия ассистента за последние 24 часа
+    
     const actions = await prisma.requestAction.findMany({
         where: {
-            assistantId: Number(assistantId), // Преобразование BigInt в number
+            assistantId: Number(assistantId), 
             createdAt: {
-                gte: yesterday, // Действия за последние 24 часа
+                gte: yesterday, 
             },
         },
     });
 
-    // Подсчитываем штрафные очки
+    
     let penaltyPoints = 0;
     for (const action of actions) {
         if (action.action === 'REJECTED') {
-            penaltyPoints += 1; // 1 очко за отказ
+            penaltyPoints += 1; 
         } else if (action.action === 'IGNORED') {
-            penaltyPoints += 3; // 3 очка за игнор
+            penaltyPoints += 3; 
         }
     }
 
@@ -69,177 +69,167 @@ function getTranslation(lang: "en" | "ru", key: keyof typeof translations["en"])
 
 // Функция для определения языка пользователя (например, по запросу или другим критериям)
 function detectLanguage(): "en" | "ru" {
-    // Логика определения языка пользователя (например, по заголовкам запроса)
-    return "en"; // Пример: возвращаем английский по умолчанию
+    
+    return "en"; 
 }
 
 export async function POST(request: Request) {
-    try {
+  try {
       const body = await request.json();
       const { userId } = body;
-  
-      const lang = detectLanguage(); // Определяем язык
-  
+
+      const lang = detectLanguage(); 
+
       if (!userId) {
-        return new Response(JSON.stringify({ error: getTranslation(lang, 'userIdRequired') }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+          return new Response(JSON.stringify({ error: getTranslation(lang, 'userIdRequired') }), {
+              status: 400,
+              headers: { 'Content-Type': 'application/json' },
+          });
       }
-  
+
       const userIdBigInt = BigInt(userId);
       await sendLogToTelegram(`Проверка пользователя с ID: ${userIdBigInt}`);
-  
-      await sendLogToTelegram(getTranslation(lang, 'logMessage'));
-  
+
       const userExists = await prisma.user.findUnique({
-        where: { telegramId: userIdBigInt },
+          where: { telegramId: userIdBigInt },
       });
-  
+
       if (!userExists) {
-        await sendLogToTelegram(`Пользователь с ID ${userIdBigInt} не найден`);
-        return new Response(JSON.stringify({ error: getTranslation(lang, 'userNotFound') }), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' },
-        });
+          await sendLogToTelegram(`Пользователь с ID ${userIdBigInt} не найден`);
+          return new Response(JSON.stringify({ error: getTranslation(lang, 'userNotFound') }), {
+              status: 404,
+              headers: { 'Content-Type': 'application/json' },
+          });
       }
-  
-      // Проверяем, есть ли активный запрос к ассистенту
+
       const existingActiveRequest = await prisma.assistantRequest.findFirst({
-        where: {
-          userId: userIdBigInt,
-          isActive: true,
-        },
+          where: { userId: userIdBigInt, isActive: true },
       });
-  
+
       if (existingActiveRequest) {
-        await sendLogToTelegram(`У пользователя ${userIdBigInt} уже есть активный запрос`);
-        // Если активный запрос уже есть, отправляем сообщение пользователю
-        await sendTelegramMessageToUser(userIdBigInt.toString(), 'У вас уже есть открытый запрос к ассистенту.');
-        return new Response(JSON.stringify({ message: 'У вас уже есть открытый запрос к ассистенту.' }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
+          await sendLogToTelegram(`У пользователя ${userIdBigInt} уже есть активный запрос`);
+          await sendTelegramMessageToUser(userIdBigInt.toString(), 'У вас уже есть открытый запрос к ассистенту.');
+          return new Response(JSON.stringify({ message: 'У вас уже есть открытый запрос к ассистенту.' }), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+          });
       }
-  
-      // Проверяем, есть ли у пользователя доступные запросы к ассистенту
+
       if (userExists.assistantRequests <= 0) {
-        await sendLogToTelegram(`Недостаточно запросов у пользователя ${userIdBigInt}`);
-        return new Response(JSON.stringify({ error: getTranslation(lang, 'notEnoughRequests') }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+          await sendLogToTelegram(`Недостаточно запросов у пользователя ${userIdBigInt}`);
+          return new Response(JSON.stringify({ error: getTranslation(lang, 'notEnoughRequests') }), {
+              status: 400,
+              headers: { 'Content-Type': 'application/json' },
+          });
       }
-  
-      // Уменьшаем количество запросов к ассистенту на 1
+
       await prisma.user.update({
-        where: { telegramId: userIdBigInt },
-        data: {
-          assistantRequests: { decrement: 1 },
-        },
+          where: { telegramId: userIdBigInt },
+          data: { assistantRequests: { decrement: 1 } },
       });
 
       await sendLogToTelegram(`Запросов у пользователя ${userIdBigInt} уменьшено на 1`);
-  
+
       await sendTelegramMessageToUser(userIdBigInt.toString(), getTranslation(lang, 'requestReceived'));
-  
-      // Создаем новый запрос к ассистенту
+
       const assistantRequest = await prisma.assistantRequest.create({
-        data: {
-          userId: userIdBigInt,
-          assistantId: null, // Устанавливаем null, пока не выбран ассистент
-          message: getTranslation(lang, 'assistantRequestMessage'),
-          status: 'PENDING',
-          isActive: true,
-          ignoredAssistants: [], // Инициализация массива проигнорированных ассистентов
-        },
+          data: {
+              userId: userIdBigInt,
+              assistantId: null,
+              message: getTranslation(lang, 'assistantRequestMessage'),
+              status: 'PENDING',
+              isActive: true,
+              ignoredAssistants: [],
+          },
       });
 
       await sendLogToTelegram(`Создан запрос к ассистенту для пользователя ${userIdBigInt}`);
-  
-      // Ищем всех доступных ассистентов
+
+      
       const availableAssistants = await prisma.assistant.findMany({
-        where: {
-          isWorking: true,
-          isBusy: false,
-          telegramId: {
-            notIn: assistantRequest.ignoredAssistants || [], // Исключаем ассистентов, которые проигнорировали запрос
+          where: {
+              isWorking: true,
+              isBusy: false,
+              telegramId: { notIn: assistantRequest.ignoredAssistants || [] },
           },
-        },
       });
-  
-      // Подсчитываем штрафные очки для каждого ассистента
-      const assistantsWithPenalties = await Promise.all(
-        availableAssistants.map(async (assistant) => {
-          const penaltyPoints = await getPenaltyPointsForLast24Hours(assistant.telegramId);
-          return {
-            ...assistant,
-            penaltyPoints,
-          };
-        })
-      );
-  
-      // Сортируем ассистентов по штрафным очкам и последней активности
-      assistantsWithPenalties.sort((a, b) => {
-        if (a.penaltyPoints !== b.penaltyPoints) {
-          return a.penaltyPoints - b.penaltyPoints; // Сначала ассистенты с меньшим количеством штрафных очков
-        }
-        return (b.lastActiveAt ? b.lastActiveAt.getTime() : 0) - (a.lastActiveAt ? a.lastActiveAt.getTime() : 0);
-      });
-  
-      if (assistantsWithPenalties.length === 0) {
-        await sendLogToTelegram('Нет доступных ассистентов');
-        return new Response(JSON.stringify({ message: getTranslation(lang, 'noAssistantsAvailable') }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
+
+      
+      if (availableAssistants.length === 0) {
+          await sendLogToTelegram('Нет доступных ассистентов.');
+      } else {
+          await sendLogToTelegram(`Найдено ${availableAssistants.length} доступных ассистентов:\n` +
+              availableAssistants.map(assistant => `ID: ${assistant.telegramId}, lastActiveAt: ${assistant.lastActiveAt}`).join('\n'));
       }
-  
-      // Выбираем ассистента с наименьшими штрафными очками
-      const selectedAssistant = assistantsWithPenalties[0];
-  
-      await prisma.assistant.update({
-        where: { telegramId: selectedAssistant.telegramId },
-        data: {
-          isBusy: true,
-          lastActiveAt: new Date(), // Обновляем время последней активности
-        },
+
+      const assistantsWithPenalties = await Promise.all(
+          availableAssistants.map(async (assistant) => {
+              const penaltyPoints = await getPenaltyPointsForLast24Hours(assistant.telegramId);
+              return { ...assistant, penaltyPoints };
+          })
+      );
+
+      
+      await sendLogToTelegram('Ассистенты с подсчитанными штрафными очками:\n' +
+          assistantsWithPenalties.map(a => `ID: ${a.telegramId}, Штрафные очки: ${a.penaltyPoints}, lastActiveAt: ${a.lastActiveAt}`).join('\n'));
+
+      assistantsWithPenalties.sort((a, b) => {
+          if (a.penaltyPoints !== b.penaltyPoints) {
+              return a.penaltyPoints - b.penaltyPoints;
+          }
+          return (b.lastActiveAt ? b.lastActiveAt.getTime() : 0) - (a.lastActiveAt ? a.lastActiveAt.getTime() : 0);
       });
-  
-      // Обновляем запрос с новым ассистентом
+
+      
+      await sendLogToTelegram('Ассистенты после сортировки:\n' +
+          assistantsWithPenalties.map(a => `ID: ${a.telegramId}, Штрафные очки: ${a.penaltyPoints}, lastActiveAt: ${a.lastActiveAt}`).join('\n'));
+
+      if (assistantsWithPenalties.length === 0) {
+          await sendLogToTelegram('Нет доступных ассистентов после сортировки.');
+          return new Response(JSON.stringify({ message: getTranslation(lang, 'noAssistantsAvailable') }), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+          });
+      }
+
+      const selectedAssistant = assistantsWithPenalties[0];
+
+      await prisma.assistant.update({
+          where: { telegramId: selectedAssistant.telegramId },
+          data: { isBusy: true, lastActiveAt: new Date() },
+      });
+
       await prisma.assistantRequest.update({
-        where: { id: assistantRequest.id },
-        data: {
-          assistantId: selectedAssistant.telegramId,
-        },
+          where: { id: assistantRequest.id },
+          data: { assistantId: selectedAssistant.telegramId },
       });
 
       await sendLogToTelegram(`Назначен ассистент ${selectedAssistant.telegramId} для пользователя ${userIdBigInt}`);
-  
-      // Отправляем сообщение ассистенту с кнопками для принятия или отклонения
+
       await sendTelegramMessageWithButtons(
-        selectedAssistant.telegramId.toString(),
-        getTranslation(lang, 'assistantRequestMessage'),
-        [
-          { text: getTranslation(lang, 'accept'), callback_data: `accept_${assistantRequest.id}` },
-          { text: getTranslation(lang, 'reject'), callback_data: `reject_${assistantRequest.id}` },
-        ]
+          selectedAssistant.telegramId.toString(),
+          getTranslation(lang, 'assistantRequestMessage'),
+          [
+              { text: getTranslation(lang, 'accept'), callback_data: `accept_${assistantRequest.id}` },
+              { text: getTranslation(lang, 'reject'), callback_data: `reject_${assistantRequest.id}` },
+          ]
       );
-  
+
       return new Response(JSON.stringify({ message: getTranslation(lang, 'requestSent') }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
       });
-    } catch (error) {
+  } catch (error) {
       console.error('Ошибка:', error);
       await sendLogToTelegram(`Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
 
       return new Response(JSON.stringify({ error: getTranslation(detectLanguage(), 'serverError') }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
       });
-    }
   }
+}
+
   
 
 
