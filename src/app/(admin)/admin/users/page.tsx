@@ -10,7 +10,7 @@ interface UserData {
     telegramId: string;
     username: string;
     referralCount: number;
-    subscriptionType: string; 
+    subscriptionType: string;
     assistantRequests: number;
     hasUpdatedSubscription: boolean;
 }
@@ -38,6 +38,11 @@ type MyColumn<T extends object, K extends keyof T> = {
 };
 
 function Page() {
+    console.log('Page component is being rendered');
+
+    useEffect(() => {
+        console.log("Simple useEffect called");
+    }, []);
 
     const [users, setUsers] = useState<UserData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -161,8 +166,12 @@ function Page() {
     }
 
     useEffect(() => {
+        console.log("Simple useEffect called");
+    }, []);
+
+    useEffect(() => {
         console.log('useEffect called');
-    
+
         const fetchUsers = async () => {
             console.log('fetchUsers called');
             try {
@@ -180,54 +189,79 @@ function Page() {
                     allowVoiceToAssistant: user.allowVoiceToAssistant || false,
                     allowVideoToAssistant: user.allowVideoToAssistant || false,
                     allowFilesToAssistant: user.allowFilesToAssistant || false,
-                    assistantRequests: 0, // Default value since 'assistantRequests' is missing in 'UserResponse'
-                    hasUpdatedSubscription: false, // Default value since 'hasUpdatedSubscription' is missing in 'UserResponse'
+                    assistantRequests: 0, 
+                    hasUpdatedSubscription: false, 
                 }));
-                
-                
+
+
                 setUsers(usersWithSubscriptions);
+                console.log("Initial subscription types:", subscriptionTypes);
+                console.log("Initial assistant request counts:", requestCounts);
             } catch (error) {
                 console.error('Ошибка при получении данных пользователей:', error);
             } finally {
                 setIsLoading(false);
             }
         };
-    
+
+        interface RequestCount {
+            aiRequestCount: number;
+            assistantRequestCount: number;
+        }
+        
         const fetchRequestCounts = async () => {
             console.log('fetchRequestCounts called');
             try {
                 const response = await fetch('/api/get-user-requests');
                 const data = await response.json();
-                if (response.ok) {
-                    const counts = data.aiRequests.reduce((acc: Record<string, AIRequest>, item: AIRequest) => {
-                        acc[item.subscriptionType] = item;
+        
+                console.log("API response data:", data); 
+        
+                if (response.ok && data.aiRequests) {
+                    const counts = data.aiRequests.reduce((acc: Record<string, RequestCount>, item: any) => {
+                        acc[item.subscriptionType] = {
+                            aiRequestCount: parseInt(item.aiRequestCount) || 0,
+                            assistantRequestCount: parseInt(item.assistantRequestCount) || 0
+                        };
                         return acc;
-                    }, {} as Record<string, AIRequest>);
+                    }, {} as Record<string, RequestCount>);
+        
                     setRequestCounts(counts);
+                    console.log("Request counts successfully set:", counts);
                 } else {
-                    console.error('Ошибка при получении данных запросов:', data.error);
+                    console.error("Error fetching data:", data.error || 'No aiRequests in response');
+                    setRequestCounts({});
                 }
             } catch (error) {
-                console.error('Ошибка при получении данных запросов:', error);
+                console.error('Error fetching request counts:', error);
+                setRequestCounts({});
             }
         };
-    
+        
+        
+        
+        
+
         fetchUsers();
         fetchRequestCounts();
-    }, []); 
-    
+    }, []);
+
 
     const subscriptionTypes = ['FIRST', 'SECOND', 'THIRD', 'FOURTH'];
 
     const getAssistantRequestCount = (subscriptionType: string): number | undefined => {
-        console.log("Fetching assistant request count for subscription type:", subscriptionType);
+        if (!requestCounts) {
+            console.warn("Request counts are not set.");
+            return undefined;
+        }
     
+        const subscriptionData = requestCounts[subscriptionType];
+        const requestCount = subscriptionData ? subscriptionData.assistantRequestCount : undefined;
         
-        const requestCount = requestCounts && requestCounts[subscriptionType]
-            ? requestCounts[subscriptionType].assistantRequestCount
-            : undefined;
+        if (requestCount === undefined) {
+            console.warn(`Assistant request count is undefined for subscription type: ${subscriptionType}`);
+        }
     
-        console.log(`Resulting assistant request count for ${subscriptionType}:`, requestCount);
         return requestCount;
     };
 
@@ -236,11 +270,6 @@ function Page() {
             ? requestCounts[subscriptionType].aiRequestCount
             : defaultAiRequestValues[subscriptionTypes.indexOf(subscriptionType)];
     };
-
-
-
-
-
 
 
     const handleToggleChangeNotifications = () => {
@@ -255,11 +284,6 @@ function Page() {
         setCheckboxesNotifications(updatedCheckboxes);
         setIsToggledNotifications(updatedCheckboxes.every((checkbox) => checkbox));
     };
-
-
-
-
-
 
 
     const handleInputChangeAssistant = (index: number, value: string) => {
@@ -307,7 +331,7 @@ function Page() {
             ),
         },
     ];
-    
+
 
     const handleConfirmAiRequests = async () => {
         const valuesToSend = aiRequestValues.map((value, index) =>
@@ -375,19 +399,19 @@ function Page() {
 
     const getSubscriptionLabel = (subscriptionId: string): string => {
         console.log("Checking subscription ID:", subscriptionId);
-    
-        if (subscriptionId === '4') { 
+
+        if (subscriptionId === 'FOURTH') {
             return 'Только AI';
         }
-    
+
         const assistantCount = getAssistantRequestCount(subscriptionId);
         console.log(`Assistant request count for ID ${subscriptionId}:`, assistantCount);
-    
+
         return assistantCount !== undefined
             ? `AI + ${assistantCount} запросов ассистенту`
             : 'Неизвестная подписка';
     };
-    
+
 
 
     const handleSendMessage = async () => {
@@ -449,20 +473,21 @@ function Page() {
         return [...users].sort((a, b) => {
             const aValue = a[sortColumn as keyof UserData];
             const bValue = b[sortColumn as keyof UserData];
-    
-            if (aValue === undefined) return 1; 
-            if (bValue === undefined) return -1; 
-    
+
+            if (aValue === undefined) return 1;
+            if (bValue === undefined) return -1;
+
             if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
             if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
             return 0;
         });
     }, [users, sortColumn, sortDirection]);
-    
+
 
 
     return (
         <div className={styles.main}>
+            
             <button className={styles.toggleButton} onClick={() => setShowSettings(!showSettings)}>
                 {showSettings ? 'Скрыть настройки' : 'Показать настройки'}
                 <svg
@@ -655,7 +680,7 @@ function Page() {
                         <div className={styles.messagebox}>
                             <h1 className={styles.gifttitle}>Отправка пользователем контента</h1>
 
-                            
+
                             <div className={styles.togglebox}>
                                 <label className={styles.switch}>
                                     <input
@@ -682,7 +707,7 @@ function Page() {
                                 ))}
                             </div>
 
-                            
+
                             <div className={styles.togglebox}>
                                 <label className={styles.switch}>
                                     <input
@@ -709,7 +734,7 @@ function Page() {
                                 ))}
                             </div>
 
-                            
+
                             <div className={styles.togglebox}>
                                 <label className={styles.switch}>
                                     <input
@@ -736,7 +761,7 @@ function Page() {
                                 ))}
                             </div>
 
-                            
+
                             <div className={styles.togglebox}>
                                 <label className={styles.switch}>
                                     <input
