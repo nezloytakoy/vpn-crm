@@ -563,69 +563,89 @@ bot.on("message:successful_payment", async (ctx) => {
 
       const payloadData = JSON.parse(payment.invoice_payload);
       const { userId: decodedUserId } = payloadData;
-      
-      
-      const decodedUserIdBigInt = BigInt(decodedUserId);
-      await sendLogToTelegram(`Decoded Payload User ID: ${decodedUserIdBigInt.toString()}`);
 
-      
-      const subscription = await prisma.subscription.findFirst({
-        where: { price: totalStars },
-      });
-
-      if (!subscription) {
-        await sendLogToTelegram(`No matching subscription found for price: ${totalStars} stars`);
-        throw new Error(`No matching subscription found for price: ${totalStars} stars`);
+      // Convert to BigInt for database operations, and log as a string for safe debugging
+      let decodedUserIdBigInt;
+      try {
+        decodedUserIdBigInt = BigInt(decodedUserId);
+        await sendLogToTelegram(`Decoded Payload User ID as BigInt: ${decodedUserIdBigInt.toString()}`);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        await sendLogToTelegram(`Failed to convert decodedUserId to BigInt: ${errorMessage}`);
+        throw new Error(`Invalid decodedUserId format for BigInt conversion`);
       }
 
-      await sendLogToTelegram(`Matched subscription based on price: ${JSON.stringify(subscription)}`);
+      // Find subscription by matching the price in stars
+      let subscription;
+      try {
+        subscription = await prisma.subscription.findFirst({
+          where: { price: totalStars },
+        });
+        if (!subscription) {
+          await sendLogToTelegram(`No matching subscription found for price: ${totalStars} stars`);
+          throw new Error(`No matching subscription found for price: ${totalStars} stars`);
+        }
+        await sendLogToTelegram(`Matched subscription based on price: ${JSON.stringify(subscription)}`);
+      } catch (subscriptionError) {
+        await sendLogToTelegram(`Error finding subscription: ${subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError)}`);
+        throw subscriptionError;
+      }
 
-      
-      await sendLogToTelegram(`Preparing to update User ${decodedUserIdBigInt.toString()} with subscription: ${subscription.name}`);
+      // Logging user update preparation
+      await sendLogToTelegram(`Preparing to update User ID ${decodedUserIdBigInt.toString()} with subscription: ${subscription.name}`);
 
-      
-      await prisma.user.update({
-        where: {
-          telegramId: decodedUserIdBigInt,
-        },
-        data: {
-          lastPaidSubscriptionId: subscription.id,
-          hasUpdatedSubscription: true,
-          aiRequests: { increment: subscription.aiRequestCount },
-          assistantRequests: { increment: subscription.assistantRequestCount || 0 },
-          updatedAt: new Date(),
-        },
-      });
-
-      await sendLogToTelegram(`User ${decodedUserIdBigInt.toString()} successfully updated with subscription: ${subscription.name}`);
-
-      
-      const referral = await prisma.referral.findFirst({
-        where: {
-          referredUserId: decodedUserIdBigInt,
-          isUsed: true,
-        },
-        select: {
-          userId: true,
-        },
-      });
-
-      if (referral) {
-        const referralCoins = subscription.price * 0.1;
-        await sendLogToTelegram(`Referral found for User ${decodedUserIdBigInt.toString()}. Referring User ${referral.userId.toString()} receives ${referralCoins} coins`);
-
+      // Attempt to update user subscription
+      try {
         await prisma.user.update({
           where: {
-            telegramId: referral.userId,
+            telegramId: decodedUserIdBigInt,
           },
           data: {
-            coins: { increment: referralCoins },
+            lastPaidSubscriptionId: subscription.id,
+            hasUpdatedSubscription: true,
+            aiRequests: { increment: subscription.aiRequestCount },
+            assistantRequests: { increment: subscription.assistantRequestCount || 0 },
+            updatedAt: new Date(),
+          },
+        });
+        await sendLogToTelegram(`User ${decodedUserIdBigInt.toString()} successfully updated with subscription: ${subscription.name}`);
+      } catch (updateError) {
+        await sendLogToTelegram(`Error updating user subscription: ${updateError instanceof Error ? updateError.message : String(updateError)}`);
+        throw updateError;
+      }
+
+      // Handle referral bonus if applicable
+      try {
+        const referral = await prisma.referral.findFirst({
+          where: {
+            referredUserId: decodedUserIdBigInt,
+            isUsed: true,
+          },
+          select: {
+            userId: true,
           },
         });
 
-        await sendLogToTelegram(`User ${referral.userId.toString()} received ${referralCoins} coins as a referral bonus.`);
-      } else {
-        await sendLogToTelegram(`No referral found for User ${decodedUserIdBigInt.toString()}`);
+        if (referral) {
+          const referralCoins = subscription.price * 0.1;
+          await sendLogToTelegram(`Referral found for User ${decodedUserIdBigInt.toString()}. Referring User ${referral.userId.toString()} receives ${referralCoins} coins`);
+
+          // Update referral user's coin balance
+          await prisma.user.update({
+            where: {
+              telegramId: referral.userId,
+            },
+            data: {
+              coins: { increment: referralCoins },
+            },
+          });
+          await sendLogToTelegram(`User ${referral.userId.toString()} received ${referralCoins} coins as a referral bonus.`);
+        } else {
+          await sendLogToTelegram(`No referral found for User ${decodedUserIdBigInt.toString()}`);
+        }
+      } catch (referralError) {
+        await sendLogToTelegram(`Error handling referral bonus: ${referralError instanceof Error ? referralError.message : String(referralError)}`);
+        throw referralError;
       }
 
       await ctx.reply("Ваш платеж прошел успешно! Привилегии активированы.");
@@ -638,6 +658,8 @@ bot.on("message:successful_payment", async (ctx) => {
     await ctx.reply("Произошла ошибка при обработке вашего платежа. Пожалуйста, свяжитесь с поддержкой.");
   }
 });
+
+
 
 
 
