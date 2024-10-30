@@ -552,7 +552,7 @@ bot.on("pre_checkout_query", async (ctx) => {
 });
 
 
-bot.on("message:successful_payment", async (ctx) => { 
+bot.on("message:successful_payment", async (ctx) => {
   try {
     const payment = ctx.message?.successful_payment;
     const userId = ctx.from?.id;
@@ -565,7 +565,7 @@ bot.on("message:successful_payment", async (ctx) => {
       const { userId: decodedUserId } = payloadData;
       await sendLogToTelegram(`Decoded Payload: ${JSON.stringify(payloadData)}`);
 
-      // Attempt to find the subscription by matching the price in stars
+      
       const subscription = await prisma.subscription.findFirst({
         where: { price: totalStars },
       });
@@ -577,7 +577,10 @@ bot.on("message:successful_payment", async (ctx) => {
 
       await sendLogToTelegram(`Matched subscription based on price: ${JSON.stringify(subscription)}`);
 
-      // Update the user's subscription details
+      
+      await sendLogToTelegram(`User ${decodedUserId.toString()} updated with subscription: ${subscription.name}`);
+
+      
       await prisma.user.update({
         where: {
           telegramId: BigInt(decodedUserId),
@@ -590,9 +593,9 @@ bot.on("message:successful_payment", async (ctx) => {
           updatedAt: new Date(),
         },
       });
-      await sendLogToTelegram(`User ${decodedUserId} updated with subscription: ${subscription.name}`);
+      await sendLogToTelegram(`User ${decodedUserId.toString()} successfully updated with subscription: ${subscription.name}`);
 
-      // Referral handling
+      
       const referral = await prisma.referral.findFirst({
         where: {
           referredUserId: BigInt(decodedUserId),
