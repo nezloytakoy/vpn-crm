@@ -5,20 +5,22 @@ const prisma = new PrismaClient();
 
 export async function GET() {
     try {
-        
         const subscriptions = await prisma.subscription.findMany({
             select: {
                 id: true,
                 name: true,
                 price: true,
+                aiRequestCount: true,
+                assistantRequestCount: true,
             },
         });
 
-        
         const serializedSubscriptions = subscriptions.map((subscription) => ({
             id: subscription.id.toString(),
             name: subscription.name,
             price: subscription.price.toString(),
+            aiRequestCount: subscription.aiRequestCount?.toString() || "0",
+            assistantRequestCount: subscription.assistantRequestCount?.toString() || "0",
         }));
 
         return NextResponse.json(serializedSubscriptions);

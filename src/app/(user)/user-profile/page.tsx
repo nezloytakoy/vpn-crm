@@ -35,10 +35,10 @@ const sendLogToTelegram = async (message: string) => {
 };
 
 const tariffMapping: { [key: string]: string } = {
-    'only_ai': 'Только AI',
-    'ai_5_hours': 'AI + 5 запросов ассистенту',
-    'ai_14_hours': 'AI + 14 запросов ассистенту',
-    'ai_30_hours': 'AI + 30 запросов ассистенту',
+    'FIRST': 'AI + {count} запросов ассистенту',
+    'SECOND': 'AI + {count} запросов ассистенту',
+    'THIRD': 'AI + {count} запросов ассистенту',
+    'FOURTH': 'Только AI',
 };
 
 const WaveComponent = () => {
@@ -160,25 +160,30 @@ const WaveComponent = () => {
                     throw new Error('Ошибка при получении тарифов');
                 }
                 const data = await response.json();
-
+        
                 await sendLogToTelegram(`Tariffs data from API: ${JSON.stringify(data)}`);
-
-                const tariffsMap = data.reduce((acc: Record<string, { displayName: string; price: number }>, tariff: { name: string; price: string }) => {
-                    const displayName = tariffMapping[tariff.name.toLowerCase()] || tariff.name;
+        
+                const tariffsMap = data.reduce((acc: Record<string, { displayName: string; price: number; assistantRequests: number; aiRequests: number }>, tariff: { name: string; price: string; assistantRequestCount: number; aiRequestCount: number }) => {
+                    const displayName = tariff.name === 'FOURTH' 
+                        ? 'Только AI'
+                        : `AI + ${tariff.assistantRequestCount} запросов ассистенту`;
+                    
                     acc[tariff.name] = {
                         displayName,
                         price: Number(tariff.price),
+                        assistantRequests: tariff.assistantRequestCount || 0,
+                        aiRequests: tariff.aiRequestCount || 0,
                     };
                     return acc;
                 }, {});
-
+        
                 setTariffs(tariffsMap);
             } catch (error) {
                 console.error('Ошибка при получении тарифов:', error);
                 await sendLogToTelegram(`Error fetching tariffs: ${error}`);
             }
         };
-
+        
 
         fetchTariffs();
     }, []);
@@ -270,17 +275,15 @@ const WaveComponent = () => {
                             </div>
                         </div>
                         <div className={styles.section}>
-                            <div className={styles.section}>
-                                <div className={styles.block} onClick={() => handleButtonClick('FOURTH')}>
-                                    <Image
-                                        src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-FlMUqahx2zNkY322YXOHKnGKchz1wT.gif"
-                                        alt="avatar"
-                                        width={80}
-                                        height={80}
-                                        className={styles.ai}
-                                    />
-                                    <p className={styles.aitext}>{tariffs['FOURTH']?.displayName || 'Loading...'}</p>
-                                </div>
+                            <div className={styles.block} onClick={() => handleButtonClick('FOURTH')}>
+                                <Image
+                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-FlMUqahx2zNkY322YXOHKnGKchz1wT.gif"
+                                    alt="avatar"
+                                    width={80}
+                                    height={80}
+                                    className={styles.ai}
+                                />
+                                 <p className={styles.aitext}>{tariffs['FOURTH']?.displayName || 'Loading...'}</p>
                             </div>
 
                             <Link href="/referal-page" className={styles.block}>
