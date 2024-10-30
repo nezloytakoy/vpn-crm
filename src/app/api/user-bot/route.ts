@@ -583,6 +583,8 @@ bot.on("message:successful_payment", async (ctx) => {
 
       let subscription;
       try {
+
+        await sendLogToTelegram(`${totalStars}, type: ${typeof subscription}`);
         subscription = await prisma.subscription.findFirst({
           where: {
             price: {
