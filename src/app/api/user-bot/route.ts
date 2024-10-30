@@ -591,14 +591,14 @@ bot.on("message:successful_payment", async (ctx) => {
             },
           },
         });
-        await sendLogToTelegram(`subscription: ${JSON.stringify(subscription)}, type: ${typeof subscription}`);
+        // await sendLogToTelegram(`subscription: ${JSON.stringify(subscription)}, type: ${typeof subscription}`);
 
         if (!subscription) {
           await sendLogToTelegram(`Подписка не найдена для цены: ${totalStars} stars`);
           throw new Error(`Подписка не найдена для цены: ${totalStars} stars`);
         }
 
-        await sendLogToTelegram(`Найдена подписка по ценовому диапазону: ${JSON.stringify(subscription)}`);
+        // await sendLogToTelegram(`Найдена подписка по ценовому диапазону: ${JSON.stringify(subscription)}`);
       } catch (subscriptionError) {
         const errorMessage = subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError);
   const errorStack = subscriptionError instanceof Error ? subscriptionError.stack : 'No stack trace';
