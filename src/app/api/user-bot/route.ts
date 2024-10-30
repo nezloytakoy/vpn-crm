@@ -552,43 +552,32 @@ bot.on("pre_checkout_query", async (ctx) => {
 });
 
 
-bot.on("message:successful_payment", async (ctx) => {
+bot.on("message:successful_payment", async (ctx) => { 
   try {
     const payment = ctx.message?.successful_payment;
     const userId = ctx.from?.id;
 
     if (payment && userId) {
-      const totalStars = payment.total_amount / 42; // Calculate based on your conversion rate
+      const totalStars = payment.total_amount;
       await sendLogToTelegram(`User ${userId} has successfully paid for ${totalStars} stars`);
 
       const payloadData = JSON.parse(payment.invoice_payload);
-      const { userId: decodedUserId, tariffName } = payloadData;
+      const { userId: decodedUserId } = payloadData;
       await sendLogToTelegram(`Decoded Payload: ${JSON.stringify(payloadData)}`);
 
-      // Normalize and extract base tariff name
-      const baseTariffName = tariffName.split(' - ')[0].trim().toLowerCase();
-      const baseTariffPrice = parseInt(tariffName.split(' - ')[1]); // Extract price if part of the name
-      await sendLogToTelegram(`Extracted base tariff name: ${baseTariffName}, price: ${baseTariffPrice}`);
-
-      // Fetch all subscriptions to find the correct match
-      const subscriptions = await prisma.subscription.findMany({
-        select: { id: true, name: true, aiRequestCount: true, assistantRequestCount: true, price: true },
+      // Attempt to find the subscription by matching the price in stars
+      const subscription = await prisma.subscription.findFirst({
+        where: { price: totalStars },
       });
-      await sendLogToTelegram(`Fetched subscriptions: ${JSON.stringify(subscriptions)}`);
-
-      // Find the subscription either by matching name or price
-      const subscription = subscriptions.find((sub) =>
-        sub.name.trim().toLowerCase() === baseTariffName || sub.price === baseTariffPrice
-      );
 
       if (!subscription) {
-        await sendLogToTelegram(`Invalid tariff name or price: ${tariffName}`);
-        throw new Error(`Invalid tariff name or price: ${tariffName}`);
+        await sendLogToTelegram(`No matching subscription found for price: ${totalStars} stars`);
+        throw new Error(`No matching subscription found for price: ${totalStars} stars`);
       }
 
-      await sendLogToTelegram(`Matched subscription: ${JSON.stringify(subscription)}`);
+      await sendLogToTelegram(`Matched subscription based on price: ${JSON.stringify(subscription)}`);
 
-      // Update the user subscription data
+      // Update the user's subscription details
       await prisma.user.update({
         where: {
           telegramId: BigInt(decodedUserId),
@@ -601,7 +590,7 @@ bot.on("message:successful_payment", async (ctx) => {
           updatedAt: new Date(),
         },
       });
-      await sendLogToTelegram(`User ${decodedUserId} updated with subscription ${subscription.name}`);
+      await sendLogToTelegram(`User ${decodedUserId} updated with subscription: ${subscription.name}`);
 
       // Referral handling
       const referral = await prisma.referral.findFirst({
