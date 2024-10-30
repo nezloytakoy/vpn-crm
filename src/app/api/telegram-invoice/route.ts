@@ -1,7 +1,7 @@
 import { Bot } from "grammy";
 
 const bot = new Bot(process.env.TELEGRAM_USER_BOT_TOKEN!);
-const providerToken = process.env.TELEGRAM_PROVIDER_TOKEN!; // Ensure this is set in your environment variables
+
 const TELEGRAM_LOG_USER_ID = 5829159515;
 
 const sendLogToTelegram = async (message: string) => {
@@ -17,11 +17,11 @@ export async function POST(request: Request) {
     const { userId, priceInDollars, tariffName } = await request.json();
     await sendLogToTelegram(`Received POST request with tariffName: ${tariffName}, price: ${priceInDollars}, userId: ${userId}`);
 
-    const starsAmount = priceInDollars * 100; // Assuming `starsAmount` is in cents
+    const starsAmount = priceInDollars * 100; // Assuming starsAmount is in cents
     const title = "Оплата через Звезды Telegram";
     const description = `Оплата за тариф "${tariffName}" через звезды Telegram.`;
-    const payload = JSON.stringify({ userId, tariffName });
-    const currency = "USD"; // Replace with XTR only if supported
+    const payload = JSON.stringify({ userId, tariffName }); // Saving user and tariff info in payload
+    const currency = "USD"; // Default to USD
     const prices = [{ amount: starsAmount, label: "Оплата через звезды" }];
 
     await sendLogToTelegram(`Creating invoice with starsAmount: ${starsAmount}, title: ${title}, description: ${description}, currency: ${currency}, prices: ${JSON.stringify(prices)}`);
@@ -30,13 +30,14 @@ export async function POST(request: Request) {
       title,
       description,
       payload,
-      providerToken,
+      "", // No providerToken required
       currency,
       prices
     );
 
     await sendLogToTelegram(`Invoice link created successfully for user: ${userId}, tariff: ${tariffName}, link: ${invoiceLink}`);
 
+    // Return the invoice link, but don't update subscription until successful payment
     return new Response(JSON.stringify({ invoiceLink }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
