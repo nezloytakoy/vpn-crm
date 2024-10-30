@@ -164,9 +164,9 @@ const WaveComponent = () => {
                 await sendLogToTelegram(`Tariffs data from API: ${JSON.stringify(data)}`);
         
                 const tariffsMap = data.reduce((acc: Record<string, { displayName: string; price: number; assistantRequests: number; aiRequests: number }>, tariff: { name: string; price: string; assistantRequestCount: number; aiRequestCount: number }) => {
-                    const displayName = tariff.name === 'FOURTH' 
+                    const displayName = tariff.name === 'FOURTH'
                         ? 'Только AI'
-                        : `AI + ${tariff.assistantRequestCount} запросов ассистенту`;
+                        : (tariffMapping[tariff.name] || '').replace('{count}', String(tariff.assistantRequestCount || 0));
                     
                     acc[tariff.name] = {
                         displayName,
@@ -183,6 +183,7 @@ const WaveComponent = () => {
                 await sendLogToTelegram(`Error fetching tariffs: ${error}`);
             }
         };
+        
         
 
         fetchTariffs();
