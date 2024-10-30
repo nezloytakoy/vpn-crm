@@ -6,7 +6,7 @@ import Table from '@/components/Table/Table';
 import { Column, CellProps } from 'react-table';
 import { useRouter } from 'next/navigation';
 
-interface UserData {
+interface UserResponse {
     telegramId: string;
     username: string;
     referralCount: number;
@@ -15,18 +15,13 @@ interface UserData {
     hasUpdatedSubscription: boolean;
 }
 
-interface UserResponse {
+interface UserData {
     telegramId: string;
     username: string;
     referralCount: number;
     subscriptionType: string;
-    subscriptionName?: string;
-    subscriptionDescription?: string;
-    price?: number;
-    allowVoiceToAI?: boolean;
-    allowVoiceToAssistant?: boolean;
-    allowVideoToAssistant?: boolean;
-    allowFilesToAssistant?: boolean;
+    assistantRequests: number;
+    hasUpdatedSubscription: boolean;
 }
 
 
@@ -174,26 +169,19 @@ function Page() {
             try {
                 const response = await fetch('/api/get-users');
                 const data: UserResponse[] = await response.json();
+
+                // Map and transform user data to the desired structure
                 const usersWithSubscriptions: UserData[] = data.map((user) => ({
                     telegramId: user.telegramId,
                     username: user.username,
                     referralCount: user.referralCount,
                     subscriptionType: user.subscriptionType,
-                    subscriptionName: user.subscriptionName || 'Без подписки',
-                    subscriptionDescription: user.subscriptionDescription || '',
-                    price: user.price || 0,
-                    allowVoiceToAI: user.allowVoiceToAI || false,
-                    allowVoiceToAssistant: user.allowVoiceToAssistant || false,
-                    allowVideoToAssistant: user.allowVideoToAssistant || false,
-                    allowFilesToAssistant: user.allowFilesToAssistant || false,
-                    assistantRequests: 0, 
-                    hasUpdatedSubscription: false, 
+                    assistantRequests: user.assistantRequests,
+                    hasUpdatedSubscription: user.hasUpdatedSubscription,
                 }));
 
-
+                // Set the users state with the transformed data
                 setUsers(usersWithSubscriptions);
-                console.log("Initial subscription types:", subscriptionTypes);
-                console.log("Initial assistant request counts:", requestCounts);
             } catch (error) {
                 console.error('Ошибка при получении данных пользователей:', error);
             } finally {
@@ -201,25 +189,26 @@ function Page() {
             }
         };
 
+
         interface RequestCount {
             aiRequestCount: number;
             assistantRequestCount: number;
         }
         interface AIRequestItem {
             subscriptionType: string;
-            aiRequestCount: string;  
+            aiRequestCount: string;
             assistantRequestCount: string;
         }
-        
-        
+
+
         const fetchRequestCounts = async () => {
             console.log('fetchRequestCounts called');
             try {
                 const response = await fetch('/api/get-user-requests');
                 const data = await response.json();
-        
-                console.log("API response data:", data); 
-        
+
+                console.log("API response data:", data);
+
                 if (response.ok && data.aiRequests) {
                     const counts = data.aiRequests.reduce((acc: Record<string, RequestCount>, item: AIRequestItem) => {
                         acc[item.subscriptionType] = {
@@ -228,7 +217,7 @@ function Page() {
                         };
                         return acc;
                     }, {} as Record<string, RequestCount>);
-        
+
                     setRequestCounts(counts);
                     console.log("Request counts successfully set:", counts);
                 } else {
@@ -240,10 +229,10 @@ function Page() {
                 setRequestCounts({});
             }
         };
-        
-        
-        
-        
+
+
+
+
 
         fetchUsers();
         fetchRequestCounts();
@@ -257,14 +246,14 @@ function Page() {
             console.warn("Request counts are not set.");
             return undefined;
         }
-    
+
         const subscriptionData = requestCounts[subscriptionType];
         const requestCount = subscriptionData ? subscriptionData.assistantRequestCount : undefined;
-        
+
         if (requestCount === undefined) {
             console.warn(`Assistant request count is undefined for subscription type: ${subscriptionType}`);
         }
-    
+
         return requestCount;
     };
 
@@ -306,32 +295,50 @@ function Page() {
             Header: 'Ник пользователя',
             accessor: 'username',
             id: 'username',
+            Cell: ({ value }: CellProps<UserData, string | number | boolean>) => {
+                console.log("Rendering username:", value); // Log username value
+                return <span>{value}</span>;
+            },
         },
         {
             Header: 'Количество рефералов',
             accessor: 'referralCount',
             id: 'referralCount',
+            Cell: ({ value }: CellProps<UserData, string | number | boolean>) => {
+                console.log("Rendering referralCount:", value); // Log referral count
+                return <span>{value}</span>;
+            },
         },
         {
             Header: 'Подписка',
             accessor: 'subscriptionType',
             id: 'subscriptionType',
-            Cell: ({ value }: CellProps<UserData, string | number | boolean>) => (
-                <span>{getSubscriptionLabel(String(value))}</span>
-            ),
+            Cell: ({ value }: CellProps<UserData, string | number | boolean>) => {
+                console.log("Rendering subscriptionType:", value); // Log subscription type
+                const label = getSubscriptionLabel(String(value));
+                console.log("Subscription label:", label); // Log derived label
+                return <span>{label}</span>;
+            },
         },
         {
             Header: 'Количество запросов',
             accessor: 'assistantRequests',
             id: 'assistantRequests',
+            Cell: ({ value }: CellProps<UserData, string | number | boolean>) => {
+                console.log("Rendering assistantRequests:", value); // Log assistant requests count
+                return <span>{value}</span>;
+            },
         },
         {
             Header: 'Постоянный клиент',
             accessor: 'hasUpdatedSubscription',
             id: 'hasUpdatedSubscription',
-            Cell: ({ value }: CellProps<UserData, string | number | boolean>) => (
-                <span>{typeof value === 'boolean' ? (value ? 'Да' : 'Нет') : String(value)}</span>
-            ),
+            Cell: ({ value }: CellProps<UserData, string | number | boolean>) => {
+                console.log("Rendering hasUpdatedSubscription:", value); // Log updated subscription status
+                const isPermanent = Boolean(value);
+                console.log("Is permanent client:", isPermanent); // Log boolean conversion
+                return <span>{isPermanent ? 'Да' : 'Нет'}</span>;
+            },
         },
     ];
 
@@ -401,19 +408,28 @@ function Page() {
     };
 
     const getSubscriptionLabel = (subscriptionId: string): string => {
-        console.log("Checking subscription ID:", subscriptionId);
-
+        console.log("Checking subscription ID in getSubscriptionLabel:", subscriptionId);
+    
+        if (subscriptionId === 'FREE') {
+            console.log("Subscription type 'FREE' detected, returning 'Бесплатная подписка'");
+            return 'Подписка отстутствует';
+        }
+    
         if (subscriptionId === 'FOURTH') {
+            console.log("Subscription type 'FOURTH' detected, returning 'Только AI'");
             return 'Только AI';
         }
-
+    
         const assistantCount = getAssistantRequestCount(subscriptionId);
         console.log(`Assistant request count for ID ${subscriptionId}:`, assistantCount);
-
-        return assistantCount !== undefined
+    
+        const label = assistantCount !== undefined
             ? `AI + ${assistantCount} запросов ассистенту`
             : 'Неизвестная подписка';
+        console.log("Derived subscription label:", label);
+        return label;
     };
+    
 
 
 
@@ -490,7 +506,7 @@ function Page() {
 
     return (
         <div className={styles.main}>
-            
+
             <button className={styles.toggleButton} onClick={() => setShowSettings(!showSettings)}>
                 {showSettings ? 'Скрыть настройки' : 'Показать настройки'}
                 <svg

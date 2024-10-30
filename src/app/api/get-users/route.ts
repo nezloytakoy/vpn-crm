@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 
 export async function GET() {
     try {
+        // Retrieve users and calculate the count of assistant requests for each user
         const usersData = await prisma.user.findMany({
             select: {
                 telegramId: true,
@@ -17,18 +18,26 @@ export async function GET() {
                     }
                 },
                 hasUpdatedSubscription: true,
-            }
+                // Get the count of assistant requests associated with each user
+                _count: {
+                    select: {
+                        requests: true, // Count the related AssistantRequest records
+                    },
+                },
+            },
         });
 
-        
+        // Serialize users data, including the count of assistant requests for each user
         const serializedUsers = usersData.map(user => ({
             telegramId: user.telegramId.toString(),
             username: user.username,
             referralCount: user.referralCount,
             subscriptionType: user.lastPaidSubscription?.name || "FREE",
-            assistantRequests: user.lastPaidSubscription?.assistantRequestCount || 0,
+            assistantRequests: user._count.requests || 0, // Use the count from AssistantRequest
             hasUpdatedSubscription: user.hasUpdatedSubscription,
         }));
+
+        console.log(serializedUsers)
 
         return NextResponse.json(serializedUsers);
 

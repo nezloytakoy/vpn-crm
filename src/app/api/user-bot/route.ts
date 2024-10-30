@@ -563,9 +563,11 @@ bot.on("message:successful_payment", async (ctx) => {
       const payloadData = JSON.parse(payment.invoice_payload);
       const { userId: decodedUserId, tariffName } = payloadData;
 
-      
+      // Extract base tariff name by removing price (e.g., ' - 3$')
+      const baseTariffName = tariffName.split(' - ')[0];
+
       const subscription = await prisma.subscription.findUnique({
-        where: { name: tariffName },
+        where: { name: baseTariffName },
       });
 
       if (!subscription) {
@@ -573,7 +575,6 @@ bot.on("message:successful_payment", async (ctx) => {
         throw new Error(`Invalid tariff name: ${tariffName}`);
       }
 
-      
       await prisma.user.update({
         where: {
           telegramId: BigInt(decodedUserId),
@@ -587,9 +588,8 @@ bot.on("message:successful_payment", async (ctx) => {
         },
       });
 
-      await sendLogToTelegram(`User ${decodedUserId} updated with subscription: ${tariffName}`);
+      await sendLogToTelegram(`User ${decodedUserId} updated with subscription: ${baseTariffName}`);
 
-      
       const referral = await prisma.referral.findFirst({
         where: {
           referredUserId: BigInt(decodedUserId),
@@ -601,7 +601,7 @@ bot.on("message:successful_payment", async (ctx) => {
       });
 
       if (referral) {
-        const referralCoins = subscription.price * 0.1; 
+        const referralCoins = subscription.price * 0.1;
 
         await prisma.user.update({
           where: {
@@ -625,6 +625,7 @@ bot.on("message:successful_payment", async (ctx) => {
     await ctx.reply("Произошла ошибка при обработке вашего платежа. Пожалуйста, свяжитесь с поддержкой.");
   }
 });
+
 
 
 
