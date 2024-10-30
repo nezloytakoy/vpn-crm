@@ -91,42 +91,42 @@ const WaveComponent = () => {
                 if (!telegramId) {
                     throw new Error('Telegram ID не найден');
                 }
-
+        
                 console.log(`Fetching data for Telegram ID: ${telegramId}`);
-
+        
                 const profileResponse = await fetch(`/api/get-profile-data?telegramId=${telegramId}`);
-
+        
                 const requestsResponse = await fetch(`/api/get-requests?telegramId=${telegramId}`);
-
+        
                 if (!profileResponse.ok) {
                     console.log('Error fetching profile data', await profileResponse.text());
                     throw new Error('Ошибка при получении данных профиля');
                 }
-
+               
                 if (!requestsResponse.ok) {
                     console.log('Error fetching requests data', await requestsResponse.text());
                     throw new Error('Ошибка при получении данных запросов');
                 }
-
+        
                 const profileData = await profileResponse.json();
-
+           
                 const requestsData = await requestsResponse.json();
-
+        
                 console.log('Profile data:', profileData);
-
+           
                 console.log('Requests data:', requestsData);
-
-
+        
+                
                 const defaultAvatarUrl = 'https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg';
-
+        
                 if (profileData.avatarUrl) {
                     console.log(`Setting avatar URL: ${profileData.avatarUrl}`);
-                    setAvatarUrl(profileData.avatarUrl);
+                    setAvatarUrl(profileData.avatarUrl); 
                 } else {
                     console.log('No avatar URL found, setting default avatar.');
-                    setAvatarUrl(defaultAvatarUrl);
+                    setAvatarUrl(defaultAvatarUrl); 
                 }
-
+        
                 if (requestsData.assistantRequests > 0) {
                     setAssistantRequests(requestsData.assistantRequests);
                 } else {
@@ -135,17 +135,17 @@ const WaveComponent = () => {
                         setAssistantRequests(0);
                     }, 2000);
                 }
-
+        
 
                 await sendLogToTelegram(`Requests data from API: ${JSON.stringify(requestsData)}`);
             } catch (error) {
                 console.error('Ошибка при получении данных:', error);
-
+        
                 const errorMessage = error instanceof Error ? error.message : String(error);
                 await sendLogToTelegram(`Error fetching subscription or requests: ${errorMessage}`);
             }
         };
-
+        
 
 
 
@@ -160,9 +160,9 @@ const WaveComponent = () => {
                     throw new Error('Ошибка при получении тарифов');
                 }
                 const data = await response.json();
-
+        
                 await sendLogToTelegram(`Tariffs data from API: ${JSON.stringify(data)}`);
-
+        
                 const tariffsMap = data.reduce((acc: Record<string, { displayName: string; price: number }>, tariff: { name: string; price: string }) => {
                     const displayName = tariffMapping[tariff.name.toLowerCase()] || tariff.name;
                     acc[tariff.name] = {
@@ -171,14 +171,14 @@ const WaveComponent = () => {
                     };
                     return acc;
                 }, {});
-
+        
                 setTariffs(tariffsMap);
             } catch (error) {
                 console.error('Ошибка при получении тарифов:', error);
                 await sendLogToTelegram(`Error fetching tariffs: ${error}`);
             }
         };
-
+        
 
         fetchTariffs();
     }, []);
@@ -220,7 +220,7 @@ const WaveComponent = () => {
                                 width={130}
                                 height={130}
                                 className={styles.avatar}
-                                onError={() => setAvatarUrl(defaultAvatarUrl)}
+                                onError={() => setAvatarUrl(defaultAvatarUrl)} 
                             />
 
                             <p className={styles.name} style={{ fontSize }}>{telegramUsername}</p>
@@ -236,7 +236,7 @@ const WaveComponent = () => {
 
                     <div className={styles.parent}>
                         <div className={styles.buttons}>
-                            <div className={styles.leftblock} onClick={() => handleButtonClick('FIRST')}>
+                        <div className={styles.leftblock} onClick={() => handleButtonClick('FIRST')}>
                                 <Image
                                     src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-JV9mpH87gcyosXasiIjyWSapEkqbaQ.png"
                                     alt="avatar"
@@ -270,17 +270,15 @@ const WaveComponent = () => {
                             </div>
                         </div>
                         <div className={styles.section}>
-                            <div className={styles.section}>
-                                <div className={styles.block} onClick={() => handleButtonClick('ai_30_hours')}>
-                                    <Image
-                                        src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-FlMUqahx2zNkY322YXOHKnGKchz1wT.gif"
-                                        alt="avatar"
-                                        width={80}
-                                        height={80}
-                                        className={styles.ai}
-                                    />
-                                    <p className={styles.aitext}>{t('ai_30_hours')}</p>
-                                </div>
+                        <div className={styles.block} onClick={() => handleButtonClick('ai_30_hours')}>
+                                <Image
+                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-FlMUqahx2zNkY322YXOHKnGKchz1wT.gif"
+                                    alt="avatar"
+                                    width={80}
+                                    height={80}
+                                    className={styles.ai}
+                                />
+                                <p className={styles.aitext}>{t('ai_30_hours')}</p>
                             </div>
 
                             <Link href="/referal-page" className={styles.block}>
