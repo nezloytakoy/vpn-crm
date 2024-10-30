@@ -1,5 +1,6 @@
 import { Bot } from "grammy";
 
+
 const bot = new Bot(process.env.TELEGRAM_USER_BOT_TOKEN!);
 
 const TELEGRAM_LOG_USER_ID = 5829159515;
@@ -8,46 +9,47 @@ const sendLogToTelegram = async (message: string) => {
   try {
     await bot.api.sendMessage(TELEGRAM_LOG_USER_ID, message);
   } catch (error) {
-    console.error("Error sending log message to Telegram:", error);
+    console.error("Ошибка отправки сообщения в Telegram:", error);
   }
 };
 
 export async function POST(request: Request) {
   try {
     const { userId, priceInDollars, tariffName } = await request.json();
-    await sendLogToTelegram(`Received POST request with tariffName: ${tariffName}, price: ${priceInDollars}, userId: ${userId}`);
 
-    const starsAmount = priceInDollars * 100; // Assuming starsAmount is in cents
+    await sendLogToTelegram(`Received tariffName: ${tariffName}, price: ${priceInDollars}`);
+
+
+    const starsAmount = priceInDollars * 1; // Цена в "звездах"
+
     const title = "Оплата через Звезды Telegram";
-    const description = `Оплата за тариф "${tariffName}" через звезды Telegram.`;
-    const payload = JSON.stringify({ userId, tariffName }); // Saving user and tariff info in payload
-    const currency = "USD"; // Default to USD
+    const description = "Оплата за товар через звезды Telegram.";
+    const payload = JSON.stringify({ userId, tariffName }); // Сохраняем информацию о пользователе и тарифе в payload
+    const currency = "XTR";
     const prices = [{ amount: starsAmount, label: "Оплата через звезды" }];
-
-    await sendLogToTelegram(`Creating invoice with starsAmount: ${starsAmount}, title: ${title}, description: ${description}, currency: ${currency}, prices: ${JSON.stringify(prices)}`);
 
     const invoiceLink = await bot.api.createInvoiceLink(
       title,
       description,
       payload,
-      "", // No providerToken required
+      "", 
       currency,
       prices
     );
 
-    await sendLogToTelegram(`Invoice link created successfully for user: ${userId}, tariff: ${tariffName}, link: ${invoiceLink}`);
+    await sendLogToTelegram(`Invoice created for user: ${userId} with tariff: ${tariffName}`);
 
-    // Return the invoice link, but don't update subscription until successful payment
+    // Возвращаем ссылку на инвойс, но не обновляем подписку до успешной оплаты
     return new Response(JSON.stringify({ invoiceLink }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error("Error creating invoice:", errorMessage);
+    console.error("Ошибка создания инвойса:", errorMessage);
     await sendLogToTelegram(`Error creating invoice: ${errorMessage}`);
     
-    return new Response(JSON.stringify({ message: "Error creating invoice" }), {
+    return new Response(JSON.stringify({ message: "Ошибка создания инвойса" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
