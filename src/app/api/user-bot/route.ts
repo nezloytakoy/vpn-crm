@@ -564,7 +564,7 @@ bot.on("message:successful_payment", async (ctx) => {
       const payloadData = JSON.parse(payment.invoice_payload);
       const { userId: decodedUserId } = payloadData;
 
-      // Convert to BigInt for database operations, and log as a string for safe debugging
+      
       let decodedUserIdBigInt;
       try {
         decodedUserIdBigInt = BigInt(decodedUserId);
@@ -575,7 +575,7 @@ bot.on("message:successful_payment", async (ctx) => {
         throw new Error(`Invalid decodedUserId format for BigInt conversion`);
       }
 
-      // Find subscription by matching the price in stars
+      
       let subscription;
       try {
         subscription = await prisma.subscription.findFirst({
@@ -591,10 +591,10 @@ bot.on("message:successful_payment", async (ctx) => {
         throw subscriptionError;
       }
 
-      // Logging user update preparation
+      
       await sendLogToTelegram(`Preparing to update User ID ${decodedUserIdBigInt.toString()} with subscription: ${subscription.name}`);
 
-      // Attempt to update user subscription
+      
       try {
         await prisma.user.update({
           where: {
@@ -614,7 +614,7 @@ bot.on("message:successful_payment", async (ctx) => {
         throw updateError;
       }
 
-      // Handle referral bonus if applicable
+      
       try {
         const referral = await prisma.referral.findFirst({
           where: {
@@ -630,7 +630,7 @@ bot.on("message:successful_payment", async (ctx) => {
           const referralCoins = subscription.price * 0.1;
           await sendLogToTelegram(`Referral found for User ${decodedUserIdBigInt.toString()}. Referring User ${referral.userId.toString()} receives ${referralCoins} coins`);
 
-          // Update referral user's coin balance
+          
           await prisma.user.update({
             where: {
               telegramId: referral.userId,
