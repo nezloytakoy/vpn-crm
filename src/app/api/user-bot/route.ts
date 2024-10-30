@@ -563,7 +563,6 @@ bot.on("message:successful_payment", async (ctx) => {
     if (payment && userId) {
       const totalStars = payment.total_amount;
       await sendLogToTelegram(`totalStars: ${totalStars}, type: ${typeof totalStars}`);
-      await sendLogToTelegram(`User ${userId} has successfully paid for ${totalStars} stars`);
 
       const payloadData = JSON.parse(payment.invoice_payload);
       await sendLogToTelegram(`payloadData: ${JSON.stringify(payloadData)}, type: ${typeof payloadData}`);
@@ -583,8 +582,7 @@ bot.on("message:successful_payment", async (ctx) => {
 
       let subscription;
       try {
-
-        await sendLogToTelegram(`totalStars: ${totalStars}, type: ${typeof totalStars}`);
+        await sendLogToTelegram(`Before subscription query: totalStars = ${totalStars}`);
         subscription = await prisma.subscription.findFirst({
           where: {
             price: {
@@ -593,7 +591,6 @@ bot.on("message:successful_payment", async (ctx) => {
             },
           },
         });
-
         await sendLogToTelegram(`subscription: ${JSON.stringify(subscription)}, type: ${typeof subscription}`);
 
         if (!subscription) {
@@ -604,7 +601,8 @@ bot.on("message:successful_payment", async (ctx) => {
         await sendLogToTelegram(`Найдена подписка по ценовому диапазону: ${JSON.stringify(subscription)}`);
       } catch (subscriptionError) {
         const errorMessage = subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError);
-        await sendLogToTelegram(`Ошибка при поиске подписки: ${errorMessage}`);
+  const errorStack = subscriptionError instanceof Error ? subscriptionError.stack : 'No stack trace';
+        await sendLogToTelegram(`Ошибка при поиске подписки: ${errorMessage}\nStack trace: ${errorStack}`);
         throw subscriptionError;
       }
 
