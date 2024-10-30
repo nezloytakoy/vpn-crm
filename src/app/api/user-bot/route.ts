@@ -579,15 +579,23 @@ bot.on("message:successful_payment", async (ctx) => {
       let subscription;
       try {
         subscription = await prisma.subscription.findFirst({
-          where: { price: totalStars },
+          where: {
+            price: {
+              gte: totalStars - 0.01, 
+              lte: totalStars + 0.01,
+            },
+          },
         });
+
         if (!subscription) {
           await sendLogToTelegram(`No matching subscription found for price: ${totalStars} stars`);
           throw new Error(`No matching subscription found for price: ${totalStars} stars`);
         }
-        await sendLogToTelegram(`Matched subscription based on price: ${JSON.stringify(subscription)}`);
+
+        await sendLogToTelegram(`Matched subscription based on price range: ${JSON.stringify(subscription)}`);
       } catch (subscriptionError) {
-        await sendLogToTelegram(`Error finding subscription: ${subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError)}`);
+        const errorMessage = subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError);
+        await sendLogToTelegram(`Error finding subscription: ${errorMessage}`);
         throw subscriptionError;
       }
 
@@ -610,7 +618,8 @@ bot.on("message:successful_payment", async (ctx) => {
         });
         await sendLogToTelegram(`User ${decodedUserIdBigInt.toString()} successfully updated with subscription: ${subscription.name}`);
       } catch (updateError) {
-        await sendLogToTelegram(`Error updating user subscription: ${updateError instanceof Error ? updateError.message : String(updateError)}`);
+        const errorMessage = updateError instanceof Error ? updateError.message : String(updateError);
+        await sendLogToTelegram(`Error updating user subscription: ${errorMessage}`);
         throw updateError;
       }
 
@@ -644,10 +653,12 @@ bot.on("message:successful_payment", async (ctx) => {
           await sendLogToTelegram(`No referral found for User ${decodedUserIdBigInt.toString()}`);
         }
       } catch (referralError) {
-        await sendLogToTelegram(`Error handling referral bonus: ${referralError instanceof Error ? referralError.message : String(referralError)}`);
+        const errorMessage = referralError instanceof Error ? referralError.message : String(referralError);
+        await sendLogToTelegram(`Error handling referral bonus: ${errorMessage}`);
         throw referralError;
       }
 
+      
       await ctx.reply("Ваш платеж прошел успешно! Привилегии активированы.");
     }
   } catch (error) {
