@@ -55,7 +55,8 @@ const WaveComponent = () => {
 
     const [assistantRequests, setAssistantRequests] = useState<number | null>(null);
 
-    const [tariffs, setTariffs] = useState<{ [key: string]: number }>({});
+    const [tariffs, setTariffs] = useState<{ [key: string]: { displayName: string; price: number } }>({});
+
 
     useEffect(() => {
         const userLang = window?.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
@@ -90,42 +91,42 @@ const WaveComponent = () => {
                 if (!telegramId) {
                     throw new Error('Telegram ID не найден');
                 }
-        
+
                 console.log(`Fetching data for Telegram ID: ${telegramId}`);
-        
+
                 const profileResponse = await fetch(`/api/get-profile-data?telegramId=${telegramId}`);
-        
+
                 const requestsResponse = await fetch(`/api/get-requests?telegramId=${telegramId}`);
-        
+
                 if (!profileResponse.ok) {
                     console.log('Error fetching profile data', await profileResponse.text());
                     throw new Error('Ошибка при получении данных профиля');
                 }
-               
+
                 if (!requestsResponse.ok) {
                     console.log('Error fetching requests data', await requestsResponse.text());
                     throw new Error('Ошибка при получении данных запросов');
                 }
-        
+
                 const profileData = await profileResponse.json();
-           
+
                 const requestsData = await requestsResponse.json();
-        
+
                 console.log('Profile data:', profileData);
-           
+
                 console.log('Requests data:', requestsData);
-        
-                
+
+
                 const defaultAvatarUrl = 'https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg';
-        
+
                 if (profileData.avatarUrl) {
                     console.log(`Setting avatar URL: ${profileData.avatarUrl}`);
-                    setAvatarUrl(profileData.avatarUrl); 
+                    setAvatarUrl(profileData.avatarUrl);
                 } else {
                     console.log('No avatar URL found, setting default avatar.');
-                    setAvatarUrl(defaultAvatarUrl); 
+                    setAvatarUrl(defaultAvatarUrl);
                 }
-        
+
                 if (requestsData.assistantRequests > 0) {
                     setAssistantRequests(requestsData.assistantRequests);
                 } else {
@@ -134,17 +135,17 @@ const WaveComponent = () => {
                         setAssistantRequests(0);
                     }, 2000);
                 }
-        
+
 
                 await sendLogToTelegram(`Requests data from API: ${JSON.stringify(requestsData)}`);
             } catch (error) {
                 console.error('Ошибка при получении данных:', error);
-        
+
                 const errorMessage = error instanceof Error ? error.message : String(error);
                 await sendLogToTelegram(`Error fetching subscription or requests: ${errorMessage}`);
             }
         };
-        
+
 
 
 
@@ -162,10 +163,15 @@ const WaveComponent = () => {
 
                 await sendLogToTelegram(`Tariffs data from API: ${JSON.stringify(data)}`);
 
-                const tariffsMap: { [key: string]: number } = {};
-                data.forEach((tariff: { name: string, price: string }) => {
-                    tariffsMap[tariff.name] = Number(tariff.price);
-                });
+                const tariffsMap = data.reduce((acc: Record<string, { displayName: string; price: number }>, tariff: { name: string; price: string }) => {
+                    const displayName = tariffMapping[tariff.name.toLowerCase()] || tariff.name;
+                    acc[tariff.name] = {
+                        displayName,
+                        price: Number(tariff.price),
+                    };
+                    return acc;
+                }, {});
+
                 setTariffs(tariffsMap);
             } catch (error) {
                 console.error('Ошибка при получении тарифов:', error);
@@ -173,14 +179,16 @@ const WaveComponent = () => {
             }
         };
 
+
         fetchTariffs();
     }, []);
 
-    const handleButtonClick = (text: string, price: number) => {
-        setButtonText(`${text} - ${price}$`);
-        setPrice(price);
+    const handleButtonClick = (tariffKey: string) => {
+        const tariff = tariffs[tariffKey];
+        setButtonText(`${tariff.displayName} - ${tariff.price}$`);
+        setPrice(tariff.price);
         setPopupVisible(true);
-        sendLogToTelegram(`Button clicked: ${text}`);
+        sendLogToTelegram(`Button clicked: ${tariff.displayName}`);
     };
 
     const handleClosePopup = () => {
@@ -212,7 +220,7 @@ const WaveComponent = () => {
                                 width={130}
                                 height={130}
                                 className={styles.avatar}
-                                onError={() => setAvatarUrl(defaultAvatarUrl)} 
+                                onError={() => setAvatarUrl(defaultAvatarUrl)}
                             />
 
                             <p className={styles.name} style={{ fontSize }}>{telegramUsername}</p>
@@ -228,7 +236,7 @@ const WaveComponent = () => {
 
                     <div className={styles.parent}>
                         <div className={styles.buttons}>
-                            <div className={styles.leftblock} onClick={() => handleButtonClick(t('only_ai'), tariffs[tariffMapping['only_ai']])}>
+                            <div className={styles.leftblock} onClick={() => handleButtonClick('FIRST')}>
                                 <Image
                                     src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-JV9mpH87gcyosXasiIjyWSapEkqbaQ.png"
                                     alt="avatar"
@@ -236,10 +244,10 @@ const WaveComponent = () => {
                                     height={90}
                                     className={styles.ai}
                                 />
-                                <p className={styles.text}>{t('only_ai')}</p>
+                                <p className={styles.text}>{tariffs['FIRST']?.displayName || 'Loading...'}</p>
                             </div>
 
-                            <div className={styles.centerblock} onClick={() => handleButtonClick(t('ai_5_hours'), tariffs[tariffMapping['ai_5_hours']])}>
+                            <div className={styles.centerblock} onClick={() => handleButtonClick('ai_5_hours')}>
                                 <Image
                                     src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-three-cGoXQPamKncukOKvfhxY8Gwhd4xKpO.png"
                                     alt="avatar"
@@ -250,7 +258,7 @@ const WaveComponent = () => {
                                 <p className={styles.text}>{t('ai_5_hours')}</p>
                             </div>
 
-                            <div className={styles.rightblock} onClick={() => handleButtonClick(t('ai_14_hours'), tariffs[tariffMapping['ai_14_hours']])}>
+                            <div className={styles.rightblock} onClick={() => handleButtonClick('ai_14_hours')}>
                                 <Image
                                     src="https://92eaarerohohicw5.public.blob.vercel-storage.com/GIU%20AMA%20255-02-kdT58Hckjc871B2UsslUF7ZrAg9SAi.png"
                                     alt="avatar"
@@ -262,15 +270,17 @@ const WaveComponent = () => {
                             </div>
                         </div>
                         <div className={styles.section}>
-                            <div className={styles.block} onClick={() => handleButtonClick(t('ai_30_hours'), tariffs[tariffMapping['ai_30_hours']])}>
-                                <Image
-                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-FlMUqahx2zNkY322YXOHKnGKchz1wT.gif"
-                                    alt="avatar"
-                                    width={80}
-                                    height={80}
-                                    className={styles.ai}
-                                />
-                                <p className={styles.aitext}>{t('ai_30_hours')}</p>
+                            <div className={styles.section}>
+                                <div className={styles.block} onClick={() => handleButtonClick('ai_30_hours')}>
+                                    <Image
+                                        src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-FlMUqahx2zNkY322YXOHKnGKchz1wT.gif"
+                                        alt="avatar"
+                                        width={80}
+                                        height={80}
+                                        className={styles.ai}
+                                    />
+                                    <p className={styles.aitext}>{t('ai_30_hours')}</p>
+                                </div>
                             </div>
 
                             <Link href="/referal-page" className={styles.block}>
