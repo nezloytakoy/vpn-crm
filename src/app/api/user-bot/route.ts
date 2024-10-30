@@ -557,24 +557,29 @@ bot.on("message:successful_payment", async (ctx) => {
     const payment = ctx.message?.successful_payment;
     const userId = ctx.from?.id;
 
+    await sendLogToTelegram(`payment: ${JSON.stringify(payment)}, type: ${typeof payment}`);
+    await sendLogToTelegram(`userId: ${userId}, type: ${typeof userId}`);
+
     if (payment && userId) {
       const totalStars = payment.total_amount;
+      await sendLogToTelegram(`totalStars: ${totalStars}, type: ${typeof totalStars}`);
       await sendLogToTelegram(`User ${userId} has successfully paid for ${totalStars} stars`);
 
       const payloadData = JSON.parse(payment.invoice_payload);
-      const { userId: decodedUserId } = payloadData;
+      await sendLogToTelegram(`payloadData: ${JSON.stringify(payloadData)}, type: ${typeof payloadData}`);
 
+      const { userId: decodedUserId } = payloadData;
+      await sendLogToTelegram(`decodedUserId: ${decodedUserId}, type: ${typeof decodedUserId}`);
 
       let decodedUserIdBigInt;
       try {
         decodedUserIdBigInt = BigInt(decodedUserId);
-        await sendLogToTelegram(`Decoded Payload User ID as BigInt: ${decodedUserIdBigInt.toString()}`);
+        await sendLogToTelegram(`decodedUserIdBigInt: ${decodedUserIdBigInt.toString()}, type: ${typeof decodedUserIdBigInt}`);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         await sendLogToTelegram(`Failed to convert decodedUserId to BigInt: ${errorMessage}`);
         throw new Error(`Invalid decodedUserId format for BigInt conversion`);
       }
-
 
       let subscription;
       try {
@@ -586,6 +591,8 @@ bot.on("message:successful_payment", async (ctx) => {
             },
           },
         });
+
+        await sendLogToTelegram(`subscription: ${JSON.stringify(subscription)}, type: ${typeof subscription}`);
 
         if (!subscription) {
           await sendLogToTelegram(`Подписка не найдена для цены: ${totalStars} stars`);
@@ -599,9 +606,7 @@ bot.on("message:successful_payment", async (ctx) => {
         throw subscriptionError;
       }
 
-
       await sendLogToTelegram(`Preparing to update User ID ${decodedUserIdBigInt.toString()} with subscription: ${subscription.name}`);
-
 
       try {
         await prisma.user.update({
@@ -619,10 +624,10 @@ bot.on("message:successful_payment", async (ctx) => {
         await sendLogToTelegram(`User ${decodedUserIdBigInt.toString()} successfully updated with subscription: ${subscription.name}`);
       } catch (updateError) {
         const errorMessage = updateError instanceof Error ? updateError.message : String(updateError);
+
         await sendLogToTelegram(`Error updating user subscription: ${errorMessage}`);
         throw updateError;
       }
-
 
       try {
         const referral = await prisma.referral.findFirst({
@@ -635,10 +640,11 @@ bot.on("message:successful_payment", async (ctx) => {
           },
         });
 
+        await sendLogToTelegram(`referral: ${JSON.stringify(referral)}, type: ${typeof referral}`);
+
         if (referral) {
           const referralCoins = subscription.price * 0.1;
           await sendLogToTelegram(`Referral found for User ${decodedUserIdBigInt.toString()}. Referring User ${referral.userId.toString()} receives ${referralCoins} coins`);
-
 
           await prisma.user.update({
             where: {
@@ -654,10 +660,10 @@ bot.on("message:successful_payment", async (ctx) => {
         }
       } catch (referralError) {
         const errorMessage = referralError instanceof Error ? referralError.message : String(referralError);
+
         await sendLogToTelegram(`Error handling referral bonus: ${errorMessage}`);
         throw referralError;
       }
-
 
       await ctx.reply("Ваш платеж прошел успешно! Привилегии активированы.");
     }
@@ -669,6 +675,7 @@ bot.on("message:successful_payment", async (ctx) => {
     await ctx.reply("Произошла ошибка при обработке вашего платежа. Пожалуйста, свяжитесь с поддержкой.");
   }
 });
+
 
 
 
