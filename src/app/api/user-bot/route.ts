@@ -558,15 +558,17 @@ bot.on("message:successful_payment", async (ctx) => {
     const userId = ctx.from?.id;
 
     if (payment && userId) {
-      await sendLogToTelegram(`User ${userId} has successfully paid for ${payment.total_amount / 42} stars`);
+      const totalStars = payment.total_amount / 42; // Calculate based on your conversion rate
+      await sendLogToTelegram(`User ${userId} has successfully paid for ${totalStars} stars`);
 
       const payloadData = JSON.parse(payment.invoice_payload);
       const { userId: decodedUserId, tariffName } = payloadData;
       await sendLogToTelegram(`Decoded Payload: ${JSON.stringify(payloadData)}`);
 
-      // Normalize and trim tariff name by removing price and excess whitespace
+      // Normalize and extract base tariff name
       const baseTariffName = tariffName.split(' - ')[0].trim().toLowerCase();
-      await sendLogToTelegram(`Extracted base tariff name: ${baseTariffName}`);
+      const baseTariffPrice = parseInt(tariffName.split(' - ')[1]); // Extract price if part of the name
+      await sendLogToTelegram(`Extracted base tariff name: ${baseTariffName}, price: ${baseTariffPrice}`);
 
       // Fetch all subscriptions to find the correct match
       const subscriptions = await prisma.subscription.findMany({
@@ -574,13 +576,14 @@ bot.on("message:successful_payment", async (ctx) => {
       });
       await sendLogToTelegram(`Fetched subscriptions: ${JSON.stringify(subscriptions)}`);
 
+      // Find the subscription either by matching name or price
       const subscription = subscriptions.find((sub) =>
-        sub.name.trim().toLowerCase() === baseTariffName
+        sub.name.trim().toLowerCase() === baseTariffName || sub.price === baseTariffPrice
       );
 
       if (!subscription) {
-        await sendLogToTelegram(`Invalid tariff name: ${tariffName}`);
-        throw new Error(`Invalid tariff name: ${tariffName}`);
+        await sendLogToTelegram(`Invalid tariff name or price: ${tariffName}`);
+        throw new Error(`Invalid tariff name or price: ${tariffName}`);
       }
 
       await sendLogToTelegram(`Matched subscription: ${JSON.stringify(subscription)}`);
@@ -637,7 +640,6 @@ bot.on("message:successful_payment", async (ctx) => {
     await ctx.reply("Произошла ошибка при обработке вашего платежа. Пожалуйста, свяжитесь с поддержкой.");
   }
 });
-
 
 
 
