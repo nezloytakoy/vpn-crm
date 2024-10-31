@@ -117,24 +117,6 @@ function Page() {
 
 
 
-    const handleToggleChange = (
-        toggleSetter: React.Dispatch<React.SetStateAction<boolean>>,
-        checkboxesSetter: React.Dispatch<React.SetStateAction<boolean[]>>
-    ) => {
-        toggleSetter((prevState) => !prevState);
-        checkboxesSetter((prevState) => prevState.map(() => !prevState.every((checked) => checked)));
-    };
-
-    const handleCheckboxChange = (
-        index: number,
-        checkboxesSetter: React.Dispatch<React.SetStateAction<boolean[]>>,
-        checkboxes: boolean[]
-    ) => {
-        const updatedCheckboxes = [...checkboxes];
-        updatedCheckboxes[index] = !updatedCheckboxes[index];
-        checkboxesSetter(updatedCheckboxes);
-    };
-
     useEffect(() => {
         setLocalPermissions(permissions);
         setIsToggledVoiceAI(permissions.every((perm) => perm.allowVoiceToAI));
