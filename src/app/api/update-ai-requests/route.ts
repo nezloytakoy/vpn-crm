@@ -7,6 +7,7 @@ export async function POST(request: Request) {
   try {
     const { first, second, third, fourth } = await request.json();
 
+    
     if (
       typeof first !== 'number' ||
       typeof second !== 'number' ||
@@ -18,22 +19,22 @@ export async function POST(request: Request) {
 
     
     await prisma.subscription.updateMany({
-      where: { name: 'AI + 5 запросов ассистенту' },
+      where: { name: 'FIRST' },
       data: { aiRequestCount: first },
     });
 
     await prisma.subscription.updateMany({
-      where: { name: 'AI + 14 запросов ассистенту' },
+      where: { name: 'SECOND' },
       data: { aiRequestCount: second },
     });
 
     await prisma.subscription.updateMany({
-      where: { name: 'AI + 30 запросов ассистенту' },
+      where: { name: 'THIRD' },
       data: { aiRequestCount: third },
     });
 
     await prisma.subscription.updateMany({
-      where: { name: 'Только AI' },
+      where: { name: 'FOURTH' },
       data: { aiRequestCount: fourth },
     });
 

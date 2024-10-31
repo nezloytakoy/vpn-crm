@@ -24,6 +24,15 @@ interface UserData {
     hasUpdatedSubscription: boolean;
 }
 
+interface PermissionData {
+    name: string;
+    allowVoiceToAI: boolean;
+    allowVoiceToAssistant: boolean;
+    allowVideoToAssistant: boolean;
+    allowFilesToAssistant: boolean;
+}
+
+
 
 type MyColumn<T extends object, K extends keyof T> = {
     Header: string;
@@ -57,6 +66,12 @@ function Page() {
 
     const [aiRequestValues, setAiRequestValues] = useState<string[]>(['', '', '', '']);
 
+    const [permissions, setPermissions] = useState<PermissionData[]>([]);
+
+
+
+
+
 
     const handleInputChangeAiRequests = (index: number, value: string) => {
         const updatedValues = [...aiRequestValues];
@@ -73,8 +88,26 @@ function Page() {
 
     const [percentage, setPercentage] = useState<number>(60);
 
+    
+    const handlePermissionChange = (index: number, field: keyof PermissionData) => {
+        setLocalPermissions((prevPermissions) =>
+            prevPermissions.map((permission, i) =>
+                i === index ? { ...permission, [field]: !permission[field] } : permission
+            )
+        );
+    };
+
+    useEffect(() => {
+        setLocalPermissions(permissions);
+    }, [permissions]);
 
 
+    const [localPermissions, setLocalPermissions] = useState<PermissionData[]>([]);
+
+    const [isToggledVoiceAI, setIsToggledVoiceAI] = useState(false);
+    const [isToggledVoiceAssistant, setIsToggledVoiceAssistant] = useState(false);
+    const [isToggledVideoAssistant, setIsToggledVideoAssistant] = useState(false);
+    const [isToggledFileAssistant, setIsToggledFileAssistant] = useState(false);
 
     const defaultAiRequestValues = ['5', '14', '30', '3'];
 
@@ -82,17 +115,7 @@ function Page() {
 
     const defaultAssistantRequestValues = ['5', '14', '30', '0'];
 
-    const [isToggledVoiceAI, setIsToggledVoiceAI] = useState(false);
-    const [checkboxesVoiceAI, setCheckboxesVoiceAI] = useState([false, false, false, false]);
 
-    const [isToggledVoiceAssistant, setIsToggledVoiceAssistant] = useState(false);
-    const [checkboxesVoiceAssistant, setCheckboxesVoiceAssistant] = useState([false, false, false, false]);
-
-    const [isToggledVideoAssistant, setIsToggledVideoAssistant] = useState(false);
-    const [checkboxesVideoAssistant, setCheckboxesVideoAssistant] = useState([false, false, false, false]);
-
-    const [isToggledFileAssistant, setIsToggledFileAssistant] = useState(false);
-    const [checkboxesFileAssistant, setCheckboxesFileAssistant] = useState([false, false, false, false]);
 
     const handleToggleChange = (
         toggleSetter: React.Dispatch<React.SetStateAction<boolean>>,
@@ -112,6 +135,44 @@ function Page() {
         checkboxesSetter(updatedCheckboxes);
     };
 
+    useEffect(() => {
+        setLocalPermissions(permissions);
+        setIsToggledVoiceAI(permissions.every((perm) => perm.allowVoiceToAI));
+        setIsToggledVoiceAssistant(permissions.every((perm) => perm.allowVoiceToAssistant));
+        setIsToggledVideoAssistant(permissions.every((perm) => perm.allowVideoToAssistant));
+        setIsToggledFileAssistant(permissions.every((perm) => perm.allowFilesToAssistant));
+    }, [permissions]);
+
+    useEffect(() => {
+        setIsToggledVoiceAI(permissions.some((perm) => perm.allowVoiceToAI));
+        setIsToggledVoiceAssistant(permissions.some((perm) => perm.allowVoiceToAssistant));
+        setIsToggledVideoAssistant(permissions.some((perm) => perm.allowVideoToAssistant));
+        setIsToggledFileAssistant(permissions.some((perm) => perm.allowFilesToAssistant));
+    }, [permissions]);
+
+    
+    useEffect(() => {
+        setIsToggledVoiceAI(localPermissions.every((perm) => perm.allowVoiceToAI));
+        setIsToggledVoiceAssistant(localPermissions.every((perm) => perm.allowVoiceToAssistant));
+        setIsToggledVideoAssistant(localPermissions.every((perm) => perm.allowVideoToAssistant));
+        setIsToggledFileAssistant(localPermissions.every((perm) => perm.allowFilesToAssistant));
+    }, [localPermissions]);
+
+    const handleToggleAndCheckboxes = (
+        toggleSetter: React.Dispatch<React.SetStateAction<boolean>>,
+        permissionKey: keyof PermissionData
+    ) => {
+        toggleSetter((prevState) => {
+            const newState = !prevState;
+            setLocalPermissions((prevPermissions) =>
+                prevPermissions.map((permission) => ({
+                    ...permission,
+                    [permissionKey]: newState,
+                }))
+            );
+            return newState;
+        });
+    };
 
 
 
@@ -156,11 +217,6 @@ function Page() {
     };
 
 
-
-    useEffect(() => {
-        console.log("Simple useEffect called");
-    }, []);
-
     useEffect(() => {
         console.log('useEffect called');
 
@@ -170,7 +226,7 @@ function Page() {
                 const response = await fetch('/api/get-users');
                 const data: UserResponse[] = await response.json();
 
-                // Map and transform user data to the desired structure
+                
                 const usersWithSubscriptions: UserData[] = data.map((user) => ({
                     telegramId: user.telegramId,
                     username: user.username,
@@ -180,7 +236,7 @@ function Page() {
                     hasUpdatedSubscription: user.hasUpdatedSubscription,
                 }));
 
-                // Set the users state with the transformed data
+                
                 setUsers(usersWithSubscriptions);
             } catch (error) {
                 console.error('Ошибка при получении данных пользователей:', error);
@@ -188,7 +244,6 @@ function Page() {
                 setIsLoading(false);
             }
         };
-
 
         interface RequestCount {
             aiRequestCount: number;
@@ -199,7 +254,6 @@ function Page() {
             aiRequestCount: string;
             assistantRequestCount: string;
         }
-
 
         const fetchRequestCounts = async () => {
             console.log('fetchRequestCounts called');
@@ -230,12 +284,30 @@ function Page() {
             }
         };
 
+        
+        const fetchPermissions = async () => {
+            console.log('fetchPermissions called');
+            try {
+                const response = await fetch('/api/get-permissions');
+                const data = await response.json();
 
+                if (response.ok && data.subscriptions) {
+                    setPermissions(data.subscriptions);
+                    console.log("Permissions successfully set:", data.subscriptions);
+                } else {
+                    console.error("Error fetching permissions:", data.error || 'No permissions in response');
+                    setPermissions([]);
+                }
+            } catch (error) {
+                console.error('Error fetching permissions:', error);
+                setPermissions([]);
+            }
+        };
 
-
-
+        
         fetchUsers();
         fetchRequestCounts();
+        fetchPermissions();
     }, []);
 
 
@@ -296,7 +368,7 @@ function Page() {
             accessor: 'username',
             id: 'username',
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => {
-                console.log("Rendering username:", value); // Log username value
+                console.log("Rendering username:", value); 
                 return <span>{value}</span>;
             },
         },
@@ -305,7 +377,7 @@ function Page() {
             accessor: 'referralCount',
             id: 'referralCount',
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => {
-                console.log("Rendering referralCount:", value); // Log referral count
+                console.log("Rendering referralCount:", value); 
                 return <span>{value}</span>;
             },
         },
@@ -314,9 +386,9 @@ function Page() {
             accessor: 'subscriptionType',
             id: 'subscriptionType',
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => {
-                console.log("Rendering subscriptionType:", value); // Log subscription type
+                console.log("Rendering subscriptionType:", value); 
                 const label = getSubscriptionLabel(String(value));
-                console.log("Subscription label:", label); // Log derived label
+                console.log("Subscription label:", label); 
                 return <span>{label}</span>;
             },
         },
@@ -325,7 +397,7 @@ function Page() {
             accessor: 'assistantRequests',
             id: 'assistantRequests',
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => {
-                console.log("Rendering assistantRequests:", value); // Log assistant requests count
+                console.log("Rendering assistantRequests:", value); 
                 return <span>{value}</span>;
             },
         },
@@ -334,9 +406,9 @@ function Page() {
             accessor: 'hasUpdatedSubscription',
             id: 'hasUpdatedSubscription',
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => {
-                console.log("Rendering hasUpdatedSubscription:", value); // Log updated subscription status
+                console.log("Rendering hasUpdatedSubscription:", value); 
                 const isPermanent = Boolean(value);
-                console.log("Is permanent client:", isPermanent); // Log boolean conversion
+                console.log("Is permanent client:", isPermanent); 
                 return <span>{isPermanent ? 'Да' : 'Нет'}</span>;
             },
         },
@@ -377,6 +449,49 @@ function Page() {
         }
     };
 
+    const handleConfirmPermissions = async () => {
+        try {
+            const response = await fetch('/api/update-permissions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(localPermissions), 
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert('Разрешения успешно обновлены.');
+                setPermissions(localPermissions); 
+            } else {
+                alert('Ошибка при обновлении: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Ошибка при обновлении разрешений:', error);
+            alert('Произошла ошибка при обновлении разрешений.');
+        }
+    };
+
+    useEffect(() => {
+        const fetchReferralPercentageMode = async () => {
+            try {
+                const response = await fetch('/api/get-referral-percentage-mode');
+                const data = await response.json();
+
+                if (response.ok && data.mode !== undefined) {
+                    setPercentage(data.mode * 100); 
+                } else {
+                    console.error('Ошибка при получении моды процента:', data.error);
+                }
+            } catch (error) {
+                console.error('Ошибка при запросе моды процента от рефералов:', error);
+            }
+        };
+
+        fetchReferralPercentageMode();
+    }, []);
+
 
 
     interface RequestCount {
@@ -389,6 +504,29 @@ function Page() {
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [showSortMenu, setShowSortMenu] = useState<boolean>(false);
     const [requestCounts, setRequestCounts] = useState<Record<string, RequestCount> | null>(null);
+
+    const handleConfirmReferralPercentage = async () => {
+        try {
+            const response = await fetch('/api/update-referral-percentage', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ referralPercentage: percentage / 100 }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert('Процент от приглашенных пользователей успешно обновлен.');
+            } else {
+                alert('Ошибка при обновлении процента: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Ошибка при обновлении процента от приглашенных пользователей:', error);
+            alert('Произошла ошибка при обновлении процента.');
+        }
+    };
 
 
 
@@ -409,27 +547,27 @@ function Page() {
 
     const getSubscriptionLabel = (subscriptionId: string): string => {
         console.log("Checking subscription ID in getSubscriptionLabel:", subscriptionId);
-    
+
         if (subscriptionId === 'FREE') {
             console.log("Subscription type 'FREE' detected, returning 'Бесплатная подписка'");
             return 'Подписка отстутствует';
         }
-    
+
         if (subscriptionId === 'FOURTH') {
             console.log("Subscription type 'FOURTH' detected, returning 'Только AI'");
             return 'Только AI';
         }
-    
+
         const assistantCount = getAssistantRequestCount(subscriptionId);
         console.log(`Assistant request count for ID ${subscriptionId}:`, assistantCount);
-    
+
         const label = assistantCount !== undefined
             ? `AI + ${assistantCount} запросов ассистенту`
             : 'Неизвестная подписка';
         console.log("Derived subscription label:", label);
         return label;
     };
-    
+
 
 
 
@@ -603,7 +741,6 @@ function Page() {
                         <div className={styles.messagebox}>
                             <h1 className={styles.gifttitle}>Процент от приглашенных пользователей</h1>
                             <div className={styles.percentageHeader}>
-
                                 <h1 className={styles.undertitletwo}>Выберите процент</h1>
                                 <div className={styles.percentageDisplay}>{percentage}%</div>
                             </div>
@@ -618,7 +755,7 @@ function Page() {
                                     style={sliderStyle}
                                 />
                             </div>
-                            <button className={styles.submitButton}>Подтвердить</button>
+                            <button className={styles.submitButton} onClick={handleConfirmReferralPercentage}>Подтвердить</button>
                         </div>
                         <div className={styles.messagebox}>
                             <h1 className={styles.gifttitle}>Стоимость тарифов</h1>
@@ -699,13 +836,13 @@ function Page() {
                         <div className={styles.messagebox}>
                             <h1 className={styles.gifttitle}>Отправка пользователем контента</h1>
 
-
+                            
                             <div className={styles.togglebox}>
                                 <label className={styles.switch}>
                                     <input
                                         type="checkbox"
                                         checked={isToggledVoiceAI}
-                                        onChange={() => handleToggleChange(setIsToggledVoiceAI, setCheckboxesVoiceAI)}
+                                        onChange={() => handleToggleAndCheckboxes(setIsToggledVoiceAI, 'allowVoiceToAI')}
                                     />
                                     <span className={styles.slider}></span>
                                 </label>
@@ -713,26 +850,26 @@ function Page() {
                             </div>
 
                             <div className={styles.checkboxContainer}>
-                                {checkboxesVoiceAI.map((checked, index) => (
+                                {localPermissions.map((permission, index) => (
                                     <label key={index} className={styles.checkboxLabel}>
                                         <input
                                             type="checkbox"
-                                            checked={checked}
-                                            onChange={() => handleCheckboxChange(index, setCheckboxesVoiceAI, checkboxesVoiceAI)}
+                                            checked={permission.allowVoiceToAI}
+                                            onChange={() => handlePermissionChange(index, 'allowVoiceToAI')}
                                         />
                                         <span className={styles.animatedCheckbox}></span>
-                                        <span>{subscriptionTypes[index] === 'FOURTH' ? 'Только AI' : `AI + ${getAssistantRequestCount(subscriptionTypes[index])} запросов ассистенту`}</span>
+                                        <span>{permission.name === 'FOURTH' ? 'Только AI' : `AI + ${getAssistantRequestCount(permission.name)} запросов ассистенту`}</span>
                                     </label>
                                 ))}
                             </div>
 
-
+                            
                             <div className={styles.togglebox}>
                                 <label className={styles.switch}>
                                     <input
                                         type="checkbox"
                                         checked={isToggledVoiceAssistant}
-                                        onChange={() => handleToggleChange(setIsToggledVoiceAssistant, setCheckboxesVoiceAssistant)}
+                                        onChange={() => handleToggleAndCheckboxes(setIsToggledVoiceAssistant, 'allowVoiceToAssistant')}
                                     />
                                     <span className={styles.slider}></span>
                                 </label>
@@ -740,26 +877,26 @@ function Page() {
                             </div>
 
                             <div className={styles.checkboxContainer}>
-                                {checkboxesVoiceAssistant.map((checked, index) => (
+                                {localPermissions.map((permission, index) => (
                                     <label key={index} className={styles.checkboxLabel}>
                                         <input
                                             type="checkbox"
-                                            checked={checked}
-                                            onChange={() => handleCheckboxChange(index, setCheckboxesVoiceAssistant, checkboxesVoiceAssistant)}
+                                            checked={permission.allowVoiceToAssistant}
+                                            onChange={() => handlePermissionChange(index, 'allowVoiceToAssistant')}
                                         />
                                         <span className={styles.animatedCheckbox}></span>
-                                        <span>{subscriptionTypes[index] === 'FOURTH' ? 'Только AI' : `AI + ${getAssistantRequestCount(subscriptionTypes[index])} запросов ассистенту`}</span>
+                                        <span>{permission.name === 'FOURTH' ? 'Только AI' : `AI + ${getAssistantRequestCount(permission.name)} запросов ассистенту`}</span>
                                     </label>
                                 ))}
                             </div>
 
-
+                            
                             <div className={styles.togglebox}>
                                 <label className={styles.switch}>
                                     <input
                                         type="checkbox"
                                         checked={isToggledVideoAssistant}
-                                        onChange={() => handleToggleChange(setIsToggledVideoAssistant, setCheckboxesVideoAssistant)}
+                                        onChange={() => handleToggleAndCheckboxes(setIsToggledVideoAssistant, 'allowVideoToAssistant')}
                                     />
                                     <span className={styles.slider}></span>
                                 </label>
@@ -767,26 +904,26 @@ function Page() {
                             </div>
 
                             <div className={styles.checkboxContainer}>
-                                {checkboxesVideoAssistant.map((checked, index) => (
+                                {localPermissions.map((permission, index) => (
                                     <label key={index} className={styles.checkboxLabel}>
                                         <input
                                             type="checkbox"
-                                            checked={checked}
-                                            onChange={() => handleCheckboxChange(index, setCheckboxesVideoAssistant, checkboxesVideoAssistant)}
+                                            checked={permission.allowVideoToAssistant}
+                                            onChange={() => handlePermissionChange(index, 'allowVideoToAssistant')}
                                         />
                                         <span className={styles.animatedCheckbox}></span>
-                                        <span>{subscriptionTypes[index] === 'FOURTH' ? 'Только AI' : `AI + ${getAssistantRequestCount(subscriptionTypes[index])} запросов ассистенту`}</span>
+                                        <span>{permission.name === 'FOURTH' ? 'Только AI' : `AI + ${getAssistantRequestCount(permission.name)} запросов ассистенту`}</span>
                                     </label>
                                 ))}
                             </div>
 
-
+                            
                             <div className={styles.togglebox}>
                                 <label className={styles.switch}>
                                     <input
                                         type="checkbox"
                                         checked={isToggledFileAssistant}
-                                        onChange={() => handleToggleChange(setIsToggledFileAssistant, setCheckboxesFileAssistant)}
+                                        onChange={() => handleToggleAndCheckboxes(setIsToggledFileAssistant, 'allowFilesToAssistant')}
                                     />
                                     <span className={styles.slider}></span>
                                 </label>
@@ -794,21 +931,23 @@ function Page() {
                             </div>
 
                             <div className={styles.checkboxContainer}>
-                                {checkboxesFileAssistant.map((checked, index) => (
+                                {localPermissions.map((permission, index) => (
                                     <label key={index} className={styles.checkboxLabel}>
                                         <input
                                             type="checkbox"
-                                            checked={checked}
-                                            onChange={() => handleCheckboxChange(index, setCheckboxesFileAssistant, checkboxesFileAssistant)}
+                                            checked={permission.allowFilesToAssistant}
+                                            onChange={() => handlePermissionChange(index, 'allowFilesToAssistant')}
                                         />
                                         <span className={styles.animatedCheckbox}></span>
-                                        <span>{subscriptionTypes[index] === 'FOURTH' ? 'Только AI' : `AI + ${getAssistantRequestCount(subscriptionTypes[index])} запросов ассистенту`}</span>
+                                        <span>{permission.name === 'FOURTH' ? 'Только AI' : `AI + ${getAssistantRequestCount(permission.name)} запросов ассистенту`}</span>
                                     </label>
                                 ))}
                             </div>
 
-                            <button className={styles.submitButtonthree}>Подтвердить</button>
+                            <button className={styles.submitButtonthree} onClick={handleConfirmPermissions}>Подтвердить</button>
                         </div>
+
+
 
 
 

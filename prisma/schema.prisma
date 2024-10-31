@@ -99,6 +99,9 @@ model User {
   conversations          Conversation[]
   referredUsers          Referral?          @relation("Referred")
   referrer               Referral[]         @relation("Referrer")
+  
+  // Новое поле для хранения процента от приглашенных пользователей
+  referralPercentage     Float              @default(0.0)
 }
 
 model Subscription {

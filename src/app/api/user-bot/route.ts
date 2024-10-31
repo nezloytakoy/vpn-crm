@@ -591,17 +591,17 @@ bot.on("message:successful_payment", async (ctx) => {
             },
           },
         });
-        // await sendLogToTelegram(`subscription: ${JSON.stringify(subscription)}, type: ${typeof subscription}`);
+        
 
         if (!subscription) {
           await sendLogToTelegram(`Подписка не найдена для цены: ${totalStars} stars`);
           throw new Error(`Подписка не найдена для цены: ${totalStars} stars`);
         }
 
-        // await sendLogToTelegram(`Найдена подписка по ценовому диапазону: ${JSON.stringify(subscription)}`);
+        
       } catch (subscriptionError) {
         const errorMessage = subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError);
-  const errorStack = subscriptionError instanceof Error ? subscriptionError.stack : 'No stack trace';
+        const errorStack = subscriptionError instanceof Error ? subscriptionError.stack : 'No stack trace';
         await sendLogToTelegram(`Ошибка при поиске подписки: ${errorMessage}\nStack trace: ${errorStack}`);
         throw subscriptionError;
       }
@@ -643,21 +643,27 @@ bot.on("message:successful_payment", async (ctx) => {
         await sendLogToTelegram(`referral: ${JSON.stringify(referral)}, type: ${typeof referral}`);
 
         if (referral) {
-          const referralCoins = subscription.price * 0.1;
-          await sendLogToTelegram(`Referral found for User ${decodedUserIdBigInt.toString()}. Referring User ${referral.userId.toString()} receives ${referralCoins} coins`);
-
-          await prisma.user.update({
-            where: {
-              telegramId: referral.userId,
-            },
-            data: {
-              coins: { increment: referralCoins },
-            },
+          const referringUser = await prisma.user.findUnique({
+            where: { telegramId: referral.userId },
+            select: { referralPercentage: true },
           });
-          await sendLogToTelegram(`User ${referral.userId.toString()} received ${referralCoins} coins as a referral bonus.`);
+
+          if (referringUser) {
+            const referralCoins = subscription.price * (referringUser.referralPercentage || 0);
+            await sendLogToTelegram(`Referral found for User ${decodedUserIdBigInt.toString()}. Referring User ${referral.userId.toString()} receives ${referralCoins} coins`);
+
+            await prisma.user.update({
+              where: { telegramId: referral.userId },
+              data: { coins: { increment: referralCoins } },
+            });
+            await sendLogToTelegram(`User ${referral.userId.toString()} received ${referralCoins} coins as a referral bonus.`);
+          } else {
+            await sendLogToTelegram(`Referring user not found for User ${decodedUserIdBigInt.toString()}`);
+          }
         } else {
           await sendLogToTelegram(`No referral found for User ${decodedUserIdBigInt.toString()}`);
         }
+
       } catch (referralError) {
         const errorMessage = referralError instanceof Error ? referralError.message : String(referralError);
 
