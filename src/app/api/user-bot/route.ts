@@ -874,6 +874,8 @@ bot.on('message:photo', async (ctx: Context) => {
   }
 });
 
+
+
 bot.on('message:voice', async (ctx) => {
   try {
     const languageCode = ctx.from?.language_code || 'en';
@@ -887,7 +889,10 @@ bot.on('message:voice', async (ctx) => {
     const currentTime = new Date();
 
     const [user, activeRequest] = await Promise.all([
-      prisma.user.findUnique({ where: { telegramId } }),
+      prisma.user.findUnique({
+        where: { telegramId },
+        include: { lastPaidSubscription: true },
+      }),
       prisma.assistantRequest.findFirst({
         where: { user: { telegramId }, isActive: true },
         include: { assistant: true },
@@ -899,13 +904,13 @@ bot.on('message:voice', async (ctx) => {
       return;
     }
 
-    if (user.isWaitingForComplaint) {
-      await ctx.reply('Пожалуйста, завершите оформление жалобы.');
-      return;
-    }
+    const subscription = user.lastPaidSubscription;
 
     if (user.isActiveAIChat) {
-
+      if (!subscription?.allowVoiceToAI) {
+        await ctx.reply('Отправка голосовых сообщений ИИ не разрешена для вашей подписки.');
+        return;
+      }
 
       const voice = ctx.message.voice;
       const fileId = voice.file_id;
@@ -932,9 +937,13 @@ bot.on('message:voice', async (ctx) => {
       );
 
       const transcribedText = transcriptionResponse.data.text;
-
       await handleAIChat(telegramId, transcribedText, ctx);
     } else if (activeRequest && activeRequest.assistant) {
+      if (!subscription?.allowVoiceToAssistant) {
+        await ctx.reply('Отправка голосовых сообщений ассистенту не разрешена для вашей подписки.');
+        return;
+      }
+
       const voice = ctx.message.voice;
       const fileId = voice.file_id;
       const fileInfo = await ctx.api.getFile(fileId);
@@ -962,9 +971,6 @@ bot.on('message:voice', async (ctx) => {
   }
 });
 
-
-
-
 bot.on('message:document', async (ctx) => {
   try {
     const languageCode = ctx.from?.language_code || 'en';
@@ -976,10 +982,20 @@ bot.on('message:document', async (ctx) => {
 
     const telegramId = BigInt(ctx.from.id);
     const currentTime = new Date();
-    const user = await prisma.user.findUnique({ where: { telegramId } });
+    const user = await prisma.user.findUnique({
+      where: { telegramId },
+      include: { lastPaidSubscription: true },
+    });
 
     if (!user) {
       await ctx.reply(getTranslation(languageCode, 'no_user_found'));
+      return;
+    }
+
+    const subscription = user.lastPaidSubscription;
+
+    if (!subscription?.allowFilesToAssistant) {
+      await ctx.reply('Отправка файлов ассистенту не разрешена для вашей подписки.');
       return;
     }
 
@@ -1018,8 +1034,6 @@ bot.on('message:document', async (ctx) => {
   }
 });
 
-
-
 bot.on('message:video_note', async (ctx) => {
   try {
     const languageCode = ctx.from?.language_code || 'en';
@@ -1031,10 +1045,20 @@ bot.on('message:video_note', async (ctx) => {
 
     const telegramId = BigInt(ctx.from.id);
     const currentTime = new Date();
-    const user = await prisma.user.findUnique({ where: { telegramId } });
+    const user = await prisma.user.findUnique({
+      where: { telegramId },
+      include: { lastPaidSubscription: true },
+    });
 
     if (!user) {
       await ctx.reply(getTranslation(languageCode, 'no_user_found'));
+      return;
+    }
+
+    const subscription = user.lastPaidSubscription;
+
+    if (!subscription?.allowVideoToAssistant) {
+      await ctx.reply('Отправка видео-кружков ассистенту не разрешена для вашей подписки.');
       return;
     }
 
@@ -1072,6 +1096,7 @@ bot.on('message:video_note', async (ctx) => {
     await ctx.reply('Произошла ошибка при обработке вашего видео-кружка.');
   }
 });
+
 
 
 
