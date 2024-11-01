@@ -418,7 +418,7 @@ function Page() {
           </div>
           <div className={styles.containerthree}>
             <div className={styles.messageboxseven}>
-              <h1 className={styles.titletwo}>Уведомления всем ассистентам</h1>
+              <h1 className={styles.gifttitle}>Уведомления пользователю</h1>
               <h1 className={styles.undertitle}>Форма для сообщения</h1>
               <textarea className={styles.input} placeholder="Сообщение" />
               <button className={styles.submitButton}>Отправить</button>

@@ -32,6 +32,28 @@ interface PermissionData {
     allowFilesToAssistant: boolean;
 }
 
+interface PriceData {
+    id: number;
+    price: number;
+}
+
+interface AIRequestItem {
+    subscriptionType: string;
+    aiRequestCount: string;
+    assistantRequestCount: string;
+}
+
+interface SubscriptionData {
+    name: string;
+    price: number;
+}
+
+
+interface SubscriptionData {
+    name: string;
+    price: number;
+}
+
 
 
 type MyColumn<T extends object, K extends keyof T> = {
@@ -58,7 +80,7 @@ function Page() {
     const [checkboxesNotifications, setCheckboxesNotifications] = useState<boolean[]>([false, false, false, false]);
 
 
-    const [inputValuesAssistant, setInputValuesAssistant] = useState<string[]>(['5', '14', '30', '3']);
+    const [inputValuesAssistant, setInputValuesAssistant] = useState<string[]>(['', '', '', '']);
 
     const router = useRouter();
 
@@ -68,8 +90,21 @@ function Page() {
 
     const [permissions, setPermissions] = useState<PermissionData[]>([]);
 
+    const [subscriptionPrices, setSubscriptionPrices] = useState<number[]>([]);
+    const [inputValues, setInputValues] = useState<string[]>(["", "", "", ""]);
+
+    const [loadingButton, setLoadingButton] = useState(''); // Состояние для отслеживания кнопки с лоадером
 
 
+    const handleButtonClick = async (buttonName: string, action: () => Promise<void>) => {
+        setLoadingButton(buttonName); // Устанавливаем лоадер на кнопку
+        await action(); // Выполняем переданное действие
+        setTimeout(() => setLoadingButton(''), 3000); // Снимаем лоадер через 3 секунды
+    };
+
+
+
+    const [subscriptionData, setSubscriptionData] = useState<SubscriptionData[]>([]);
 
 
 
@@ -88,7 +123,7 @@ function Page() {
 
     const [percentage, setPercentage] = useState<number>(60);
 
-    
+
     const handlePermissionChange = (index: number, field: keyof PermissionData) => {
         setLocalPermissions((prevPermissions) =>
             prevPermissions.map((permission, i) =>
@@ -132,7 +167,7 @@ function Page() {
         setIsToggledFileAssistant(permissions.some((perm) => perm.allowFilesToAssistant));
     }, [permissions]);
 
-    
+
     useEffect(() => {
         setIsToggledVoiceAI(localPermissions.every((perm) => perm.allowVoiceToAI));
         setIsToggledVoiceAssistant(localPermissions.every((perm) => perm.allowVoiceToAssistant));
@@ -162,6 +197,12 @@ function Page() {
         const updatedValues = [...assistantRequestValues];
         updatedValues[index] = value;
         setAssistantRequestValues(updatedValues);
+    };
+
+    const handleSubscriptionPriceChange = (index: number, value: string) => {
+        const updatedValues = [...inputValues];
+        updatedValues[index] = value;
+        setInputValues(updatedValues); // Обновляем inputValues, чтобы хранить текущие значения тарифов
     };
 
     const handleConfirmAssistantRequests = async () => {
@@ -199,16 +240,29 @@ function Page() {
     };
 
 
-    useEffect(() => {
+    useEffect(() => { 
         console.log('useEffect called');
-
+    
+        const fetchSubscriptionData = async () => {
+            try {
+                const response = await fetch('/api/get-subscriptions-price');
+                if (!response.ok) {
+                    console.error("Ошибка при получении данных тарифов:", await response.text());
+                    return;
+                }
+                const data: { prices: SubscriptionData[] } = await response.json();
+                setSubscriptionData(data.prices);
+                setInputValuesAssistant(data.prices.map((subscription) => subscription.price.toString()));
+            } catch (error) {
+                console.error("Ошибка при получении данных тарифов:", error);
+            }
+        };
+    
         const fetchUsers = async () => {
             console.log('fetchUsers called');
             try {
                 const response = await fetch('/api/get-users');
                 const data: UserResponse[] = await response.json();
-
-                
                 const usersWithSubscriptions: UserData[] = data.map((user) => ({
                     telegramId: user.telegramId,
                     username: user.username,
@@ -217,34 +271,17 @@ function Page() {
                     assistantRequests: user.assistantRequests,
                     hasUpdatedSubscription: user.hasUpdatedSubscription,
                 }));
-
-                
                 setUsers(usersWithSubscriptions);
             } catch (error) {
                 console.error('Ошибка при получении данных пользователей:', error);
-            } finally {
-                setIsLoading(false);
             }
         };
-
-        interface RequestCount {
-            aiRequestCount: number;
-            assistantRequestCount: number;
-        }
-        interface AIRequestItem {
-            subscriptionType: string;
-            aiRequestCount: string;
-            assistantRequestCount: string;
-        }
-
+    
         const fetchRequestCounts = async () => {
             console.log('fetchRequestCounts called');
             try {
                 const response = await fetch('/api/get-user-requests');
                 const data = await response.json();
-
-                console.log("API response data:", data);
-
                 if (response.ok && data.aiRequests) {
                     const counts = data.aiRequests.reduce((acc: Record<string, RequestCount>, item: AIRequestItem) => {
                         acc[item.subscriptionType] = {
@@ -253,9 +290,7 @@ function Page() {
                         };
                         return acc;
                     }, {} as Record<string, RequestCount>);
-
                     setRequestCounts(counts);
-                    console.log("Request counts successfully set:", counts);
                 } else {
                     console.error("Error fetching data:", data.error || 'No aiRequests in response');
                     setRequestCounts({});
@@ -265,17 +300,14 @@ function Page() {
                 setRequestCounts({});
             }
         };
-
-        
+    
         const fetchPermissions = async () => {
             console.log('fetchPermissions called');
             try {
                 const response = await fetch('/api/get-permissions');
                 const data = await response.json();
-
                 if (response.ok && data.subscriptions) {
                     setPermissions(data.subscriptions);
-                    console.log("Permissions successfully set:", data.subscriptions);
                 } else {
                     console.error("Error fetching permissions:", data.error || 'No permissions in response');
                     setPermissions([]);
@@ -285,12 +317,37 @@ function Page() {
                 setPermissions([]);
             }
         };
-
-        
-        fetchUsers();
-        fetchRequestCounts();
-        fetchPermissions();
+    
+        const fetchSubscriptionPrices = async () => {
+            try {
+                const response = await fetch('/api/get-subscriptions-price');
+                if (!response.ok) {
+                    console.error("Ошибка при получении данных цен:", await response.text());
+                    return;
+                }
+                const data: { serializedPrices: PriceData[] } = await response.json();
+                const sortedPrices = data.serializedPrices.sort((a, b) => a.id - b.id);
+                setSubscriptionPrices(sortedPrices.map((priceObj) => priceObj.price));
+                setInputValues(sortedPrices.map((priceObj) => priceObj.price.toString()));
+            } catch (error) {
+                console.error("Ошибка при получении цен подписок:", error);
+            }
+        };
+    
+        const fetchAllData = async () => {
+            await Promise.all([
+                fetchSubscriptionData(),
+                fetchUsers(),
+                fetchRequestCounts(),
+                fetchPermissions(),
+                fetchSubscriptionPrices(),
+            ]);
+            setIsLoading(false);
+        };
+    
+        fetchAllData();
     }, []);
+    
 
 
     const subscriptionTypes = ['FIRST', 'SECOND', 'THIRD', 'FOURTH'];
@@ -332,11 +389,7 @@ function Page() {
     };
 
 
-    const handleInputChangeAssistant = (index: number, value: string) => {
-        const updatedValues = [...inputValuesAssistant];
-        updatedValues[index] = value;
-        setInputValuesAssistant(updatedValues);
-    };
+
 
 
     const sliderStyle = {
@@ -350,7 +403,7 @@ function Page() {
             accessor: 'username',
             id: 'username',
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => {
-                console.log("Rendering username:", value); 
+                console.log("Rendering username:", value);
                 return <span>{value}</span>;
             },
         },
@@ -359,7 +412,7 @@ function Page() {
             accessor: 'referralCount',
             id: 'referralCount',
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => {
-                console.log("Rendering referralCount:", value); 
+                console.log("Rendering referralCount:", value);
                 return <span>{value}</span>;
             },
         },
@@ -368,9 +421,9 @@ function Page() {
             accessor: 'subscriptionType',
             id: 'subscriptionType',
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => {
-                console.log("Rendering subscriptionType:", value); 
+                console.log("Rendering subscriptionType:", value);
                 const label = getSubscriptionLabel(String(value));
-                console.log("Subscription label:", label); 
+                console.log("Subscription label:", label);
                 return <span>{label}</span>;
             },
         },
@@ -379,7 +432,7 @@ function Page() {
             accessor: 'assistantRequests',
             id: 'assistantRequests',
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => {
-                console.log("Rendering assistantRequests:", value); 
+                console.log("Rendering assistantRequests:", value);
                 return <span>{value}</span>;
             },
         },
@@ -388,13 +441,42 @@ function Page() {
             accessor: 'hasUpdatedSubscription',
             id: 'hasUpdatedSubscription',
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => {
-                console.log("Rendering hasUpdatedSubscription:", value); 
+                console.log("Rendering hasUpdatedSubscription:", value);
                 const isPermanent = Boolean(value);
-                console.log("Is permanent client:", isPermanent); 
+                console.log("Is permanent client:", isPermanent);
                 return <span>{isPermanent ? 'Да' : 'Нет'}</span>;
             },
         },
     ];
+
+    const handleConfirmPrices = async () => {
+        try {
+            const valuesToSend = inputValues.map((value) => parseFloat(value));
+            console.log("Отправляем")
+            console.log(valuesToSend)
+
+            const response = await fetch('/api/update-subscription-prices', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ prices: valuesToSend }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert('Тарифы успешно обновлены.');
+                console.log("Подтвержденные значения цен:", valuesToSend);
+            } else {
+                alert('Ошибка при обновлении тарифов: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Ошибка при обновлении тарифов:', error);
+            alert('Произошла ошибка при обновлении тарифов.');
+        }
+    };
+
 
 
     const handleConfirmAiRequests = async () => {
@@ -438,14 +520,14 @@ function Page() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(localPermissions), 
+                body: JSON.stringify(localPermissions),
             });
 
             const data = await response.json();
 
             if (response.ok) {
                 alert('Разрешения успешно обновлены.');
-                setPermissions(localPermissions); 
+                setPermissions(localPermissions);
             } else {
                 alert('Ошибка при обновлении: ' + data.error);
             }
@@ -462,7 +544,7 @@ function Page() {
                 const data = await response.json();
 
                 if (response.ok && data.mode !== undefined) {
-                    setPercentage(data.mode * 100); 
+                    setPercentage(data.mode * 100);
                 } else {
                     console.error('Ошибка при получении моды процента:', data.error);
                 }
@@ -582,8 +664,7 @@ function Page() {
 
             if (response.ok) {
                 alert('Сообщения успешно отправлены.');
-                setMessage('');
-                setCheckboxesNotifications([false, false, false, false]);
+                setMessage(''); // Очищаем только поле сообщения
             } else {
                 alert('Ошибка при отправке сообщений: ' + data.error);
             }
@@ -592,6 +673,7 @@ function Page() {
             alert('Произошла ошибка при отправке сообщений.');
         }
     };
+
 
 
 
@@ -621,6 +703,14 @@ function Page() {
             return 0;
         });
     }, [users, sortColumn, sortDirection]);
+
+    if (isLoading) {
+        return (
+            <div className={styles.loaderWrapper}>
+                <div className={styles.loader}></div>
+            </div>
+        );
+    }
 
 
 
@@ -685,8 +775,11 @@ function Page() {
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
                             />
-                            <button className={styles.submitButton} onClick={handleSendMessage}>
-                                Отправить
+                            <button
+                                className={styles.submitButton}
+                                onClick={() => handleButtonClick('sendMessage', handleSendMessage)}
+                            >
+                                {loadingButton === 'sendMessage' ? 'Загрузка...' : 'Отправить'}
                             </button>
                         </div>
 
@@ -716,8 +809,11 @@ function Page() {
                                 );
                             })}
 
-                            <button className={styles.submitButtontwo} onClick={handleConfirmAssistantRequests}>
-                                Подтвердить
+                            <button
+                                className={styles.submitButtontwo}
+                                onClick={() => handleButtonClick('confirmAssistantRequests', handleConfirmAssistantRequests)}
+                            >
+                                {loadingButton === 'confirmAssistantRequests' ? 'Загрузка...' : 'Подтвердить'}
                             </button>
                         </div>
                         <div className={styles.messagebox}>
@@ -741,35 +837,40 @@ function Page() {
                         </div>
                         <div className={styles.messagebox}>
                             <h1 className={styles.gifttitle}>Стоимость тарифов</h1>
-                            {inputValuesAssistant.map((value, index) => {
-                                const subscriptionType = index === 3 ? 'FOURTH' : index === 0 ? 'FIRST' : index === 1 ? 'SECOND' : 'THIRD';
-                                const assistantCount = requestCounts ? requestCounts[subscriptionType]?.assistantRequestCount : value;
-
+                            {subscriptionPrices.map((price, index) => {
+                                const subscriptionType = subscriptionTypes[index];
+                                const assistantCount = getAssistantRequestCount(subscriptionType);
                                 return (
                                     <div key={index}>
                                         <h1 className={styles.undertitletwo}>
                                             {subscriptionType === 'FOURTH'
                                                 ? 'Только AI'
-                                                : `Стоимость тарифа AI + ${assistantCount} запросов ассистенту`}
+                                                : `AI + ${assistantCount} запросов ассистенту`}
                                         </h1>
                                         <div className={styles.inputContainertwo}>
                                             <input
                                                 type="text"
                                                 className={styles.inputFieldtwo}
-                                                placeholder={String(assistantCount)}
-                                                value={value}
-                                                onChange={(e) => handleInputChangeAssistant(index, e.target.value)}
+                                                placeholder={`${price}`}
+
+                                                onChange={(e) => handleSubscriptionPriceChange(index, e.target.value)}
                                             />
                                             <span className={styles.label}>$</span>
                                         </div>
                                     </div>
                                 );
                             })}
-
-                            <button className={styles.submitButtontwo} onClick={handleConfirmAssistantRequests}>
-                                Подтвердить
+                            <button
+                                className={styles.submitButtontwo}
+                                onClick={() => handleButtonClick('confirmPrices', handleConfirmPrices)}
+                            >
+                                {loadingButton === 'confirmPrices' ? 'Загрузка...' : 'Подтвердить'}
                             </button>
                         </div>
+
+
+
+
 
 
 
@@ -807,8 +908,11 @@ function Page() {
                                 );
                             })}
 
-                            <button className={styles.submitButtontwo} onClick={handleConfirmAiRequests}>
-                                Подтвердить
+                            <button
+                                className={styles.submitButtontwo}
+                                onClick={() => handleButtonClick('confirmAiRequests', handleConfirmAiRequests)}
+                            >
+                                {loadingButton === 'confirmAiRequests' ? 'Загрузка...' : 'Подтвердить'}
                             </button>
                         </div>
 
@@ -818,7 +922,7 @@ function Page() {
                         <div className={styles.messagebox}>
                             <h1 className={styles.gifttitle}>Отправка пользователем контента</h1>
 
-                            
+
                             <div className={styles.togglebox}>
                                 <label className={styles.switch}>
                                     <input
@@ -845,7 +949,7 @@ function Page() {
                                 ))}
                             </div>
 
-                            
+
                             <div className={styles.togglebox}>
                                 <label className={styles.switch}>
                                     <input
@@ -872,7 +976,7 @@ function Page() {
                                 ))}
                             </div>
 
-                            
+
                             <div className={styles.togglebox}>
                                 <label className={styles.switch}>
                                     <input
@@ -899,7 +1003,7 @@ function Page() {
                                 ))}
                             </div>
 
-                            
+
                             <div className={styles.togglebox}>
                                 <label className={styles.switch}>
                                     <input
@@ -926,7 +1030,12 @@ function Page() {
                                 ))}
                             </div>
 
-                            <button className={styles.submitButtonthree} onClick={handleConfirmPermissions}>Подтвердить</button>
+                            <button
+                                className={styles.submitButtonthree}
+                                onClick={() => handleButtonClick('confirmPermissions', handleConfirmPermissions)}
+                            >
+                                {loadingButton === 'confirmPermissions' ? 'Загрузка...' : 'Подтвердить'}
+                            </button>
                         </div>
 
 
