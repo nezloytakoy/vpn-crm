@@ -80,7 +80,6 @@ function Page() {
     const [checkboxesNotifications, setCheckboxesNotifications] = useState<boolean[]>([false, false, false, false]);
 
 
-    const [inputValuesAssistant, setInputValuesAssistant] = useState<string[]>(['', '', '', '']);
 
     const router = useRouter();
 
@@ -93,18 +92,18 @@ function Page() {
     const [subscriptionPrices, setSubscriptionPrices] = useState<number[]>([]);
     const [inputValues, setInputValues] = useState<string[]>(["", "", "", ""]);
 
-    const [loadingButton, setLoadingButton] = useState(''); // Состояние для отслеживания кнопки с лоадером
+    const [loadingButton, setLoadingButton] = useState(''); 
 
 
     const handleButtonClick = async (buttonName: string, action: () => Promise<void>) => {
-        setLoadingButton(buttonName); // Устанавливаем лоадер на кнопку
-        await action(); // Выполняем переданное действие
-        setTimeout(() => setLoadingButton(''), 3000); // Снимаем лоадер через 3 секунды
+        setLoadingButton(buttonName); 
+        await action(); 
+        setTimeout(() => setLoadingButton(''), 3000); 
     };
 
 
 
-    const [subscriptionData, setSubscriptionData] = useState<SubscriptionData[]>([]);
+  
 
 
 
@@ -202,7 +201,7 @@ function Page() {
     const handleSubscriptionPriceChange = (index: number, value: string) => {
         const updatedValues = [...inputValues];
         updatedValues[index] = value;
-        setInputValues(updatedValues); // Обновляем inputValues, чтобы хранить текущие значения тарифов
+        setInputValues(updatedValues); 
     };
 
     const handleConfirmAssistantRequests = async () => {
@@ -251,8 +250,8 @@ function Page() {
                     return;
                 }
                 const data: { prices: SubscriptionData[] } = await response.json();
-                setSubscriptionData(data.prices);
-                setInputValuesAssistant(data.prices.map((subscription) => subscription.price.toString()));
+            
+          
             } catch (error) {
                 console.error("Ошибка при получении данных тарифов:", error);
             }
@@ -664,7 +663,7 @@ function Page() {
 
             if (response.ok) {
                 alert('Сообщения успешно отправлены.');
-                setMessage(''); // Очищаем только поле сообщения
+                setMessage(''); 
             } else {
                 alert('Ошибка при отправке сообщений: ' + data.error);
             }
