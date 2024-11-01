@@ -43,16 +43,6 @@ interface AIRequestItem {
     assistantRequestCount: string;
 }
 
-interface SubscriptionData {
-    name: string;
-    price: number;
-}
-
-
-interface SubscriptionData {
-    name: string;
-    price: number;
-}
 
 
 
