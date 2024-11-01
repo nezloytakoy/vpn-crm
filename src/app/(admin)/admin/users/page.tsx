@@ -249,7 +249,7 @@ function Page() {
                     console.error("Ошибка при получении данных тарифов:", await response.text());
                     return;
                 }
-                const data: { prices: SubscriptionData[] } = await response.json();
+              
             
           
             } catch (error) {
