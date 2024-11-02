@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Table from '@/components/Table/Table';
 import { Column } from 'react-table';
 import Select from 'react-select';
-import { usePathname, useRouter } from 'next/navigation'; 
+import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 interface UserData {
@@ -41,14 +41,14 @@ interface Message {
 interface UserRequest {
   requestId: number;
   status: string;
-  assistantId: string; 
+  assistantId: string;
   messages: Message[];
 }
 
 interface ComplaintData {
   complaintId: string;
   status: string;
-  assistantId: string; 
+  assistantId: string;
   messages: Message[];
 }
 
@@ -59,26 +59,183 @@ interface ReferralData {
   referralCount: number;
 }
 
+
+const updateReferralPercentage = async (telegramId: bigint, newPercentage: number) => {
+  try {
+    console.log(`Updating referral percentage for telegramId: ${telegramId}, newPercentage: ${newPercentage}`);
+    const response = await fetch('/api/update-user-percentage', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userId: telegramId.toString(), // Преобразуем BigInt в строку
+        referralPercentage: newPercentage
+      }),
+    });
+
+    if (response.ok) {
+      console.log('Referral percentage updated successfully');
+    } else {
+      const data = await response.json();
+      console.error('Error:', data.error);
+    }
+  } catch (error) {
+    console.error('Failed to update referral percentage:', error);
+  }
+};
+
+
 function Page() {
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [isLoadingData, setIsLoadingData] = useState(true); 
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [showPopup, setShowPopup] = useState(false);
   const [inputValuesAssistant, setInputValuesAssistant] = useState<string[]>(['5', '14', '30', '3']);
   const popupRef = useRef<HTMLDivElement>(null);
   const [percentage, setPercentage] = useState<number>(60);
   const [isToggled] = useState(false);
+  const [requests, setRequests] = useState<{ aiRequests: number; assistantRequests: number }>({
+    aiRequests: 0,
+    assistantRequests: 0,
+  });
 
-  const [blockHours, setBlockHours] = useState(''); 
-  const [isBlocking, setIsBlocking] = useState(false); 
+  const [blockHours, setBlockHours] = useState('');
+  const [isBlocking, setIsBlocking] = useState(false);
 
-  const [isDeleting, setIsDeleting] = useState(false); 
-  const [deleteError, setDeleteError] = useState<string | null>(null); 
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const [message, setMessage] = useState('');
+
+  const [aiRequestInput, setAiRequestInput] = useState<string>('');
+  const [assistantRequestInput, setAssistantRequestInput] = useState<string>('');
+
+  const [selectedSubscription, setSelectedSubscription] = useState<number | null>(null);
+
+  const [subscriptionOptions, setSubscriptionOptions] = useState<{ value: number; label: string }[]>([]);
+
+  const [loadingButton, setLoadingButton] = useState<string | null>(null);
+
+  const handleButtonClick = (handler: () => Promise<void>, buttonKey: string) => {
+    setLoadingButton(buttonKey);
+
+    // Show loader for 3 seconds
+    setTimeout(async () => {
+      await handler();
+
+      // After 3 seconds, refresh the page
+      setTimeout(() => {
+        location.reload();
+      }, 3000);
+    }, 3000);
+  };
 
 
 
-  const router = useRouter(); 
+
+  const handleAssistantRequestSubmit = async () => {
+    if (!userId || assistantRequestInput.trim() === '') {
+      alert('Введите количество запросов.');
+      return;
+    }
+
+    try {
+      const assistantRequests = parseInt(assistantRequestInput, 10);
+      if (isNaN(assistantRequests) || assistantRequests < 0) {
+        alert('Пожалуйста, введите корректное положительное число.');
+        return;
+      }
+
+      const response = await fetch('/api/update-personal-assistant-requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, assistantRequests }),
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        alert('Количество запросов к ассистенту успешно обновлено.');
+      } else {
+        alert(`Ошибка: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Ошибка при обновлении количества запросов к ассистенту:', error);
+      alert('Произошла ошибка при обновлении количества запросов.');
+    }
+  };
+
+
+  const handleAiRequestSubmit = async () => {
+    if (!userId || aiRequestInput.trim() === '') {
+      alert('Введите количество запросов.');
+      return;
+    }
+
+    try {
+      const aiRequests = parseInt(aiRequestInput, 10);
+      if (isNaN(aiRequests) || aiRequests < 0) {
+        alert('Пожалуйста, введите корректное положительное число.');
+        return;
+      }
+
+      const response = await fetch('/api/update-user-ai-requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, aiRequests }),
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        alert('Количество запросов к ИИ успешно обновлено.');
+      } else {
+        alert(`Ошибка: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Ошибка при обновлении количества запросов к ИИ:', error);
+      alert('Произошла ошибка при обновлении количества запросов.');
+    }
+  };
+
+
+
+  const router = useRouter();
   const pathname = usePathname();
   const userId = pathname.split('/').pop();
+
+  const handleSendNotification = async () => {
+    if (message.trim() === '') {
+      alert('Пожалуйста, введите сообщение.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/send-user-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, message }),
+      });
+
+      if (response.ok) {
+        alert('Сообщение успешно отправлено');
+        setMessage(''); // Clear the message after sending
+      } else {
+        const errorData = await response.json();
+        alert(`Ошибка при отправке сообщения: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Ошибка при отправке сообщения:', error);
+      alert('Произошла ошибка при отправке сообщения.');
+    }
+  };
+
+
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -89,30 +246,116 @@ function Page() {
       } catch (error) {
         console.error('Ошибка при получении данных пользователя:', error);
       } finally {
-        setIsLoadingData(false); 
+        setIsLoadingData(false);
       }
     };
     if (userId) {
       fetchData();
     }
+
+    const fetchPercentage = async () => {
+      try {
+        const response = await fetch(`/api/get-user-percentage?userId=${userId}`);
+        const data = await response.json();
+
+        console.log(data)
+        console.log(data.referralPercentage)
+
+        if (data.referralPercentage !== undefined) {
+          setPercentage(data.referralPercentage);
+          console.log("Процент:")
+          console.log(data.referralPercentage)
+        } else {
+          console.error('Реферальный процент не найден');
+        }
+      } catch (error) {
+        console.error('Ошибка при получении реферального процента:', error);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    const fetchRequests = async () => {
+      try {
+
+        const response = await fetch(`/api/get-personal-requests?userId=${userId}`)
+        const data = await response.json();
+
+        if (data.requests != undefined) {
+          setRequests(data.requests)
+          console.log(data.requests)
+        } else {
+          console.log('Не удалось получить актуальное количество запросов')
+        }
+
+      } catch (error) {
+        console.log(error)
+      }
+    }
+
+    if (userId) {
+      fetchPercentage();
+      fetchRequests();
+    }
+
+    const fetchSubscriptionOptions = async () => {
+      try {
+        const response = await fetch('/api/generate-tariff-names', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+          const options = data.updatedSubscriptions.map((sub: { id: number; name: string }) => ({
+            value: sub.id,
+            label: sub.name,
+          }));
+          setSubscriptionOptions(options);
+        } else {
+          console.error('Error fetching subscription options:', data.error);
+        }
+      } catch (error) {
+        console.error('Error fetching subscription options:', error);
+      }
+    };
+
+
+    fetchSubscriptionOptions();
+
+
   }, [userId]);
 
-  const handleInputChangeAssistant = (index: number, value: string) => {
-    const updatedValues = [...inputValuesAssistant];
-    updatedValues[index] = value;
-    setInputValuesAssistant(updatedValues);
+
+
+
+
+  const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setPercentage(Number(event.target.value));
   };
 
-  const options = [
-    { value: 'ai5', label: 'AI + 5 запросов ассистенту' },
-    { value: 'ai14', label: 'AI + 14 запросов ассистенту' },
-    { value: 'ai30', label: 'AI + 30 запросов ассистенту' },
-    { value: 'only-ai', label: 'Только AI' }
-  ];
+  const handleSubmit = async () => {
+    console.log(`Submitting referral percentage update. UserId: ${userId}, Percentage: ${percentage}`);
+    if (userId) {
+      try {
+        await updateReferralPercentage(BigInt(userId), percentage);
+        alert('Процент реферала успешно обновлен.');
+      } catch (error) {
+        alert('Произошла ошибка при обновлении процента реферала.');
+        console.error('Ошибка:', error);
+      }
 
-  const sliderStyle = {
-    background: `linear-gradient(to right, #365CF5 0%, #365CF5 ${percentage}%, #e5e5e5 ${percentage}%, #e5e5e5 100%)`,
+      // Устанавливаем таймер для перезагрузки страницы через 6 секунд
+      setTimeout(() => {
+        location.reload(); // Перезагрузка всей страницы
+      }, 3000);
+    } else {
+      console.error('User ID not found');
+    }
   };
+
 
   const handleDownload = (messages: Message[], filename: string) => {
     const content = messages
@@ -233,7 +476,7 @@ function Page() {
       }
 
       alert('Пользователь успешно заблокирован');
-      setBlockHours(''); 
+      setBlockHours('');
     } catch (error: unknown) {
       if (error instanceof Error) {
         alert('Ошибка: ' + error.message);
@@ -245,7 +488,7 @@ function Page() {
     }
   };
 
-  
+
   const handleDeleteUser = async () => {
     setIsDeleting(true);
     setDeleteError(null);
@@ -270,7 +513,7 @@ function Page() {
 
       alert('Пользователь успешно удален');
 
-      
+
       setTimeout(() => {
         router.push('/admin/users');
       }, 3000);
@@ -295,6 +538,34 @@ function Page() {
     );
   }
 
+  const handleSubscriptionSubmit = async () => {
+    if (!userId || !selectedSubscription) {
+      alert('Пожалуйста, выберите подписку и убедитесь, что ID пользователя указан.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/give-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, subscriptionId: selectedSubscription }),
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        alert('Подписка успешно выдана.');
+      } else {
+        alert(`Ошибка: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Ошибка при выдаче подписки:', error);
+      alert('Произошла ошибка при выдаче подписки.');
+    }
+  };
+
+
   return (
     <div className={styles.main}>
       <div className={styles.titlebox}>
@@ -315,10 +586,10 @@ function Page() {
                 <div className={styles.avatarblock}>
                   {userData?.userInfo?.avatarUrl ? (
                     <Image
-                      src={userData.userInfo.avatarUrl || '/path/to/default/avatar.png'} 
+                      src={userData.userInfo.avatarUrl || '/path/to/default/avatar.png'}
                       alt="Avatar"
-                      width={100} 
-                      height={100} 
+                      width={100}
+                      height={100}
                       className={styles.avatarImage}
                     />
                   ) : (
@@ -396,45 +667,54 @@ function Page() {
               </div>
             </div>
           </div>
-          <div className={styles.containerthree}>
+          <div className={styles.containereight}>
             <div className={styles.messageboxfive}>
               <h1 className={styles.gifttitle}>Текущее количество запросов к ИИ</h1>
               <h1 className={styles.undertitletwo}>Изменить количество</h1>
               <div className={`${styles.inputContainertwo} ${isToggled ? styles.active : ''}`}>
-                <input type="text" className={styles.inputFieldtwo} placeholder="7" />
+                <input
+                  type="text"
+                  className={styles.inputFieldtwo}
+                  placeholder={requests.aiRequests !== undefined ? requests.aiRequests.toString() : 'Загрузка...'}
+                  value={aiRequestInput}
+                  onChange={(e) => setAiRequestInput(e.target.value)}
+                />
                 <span className={`${styles.label} ${isToggled ? styles.activeLabel : ''}`}>Отказов</span>
               </div>
-              <button className={styles.submitButton}>Подтвердить</button>
+              <button
+                className={styles.submitButton}
+                onClick={() => handleButtonClick(handleSubmit, 'submitPercentage')}
+                disabled={loadingButton === 'submitPercentage'}
+              >
+                {loadingButton === 'submitPercentage' ? 'Загрузка...' : 'Подтвердить'}
+              </button>
             </div>
+
             <div className={styles.messageboxfive}>
               <h1 className={styles.gifttitle}>Текущее количество запросов к ассистенту</h1>
               <h1 className={styles.undertitletwo}>Изменить количество</h1>
               <div className={`${styles.inputContainertwo} ${isToggled ? styles.active : ''}`}>
-                <input type="text" className={styles.inputFieldtwo} placeholder="7" />
+                <input
+                  type="text"
+                  className={styles.inputFieldtwo}
+                  placeholder={requests.assistantRequests !== undefined ? requests.assistantRequests.toString() : 'Загрузка...'}
+                  value={assistantRequestInput}
+                  onChange={(e) => setAssistantRequestInput(e.target.value)}
+                />
                 <span className={`${styles.label} ${isToggled ? styles.activeLabel : ''}`}>Отказов</span>
               </div>
-              <button className={styles.submitButton}>Подтвердить</button>
+              <button
+                className={styles.submitButton}
+                onClick={() => handleButtonClick(handleAssistantRequestSubmit, 'submitAssistantRequest')}
+                disabled={loadingButton === 'submitAssistantRequest'}
+              >
+                {loadingButton === 'submitAssistantRequest' ? 'Загрузка...' : 'Подтвердить'}
+              </button>
             </div>
-          </div>
-          <div className={styles.containerthree}>
-            <div className={styles.messageboxseven}>
-              <h1 className={styles.gifttitle}>Уведомления пользователю</h1>
-              <h1 className={styles.undertitle}>Форма для сообщения</h1>
-              <textarea className={styles.input} placeholder="Сообщение" />
-              <button className={styles.submitButton}>Отправить</button>
-            </div>
-            <div className={styles.messageboxsix}>
-              <h1 className={styles.gifttitle}>Выдать подписку</h1>
-              <h1 className={styles.undertitletwo}>Выберите тип</h1>
 
-              <div className={styles.selectWrapper}>
-                <Select options={options} />
-                <div className={styles.selectArrow}></div>
-              </div>
-
-              <button className={styles.submitButton}>Подтвердить</button>
-            </div>
           </div>
+
+
         </div>
 
         <div className={styles.containerone}>
@@ -451,33 +731,58 @@ function Page() {
                 max="100"
                 value={percentage}
                 className={styles.percentageSlider}
-                onChange={(e) => setPercentage(Number(e.target.value))}
-                style={sliderStyle}
+                onChange={handleSliderChange}
+                style={{
+                  background: `linear-gradient(to right, #365CF5 0%, #365CF5 ${percentage}%, #e5e5e5 ${percentage}%, #e5e5e5 100%)`,
+                }}
               />
             </div>
-            <button className={styles.submitButton}>Подтвердить</button>
+            <button
+              className={styles.submitButton}
+              onClick={() => handleButtonClick(handleSubmit, 'submitReferralUpdate')}
+              disabled={loadingButton === 'submitReferralUpdate'}
+            >
+              {loadingButton === 'submitReferralUpdate' ? 'Загрузка...' : 'Подтвердить'}
+            </button>
           </div>
-          <div className={styles.messageboxfour}>
-            <h1 className={styles.gifttitle}>Количество запросов к ИИ</h1>
-            {inputValuesAssistant.map((value, index) => (
-              <div key={index}>
-                <h1 className={styles.undertitletwo}>
-                  {index === 3 ? 'Только AI' : `Введите количество для категории AI + ${index === 0 ? '5' : index === 1 ? '14' : '30'} запросов ассистенту`}
-                </h1>
-                <div className={styles.inputContainertwo}>
-                  <input
-                    type="text"
-                    className={styles.inputFieldtwo}
-                    placeholder={value}
-                    value={value}
-                    onChange={(e) => handleInputChangeAssistant(index, e.target.value)}
-                  />
-                  <span className={styles.label}>Запросов</span>
-                </div>
-              </div>
-            ))}
+          <div className={styles.containerthree}>
+            <div className={styles.messageboxseven}>
+              <h1 className={styles.gifttitle}>Уведомления пользователю</h1>
+              <h1 className={styles.undertitle}>Форма для сообщения</h1>
+              <textarea
+                className={styles.input}
+                placeholder="Сообщение"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+              />
+              <button
+                className={styles.submitButton}
+                onClick={() => handleButtonClick(handleSendNotification, 'sendNotification')}
+                disabled={loadingButton === 'sendNotification'}
+              >
+                {loadingButton === 'sendNotification' ? 'Загрузка...' : 'Отправить'}
+              </button>
+            </div>
+            <div className={styles.messageboxsix}>
+              <h1 className={styles.gifttitle}>Выдать подписку</h1>
+              <h1 className={styles.undertitletwo}>Выберите тип</h1>
 
-            <button className={styles.submitButton}>Подтвердить</button>
+              <div className={styles.selectWrapper}>
+                <Select
+                  options={subscriptionOptions}
+                  onChange={(option) => setSelectedSubscription(option?.value || null)}
+                />
+                <div className={styles.selectArrow}></div>
+              </div>
+
+              <button
+                className={styles.submitButton}
+                onClick={() => handleButtonClick(handleSubscriptionSubmit, 'submitSubscription')}
+                disabled={loadingButton === 'submitSubscription'}
+              >
+                {loadingButton === 'submitSubscription' ? 'Загрузка...' : 'Подтвердить'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

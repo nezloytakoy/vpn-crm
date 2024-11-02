@@ -28,6 +28,33 @@ function Page() {
 
     const [generatedLink, setGeneratedLink] = useState<string>('');
     const [copySuccess, setCopySuccess] = useState<boolean>(false);
+    const [message, setMessage] = useState(''); // State for message input
+
+    const handleSendNotification = async () => {
+        if (!message) {
+            alert('Введите сообщение для ассистентов');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/send-message-to-assistants', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Ошибка при отправке сообщения ассистентам');
+            }
+
+            alert('Сообщение успешно отправлено всем ассистентам');
+        } catch (error) {
+            console.error('Ошибка при отправке уведомления:', error);
+            alert('Не удалось отправить сообщение');
+        }
+    };
 
 
     const handleGenerateLink = async () => {
@@ -70,8 +97,13 @@ function Page() {
                     <div className={styles.messageboxthree}>
                         <h1 className={styles.title}>Уведомления всем ассистентам</h1>
                         <h1 className={styles.undertitle}>Форма для сообщения</h1>
-                        <textarea className={styles.input} placeholder="Сообщение" />
-                        <button className={styles.submitButton}>Отправить</button>
+                        <textarea
+                            className={styles.input}
+                            placeholder="Сообщение"
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                        />
+                        <button className={styles.submitButton} onClick={handleSendNotification}>Отправить</button>
                     </div>
 
 
@@ -156,6 +188,15 @@ function Page() {
                             </div>
                         )}
                     </div>
+                    <div className={styles.messagebox}>
+                        <h1 className={styles.gifttitle}>Максимальное пропусков</h1>
+                        <h1 className={styles.undertitletwo}>Введите количество</h1>
+                        <div className={`${styles.inputContainertwo} ${isToggled ? styles.active : ''}`}>
+                            <input type="text" className={styles.inputFieldtwo} placeholder="3" />
+                            <span className={`${styles.label} ${isToggled ? styles.activeLabel : ''}`}>Отказов</span>
+                        </div>
+                        <button className={styles.submitButtontwo}>Подтвердить</button>
+                    </div>
 
                     <h1 className={styles.notitle}></h1>
                     <div className={styles.messageboxtwo}>
@@ -202,21 +243,6 @@ function Page() {
                             <span className={`${styles.label} ${isToggled ? styles.activeLabel : ''}`}>Секунд</span>
                         </div>
                         <button className={styles.submitButtontwo}>Подтвердить</button>
-                    </div>
-                    <div className={styles.messageboxfive}>
-                        <h1 className={styles.title}>Текст кнопок</h1>
-
-
-                        <div className={styles.fakeButton} contentEditable="true">
-                            Лимиты
-                        </div>
-
-
-                        <div className={styles.fakeButton} contentEditable="true">
-                            Инструкции
-                        </div>
-
-                        <button className={styles.submitButton}>Подтвердить</button>
                     </div>
                 </div>
             </div>

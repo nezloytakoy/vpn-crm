@@ -54,11 +54,8 @@ type MyColumn<T extends object, K extends keyof T> = {
 };
 
 function Page() {
-    console.log('Page component is being rendered');
 
-    useEffect(() => {
-        console.log("Simple useEffect called");
-    }, []);
+
 
     const [users, setUsers] = useState<UserData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -82,18 +79,23 @@ function Page() {
     const [subscriptionPrices, setSubscriptionPrices] = useState<number[]>([]);
     const [inputValues, setInputValues] = useState<string[]>(["", "", "", ""]);
 
-    const [loadingButton, setLoadingButton] = useState(''); 
+    const [loadingButton, setLoadingButton] = useState('');
 
 
     const handleButtonClick = async (buttonName: string, action: () => Promise<void>) => {
-        setLoadingButton(buttonName); 
-        await action(); 
-        setTimeout(() => setLoadingButton(''), 3000); 
+        setLoadingButton(buttonName);
+        await action();
+        setTimeout(() => setLoadingButton(''), 3000);
+
+        // Устанавливаем таймер для перезагрузки страницы через 6 секунд
+        setTimeout(() => {
+            location.reload();  // Перезагрузка всей страницы
+        }, 3000);
     };
 
 
 
-  
+
 
 
 
@@ -191,7 +193,7 @@ function Page() {
     const handleSubscriptionPriceChange = (index: number, value: string) => {
         const updatedValues = [...inputValues];
         updatedValues[index] = value;
-        setInputValues(updatedValues); 
+        setInputValues(updatedValues);
     };
 
     const handleConfirmAssistantRequests = async () => {
@@ -229,9 +231,8 @@ function Page() {
     };
 
 
-    useEffect(() => { 
-        console.log('useEffect called');
-    
+    useEffect(() => {
+
         const fetchSubscriptionData = async () => {
             try {
                 const response = await fetch('/api/get-subscriptions-price');
@@ -239,19 +240,19 @@ function Page() {
                     console.error("Ошибка при получении данных тарифов:", await response.text());
                     return;
                 }
-              
-            
-          
+
+
+
             } catch (error) {
                 console.error("Ошибка при получении данных тарифов:", error);
             }
         };
-    
+
         const fetchUsers = async () => {
-            console.log('fetchUsers called');
             try {
                 const response = await fetch('/api/get-users');
                 const data: UserResponse[] = await response.json();
+
                 const usersWithSubscriptions: UserData[] = data.map((user) => ({
                     telegramId: user.telegramId,
                     username: user.username,
@@ -265,12 +266,12 @@ function Page() {
                 console.error('Ошибка при получении данных пользователей:', error);
             }
         };
-    
+
         const fetchRequestCounts = async () => {
-            console.log('fetchRequestCounts called');
             try {
                 const response = await fetch('/api/get-user-requests');
                 const data = await response.json();
+
                 if (response.ok && data.aiRequests) {
                     const counts = data.aiRequests.reduce((acc: Record<string, RequestCount>, item: AIRequestItem) => {
                         acc[item.subscriptionType] = {
@@ -278,23 +279,24 @@ function Page() {
                             assistantRequestCount: parseInt(item.assistantRequestCount) || 0,
                         };
                         return acc;
-                    }, {} as Record<string, RequestCount>);
+                    }, {});
+
                     setRequestCounts(counts);
                 } else {
-                    console.error("Error fetching data:", data.error || 'No aiRequests in response');
+                    console.error("Ошибка при получении данных:", data.error || 'Отсутствуют aiRequests в ответе');
                     setRequestCounts({});
                 }
             } catch (error) {
-                console.error('Error fetching request counts:', error);
+                console.error('Ошибка при загрузке данных о запросах:', error);
                 setRequestCounts({});
             }
         };
-    
+
         const fetchPermissions = async () => {
-            console.log('fetchPermissions called');
             try {
                 const response = await fetch('/api/get-permissions');
                 const data = await response.json();
+
                 if (response.ok && data.subscriptions) {
                     setPermissions(data.subscriptions);
                 } else {
@@ -306,7 +308,7 @@ function Page() {
                 setPermissions([]);
             }
         };
-    
+
         const fetchSubscriptionPrices = async () => {
             try {
                 const response = await fetch('/api/get-subscriptions-price');
@@ -322,7 +324,7 @@ function Page() {
                 console.error("Ошибка при получении цен подписок:", error);
             }
         };
-    
+
         const fetchAllData = async () => {
             await Promise.all([
                 fetchSubscriptionData(),
@@ -333,29 +335,33 @@ function Page() {
             ]);
             setIsLoading(false);
         };
-    
+
         fetchAllData();
     }, []);
-    
+
 
 
     const subscriptionTypes = ['FIRST', 'SECOND', 'THIRD', 'FOURTH'];
 
     const getAssistantRequestCount = (subscriptionType: string): number | undefined => {
         if (!requestCounts) {
-            console.warn("Request counts are not set.");
+            console.error("Request counts are not загружены.");
             return undefined;
         }
 
-        const subscriptionData = requestCounts[subscriptionType];
-        const requestCount = subscriptionData ? subscriptionData.assistantRequestCount : undefined;
+        console.log(subscriptionType)
+        console. log(requestCounts)
 
-        if (requestCount === undefined) {
-            console.warn(`Assistant request count is undefined for subscription type: ${subscriptionType}`);
+        const subscriptionData = requestCounts[subscriptionType];
+
+        if (!subscriptionData) {
+            console.error(`Данные о подписке не найдены для типа: ${subscriptionType}`);
+            return undefined;
         }
 
-        return requestCount;
+        return subscriptionData.assistantRequestCount;
     };
+
 
     const getAiRequestCount = (subscriptionType: string) => {
         return requestCounts && requestCounts[subscriptionType]
@@ -392,7 +398,7 @@ function Page() {
             accessor: 'username',
             id: 'username',
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => {
-                console.log("Rendering username:", value);
+
                 return <span>{value}</span>;
             },
         },
@@ -401,7 +407,7 @@ function Page() {
             accessor: 'referralCount',
             id: 'referralCount',
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => {
-                console.log("Rendering referralCount:", value);
+
                 return <span>{value}</span>;
             },
         },
@@ -410,9 +416,9 @@ function Page() {
             accessor: 'subscriptionType',
             id: 'subscriptionType',
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => {
-                console.log("Rendering subscriptionType:", value);
+
                 const label = getSubscriptionLabel(String(value));
-                console.log("Subscription label:", label);
+
                 return <span>{label}</span>;
             },
         },
@@ -421,7 +427,7 @@ function Page() {
             accessor: 'assistantRequests',
             id: 'assistantRequests',
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => {
-                console.log("Rendering assistantRequests:", value);
+
                 return <span>{value}</span>;
             },
         },
@@ -430,9 +436,9 @@ function Page() {
             accessor: 'hasUpdatedSubscription',
             id: 'hasUpdatedSubscription',
             Cell: ({ value }: CellProps<UserData, string | number | boolean>) => {
-                console.log("Rendering hasUpdatedSubscription:", value);
+
                 const isPermanent = Boolean(value);
-                console.log("Is permanent client:", isPermanent);
+
                 return <span>{isPermanent ? 'Да' : 'Нет'}</span>;
             },
         },
@@ -441,8 +447,8 @@ function Page() {
     const handleConfirmPrices = async () => {
         try {
             const valuesToSend = inputValues.map((value) => parseFloat(value));
-            console.log("Отправляем")
-            console.log(valuesToSend)
+
+
 
             const response = await fetch('/api/update-subscription-prices', {
                 method: 'POST',
@@ -456,7 +462,7 @@ function Page() {
 
             if (response.ok) {
                 alert('Тарифы успешно обновлены.');
-                console.log("Подтвержденные значения цен:", valuesToSend);
+
             } else {
                 alert('Ошибка при обновлении тарифов: ' + data.error);
             }
@@ -599,25 +605,20 @@ function Page() {
     };
 
     const getSubscriptionLabel = (subscriptionId: string): string => {
-        console.log("Checking subscription ID in getSubscriptionLabel:", subscriptionId);
-
         if (subscriptionId === 'FREE') {
-            console.log("Subscription type 'FREE' detected, returning 'Бесплатная подписка'");
-            return 'Подписка отстутствует';
-        }
-
-        if (subscriptionId === 'FOURTH') {
-            console.log("Subscription type 'FOURTH' detected, returning 'Только AI'");
-            return 'Только AI';
+            return 'Подписка отсутствует';
         }
 
         const assistantCount = getAssistantRequestCount(subscriptionId);
-        console.log(`Assistant request count for ID ${subscriptionId}:`, assistantCount);
+
+        if (subscriptionId === 'FOURTH') {
+            return 'Только AI';  // Убедитесь, что здесь используется правильное название
+        }
 
         const label = assistantCount !== undefined
             ? `AI + ${assistantCount} запросов ассистенту`
             : 'Неизвестная подписка';
-        console.log("Derived subscription label:", label);
+
         return label;
     };
 
@@ -653,7 +654,7 @@ function Page() {
 
             if (response.ok) {
                 alert('Сообщения успешно отправлены.');
-                setMessage(''); 
+                setMessage('');
             } else {
                 alert('Ошибка при отправке сообщений: ' + data.error);
             }
@@ -703,6 +704,7 @@ function Page() {
 
 
 
+
     return (
         <div className={styles.main}>
 
@@ -739,6 +741,7 @@ function Page() {
                                 {checkboxesNotifications.map((checked, index) => {
                                     const subscriptionType = subscriptionTypes[index];
                                     const assistantCount = getAssistantRequestCount(subscriptionType);
+
                                     return (
                                         <label key={index} className={styles.checkboxLabel}>
                                             <input
@@ -933,10 +936,15 @@ function Page() {
                                             onChange={() => handlePermissionChange(index, 'allowVoiceToAI')}
                                         />
                                         <span className={styles.animatedCheckbox}></span>
-                                        <span>{permission.name === 'FOURTH' ? 'Только AI' : `AI + ${getAssistantRequestCount(permission.name)} запросов ассистенту`}</span>
+                                        <span>
+                                            {permission.name === 'FOURTH'
+                                                ? 'Только AI'
+                                                : `AI + ${getAssistantRequestCount(permission.name)} запросов ассистенту`}
+                                        </span>
                                     </label>
                                 ))}
                             </div>
+
 
 
                             <div className={styles.togglebox}>
