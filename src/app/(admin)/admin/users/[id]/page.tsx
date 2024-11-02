@@ -69,7 +69,7 @@ const updateReferralPercentage = async (telegramId: bigint, newPercentage: numbe
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        userId: telegramId.toString(), // Преобразуем BigInt в строку
+        userId: telegramId.toString(), 
         referralPercentage: newPercentage
       }),
     });
@@ -90,7 +90,6 @@ function Page() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [showPopup, setShowPopup] = useState(false);
-  const [inputValuesAssistant, setInputValuesAssistant] = useState<string[]>(['5', '14', '30', '3']);
   const popupRef = useRef<HTMLDivElement>(null);
   const [percentage, setPercentage] = useState<number>(60);
   const [isToggled] = useState(false);
@@ -119,11 +118,11 @@ function Page() {
   const handleButtonClick = (handler: () => Promise<void>, buttonKey: string) => {
     setLoadingButton(buttonKey);
 
-    // Show loader for 3 seconds
+    
     setTimeout(async () => {
       await handler();
 
-      // After 3 seconds, refresh the page
+      
       setTimeout(() => {
         location.reload();
       }, 3000);
@@ -223,7 +222,7 @@ function Page() {
 
       if (response.ok) {
         alert('Сообщение успешно отправлено');
-        setMessage(''); // Clear the message after sending
+        setMessage(''); 
       } else {
         const errorData = await response.json();
         alert(`Ошибка при отправке сообщения: ${errorData.error}`);
@@ -347,9 +346,9 @@ function Page() {
         console.error('Ошибка:', error);
       }
 
-      // Устанавливаем таймер для перезагрузки страницы через 6 секунд
+      
       setTimeout(() => {
-        location.reload(); // Перезагрузка всей страницы
+        location.reload(); 
       }, 3000);
     } else {
       console.error('User ID not found');
@@ -683,12 +682,13 @@ function Page() {
               </div>
               <button
                 className={styles.submitButton}
-                onClick={() => handleButtonClick(handleSubmit, 'submitPercentage')}
+                onClick={handleAiRequestSubmit}
                 disabled={loadingButton === 'submitPercentage'}
               >
                 {loadingButton === 'submitPercentage' ? 'Загрузка...' : 'Подтвердить'}
               </button>
             </div>
+
 
             <div className={styles.messageboxfive}>
               <h1 className={styles.gifttitle}>Текущее количество запросов к ассистенту</h1>
