@@ -319,11 +319,109 @@ input:checked+.slider:hover {
     border-color: #365CF5;
 }
 
+.veil {
+    position: relative;
+}
+
+.veil::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 110%;
+    background-color: rgba(255, 255, 255, 0.7);
+    pointer-events: none;
+}
+
+.submitButtontwo.loading {
+    position: relative;
+    color: transparent;
+}
+
+.submitButtontwo.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px;
+    border: 2px solid #fff;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.submitButtontwo.loading {
+    position: relative;
+    color: transparent;
+}
+
+.submitButtontwo.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px;
+    border: 2px solid #fff;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+
+.submitButtontwo {
+    
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.submitButtontwo.loading {
+    color: transparent;
+    
+}
+
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #fff;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+
 .modeSlider {
     display: flex;
     align-items: center;
     margin-top: 25px;
     margin-bottom: 15px;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
 }
 
 .modeSlider span {
@@ -378,6 +476,20 @@ input:checked+.slider:hover {
 }
 
 .messageboxfour {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    background-color: white;
+    width: 550px;
+    height: 650px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 30px;
+    font-weight: 500;
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+}
+
+.messageboxnine {
     font-family: "Plus Jakarta Sans", sans-serif;
     background-color: white;
     width: 550px;
@@ -476,8 +588,7 @@ input:checked+.slider:hover {
     margin-bottom: 40px;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
+
 }
 
 .invitetitle {
@@ -597,7 +708,7 @@ input:checked+.slider:hover {
 
     .title {
         font-size: 18px;
-        
+
     }
 
     .gifttitle {

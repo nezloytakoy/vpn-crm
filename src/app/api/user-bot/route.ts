@@ -3,6 +3,7 @@ import { Context } from 'grammy';
 import OpenAI from 'openai';
 import { PrismaClient } from '@prisma/client';
 import { InputFile } from 'grammy';
+import { encode } from 'gpt-3-encoder';
 
 import axios from 'axios';
 import FormData from 'form-data';
@@ -937,6 +938,17 @@ bot.on('message:voice', async (ctx) => {
       );
 
       const transcribedText = transcriptionResponse.data.text;
+
+      
+      const inputTokens = encode(transcribedText).length;
+      const maxAllowedTokens = 4096; 
+      const responseTokensLimit = 500; 
+
+      if (inputTokens + responseTokensLimit > maxAllowedTokens) {
+        await ctx.reply('Ваш запрос слишком длинный. Попробуйте сократить его.');
+        return;
+      }
+
       await handleAIChat(telegramId, transcribedText, ctx);
     } else if (activeRequest && activeRequest.assistant) {
       if (!subscription?.allowVoiceToAssistant) {
@@ -1147,33 +1159,52 @@ async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Contex
     { role: 'system', content: 'You are a helpful assistant.' },
   ];
 
+  
   messages.push({ role: 'user', content: userMessage });
 
-  const response = await openai.chat.completions.create({
-    model: 'gpt-3.5-turbo',
-    messages: messages,
-    temperature: 0.7,
-  });
+  
+  const inputTokens = messages.reduce((total, msg) => total + encode(msg.content).length, 0);
+  const maxAllowedTokens = 4096; 
+  const responseTokensLimit = 500; 
 
-  const firstChoice = response.choices[0];
-  if (firstChoice && firstChoice.message && firstChoice.message.content) {
-    const aiMessage = firstChoice.message.content.trim();
+  
+  if (inputTokens + responseTokensLimit > maxAllowedTokens) {
+    await ctx.reply('Ваш запрос слишком длинный. Попробуйте сократить его.');
+    return;
+  }
 
-    messages.push({ role: 'assistant', content: aiMessage });
-
-    userConversations.set(telegramId, messages);
-
-    await ctx.reply(aiMessage);
-
-    await prisma.user.update({
-      where: { telegramId },
-      data: {
-        aiRequests: { increment: 1 },
-        totalRequests: { increment: 1 },
-      },
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: messages,
+      temperature: 0.7,
+      max_tokens: responseTokensLimit, 
     });
-  } else {
-    await ctx.reply('AI не смог сгенерировать ответ.');
+
+    const firstChoice = response.choices[0];
+    if (firstChoice && firstChoice.message && firstChoice.message.content) {
+      const aiMessage = firstChoice.message.content.trim();
+
+      
+      messages.push({ role: 'assistant', content: aiMessage });
+      userConversations.set(telegramId, messages);
+
+      await ctx.reply(aiMessage);
+
+      
+      await prisma.user.update({
+        where: { telegramId },
+        data: {
+          aiRequests: { increment: 1 },
+          totalRequests: { increment: 1 },
+        },
+      });
+    } else {
+      await ctx.reply('AI не смог сгенерировать ответ.');
+    }
+  } catch (error) {
+    console.error('Ошибка при работе с OpenAI API:', error);
+    await ctx.reply('Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже.');
   }
 }
 

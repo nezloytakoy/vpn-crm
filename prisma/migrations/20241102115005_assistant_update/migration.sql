@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Assistant" ADD COLUMN     "maxIgnores" INTEGER NOT NULL DEFAULT 3,
+ADD COLUMN     "maxRejects" INTEGER NOT NULL DEFAULT 7;

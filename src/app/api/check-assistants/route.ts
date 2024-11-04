@@ -3,26 +3,25 @@ import fetch from 'node-fetch';
 
 const prisma = new PrismaClient();
 
-// Функция для поиска ассистента, который не находится в списке проигнорированных
+
 async function findAvailableAssistant(ignoredAssistants: bigint[]) {
-    // Находим ассистента, который работает и не занят
     const availableAssistant = await prisma.assistant.findFirst({
         where: {
             isWorking: true,
             isBusy: false,
+            isBlocked: false,
             telegramId: {
-                notIn: ignoredAssistants, // исключаем ассистентов из списка проигнорированных
+                notIn: ignoredAssistants,
             },
         },
         orderBy: {
-            lastActiveAt: 'desc', // выбираем самого активного недавно
+            lastActiveAt: 'desc',
         },
     });
-
     return availableAssistant;
 }
 
-// Функция для добавления записи об игнорировании
+
 async function addIgnoreAction(assistantId: bigint, requestId: bigint) {
     await prisma.requestAction.create({
         data: {
@@ -33,10 +32,27 @@ async function addIgnoreAction(assistantId: bigint, requestId: bigint) {
     });
 }
 
-// Основная функция обработки запросов с status: PENDING
+
+async function countIgnoredActionsInLast24Hours(assistantId: bigint) {
+    const oneDayAgo = new Date();
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+
+    const ignoredCount = await prisma.requestAction.count({
+        where: {
+            assistantId: assistantId,
+            action: 'IGNORED',
+            createdAt: {
+                gte: oneDayAgo,
+            },
+        },
+    });
+
+    return ignoredCount;
+}
+
+
 export async function POST() {
     try {
-        // Ищем все запросы со статусом PENDING
         const pendingRequests = await prisma.assistantRequest.findMany({
             where: {
                 status: 'PENDING',
@@ -50,45 +66,50 @@ export async function POST() {
             });
         }
 
-        // Обрабатываем каждый запрос
         for (const request of pendingRequests) {
             let ignoredAssistants = request.ignoredAssistants || [];
 
-            // Если у запроса уже есть назначенный ассистент, добавляем запись об игнорировании
             if (request.assistantId) {
                 await addIgnoreAction(BigInt(request.assistantId), request.id);
+
+                
+                const ignoredCount = await countIgnoredActionsInLast24Hours(BigInt(request.assistantId));
+                const maxIgnores = await prisma.edges.findFirst({ select: { maxIgnores: true } });
+
+                if (ignoredCount >= (maxIgnores?.maxIgnores || 0)) {
+                    await prisma.assistant.update({
+                        where: { telegramId: BigInt(request.assistantId) },
+                        data: {
+                            isBlocked: true,
+                            unblockDate: new Date(Date.now() + 24 * 60 * 60 * 1000), 
+                        },
+                    });
+                    console.log(`Assistant ID ${request.assistantId} заблокирован за превышение лимита игнорирований.`);
+                }
             }
 
-            // Ищем доступного ассистента
             let selectedAssistant = await findAvailableAssistant(ignoredAssistants);
 
-            // Если доступного ассистента не найдено
             if (!selectedAssistant) {
-                // Очищаем список проигнорированных ассистентов
                 ignoredAssistants = [];
-
-                // Повторный поиск ассистента после очистки
                 selectedAssistant = await findAvailableAssistant(ignoredAssistants);
 
                 if (!selectedAssistant) {
-                    // Если снова не найдено ассистентов
                     console.log(`No available assistants for request ID: ${request.id}`);
                     continue;
                 }
             }
 
-            // Обновляем запрос, назначая нового ассистента и добавляя старого ассистента в ignoredAssistants
             await prisma.assistantRequest.update({
                 where: { id: request.id },
                 data: {
-                    assistantId: selectedAssistant.telegramId, // Обновляем ассистента
+                    assistantId: selectedAssistant.telegramId,
                     ignoredAssistants: request.assistantId ? {
-                        push: request.assistantId, // Добавляем текущего ассистента в проигнорированные, только если он не null
+                        push: request.assistantId,
                     } : undefined,
                 },
             });
 
-            // Уведомляем нового ассистента
             await sendTelegramMessageWithButtons(
                 selectedAssistant.telegramId.toString(),
                 `Новый запрос от пользователя`,
@@ -112,7 +133,6 @@ export async function POST() {
     }
 }
 
-// Функция отправки сообщения с кнопками в Telegram
 async function sendTelegramMessageWithButtons(chatId: string, text: string, buttons: TelegramButton[]) {
     const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
     const url = `https://api.telegram.org/bot${botToken}/sendMessage`;

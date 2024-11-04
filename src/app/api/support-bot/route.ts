@@ -846,17 +846,43 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
 
 async function handleRejectRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
   try {
+    
+    const edges = await prisma.edges.findFirst();
+    const maxRejects = edges ? edges.maxRejects : 7; 
 
+    
+    const rejectCount = await prisma.requestAction.count({
+      where: {
+        assistantId: assistantTelegramId,
+        action: 'REJECTED',
+        createdAt: {
+          gte: new Date(Date.now() - 24 * 60 * 60 * 1000), 
+        },
+      },
+    });
+
+    
+    if (rejectCount >= maxRejects) {
+      await prisma.assistant.update({
+        where: { telegramId: assistantTelegramId },
+        data: {
+          isBlocked: true,
+          unblockDate: new Date(Date.now() + 24 * 60 * 60 * 1000), 
+        },
+      });
+
+      await ctx.reply('🚫 Вы превысили лимит отказов и были заблокированы на 24 часа.');
+      return;
+    }
+
+    
     const assistantRequest = await prisma.assistantRequest.findUnique({
       where: { id: BigInt(requestId) },
       include: { conversation: true },
     });
 
     const ignoredAssistants = assistantRequest?.ignoredAssistants || [];
-
-
     ignoredAssistants.push(assistantTelegramId);
-
 
     if (assistantRequest?.conversation) {
       await prisma.conversation.update({
@@ -865,7 +891,6 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
       });
     }
 
-
     await prisma.requestAction.create({
       data: {
         requestId: BigInt(requestId),
@@ -873,7 +898,6 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
         action: 'REJECTED',
       },
     });
-
 
     await prisma.assistantRequest.update({
       where: { id: BigInt(requestId) },
@@ -885,9 +909,7 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
       },
     });
 
-
     const newAssistant = await findNewAssistant(BigInt(requestId), ignoredAssistants);
-
 
     if (newAssistant) {
       await prisma.assistantRequest.update({
@@ -896,7 +918,6 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
           assistantId: newAssistant.telegramId,
         },
       });
-
 
       await sendTelegramMessageWithButtons(
         newAssistant.telegramId.toString(),
@@ -912,7 +933,6 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
       await ctx.reply('❌ Вы отклонили запрос, но доступных ассистентов больше нет.');
     }
 
-
     await prisma.assistant.update({
       where: { telegramId: assistantTelegramId },
       data: { isBusy: false },
@@ -922,7 +942,6 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
     await ctx.reply('❌ Произошла ошибка при отклонении запроса.');
   }
 }
-
 
 
 

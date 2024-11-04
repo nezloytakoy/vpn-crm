@@ -57,7 +57,7 @@ function Page() {
   const [data, setData] = useState<RequestData[]>([]);
   const [complaintsStatistics, setComplaintsStatistics] = useState<ComplaintsStatistics | null>(null);
   const [moderatorData, setModeratorData] = useState<ModeratorData | null>(null);
-  const [isLoadingData, setIsLoadingData] = useState(true); // Добавлено состояние загрузки
+  const [isLoadingData, setIsLoadingData] = useState(true); 
 
   const popupRef = useRef<HTMLDivElement>(null);
 
@@ -67,7 +67,7 @@ function Page() {
         const response = await fetch(`/api/get-moderator-complaints?moderatorId=${moderatorId}`);
         const { complaintData, complaintsStatistics, moderator } = await response.json();
 
-        // Форматирование данных для таблицы
+        
         const formattedData = complaintData.map((complaint: Complaint) => ({
           requestId: complaint.id,
           action: 'Рассмотрена',
@@ -82,7 +82,7 @@ function Page() {
       } catch (error) {
         console.error('Ошибка при загрузке жалоб:', error);
       } finally {
-        setIsLoadingData(false); // Снимаем состояние загрузки после завершения запроса
+        setIsLoadingData(false); 
       }
     };
     fetchComplaints();
@@ -118,19 +118,32 @@ function Page() {
       return;
     }
     try {
+      const token = localStorage.getItem('token'); 
+
       const response = await fetch('/api/changeModeratorCredentials', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ login, password }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`, 
+        },
+        body: JSON.stringify({ login, password, moderatorId }),
       });
-      if (!response.ok) throw new Error('Ошибка при смене логина и пароля');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Ошибка при смене логина и пароля');
+      }
       setStep(2);
       setErrorMessage('');
     } catch (error) {
-      console.error('Ошибка:', error);
-      setErrorMessage('Ошибка при смене логина и пароля');
+      if (error instanceof Error) {
+        setErrorMessage(error.message || 'Ошибка при смене логина и пароля');
+      } else {
+        setErrorMessage('Неизвестная ошибка при смене логина и пароля');
+      }
     }
   };
+
+
 
   const columns: Column<RequestData>[] = [
     { Header: 'ID запроса', accessor: 'requestId' },
@@ -189,7 +202,7 @@ function Page() {
           )}
           {step === 1 && (
             <div className={styles.credentialsBox}>
-              <h2>Придумайте новый логин и пароль для модератора</h2>
+              <h2>Придумайте новый логин и пароль</h2>
               {errorMessage && <p className={styles.error}>{errorMessage}</p>}
               <input type="text" className={styles.inputField} placeholder="Новый логин" value={login} onChange={(e) => setLogin(e.target.value)} />
               <input type="password" className={styles.inputField} placeholder="Новый пароль" value={password} onChange={(e) => setPassword(e.target.value)} />
