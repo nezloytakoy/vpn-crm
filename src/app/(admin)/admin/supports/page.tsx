@@ -8,10 +8,7 @@ function Page() {
     const [mentorReward, setMentorReward] = useState<number | null>(null);
     const [assistantReward, setAssistantReward] = useState<number | null>(null);
     const [referralRequestCount, setReferralRequestCount] = useState<number | null>(null);
-    const [isPermanentReferral, setIsPermanentReferral] = useState<boolean>(false);
-    const [isRegularBonusEnabled, setIsRegularBonusEnabled] = useState<boolean>(false);
-    const [rewardRequestCount, setRewardRequestCount] = useState<number | null>(null);
-    const [isPermanentBonus, setIsPermanentBonus] = useState<boolean>(false);
+  
 
     const [durationInput, setDurationInput] = useState('');
 
@@ -251,10 +248,7 @@ function Page() {
                     setMentorReward(data.mentorReward ?? 0);
                     setAssistantReward(data.assistantReward ?? 0);
                     setReferralRequestCount(data.referralRequestCount ?? 0);
-                    setIsPermanentReferral(data.isPermanentReferral ?? false);
-                    setIsRegularBonusEnabled(data.isRegularBonusEnabled ?? false);
-                    setRewardRequestCount(data.rewardRequestCount ?? 0);
-                    setIsPermanentBonus(data.isPermanentBonus ?? false);
+             
 
                     
                     
@@ -393,7 +387,7 @@ function Page() {
                 setMentorReward(mentorRewardValue);
                 setAssistantReward(assistantRewardValue);
                 setReferralRequestCount(referralRequestCountValue);
-                setIsPermanentReferral(modetwo === 'interval');
+             
 
                 setTimeout(() => {
                     setIsSubmitRewardsLoading(false);
