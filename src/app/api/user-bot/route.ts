@@ -954,7 +954,7 @@ bot.on('message:voice', async (ctx) => {
         }
 
         // Добавляем промпт к расшифрованному тексту
-        const combinedMessage = `${openAiModel.prompt}\n${transcribedText}`;
+        const combinedMessage = `${transcribedText}`;
 
         // Проверка длины сообщения
         const inputTokens = encode(combinedMessage).length;
