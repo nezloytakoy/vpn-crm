@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { subDays, subMonths } from 'date-fns';
 
+export const revalidate = 1;
+
 const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {

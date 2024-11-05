@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import fetch from 'node-fetch';
 
+export const revalidate = 1;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const url = searchParams.get('url');

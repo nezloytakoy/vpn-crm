@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import { NextResponse } from 'next/server';
 
+export const revalidate = 1;
+
 const prisma = new PrismaClient();
 
 export async function POST() {

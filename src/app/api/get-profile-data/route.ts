@@ -2,6 +2,8 @@ import fetch from 'node-fetch';
 import { Bot } from 'grammy';
 import { NextRequest, NextResponse } from 'next/server';
 
+export const revalidate = 1;
+
 const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
 const bot = new Bot(botToken!);
 
