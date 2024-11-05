@@ -69,7 +69,7 @@ const updateReferralPercentage = async (telegramId: bigint, newPercentage: numbe
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        userId: telegramId.toString(), 
+        userId: telegramId.toString(),
         referralPercentage: newPercentage
       }),
     });
@@ -87,6 +87,7 @@ const updateReferralPercentage = async (telegramId: bigint, newPercentage: numbe
 
 
 function Page() {
+  const [userRole, setUserRole] = useState<string>('');
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [showPopup, setShowPopup] = useState(false);
@@ -118,11 +119,11 @@ function Page() {
   const handleButtonClick = (handler: () => Promise<void>, buttonKey: string) => {
     setLoadingButton(buttonKey);
 
-    
+
     setTimeout(async () => {
       await handler();
 
-      
+
       setTimeout(() => {
         location.reload();
       }, 3000);
@@ -222,7 +223,7 @@ function Page() {
 
       if (response.ok) {
         alert('Сообщение успешно отправлено');
-        setMessage(''); 
+        setMessage('');
       } else {
         const errorData = await response.json();
         alert(`Ошибка при отправке сообщения: ${errorData.error}`);
@@ -328,7 +329,34 @@ function Page() {
   }, [userId]);
 
 
+  useEffect(() => {
+    // добавьте логику для получения роли пользователя, например, через API или глобальное состояние
+    const fetchUserRole = async () => {
+      try {
+        const response = await fetch('/api/get-user-role', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId }), // используйте текущий userId
+        });
 
+        if (response.ok) {
+          const result = await response.json();
+          setUserRole(result.role); // установите роль пользователя
+          console.log("Роль", result.role)
+        } else {
+          console.error('Не удалось получить роль пользователя');
+        }
+      } catch (error) {
+        console.error('Ошибка при получении роли пользователя:', error);
+      }
+    };
+
+    if (userId) {
+      fetchUserRole();
+    }
+  }, [userId]);
 
 
   const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -346,9 +374,9 @@ function Page() {
         console.error('Ошибка:', error);
       }
 
-      
+
       setTimeout(() => {
-        location.reload(); 
+        location.reload();
       }, 3000);
     } else {
       console.error('User ID not found');
@@ -666,125 +694,129 @@ function Page() {
               </div>
             </div>
           </div>
-          <div className={styles.containereight}>
-            <div className={styles.messageboxfive}>
-              <h1 className={styles.gifttitle}>Текущее количество запросов к ИИ</h1>
-              <h1 className={styles.undertitletwo}>Изменить количество</h1>
-              <div className={`${styles.inputContainertwo} ${isToggled ? styles.active : ''}`}>
-                <input
-                  type="text"
-                  className={styles.inputFieldtwo}
-                  placeholder={requests.aiRequests !== undefined ? requests.aiRequests.toString() : 'Загрузка...'}
-                  value={aiRequestInput}
-                  onChange={(e) => setAiRequestInput(e.target.value)}
-                />
-                <span className={`${styles.label} ${isToggled ? styles.activeLabel : ''}`}>Отказов</span>
+          {userRole !== 'Модератор' && (
+            <div className={styles.containereight}>
+              <div className={styles.messageboxfive}>
+                <h1 className={styles.gifttitle}>Текущее количество запросов к ИИ</h1>
+                <h1 className={styles.undertitletwo}>Изменить количество</h1>
+                <div className={`${styles.inputContainertwo} ${isToggled ? styles.active : ''}`}>
+                  <input
+                    type="text"
+                    className={styles.inputFieldtwo}
+                    placeholder={requests.aiRequests !== undefined ? requests.aiRequests.toString() : 'Загрузка...'}
+                    value={aiRequestInput}
+                    onChange={(e) => setAiRequestInput(e.target.value)}
+                  />
+                  <span className={`${styles.label} ${isToggled ? styles.activeLabel : ''}`}>Отказов</span>
+                </div>
+                <button
+                  className={styles.submitButton}
+                  onClick={handleAiRequestSubmit}
+                  disabled={loadingButton === 'submitPercentage'}
+                >
+                  {loadingButton === 'submitPercentage' ? 'Загрузка...' : 'Подтвердить'}
+                </button>
               </div>
-              <button
-                className={styles.submitButton}
-                onClick={handleAiRequestSubmit}
-                disabled={loadingButton === 'submitPercentage'}
-              >
-                {loadingButton === 'submitPercentage' ? 'Загрузка...' : 'Подтвердить'}
-              </button>
+
+
+              <div className={styles.messageboxfive}>
+                <h1 className={styles.gifttitle}>Текущее количество запросов к ассистенту</h1>
+                <h1 className={styles.undertitletwo}>Изменить количество</h1>
+                <div className={`${styles.inputContainertwo} ${isToggled ? styles.active : ''}`}>
+                  <input
+                    type="text"
+                    className={styles.inputFieldtwo}
+                    placeholder={requests.assistantRequests !== undefined ? requests.assistantRequests.toString() : 'Загрузка...'}
+                    value={assistantRequestInput}
+                    onChange={(e) => setAssistantRequestInput(e.target.value)}
+                  />
+                  <span className={`${styles.label} ${isToggled ? styles.activeLabel : ''}`}>Отказов</span>
+                </div>
+                <button
+                  className={styles.submitButton}
+                  onClick={() => handleButtonClick(handleAssistantRequestSubmit, 'submitAssistantRequest')}
+                  disabled={loadingButton === 'submitAssistantRequest'}
+                >
+                  {loadingButton === 'submitAssistantRequest' ? 'Загрузка...' : 'Подтвердить'}
+                </button>
+              </div>
+
             </div>
 
-
-            <div className={styles.messageboxfive}>
-              <h1 className={styles.gifttitle}>Текущее количество запросов к ассистенту</h1>
-              <h1 className={styles.undertitletwo}>Изменить количество</h1>
-              <div className={`${styles.inputContainertwo} ${isToggled ? styles.active : ''}`}>
-                <input
-                  type="text"
-                  className={styles.inputFieldtwo}
-                  placeholder={requests.assistantRequests !== undefined ? requests.assistantRequests.toString() : 'Загрузка...'}
-                  value={assistantRequestInput}
-                  onChange={(e) => setAssistantRequestInput(e.target.value)}
-                />
-                <span className={`${styles.label} ${isToggled ? styles.activeLabel : ''}`}>Отказов</span>
-              </div>
-              <button
-                className={styles.submitButton}
-                onClick={() => handleButtonClick(handleAssistantRequestSubmit, 'submitAssistantRequest')}
-                disabled={loadingButton === 'submitAssistantRequest'}
-              >
-                {loadingButton === 'submitAssistantRequest' ? 'Загрузка...' : 'Подтвердить'}
-              </button>
-            </div>
-
-          </div>
-
-
+          )}
         </div>
-
-        <div className={styles.containerone}>
-          <div className={styles.messagebox}>
-            <h1 className={styles.gifttitle}>Процент от приглашенных пользователей</h1>
-            <div className={styles.percentageHeader}>
-              <h1 className={styles.undertitletwo}>Выберите процент</h1>
-              <div className={styles.percentageDisplay}>{percentage}%</div>
-            </div>
-            <div className={styles.percentageSliderContainer}>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={percentage}
-                className={styles.percentageSlider}
-                onChange={handleSliderChange}
-                style={{
-                  background: `linear-gradient(to right, #365CF5 0%, #365CF5 ${percentage}%, #e5e5e5 ${percentage}%, #e5e5e5 100%)`,
-                }}
-              />
-            </div>
-            <button
-              className={styles.submitButton}
-              onClick={() => handleButtonClick(handleSubmit, 'submitReferralUpdate')}
-              disabled={loadingButton === 'submitReferralUpdate'}
-            >
-              {loadingButton === 'submitReferralUpdate' ? 'Загрузка...' : 'Подтвердить'}
-            </button>
-          </div>
-          <div className={styles.containerthree}>
-            <div className={styles.messageboxseven}>
-              <h1 className={styles.gifttitle}>Уведомления пользователю</h1>
-              <h1 className={styles.undertitle}>Форма для сообщения</h1>
-              <textarea
-                className={styles.input}
-                placeholder="Сообщение"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-              />
-              <button
-                className={styles.submitButton}
-                onClick={() => handleButtonClick(handleSendNotification, 'sendNotification')}
-                disabled={loadingButton === 'sendNotification'}
-              >
-                {loadingButton === 'sendNotification' ? 'Загрузка...' : 'Отправить'}
-              </button>
-            </div>
-            <div className={styles.messageboxsix}>
-              <h1 className={styles.gifttitle}>Выдать подписку</h1>
-              <h1 className={styles.undertitletwo}>Выберите тип</h1>
-
-              <div className={styles.selectWrapper}>
-                <Select
-                  options={subscriptionOptions}
-                  onChange={(option) => setSelectedSubscription(option?.value || null)}
-                />
-                <div className={styles.selectArrow}></div>
+        {userRole !== 'Модератор' && (
+          <div className={styles.containerone}>
+            <div className={styles.messagebox}>
+              <h1 className={styles.gifttitle}>Процент от приглашенных пользователей</h1>
+              <div className={styles.percentageHeader}>
+                <h1 className={styles.undertitletwo}>Выберите процент</h1>
+                <div className={styles.percentageDisplay}>{percentage}%</div>
               </div>
-
+              <div className={styles.percentageSliderContainer}>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={percentage}
+                  className={styles.percentageSlider}
+                  onChange={handleSliderChange}
+                  style={{
+                    background: `linear-gradient(to right, #365CF5 0%, #365CF5 ${percentage}%, #e5e5e5 ${percentage}%, #e5e5e5 100%)`,
+                  }}
+                />
+              </div>
               <button
                 className={styles.submitButton}
-                onClick={() => handleButtonClick(handleSubscriptionSubmit, 'submitSubscription')}
-                disabled={loadingButton === 'submitSubscription'}
+                onClick={() => handleButtonClick(handleSubmit, 'submitReferralUpdate')}
+                disabled={loadingButton === 'submitReferralUpdate'}
               >
-                {loadingButton === 'submitSubscription' ? 'Загрузка...' : 'Подтвердить'}
+                {loadingButton === 'submitReferralUpdate' ? 'Загрузка...' : 'Подтвердить'}
               </button>
             </div>
+            {userRole !== 'Модератор' && (
+              <div className={styles.containerthree}>
+                <div className={styles.messageboxseven}>
+                  <h1 className={styles.gifttitle}>Уведомления пользователю</h1>
+                  <h1 className={styles.undertitle}>Форма для сообщения</h1>
+                  <textarea
+                    className={styles.input}
+                    placeholder="Сообщение"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                  />
+                  <button
+                    className={styles.submitButton}
+                    onClick={() => handleButtonClick(handleSendNotification, 'sendNotification')}
+                    disabled={loadingButton === 'sendNotification'}
+                  >
+                    {loadingButton === 'sendNotification' ? 'Загрузка...' : 'Отправить'}
+                  </button>
+                </div>
+                <div className={styles.messageboxsix}>
+                  <h1 className={styles.gifttitle}>Выдать подписку</h1>
+                  <h1 className={styles.undertitletwo}>Выберите тип</h1>
+
+                  <div className={styles.selectWrapper}>
+                    <Select
+                      options={subscriptionOptions}
+                      onChange={(option) => setSelectedSubscription(option?.value || null)}
+                    />
+                    <div className={styles.selectArrow}></div>
+                  </div>
+
+                  <button
+                    className={styles.submitButton}
+                    onClick={() => handleButtonClick(handleSubscriptionSubmit, 'submitSubscription')}
+                    disabled={loadingButton === 'submitSubscription'}
+                  >
+                    {loadingButton === 'submitSubscription' ? 'Загрузка...' : 'Подтвердить'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
 
       <div className={styles.tablebox}>
@@ -807,14 +839,16 @@ function Page() {
           <Table columns={complaintColumns} data={userData?.complaints || []} />
         </div>
       </div>
-      <div className={styles.tablebox}>
-        <div className={styles.tableWrapper}>
-          <div className={styles.header}>
-            <h3>Рефералы <span>({userData?.referrals.length || 0})</span></h3>
+      {userRole !== 'Модератор' && (
+        <div className={styles.tablebox}>
+          <div className={styles.tableWrapper}>
+            <div className={styles.header}>
+              <h3>Рефералы <span>({userData?.referrals.length || 0})</span></h3>
+            </div>
+            <Table columns={referralColumns} data={userData?.referrals || []} />
           </div>
-          <Table columns={referralColumns} data={userData?.referrals || []} />
         </div>
-      </div>
+      )}
 
       {showPopup && (
         <>

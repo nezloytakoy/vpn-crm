@@ -92,35 +92,35 @@ const WaveComponent = () => {
                     await sendLogToTelegram('Telegram ID не найден');
                     throw new Error('Telegram ID не найден');
                 }
-        
+
                 await sendLogToTelegram(`Fetching data for Telegram ID: ${telegramId}`);
-        
+
                 const profileResponse = await fetch(`/api/get-profile-data?telegramId=${telegramId}`);
                 await sendLogToTelegram(`Profile data response status: ${profileResponse.status}`);
-        
+
                 const requestsResponse = await fetch(`/api/get-requests?telegramId=${telegramId}`);
                 await sendLogToTelegram(`Requests data response status: ${requestsResponse.status}`);
-        
+
                 if (!profileResponse.ok) {
                     const profileErrorText = await profileResponse.text();
                     await sendLogToTelegram(`Error fetching profile data: ${profileErrorText}`);
                     throw new Error('Ошибка при получении данных профиля');
                 }
-        
+
                 if (!requestsResponse.ok) {
                     const requestsErrorText = await requestsResponse.text();
                     await sendLogToTelegram(`Error fetching requests data: ${requestsErrorText}`);
                     throw new Error('Ошибка при получении данных запросов');
                 }
-        
+
                 const profileData = await profileResponse.json();
                 const requestsData = await requestsResponse.json();
-        
+
                 await sendLogToTelegram(`Profile data received: ${JSON.stringify(profileData)}`);
                 await sendLogToTelegram(`Requests data received: ${JSON.stringify(requestsData)}`);
-        
+
                 const defaultAvatarUrl = 'https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg';
-        
+
                 if (profileData.avatarUrl) {
                     await sendLogToTelegram(`Setting avatar URL: ${profileData.avatarUrl}`);
                     setAvatarUrl(profileData.avatarUrl);
@@ -128,7 +128,7 @@ const WaveComponent = () => {
                     await sendLogToTelegram('No avatar URL found, setting default avatar.');
                     setAvatarUrl(defaultAvatarUrl);
                 }
-        
+
                 if (requestsData.assistantRequests > 0) {
                     setAssistantRequests(requestsData.assistantRequests);
                 } else {
@@ -137,7 +137,7 @@ const WaveComponent = () => {
                         setAssistantRequests(0);
                     }, 2000);
                 }
-        
+
                 await sendLogToTelegram(`Requests data processed for user: ${JSON.stringify(requestsData)}`);
             } catch (error) {
                 console.error('Ошибка при получении данных:', error);
@@ -145,7 +145,7 @@ const WaveComponent = () => {
                 await sendLogToTelegram(`Error fetching subscription or requests: ${errorMessage}`);
             }
         };
-        
+
 
 
 
@@ -161,14 +161,14 @@ const WaveComponent = () => {
                     throw new Error('Ошибка при получении тарифов');
                 }
                 const data = await response.json();
-        
+
                 await sendLogToTelegram(`Tariffs data from API: ${JSON.stringify(data)}`);
-        
+
                 const tariffsMap = data.reduce((acc: Record<string, { displayName: string; price: number; assistantRequests: number; aiRequests: number }>, tariff: { name: string; price: string; assistantRequestCount: number; aiRequestCount: number }) => {
                     const displayName = tariff.name === 'FOURTH'
                         ? 'Только AI'
                         : (tariffMapping[tariff.name] || '').replace('{count}', String(tariff.assistantRequestCount || 0));
-                    
+
                     acc[tariff.name] = {
                         displayName,
                         price: Number(tariff.price),
@@ -177,15 +177,16 @@ const WaveComponent = () => {
                     };
                     return acc;
                 }, {});
-        
+
                 setTariffs(tariffsMap);
+                console.log(tariffsMap)
             } catch (error) {
                 console.error('Ошибка при получении тарифов:', error);
                 await sendLogToTelegram(`Error fetching tariffs: ${error}`);
             }
         };
-        
-        
+
+
 
         fetchTariffs();
     }, []);
@@ -285,7 +286,7 @@ const WaveComponent = () => {
                                     height={80}
                                     className={styles.ai}
                                 />
-                                 <p className={styles.aitext}>{tariffs['FOURTH']?.displayName || 'Loading...'}</p>
+                                <p className={styles.aitext}>{tariffs['FOURTH']?.displayName || 'Loading...'}</p>
                             </div>
 
                             <Link href="/referal-page" className={styles.block}>

@@ -8,37 +8,36 @@ function Page() {
     const [mentorReward, setMentorReward] = useState<number | null>(null);
     const [assistantReward, setAssistantReward] = useState<number | null>(null);
     const [referralRequestCount, setReferralRequestCount] = useState<number | null>(null);
-  
+
 
     const [durationInput, setDurationInput] = useState('');
 
-    
+
     const [mentorRewardInput, setMentorRewardInput] = useState('');
     const [assistantRewardInput, setAssistantRewardInput] = useState('');
     const [referralRequestCountInput, setReferralRequestCountInput] = useState('');
     const [giftCoinsAmount, setGiftCoinsAmount] = useState('');
     const [giftCoinsRequestCount, setGiftCoinsRequestCount] = useState('');
 
-    
+
     const [isGiftCoinsEnabled, setIsGiftCoinsEnabled] = useState(false);
     const [isIntervalMode, setIsIntervalMode] = useState(false);
 
-    
+
     const [modetwo, setModetwo] = useState('single');
 
 
-    const [isToggled, setIsToggled] = useState(false);
-    const [mode, setMode] = useState('single');
+
     const [maxRejects, setMaxRejects] = useState<number | null>(null);
     const [maxIgnores, setMaxIgnores] = useState<number | null>(null);
-    const [rejectInput, setRejectInput] = useState<string>(''); 
-    const [ignoreInput, setIgnoreInput] = useState<string>(''); 
+    const [rejectInput, setRejectInput] = useState<string>('');
+    const [ignoreInput, setIgnoreInput] = useState<string>('');
 
     const [giftCoinsAmountInput, setGiftCoinsAmountInput] = useState('');
     const [giftCoinsRequestCountInput, setGiftCoinsRequestCountInput] = useState('');
     const [duration, setDuration] = useState<number | null>(null);
 
-    
+
     const [isSendNotificationLoading, setIsSendNotificationLoading] = useState(false);
     const [isUpdateRejectsLoading, setIsUpdateRejectsLoading] = useState(false);
     const [isSubmitRewardsLoading, setIsSubmitRewardsLoading] = useState(false);
@@ -46,7 +45,7 @@ function Page() {
     const [isUpdateBonusLoading, setIsUpdateBonusLoading] = useState(false);
     const [isUpdateDurationLoading, setIsUpdateDurationLoading] = useState(false);
 
-    
+
     const handleGiftCoinsAmountInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setGiftCoinsAmountInput(e.target.value);
     };
@@ -69,7 +68,7 @@ function Page() {
                 return;
             }
 
-            
+
             setIsUpdateIgnoresLoading(true);
 
             const response = await fetch('/api/update-ignores', {
@@ -83,14 +82,14 @@ function Page() {
             const result = await response.json();
             if (response.ok) {
                 alert('Значение maxIgnores успешно обновлено.');
-                setMaxIgnores(newMaxIgnores); 
+                setMaxIgnores(newMaxIgnores);
 
-                
+
                 setTimeout(() => {
-                    
+
                     setIsUpdateIgnoresLoading(false);
 
-                    
+
                     setTimeout(() => {
                         window.location.reload();
                     }, 3000);
@@ -136,11 +135,11 @@ function Page() {
                 alert('Значение успешно обновлено.');
                 setMaxRejects(newMaxRejects);
 
-                
+
                 setTimeout(() => {
                     setIsUpdateRejectsLoading(false);
 
-                    
+
                     setTimeout(() => {
                         window.location.reload();
                     }, 3000);
@@ -170,7 +169,7 @@ function Page() {
                 return;
             }
 
-            
+
             setIsUpdateDurationLoading(true);
 
             const response = await fetch('/api/update-duration', {
@@ -184,15 +183,15 @@ function Page() {
             const result = await response.json();
             if (response.ok) {
                 alert(result.message || 'Количество минут успешно обновлено.');
-                setDuration(minutes); 
-                setDurationInput(''); 
+                setDuration(minutes);
+                setDurationInput('');
 
-                
+
                 setTimeout(() => {
-                    
+
                     setIsUpdateDurationLoading(false);
 
-                    
+
                     setTimeout(() => {
                         window.location.reload();
                     }, 3000);
@@ -221,7 +220,7 @@ function Page() {
                 console.log(data)
 
                 if (response.ok) {
-                    const { response: { minutes } } = data; 
+                    const { response: { minutes } } = data;
                     setDuration(minutes);
                     console.log(minutes);
                 } else {
@@ -242,29 +241,29 @@ function Page() {
                 });
                 const data = await response.json();
                 if (response.ok) {
-                    console.log('Полученные данные:', data); 
+                    console.log('Полученные данные:', data);
 
-                    
+
                     setMentorReward(data.mentorReward ?? 0);
                     setAssistantReward(data.assistantReward ?? 0);
                     setReferralRequestCount(data.referralRequestCount ?? 0);
-             
 
-                    
-                    
+
+
+
                     setGiftCoinsAmount((data.userReward ?? '').toString());
                     setGiftCoinsRequestCount((data.rewardRequestCount ?? '').toString());
 
-                    
+
                     setMentorRewardInput((data.mentorReward ?? '').toString());
                     setAssistantRewardInput((data.assistantReward ?? '').toString());
                     setReferralRequestCountInput((data.referralRequestCount ?? '').toString());
 
-                    
+
                     setIsGiftCoinsEnabled(data.isRegularBonusEnabled ?? false);
                     setIsIntervalMode(data.isPermanentBonus ?? false);
 
-                    
+
                     setModetwo((data.isPermanentReferral ?? false) ? 'interval' : 'single');
                 } else {
                     console.error('Ошибка при получении данных о наградах:', data.message);
@@ -292,13 +291,6 @@ function Page() {
         setReferralRequestCountInput(e.target.value);
     };
 
-    const handleGiftCoinsAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setGiftCoinsAmount(e.target.value);
-    };
-
-    const handleGiftCoinsRequestCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setGiftCoinsRequestCount(e.target.value);
-    };
 
     const handleGiftCoinsToggle = () => {
         setIsGiftCoinsEnabled(!isGiftCoinsEnabled);
@@ -387,7 +379,7 @@ function Page() {
                 setMentorReward(mentorRewardValue);
                 setAssistantReward(assistantRewardValue);
                 setReferralRequestCount(referralRequestCountValue);
-             
+
 
                 setTimeout(() => {
                     setIsSubmitRewardsLoading(false);
@@ -406,9 +398,9 @@ function Page() {
         }
     };
 
-    
+
     const handleUpdateBonus = async () => {
-        
+
         if (
             !giftCoinsAmountInput.trim() ||
             !giftCoinsRequestCountInput.trim()
@@ -417,11 +409,11 @@ function Page() {
             return;
         }
 
-        
+
         const giftCoinsAmountValue = parseInt(giftCoinsAmountInput, 10);
         const rewardRequestCountValue = parseInt(giftCoinsRequestCountInput, 10);
 
-        
+
         if (
             isNaN(giftCoinsAmountValue) ||
             isNaN(rewardRequestCountValue) ||
@@ -433,7 +425,7 @@ function Page() {
         }
 
         try {
-            
+
             setIsUpdateBonusLoading(true);
 
             const response = await fetch('/api/update-bonus', {
@@ -454,20 +446,20 @@ function Page() {
             if (response.ok) {
                 alert(data.message);
 
-                
+
                 setGiftCoinsAmount(giftCoinsAmountInput);
                 setGiftCoinsRequestCount(giftCoinsRequestCountInput);
 
-                
+
                 setGiftCoinsAmountInput('');
                 setGiftCoinsRequestCountInput('');
 
-                
+
                 setTimeout(() => {
-                    
+
                     setIsUpdateBonusLoading(false);
 
-                    
+
                     setTimeout(() => {
                         window.location.reload();
                     }, 3000);
@@ -484,40 +476,9 @@ function Page() {
     };
 
 
-
-    
-    const handleSubmitGiftCoins = async () => {
-        try {
-            const response = await fetch('/api/update-gift-coins', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    giftCoinsAmount: parseInt(giftCoinsAmount),
-                    rewardRequestCount: parseInt(giftCoinsRequestCount),
-                    isRegularBonusEnabled: isGiftCoinsEnabled,
-                    isPermanentBonus: !isIntervalMode,
-                }),
-            });
-
-            if (response.ok) {
-                alert('Данные подарочных койнов успешно обновлены');
-                
-            } else {
-                const data = await response.json();
-                alert(`Ошибка: ${data.message}`);
-            }
-        } catch (error) {
-            console.error('Ошибка при обновлении данных подарочных койнов:', error);
-            alert('Произошла ошибка при обновлении данных подарочных койнов.');
-        }
-    };
-
-
     const [generatedLink, setGeneratedLink] = useState<string>('');
     const [copySuccess, setCopySuccess] = useState<boolean>(false);
-    const [message, setMessage] = useState(''); 
+    const [message, setMessage] = useState('');
 
     const handleSendNotification = async () => {
         if (!message) {
@@ -542,11 +503,11 @@ function Page() {
 
             alert('Сообщение успешно отправлено всем ассистентам');
 
-            
+
             setTimeout(() => {
                 setIsSendNotificationLoading(false);
 
-                
+
                 setTimeout(() => {
                     window.location.reload();
                 }, 3000);
@@ -621,7 +582,7 @@ function Page() {
                     <div className={styles.messagebox}>
                         <h1 className={styles.gifttitle}>Максимальное количество отказов (24ч)</h1>
                         <h1 className={styles.undertitletwo}>Введите количество</h1>
-                        <div className={`${styles.inputContainertwo} ${isToggled ? styles.active : ''}`}>
+                        <div className={styles.inputContainertwo}>
                             <input
                                 type="text"
                                 className={styles.inputFieldtwo}
@@ -629,7 +590,7 @@ function Page() {
                                 value={rejectInput}
                                 onChange={(e) => setRejectInput(e.target.value)}
                             />
-                            <span className={`${styles.label} ${isToggled ? styles.activeLabel : ''}`}>Отказов</span>
+                            <span className={styles.label}>Отказов</span>
                         </div>
                         <button
                             className={`${styles.submitButtontwo} ${isUpdateRejectsLoading ? styles.loading : ''}`}
@@ -736,7 +697,7 @@ function Page() {
                     <div className={styles.messagebox}>
                         <h1 className={styles.gifttitle}>Максимальное количество пропусков (24ч)</h1>
                         <h1 className={styles.undertitletwo}>Введите количество</h1>
-                        <div className={`${styles.inputContainertwo} ${isToggled ? styles.active : ''}`}>
+                        <div className={styles.inputContainertwo}>
                             <input
                                 type="text"
                                 className={styles.inputFieldtwo}
@@ -744,8 +705,9 @@ function Page() {
                                 value={ignoreInput}
                                 onChange={(e) => setIgnoreInput(e.target.value)}
                             />
-                            <span className={`${styles.label} ${isToggled ? styles.activeLabel : ''}`}>Пропусков</span>
+                            <span className={styles.label}>Пропусков</span>
                         </div>
+
                         <button
                             className={`${styles.submitButtontwo} ${isUpdateIgnoresLoading ? styles.loading : ''}`}
                             onClick={handleUpdateIgnores}
@@ -798,7 +760,7 @@ function Page() {
                                 <span className={isIntervalMode ? styles.activeMode : ''}>Через</span>
                             </div>
 
-                            
+
                             <h1 className={styles.undertitletwo}>Количество запросов</h1>
                             <div className={styles.inputContainer}>
                                 <input
@@ -824,7 +786,7 @@ function Page() {
                     <div className={styles.messagebox}>
                         <h1 className={styles.gifttitle}>Время на принятие запроса</h1>
                         <h1 className={styles.undertitletwo}>Введите количество</h1>
-                        <div className={`${styles.inputContainertwo} ${isToggled ? styles.active : ''}`}>
+                        <div className={styles.inputContainertwo}>
                             <input
                                 type="text"
                                 className={styles.inputFieldtwo}
@@ -832,8 +794,9 @@ function Page() {
                                 value={durationInput}
                                 onChange={(e) => setDurationInput(e.target.value)}
                             />
-                            <span className={`${styles.label} ${isToggled ? styles.activeLabel : ''}`}>Минут</span>
+                            <span className={styles.label}>Минут</span>
                         </div>
+
                         <button
                             className={`${styles.submitButtontwo} ${isUpdateDurationLoading ? styles.loading : ''}`}
                             onClick={handleUpdateDuration}

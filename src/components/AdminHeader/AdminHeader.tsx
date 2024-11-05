@@ -9,6 +9,8 @@ import Link from 'next/link';
 function AdminSidebar() {
     const [isOpen, setIsOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [login, setLogin] = useState('...');
+    const [role, setRole] = useState('...');
 
     const toggleSidebar = () => {
         setIsOpen(!isOpen);
@@ -24,6 +26,44 @@ function AdminSidebar() {
                 setIsMenuOpen(false);
             }
         };
+
+        const getData = async () => {
+            try {
+                // Запрос для получения moderatorId
+                const moderResponse = await fetch('/api/get-moder-id', {
+                    method: "GET",
+                    headers: { "Content-Type": "application/json" },
+                });
+
+                if (!moderResponse.ok) {
+                    throw new Error('Не удалось получить moderatorId');
+                }
+
+                const moderResult = await moderResponse.json();
+                const moderatorId = moderResult.userId;
+
+                // Запрос для получения логина и роли по moderatorId
+                const loginRoleResponse = await fetch('/api/get-login-role', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id: moderatorId }),
+                });
+
+                if (!loginRoleResponse.ok) {
+                    throw new Error('Не удалось получить данные пользователя');
+                }
+
+                const loginRoleResult = await loginRoleResponse.json();
+                setLogin(loginRoleResult.login);
+                setRole(loginRoleResult.role);
+            } catch (error) {
+                console.error('Ошибка при получении данных:', error);
+            }
+        };
+
+        getData();
 
         window.addEventListener('click', handleClickOutside);
         return () => {
@@ -49,8 +89,8 @@ function AdminSidebar() {
                     </div>
 
                     <div className={styles.admin} onClick={toggleMenu}>
-                        <div className={styles.name}>JohnDoe@gmail.com</div>
-                        <div className={styles.position}>Администратор</div>
+                        <div className={styles.name}>{login}</div>
+                        <div className={styles.position}>{role}</div>
 
                         <div className={`${styles.popupMenu} ${isMenuOpen ? styles.showMenu : ''}`}>
                             <ul>

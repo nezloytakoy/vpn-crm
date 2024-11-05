@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useMemo, useEffect, useState, useRef } from 'react';
+import React, { useMemo, useEffect, useState, useRef, useCallback } from 'react';
 import { Column } from 'react-table';
 import { FaEnvelope } from 'react-icons/fa';
 import Table from '@/components/Table/Table';
 import { useRouter } from 'next/navigation';
 import styles from './Monitoring.module.css';
-import { useCallback } from 'react';
 
 export const fetchCache = 'force-no-store';
 
@@ -27,6 +26,7 @@ const Monitoring: React.FC = () => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
   const [currentAssistantTelegramId, setCurrentAssistantTelegramId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
 
   const router = useRouter();
@@ -56,6 +56,27 @@ const Monitoring: React.FC = () => {
 
     fetchData();
   }, []);
+
+  const fetchUserRole = async (telegramId: string) => {
+    try {
+      const response = await fetch('/api/get-user-role', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ telegramId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Не удалось получить роль пользователя');
+      }
+
+      const result = await response.json();
+      setUserRole(result.role);
+    } catch (error) {
+      console.error('Ошибка при получении роли пользователя:', error);
+    }
+  };
 
   const handleRowClick = useCallback((telegramId: string) => {
     router.push(`/admin/monitoring/${telegramId}`);
@@ -108,6 +129,29 @@ const Monitoring: React.FC = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isPopupOpen]);
+
+  useEffect(() => {
+    // Получаем роль текущего пользователя при загрузке компонента
+    const fetchRole = async () => {
+      try {
+        const moderResponse = await fetch('/api/get-moder-id', {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (!moderResponse.ok) {
+          throw new Error('Не удалось получить moderatorId');
+        }
+
+        const moderResult = await moderResponse.json();
+        await fetchUserRole(moderResult.userId);
+      } catch (error) {
+        console.error('Ошибка при получении роли пользователя:', error);
+      }
+    };
+
+    fetchRole();
+  }, []);
 
   const columns: Column<AssistantData>[] = useMemo(
     () => [
@@ -162,28 +206,27 @@ const Monitoring: React.FC = () => {
       {
         Header: '',
         accessor: 'telegramId',
-        Cell: ({ value }) => (
-          <button
-            className={styles.messageButton}
-            onClick={() => {
-              console.log('Клик по сообщению, telegramId:', value);
-              if (!value) {
-                console.error('Ошибка: telegramId ассистента не установлен');
-                return;
-              }
-              setCurrentAssistantTelegramId(value);
-              setIsPopupOpen(true);
-            }}
-          >
-            <FaEnvelope />
-          </button>
-        ),
+        Cell: ({ value }) =>
+          userRole === 'Администратор' && (
+            <button
+              className={styles.messageButton}
+              onClick={() => {
+                console.log('Клик по сообщению, telegramId:', value);
+                if (!value) {
+                  console.error('Ошибка: telegramId ассистента не установлен');
+                  return;
+                }
+                setCurrentAssistantTelegramId(value);
+                setIsPopupOpen(true);
+              }}
+            >
+              <FaEnvelope />
+            </button>
+          ),
       },
     ],
-    [handleRowClick] 
+    [handleRowClick, userRole]
   );
-
-
 
   return (
     <div className={styles.main}>
@@ -195,7 +238,6 @@ const Monitoring: React.FC = () => {
         </div>
         <Table columns={columns} data={assistantsData} />
       </div>
-
 
       {isPopupOpen && (
         <div className={styles.popupOverlay}>
@@ -218,3 +260,4 @@ const Monitoring: React.FC = () => {
 };
 
 export default Monitoring;
+

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation'; 
+import { useParams, useRouter } from 'next/navigation';
 import styles from './Assistent.module.css';
 import Link from 'next/link';
 import { FaEllipsisH } from 'react-icons/fa';
@@ -64,7 +64,7 @@ interface Pupil {
 
 function Page() {
   const { id: currentAssistantId } = useParams();
-  const router = useRouter(); 
+  const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [showPupilDropdown, setShowPupilDropdown] = useState(false);
@@ -79,12 +79,13 @@ function Page() {
 
   const [assistantData, setAssistantData] = useState<AssistantData | null>(null);
 
-  const [isLoadingData, setIsLoadingData] = useState(true); 
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [userRole, setUserRole] = useState<string>('');
 
   const [blockHours, setBlockHours] = useState('');
   const [isBlocking, setIsBlocking] = useState(false);
 
-  
+
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -101,7 +102,7 @@ function Page() {
       } catch (error) {
         console.error('Ошибка при получении данных:', error);
       } finally {
-        setIsLoadingData(false); 
+        setIsLoadingData(false);
       }
     };
 
@@ -175,7 +176,7 @@ function Page() {
       }
 
       alert('Ассистент успешно заблокирован');
-      setBlockHours(''); 
+      setBlockHours('');
     } catch (error: unknown) {
       if (error instanceof Error) {
         alert('Ошибка: ' + error.message);
@@ -187,7 +188,7 @@ function Page() {
     }
   };
 
-  
+
   const handleDeleteAssistant = async () => {
     setIsDeleting(true);
     try {
@@ -207,7 +208,7 @@ function Page() {
         throw new Error(data.error || 'Ошибка при удалении ассистента');
       }
 
-      
+
       setTimeout(() => {
         router.push('/admin/monitoring');
       }, 3000);
@@ -320,7 +321,35 @@ function Page() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
+
   }, []);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const response = await fetch('/api/get-user-role', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ id: currentAssistantId }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Не удалось получить роль пользователя');
+        }
+
+        const result = await response.json();
+        setUserRole(result.role);
+      } catch (error) {
+        console.error('Ошибка при получении роли пользователя:', error);
+      }
+    };
+
+    if (currentAssistantId) {
+      fetchUserRole();
+    }
+  }, [currentAssistantId]);
 
   const toggleMessagebox = () => {
     setIsMessageboxVisible(!isMessageboxVisible);
@@ -578,16 +607,18 @@ function Page() {
           <Table columns={requestColumns} data={requestData} />
         </div>
       </div>
-      <div className={styles.tablebox}>
-        <div className={styles.tableWrapper}>
-          <div className={styles.header}>
-            <h3>
-              История транзакций <span>({transactionData.length})</span>
-            </h3>
+      {userRole === 'Администратор' && (
+        <div className={styles.tablebox}>
+          <div className={styles.tableWrapper}>
+            <div className={styles.header}>
+              <h3>
+                История транзакций <span>({transactionData.length})</span>
+              </h3>
+            </div>
+            <Table columns={transactionColumns} data={transactionData} />
           </div>
-          <Table columns={transactionColumns} data={transactionData} />
         </div>
-      </div>
+      )}
 
       {showPopup && (
         <>
