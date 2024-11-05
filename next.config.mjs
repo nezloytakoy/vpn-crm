@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: { 
-    serverComponentsExternalPackages: ['grammy', 'axios', 'moment'],  // Добавлены другие внешние пакеты
+  experimental: {
+    serverComponentsExternalPackages: ['grammy', 'axios', 'moment', 'gpt-3-encoder'],
   },
   images: {
     remotePatterns: [
