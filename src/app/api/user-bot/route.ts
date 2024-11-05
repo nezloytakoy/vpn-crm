@@ -1163,6 +1163,7 @@ async function handleUserComplaint(telegramId: bigint, userMessage: string, lang
 
 async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Context) {
   
+  
   const modelData = await prisma.openAi.findFirst();
   if (!modelData) {
     await ctx.reply('Не удалось загрузить настройки AI. Пожалуйста, попробуйте позже.');
@@ -1173,14 +1174,15 @@ async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Contex
   const maxTokensPerRequest = modelData.maxTokensPerRequest;
 
   
-  const messages: ChatMessage[] = userConversations.get(telegramId) || [
-    { role: 'system', content: systemPrompt },
-  ];
+  const combinedMessage = `${systemPrompt}\n${userMessage}`;
 
   
-  messages.push({ role: 'user', content: userMessage });
+  const messages: ChatMessage[] = userConversations.get(telegramId) || [];
 
-  console.log(messages)
+  
+  messages.push({ role: 'user', content: combinedMessage });
+
+  console.log(messages);
 
   
   const inputTokens = messages.reduce((total, msg) => total + encode(msg.content).length, 0);
@@ -1201,7 +1203,6 @@ async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Contex
       max_tokens: responseTokensLimit,
     });
 
-    
     const firstChoice = response.choices[0];
     if (firstChoice && firstChoice.message && firstChoice.message.content) {
       const aiMessage = firstChoice.message.content.trim();
@@ -1229,6 +1230,7 @@ async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Contex
     await ctx.reply('Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже.');
   }
 }
+
 
 
 
