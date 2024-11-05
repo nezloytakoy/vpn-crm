@@ -26,7 +26,7 @@ export async function POST() {
 
         console.log('Subscriptions fetched:', subscriptions);
 
-        // Update the names of the subscriptions
+        // Generate updated names for the subscriptions
         const updatedSubscriptions = subscriptions.map((sub, index) => {
             let newName;
             if (index === subscriptions.length - 1) {
@@ -43,17 +43,10 @@ export async function POST() {
             };
         });
 
-        // Update the names in the database
-        for (const sub of updatedSubscriptions) {
-            await prisma.subscription.update({
-                where: { id: BigInt(sub.id) }, // Convert back to BigInt for the query
-                data: { name: sub.name },
-            });
-            console.log(`Updated subscription ${sub.id} to new name: ${sub.name}`);
-        }
+        console.log('Generated updated subscription names:', updatedSubscriptions);
 
         return NextResponse.json({
-            message: 'Subscription names updated successfully',
+            message: 'Subscription names generated successfully',
             updatedSubscriptions,
         });
     } catch (error) {
