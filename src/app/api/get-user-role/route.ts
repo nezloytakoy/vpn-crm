@@ -12,8 +12,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'ID is required' }, { status: 400 });
         }
 
-        // Поиск пользователя по id в таблице Moderator
-        let moderator = await prisma.moderator.findUnique({
+        
+        const moderator = await prisma.moderator.findUnique({
             where: { id: BigInt(id) },
             select: { login: true }
         });
@@ -21,20 +21,20 @@ export async function POST(request: NextRequest) {
         let user;
 
         if (moderator) {
-            // Если пользователь найден в таблице Moderator, создаем объект с ролью "Модератор"
+            
             user = {
                 login: moderator.login,
                 role: 'Модератор'
             };
         } else {
-            // Если не найдено, ищем в таблице Admin
+            
             const admin = await prisma.admin.findUnique({
                 where: { id: BigInt(id) },
                 select: { email: true }
             });
 
             if (admin) {
-                // Создаем объект с логином и ролью "Администратор"
+                
                 user = {
                     login: admin.email,
                     role: 'Администратор'
