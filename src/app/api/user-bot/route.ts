@@ -1162,7 +1162,7 @@ async function handleUserComplaint(telegramId: bigint, userMessage: string, lang
 
 
 async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Context) {
-  // Получение сохраненного промпта из базы данных
+  
   const modelData = await prisma.openAi.findFirst();
   if (!modelData) {
     await ctx.reply('Не удалось загрузить настройки AI. Пожалуйста, попробуйте позже.');
@@ -1172,15 +1172,17 @@ async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Contex
   const systemPrompt = modelData.prompt;
   const maxTokensPerRequest = modelData.maxTokensPerRequest;
 
-  // Формирование сообщений с добавлением системного промпта
+  
   const messages: ChatMessage[] = userConversations.get(telegramId) || [
     { role: 'system', content: systemPrompt },
   ];
 
-  // Добавление пользовательского сообщения
+  
   messages.push({ role: 'user', content: userMessage });
 
-  // Проверка количества токенов
+  console.log(messages)
+
+  
   const inputTokens = messages.reduce((total, msg) => total + encode(msg.content).length, 0);
   const maxAllowedTokens = maxTokensPerRequest;
   const responseTokensLimit = 500;
@@ -1191,7 +1193,7 @@ async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Contex
   }
 
   try {
-    // Запрос к OpenAI API
+    
     const response = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: messages,
@@ -1199,19 +1201,19 @@ async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Contex
       max_tokens: responseTokensLimit,
     });
 
-    // Обработка ответа
+    
     const firstChoice = response.choices[0];
     if (firstChoice && firstChoice.message && firstChoice.message.content) {
       const aiMessage = firstChoice.message.content.trim();
 
-      // Сохранение ответа AI в истории сообщений
+      
       messages.push({ role: 'assistant', content: aiMessage });
       userConversations.set(telegramId, messages);
 
-      // Отправка ответа пользователю
+      
       await ctx.reply(aiMessage);
 
-      // Обновление количества запросов в базе данных
+      
       await prisma.user.update({
         where: { telegramId },
         data: {
