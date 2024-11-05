@@ -8,7 +8,7 @@ export async function POST() {
   try {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
-    // Завершение открытых диалогов с ИИ, которые длятся более часа
+    
     const usersWithAIChat = await prisma.user.findMany({
       where: {
         isActiveAIChat: true,
@@ -19,7 +19,7 @@ export async function POST() {
     });
 
     for (const user of usersWithAIChat) {
-      // Закрываем диалог с ИИ и отправляем сообщение пользователю
+      
       await prisma.user.update({
         where: { telegramId: user.telegramId },
         data: { isActiveAIChat: false },
@@ -33,7 +33,7 @@ export async function POST() {
       console.log(`Диалог с ИИ для пользователя ${user.telegramId} завершен.`);
     }
 
-    // Обработка активных диалогов с ассистентами
+    
     const conversations = await prisma.conversation.findMany({
       where: {
         status: 'IN_PROGRESS',
@@ -49,7 +49,7 @@ export async function POST() {
       });
     }
 
-    // Остальной код для завершения диалогов с ассистентами
+    
     for (const conversation of conversations) {
       if (conversation.lastMessageFrom === 'ASSISTANT') {
         const activeRequest = await prisma.assistantRequest.findFirst({
