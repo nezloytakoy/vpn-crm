@@ -913,50 +913,68 @@ bot.on('message:voice', async (ctx) => {
         return;
       }
 
-      const voice = ctx.message.voice;
-      const fileId = voice.file_id;
+      try {
+        const voice = ctx.message.voice;
+        const fileId = voice.file_id;
 
-      const file = await ctx.api.getFile(fileId);
-      const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${file.file_path}`;
+        // Получение файла голосового сообщения
+        const file = await ctx.api.getFile(fileId);
+        const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${file.file_path}`;
 
-      const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
-      const audioBuffer = Buffer.from(response.data, 'binary');
+        // Загрузка аудио
+        const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
+        const audioBuffer = Buffer.from(response.data, 'binary');
 
-      const formData = new FormData();
-      formData.append('file', audioBuffer, { filename: 'audio.ogg' });
-      formData.append('model', 'whisper-1');
+        // Создание formData для отправки на OpenAI
+        const formData = new FormData();
+        formData.append('file', audioBuffer, { filename: 'audio.ogg' });
+        formData.append('model', 'whisper-1');
 
-      const transcriptionResponse = await axios.post(
-        'https://api.openai.com/v1/audio/transcriptions',
-        formData,
-        {
-          headers: {
-            'Content-Type': `multipart/form-data; boundary=${formData.getBoundary()}`,
-            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          },
+        // Отправка на OpenAI для транскрибации
+        const transcriptionResponse = await axios.post(
+          'https://api.openai.com/v1/audio/transcriptions',
+          formData,
+          {
+            headers: {
+              'Content-Type': `multipart/form-data; boundary=${formData.getBoundary()}`,
+              'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+            },
+          }
+        );
+
+        // Получаем расшифрованный текст
+        const transcribedText = transcriptionResponse.data.text;
+
+        // Получаем промпт из базы данных
+        const openAiModel = await prisma.openAi.findFirst({});
+        if (!openAiModel) {
+          console.error('Не удалось загрузить промпт OpenAi.');
+          await ctx.reply('Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже.');
+          return;
         }
-      );
 
-      const transcribedText = transcriptionResponse.data.text;
+        // Добавляем промпт к расшифрованному тексту
+        const combinedMessage = `${openAiModel.prompt}\n${transcribedText}`;
 
-      const openAiModel = await prisma.openAi.findFirst({});
-      if (!openAiModel) {
-        console.error('Не удалось загрузить промпт OpenAi.');
+        // Проверка длины сообщения
+        const inputTokens = encode(combinedMessage).length;
+        const maxAllowedTokens = 4096;
+        const responseTokensLimit = 500;
+
+        if (inputTokens + responseTokensLimit > maxAllowedTokens) {
+          await ctx.reply('Ваш запрос слишком длинный. Попробуйте сократить его.');
+          return;
+        }
+
+        // Обработка через handleAIChat с добавленным промптом
+        await handleAIChat(telegramId, combinedMessage, ctx);
+
+      } catch (error) {
+        console.error('Ошибка при обработке голосового сообщения:', error);
         await ctx.reply('Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже.');
-        return;
       }
-
-      const inputTokens = encode(transcribedText + openAiModel.prompt).length;
-      const maxAllowedTokens = 4096;
-      const responseTokensLimit = 500;
-
-      if (inputTokens + responseTokensLimit > maxAllowedTokens) {
-        await ctx.reply('Ваш запрос слишком длинный. Попробуйте сократить его.');
-        return;
-      }
-
-      await handleAIChat(telegramId, openAiModel.prompt + transcribedText, ctx);
     }
+
     else if (activeRequest && activeRequest.assistant) {
       if (!subscription?.allowVoiceToAssistant) {
         await ctx.reply('Отправка голосовых сообщений ассистенту не разрешена для вашей подписки.');
@@ -1162,8 +1180,8 @@ async function handleUserComplaint(telegramId: bigint, userMessage: string, lang
 
 
 async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Context) {
-  
-  
+
+
   const modelData = await prisma.openAi.findFirst();
   if (!modelData) {
     await ctx.reply('Не удалось загрузить настройки AI. Пожалуйста, попробуйте позже.');
@@ -1173,18 +1191,18 @@ async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Contex
   const systemPrompt = modelData.prompt;
   const maxTokensPerRequest = modelData.maxTokensPerRequest;
 
-  
+
   const combinedMessage = `${systemPrompt}\n${userMessage}`;
 
-  
+
   const messages: ChatMessage[] = userConversations.get(telegramId) || [];
 
-  
+
   messages.push({ role: 'user', content: combinedMessage });
 
   console.log(messages);
 
-  
+
   const inputTokens = messages.reduce((total, msg) => total + encode(msg.content).length, 0);
   const maxAllowedTokens = maxTokensPerRequest;
   const responseTokensLimit = 500;
@@ -1195,7 +1213,7 @@ async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Contex
   }
 
   try {
-    
+
     const response = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: messages,
@@ -1207,14 +1225,14 @@ async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Contex
     if (firstChoice && firstChoice.message && firstChoice.message.content) {
       const aiMessage = firstChoice.message.content.trim();
 
-      
+
       messages.push({ role: 'assistant', content: aiMessage });
       userConversations.set(telegramId, messages);
 
-      
+
       await ctx.reply(aiMessage);
 
-      
+
       await prisma.user.update({
         where: { telegramId },
         data: {
