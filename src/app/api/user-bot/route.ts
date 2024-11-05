@@ -917,20 +917,20 @@ bot.on('message:voice', async (ctx) => {
         const voice = ctx.message.voice;
         const fileId = voice.file_id;
 
-        // Получение файла голосового сообщения
+        
         const file = await ctx.api.getFile(fileId);
         const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${file.file_path}`;
 
-        // Загрузка аудио
+        
         const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
         const audioBuffer = Buffer.from(response.data, 'binary');
 
-        // Создание formData для отправки на OpenAI
+        
         const formData = new FormData();
         formData.append('file', audioBuffer, { filename: 'audio.ogg' });
         formData.append('model', 'whisper-1');
 
-        // Отправка на OpenAI для транскрибации
+        
         const transcriptionResponse = await axios.post(
           'https://api.openai.com/v1/audio/transcriptions',
           formData,
@@ -942,10 +942,10 @@ bot.on('message:voice', async (ctx) => {
           }
         );
 
-        // Получаем расшифрованный текст
+        
         const transcribedText = transcriptionResponse.data.text;
 
-        // Получаем промпт из базы данных
+        
         const openAiModel = await prisma.openAi.findFirst({});
         if (!openAiModel) {
           console.error('Не удалось загрузить промпт OpenAi.');
@@ -953,10 +953,10 @@ bot.on('message:voice', async (ctx) => {
           return;
         }
 
-        // Добавляем промпт к расшифрованному тексту
+        
         const combinedMessage = `${transcribedText}`;
 
-        // Проверка длины сообщения
+        
         const inputTokens = encode(combinedMessage).length;
         const maxAllowedTokens = 4096;
         const responseTokensLimit = 500;
@@ -966,7 +966,7 @@ bot.on('message:voice', async (ctx) => {
           return;
         }
 
-        // Обработка через handleAIChat с добавленным промптом
+        
         await handleAIChat(telegramId, combinedMessage, ctx);
 
       } catch (error) {

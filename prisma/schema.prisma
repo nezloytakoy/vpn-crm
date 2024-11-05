@@ -111,10 +111,10 @@ model User {
   conversations          Conversation[]
   referredUsers          Referral?          @relation("Referred")
   referrer               Referral[]         @relation("Referrer")
-  
-  
   referralPercentage     Float              @default(0.0)
+  lastAIChatOpenedAt     DateTime?
 }
+
 
 model Subscription {
   id                    BigInt   @id @default(autoincrement())

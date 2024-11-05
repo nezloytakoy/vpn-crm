@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 export async function POST(request: Request) {
   try {
     console.log('Получен POST-запрос к /api/initiate-ai-dialog');
-    
+
     const body = await request.json();
     console.log('Тело запроса:', body);
     const { userId } = body;
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
     console.log(`Включаем режим общения с ИИ для пользователя с ID: ${userId}`);
 
-    
+
     const user = await prisma.user.findUnique({
       where: { telegramId: BigInt(userId) },
     });
@@ -47,14 +47,15 @@ export async function POST(request: Request) {
       });
     }
 
-    
-    
+
+
     const updatedUser = await prisma.user.update({
       where: { telegramId: BigInt(userId) },
       data: {
         isActiveAIChat: true,
-        aiRequests: { decrement: 1 },      
-        usedAIRequests: { increment: 1 },  
+        aiRequests: { decrement: 1 },
+        usedAIRequests: { increment: 1 },
+        lastAIChatOpenedAt: new Date(),
       },
     });
 
