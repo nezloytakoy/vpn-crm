@@ -1,14 +1,14 @@
 import { PrismaClient } from '@prisma/client';
 
-export const dynamic = 'force-dynamic'; // Indicating dynamic rendering
+export const dynamic = 'force-dynamic'; 
 
 const prisma = new PrismaClient();
 
 export async function GET(request: Request): Promise<Response> {
     try {
-        // Extract query parameters from the URL
+        
         const url = new URL(request.url);
-        const telegramId = url.searchParams.get('telegramId'); // Retrieve telegramId from query parameters
+        const telegramId = url.searchParams.get('telegramId'); 
 
         if (!telegramId) {
             return new Response(
@@ -20,7 +20,7 @@ export async function GET(request: Request): Promise<Response> {
             );
         }
 
-        // Convert telegramId to BigInt safely
+        
         let telegramIdBigInt: bigint;
         try {
             telegramIdBigInt = BigInt(telegramId);
@@ -34,7 +34,7 @@ export async function GET(request: Request): Promise<Response> {
             );
         }
 
-        // Find user by telegramId and include last paid subscription details
+        
         const user = await prisma.user.findUnique({
             where: {
                 telegramId: telegramIdBigInt,
@@ -66,7 +66,7 @@ export async function GET(request: Request): Promise<Response> {
             );
         }
 
-        // Check if the user has a last paid subscription
+        
         if (!user.lastPaidSubscription) {
             return new Response(
                 JSON.stringify({ error: 'No subscription found for this user.' }),
@@ -77,7 +77,7 @@ export async function GET(request: Request): Promise<Response> {
             );
         }
 
-        // Return subscription information
+        
         return new Response(
             JSON.stringify({ subscription: user.lastPaidSubscription }),
             {
