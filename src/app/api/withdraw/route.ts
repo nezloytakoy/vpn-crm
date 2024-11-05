@@ -13,17 +13,17 @@ export async function POST(req: NextRequest) {
   
       const newWithdrawalRequest = await prisma.withdrawalRequest.create({
         data: {
-          userId: BigInt(userId), // Преобразуем строку в BigInt для хранения
+          userId: BigInt(userId), 
           userNickname: userNickname || null,
           amount: parseFloat(amount),
           status: 'Требует рассмотрения', 
         },
       });
   
-      // Преобразуем BigInt поля в строки для корректной сериализации
+      
       const sanitizedRequest = {
         ...newWithdrawalRequest,
-        userId: newWithdrawalRequest.userId.toString(), // Преобразуем BigInt в строку
+        userId: newWithdrawalRequest.userId.toString(), 
       };
   
       return NextResponse.json({ success: true, data: sanitizedRequest }, { status: 201 });
