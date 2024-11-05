@@ -65,7 +65,8 @@ function Page() {
 
     const [isToggledNotifications, setIsToggledNotifications] = useState(false);
     const [checkboxesNotifications, setCheckboxesNotifications] = useState<boolean[]>([false, false, false, false]);
-
+    
+    const [shouldDisplayForNonModerators, setShouldDisplayForNonModerators] = useState(false);
 
 
     const router = useRouter();
@@ -141,6 +142,49 @@ function Page() {
 
     const defaultAssistantRequestValues = ['5', '14', '30', '0'];
 
+    useEffect(() => {
+        // Получение userId и роли пользователя через API
+        const fetchUserData = async () => {
+            try {
+                // Получение userId
+                const responseUserId = await fetch('/api/get-moder-id');
+                if (!responseUserId.ok) {
+                    throw new Error('Ошибка при получении userId');
+                }
+                const dataUserId = await responseUserId.json();
+                
+                console.log("Полученное айди:", dataUserId.userId);
+
+                // Получение роли пользователя
+                console.log("Проверяем айди перед запросом роли", dataUserId.userId);
+                const responseRole = await fetch('/api/get-user-role', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ userId: dataUserId.userId }),
+                });
+
+                if (responseRole.ok) {
+                    const resultRole = await responseRole.json();
+                
+                    console.log("Роль пользователя:", resultRole.role);
+
+                    // Проверка роли пользователя для отображения (теперь правильно используем роль)
+                    if (resultRole.role !== 'Модератор') {
+                        setShouldDisplayForNonModerators(true);
+                    }
+                } else {
+                    console.error('Не удалось получить роль пользователя');
+                }
+            } catch (error) {
+                console.error('Ошибка при получении данных пользователя:', error);
+            }
+        };
+
+        fetchUserData();
+    }, []);
+
 
 
     useEffect(() => {
@@ -181,6 +225,8 @@ function Page() {
             return newState;
         });
     };
+
+
 
 
 
@@ -350,7 +396,7 @@ function Page() {
         }
 
         console.log(subscriptionType)
-        console. log(requestCounts)
+        console.log(requestCounts)
 
         const subscriptionData = requestCounts[subscriptionType];
 
@@ -722,7 +768,10 @@ function Page() {
             <div
                 className={`${styles.collapsibleContent} ${showSettings ? styles.expanded : styles.collapsed}`}
             >
-                <div className={styles.settings}>
+                <div
+                    className={styles.settings}
+                    style={!shouldDisplayForNonModerators ? { display: 'flex', alignItems: 'center', justifyContent: 'center' } : {}}
+                >
                     <div className={styles.columnblock}>
                         <div className={styles.messagebox}>
                             <h1 className={styles.title}>Уведомления всем пользователям</h1>
@@ -775,39 +824,43 @@ function Page() {
                             </button>
                         </div>
 
-                        <div className={styles.messagebox}>
-                            <h1 className={styles.gifttitle}>Количество запросов к ассистенту</h1>
-                            {assistantRequestValues.map((value, index) => {
-                                const subscriptionType = subscriptionTypes[index];
-                                const assistantCount = getAssistantRequestCount(subscriptionType);
-                                return (
-                                    <div key={index}>
-                                        <h1 className={styles.undertitletwo}>
-                                            {subscriptionType === 'FOURTH'
-                                                ? 'Только AI'
-                                                : `Введите количество для категории AI + ${assistantCount} запросов ассистенту`}
-                                        </h1>
-                                        <div className={styles.inputContainertwo}>
-                                            <input
-                                                type="text"
-                                                className={styles.inputFieldtwo}
-                                                placeholder={String(assistantCount)}
-                                                value={value}
-                                                onChange={(e) => handleInputChangeAssistantRequests(index, e.target.value)}
-                                            />
-                                            <span className={styles.label}>Запросов</span>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                        {shouldDisplayForNonModerators && (
+                            <div className={styles.messagebox}>
+                                <h1 className={styles.gifttitle}>Количество запросов к ассистенту</h1>
+                                {assistantRequestValues.map((value, index) => {
+                                    const subscriptionType = subscriptionTypes[index];
+                                    const assistantCount = getAssistantRequestCount(subscriptionType);
 
-                            <button
-                                className={styles.submitButtontwo}
-                                onClick={() => handleButtonClick('confirmAssistantRequests', handleConfirmAssistantRequests)}
-                            >
-                                {loadingButton === 'confirmAssistantRequests' ? 'Загрузка...' : 'Подтвердить'}
-                            </button>
-                        </div>
+                                    return (
+                                        <div key={index}>
+                                            <h1 className={styles.undertitletwo}>
+                                                {subscriptionType === 'FOURTH'
+                                                    ? 'Только AI'
+                                                    : `Введите количество для категории AI + ${assistantCount} запросов ассистенту`}
+                                            </h1>
+                                            <div className={styles.inputContainertwo}>
+                                                <input
+                                                    type="text"
+                                                    className={styles.inputFieldtwo}
+                                                    placeholder={String(assistantCount)}
+                                                    value={value}
+                                                    onChange={(e) => handleInputChangeAssistantRequests(index, e.target.value)}
+                                                />
+                                                <span className={styles.label}>Запросов</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                <button
+                                    className={styles.submitButtontwo}
+                                    onClick={() => handleButtonClick('confirmAssistantRequests', handleConfirmAssistantRequests)}
+                                >
+                                    {loadingButton === 'confirmAssistantRequests' ? 'Загрузка...' : 'Подтвердить'}
+                                </button>
+                            </div>
+                        )}
+
                         <div className={styles.messagebox}>
                             <h1 className={styles.gifttitle}>Процент от приглашенных пользователей</h1>
                             <div className={styles.percentageHeader}>
@@ -869,179 +922,182 @@ function Page() {
 
                     </div>
 
+                    {shouldDisplayForNonModerators && (
+                        <div className={styles.columnblock}>
 
-                    <div className={styles.columnblock}>
+                            <div className={styles.messagebox}>
+                                <h1 className={styles.gifttitle}>Количество запросов к ИИ</h1>
+                                {aiRequestValues.map((value, index) => {
+                                    const subscriptionType = subscriptionTypes[index];
+                                    const assistantCount = getAssistantRequestCount(subscriptionType);
+                                    const aiCount = getAiRequestCount(subscriptionType);
 
-                        <div className={styles.messagebox}>
-                            <h1 className={styles.gifttitle}>Количество запросов к ИИ</h1>
-                            {aiRequestValues.map((value, index) => {
-                                const subscriptionType = subscriptionTypes[index];
-                                const assistantCount = getAssistantRequestCount(subscriptionType);
-                                const aiCount = getAiRequestCount(subscriptionType);
-
-                                return (
-                                    <div key={index}>
-                                        <h1 className={styles.undertitletwo}>
-                                            {subscriptionType === 'FOURTH'
-                                                ? 'Только AI'
-                                                : `Введите количество для категории AI + ${assistantCount} запросов ассистенту`}
-                                        </h1>
-                                        <div className={styles.inputContainertwo}>
-                                            <input
-                                                type="text"
-                                                className={styles.inputFieldtwo}
-                                                placeholder={String(aiCount)}
-                                                value={value}
-                                                onChange={(e) => handleInputChangeAiRequests(index, e.target.value)}
-                                            />
-                                            <span className={styles.label}>Запросов</span>
+                                    return (
+                                        <div key={index}>
+                                            <h1 className={styles.undertitletwo}>
+                                                {subscriptionType === 'FOURTH'
+                                                    ? 'Только AI'
+                                                    : `Введите количество для категории AI + ${assistantCount} запросов ассистенту`}
+                                            </h1>
+                                            <div className={styles.inputContainertwo}>
+                                                <input
+                                                    type="text"
+                                                    className={styles.inputFieldtwo}
+                                                    placeholder={String(aiCount)}
+                                                    value={value}
+                                                    onChange={(e) => handleInputChangeAiRequests(index, e.target.value)}
+                                                />
+                                                <span className={styles.label}>Запросов</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
 
-                            <button
-                                className={styles.submitButtontwo}
-                                onClick={() => handleButtonClick('confirmAiRequests', handleConfirmAiRequests)}
-                            >
-                                {loadingButton === 'confirmAiRequests' ? 'Загрузка...' : 'Подтвердить'}
-                            </button>
+                                <button
+                                    className={styles.submitButtontwo}
+                                    onClick={() => handleButtonClick('confirmAiRequests', handleConfirmAiRequests)}
+                                >
+                                    {loadingButton === 'confirmAiRequests' ? 'Загрузка...' : 'Подтвердить'}
+                                </button>
+                            </div>
+
+
+
+
+                            <div className={styles.messagebox}>
+                                <h1 className={styles.gifttitle}>Отправка пользователем контента</h1>
+
+
+                                <div className={styles.togglebox}>
+                                    <label className={styles.switch}>
+                                        <input
+                                            type="checkbox"
+                                            checked={isToggledVoiceAI}
+                                            onChange={() => handleToggleAndCheckboxes(setIsToggledVoiceAI, 'allowVoiceToAI')}
+                                        />
+                                        <span className={styles.slider}></span>
+                                    </label>
+                                    <span className={styles.label}>Разрешить отправку голосовых сообщений ИИ</span>
+                                </div>
+
+                                <div className={styles.checkboxContainer}>
+                                    {localPermissions.map((permission, index) => (
+                                        <label key={index} className={styles.checkboxLabel}>
+                                            <input
+                                                type="checkbox"
+                                                checked={permission.allowVoiceToAI}
+                                                onChange={() => handlePermissionChange(index, 'allowVoiceToAI')}
+                                            />
+                                            <span className={styles.animatedCheckbox}></span>
+                                            <span>
+                                                {permission.name === 'FOURTH'
+                                                    ? 'Только AI'
+                                                    : `AI + ${getAssistantRequestCount(permission.name)} запросов ассистенту`}
+                                            </span>
+                                        </label>
+                                    ))}
+                                </div>
+
+
+
+                                <div className={styles.togglebox}>
+                                    <label className={styles.switch}>
+                                        <input
+                                            type="checkbox"
+                                            checked={isToggledVoiceAssistant}
+                                            onChange={() => handleToggleAndCheckboxes(setIsToggledVoiceAssistant, 'allowVoiceToAssistant')}
+                                        />
+                                        <span className={styles.slider}></span>
+                                    </label>
+                                    <span className={styles.label}>Разрешить отправку голосовых сообщений ассистенту</span>
+                                </div>
+
+                                <div className={styles.checkboxContainer}>
+                                    {localPermissions.map((permission, index) => (
+                                        <label key={index} className={styles.checkboxLabel}>
+                                            <input
+                                                type="checkbox"
+                                                checked={permission.allowVoiceToAssistant}
+                                                onChange={() => handlePermissionChange(index, 'allowVoiceToAssistant')}
+                                            />
+                                            <span className={styles.animatedCheckbox}></span>
+                                            <span>{permission.name === 'FOURTH' ? 'Только AI' : `AI + ${getAssistantRequestCount(permission.name)} запросов ассистенту`}</span>
+                                        </label>
+                                    ))}
+                                </div>
+
+
+                                <div className={styles.togglebox}>
+                                    <label className={styles.switch}>
+                                        <input
+                                            type="checkbox"
+                                            checked={isToggledVideoAssistant}
+                                            onChange={() => handleToggleAndCheckboxes(setIsToggledVideoAssistant, 'allowVideoToAssistant')}
+                                        />
+                                        <span className={styles.slider}></span>
+                                    </label>
+                                    <span className={styles.label}>Разрешить отправку видео ассистенту</span>
+                                </div>
+
+                                <div className={styles.checkboxContainer}>
+                                    {localPermissions.map((permission, index) => (
+                                        <label key={index} className={styles.checkboxLabel}>
+                                            <input
+                                                type="checkbox"
+                                                checked={permission.allowVideoToAssistant}
+                                                onChange={() => handlePermissionChange(index, 'allowVideoToAssistant')}
+                                            />
+                                            <span className={styles.animatedCheckbox}></span>
+                                            <span>{permission.name === 'FOURTH' ? 'Только AI' : `AI + ${getAssistantRequestCount(permission.name)} запросов ассистенту`}</span>
+                                        </label>
+                                    ))}
+                                </div>
+
+
+                                <div className={styles.togglebox}>
+                                    <label className={styles.switch}>
+                                        <input
+                                            type="checkbox"
+                                            checked={isToggledFileAssistant}
+                                            onChange={() => handleToggleAndCheckboxes(setIsToggledFileAssistant, 'allowFilesToAssistant')}
+                                        />
+                                        <span className={styles.slider}></span>
+                                    </label>
+                                    <span className={styles.label}>Разрешить отправку файлов ассистенту</span>
+                                </div>
+
+                                <div className={styles.checkboxContainer}>
+                                    {localPermissions.map((permission, index) => (
+                                        <label key={index} className={styles.checkboxLabel}>
+                                            <input
+                                                type="checkbox"
+                                                checked={permission.allowFilesToAssistant}
+                                                onChange={() => handlePermissionChange(index, 'allowFilesToAssistant')}
+                                            />
+                                            <span className={styles.animatedCheckbox}></span>
+                                            <span>{permission.name === 'FOURTH' ? 'Только AI' : `AI + ${getAssistantRequestCount(permission.name)} запросов ассистенту`}</span>
+                                        </label>
+                                    ))}
+                                </div>
+
+                                <button
+                                    className={styles.submitButtonthree}
+                                    onClick={() => handleButtonClick('confirmPermissions', handleConfirmPermissions)}
+                                >
+                                    {loadingButton === 'confirmPermissions' ? 'Загрузка...' : 'Подтвердить'}
+                                </button>
+                            </div>
+
+
+
+
+
                         </div>
-
-
-
-
-                        <div className={styles.messagebox}>
-                            <h1 className={styles.gifttitle}>Отправка пользователем контента</h1>
-
-
-                            <div className={styles.togglebox}>
-                                <label className={styles.switch}>
-                                    <input
-                                        type="checkbox"
-                                        checked={isToggledVoiceAI}
-                                        onChange={() => handleToggleAndCheckboxes(setIsToggledVoiceAI, 'allowVoiceToAI')}
-                                    />
-                                    <span className={styles.slider}></span>
-                                </label>
-                                <span className={styles.label}>Разрешить отправку голосовых сообщений ИИ</span>
-                            </div>
-
-                            <div className={styles.checkboxContainer}>
-                                {localPermissions.map((permission, index) => (
-                                    <label key={index} className={styles.checkboxLabel}>
-                                        <input
-                                            type="checkbox"
-                                            checked={permission.allowVoiceToAI}
-                                            onChange={() => handlePermissionChange(index, 'allowVoiceToAI')}
-                                        />
-                                        <span className={styles.animatedCheckbox}></span>
-                                        <span>
-                                            {permission.name === 'FOURTH'
-                                                ? 'Только AI'
-                                                : `AI + ${getAssistantRequestCount(permission.name)} запросов ассистенту`}
-                                        </span>
-                                    </label>
-                                ))}
-                            </div>
-
-
-
-                            <div className={styles.togglebox}>
-                                <label className={styles.switch}>
-                                    <input
-                                        type="checkbox"
-                                        checked={isToggledVoiceAssistant}
-                                        onChange={() => handleToggleAndCheckboxes(setIsToggledVoiceAssistant, 'allowVoiceToAssistant')}
-                                    />
-                                    <span className={styles.slider}></span>
-                                </label>
-                                <span className={styles.label}>Разрешить отправку голосовых сообщений ассистенту</span>
-                            </div>
-
-                            <div className={styles.checkboxContainer}>
-                                {localPermissions.map((permission, index) => (
-                                    <label key={index} className={styles.checkboxLabel}>
-                                        <input
-                                            type="checkbox"
-                                            checked={permission.allowVoiceToAssistant}
-                                            onChange={() => handlePermissionChange(index, 'allowVoiceToAssistant')}
-                                        />
-                                        <span className={styles.animatedCheckbox}></span>
-                                        <span>{permission.name === 'FOURTH' ? 'Только AI' : `AI + ${getAssistantRequestCount(permission.name)} запросов ассистенту`}</span>
-                                    </label>
-                                ))}
-                            </div>
-
-
-                            <div className={styles.togglebox}>
-                                <label className={styles.switch}>
-                                    <input
-                                        type="checkbox"
-                                        checked={isToggledVideoAssistant}
-                                        onChange={() => handleToggleAndCheckboxes(setIsToggledVideoAssistant, 'allowVideoToAssistant')}
-                                    />
-                                    <span className={styles.slider}></span>
-                                </label>
-                                <span className={styles.label}>Разрешить отправку видео ассистенту</span>
-                            </div>
-
-                            <div className={styles.checkboxContainer}>
-                                {localPermissions.map((permission, index) => (
-                                    <label key={index} className={styles.checkboxLabel}>
-                                        <input
-                                            type="checkbox"
-                                            checked={permission.allowVideoToAssistant}
-                                            onChange={() => handlePermissionChange(index, 'allowVideoToAssistant')}
-                                        />
-                                        <span className={styles.animatedCheckbox}></span>
-                                        <span>{permission.name === 'FOURTH' ? 'Только AI' : `AI + ${getAssistantRequestCount(permission.name)} запросов ассистенту`}</span>
-                                    </label>
-                                ))}
-                            </div>
-
-
-                            <div className={styles.togglebox}>
-                                <label className={styles.switch}>
-                                    <input
-                                        type="checkbox"
-                                        checked={isToggledFileAssistant}
-                                        onChange={() => handleToggleAndCheckboxes(setIsToggledFileAssistant, 'allowFilesToAssistant')}
-                                    />
-                                    <span className={styles.slider}></span>
-                                </label>
-                                <span className={styles.label}>Разрешить отправку файлов ассистенту</span>
-                            </div>
-
-                            <div className={styles.checkboxContainer}>
-                                {localPermissions.map((permission, index) => (
-                                    <label key={index} className={styles.checkboxLabel}>
-                                        <input
-                                            type="checkbox"
-                                            checked={permission.allowFilesToAssistant}
-                                            onChange={() => handlePermissionChange(index, 'allowFilesToAssistant')}
-                                        />
-                                        <span className={styles.animatedCheckbox}></span>
-                                        <span>{permission.name === 'FOURTH' ? 'Только AI' : `AI + ${getAssistantRequestCount(permission.name)} запросов ассистенту`}</span>
-                                    </label>
-                                ))}
-                            </div>
-
-                            <button
-                                className={styles.submitButtonthree}
-                                onClick={() => handleButtonClick('confirmPermissions', handleConfirmPermissions)}
-                            >
-                                {loadingButton === 'confirmPermissions' ? 'Загрузка...' : 'Подтвердить'}
-                            </button>
-                        </div>
-
-
-
-
-
-                    </div>
+                    )}
                 </div>
+
             </div>
+
 
             <button className={styles.toggleButton} onClick={() => setShowTablebox(!showTablebox)}>
                 {showTablebox ? 'Скрыть таблицу' : 'Показать таблицу'}

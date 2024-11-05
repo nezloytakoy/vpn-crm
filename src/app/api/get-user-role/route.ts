@@ -5,16 +5,16 @@ const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
     try {
-        const { id } = await request.json();
-        console.log("Полученное айди", id)
+        const { userId } = await request.json();
+        console.log("Полученное айди", userId)
 
-        if (!id) {
+        if (!userId) {
             return NextResponse.json({ error: 'ID is required' }, { status: 400 });
         }
 
         
         const moderator = await prisma.moderator.findUnique({
-            where: { id: BigInt(id) },
+            where: { id: BigInt(userId) },
             select: { login: true }
         });
 
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
         } else {
             
             const admin = await prisma.admin.findUnique({
-                where: { id: BigInt(id) },
+                where: { id: BigInt(userId) },
                 select: { email: true }
             });
 

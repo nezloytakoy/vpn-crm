@@ -338,7 +338,7 @@ function Page() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId }), // используйте текущий userId
+          body: JSON.stringify({ id: userId }),
         });
 
         if (response.ok) {
@@ -592,6 +592,8 @@ function Page() {
     }
   };
 
+  console.log('Текущий статус userRole:', userRole);
+
 
   return (
     <div className={styles.main}>
@@ -694,6 +696,7 @@ function Page() {
               </div>
             </div>
           </div>
+
           {userRole !== 'Модератор' && (
             <div className={styles.containereight}>
               <div className={styles.messageboxfive}>

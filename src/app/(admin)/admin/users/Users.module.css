@@ -285,6 +285,15 @@ input:checked+.slider:hover {
     animation: spin 1s ease infinite;
 }
 
+.moderatorStyles {
+    width: 100%;
+    max-width: 1200px;
+    min-width: 1200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 @keyframes spin {
     0% {
         transform: rotate(0deg);
@@ -772,6 +781,7 @@ input:checked+.slider:hover {
 .collapsibleContent {
     overflow: hidden;
     transition: max-height 0.5s ease;
+
 }
 
 .collapsibleContent.collapsed {

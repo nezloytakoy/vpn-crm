@@ -30,6 +30,8 @@ export async function GET() {
       );
     }
 
+    console.log("Возвращаем:", userId)
+
     return NextResponse.json(
       { userId },
       { status: 200 }
