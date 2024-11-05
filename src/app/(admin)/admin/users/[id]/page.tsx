@@ -714,10 +714,10 @@ function Page() {
                 </div>
                 <button
                   className={styles.submitButton}
-                  onClick={handleAiRequestSubmit}
+                  onClick={() => handleButtonClick(handleAiRequestSubmit, 'submitAiRequest')}
                   disabled={loadingButton === 'submitPercentage'}
                 >
-                  {loadingButton === 'submitPercentage' ? 'Загрузка...' : 'Подтвердить'}
+                  {loadingButton === 'submitAiRequest' ? 'Загрузка...' : 'Подтвердить'}
                 </button>
               </div>
 

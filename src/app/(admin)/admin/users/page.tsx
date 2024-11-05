@@ -5,6 +5,7 @@ import styles from './Users.module.css';
 import Table from '@/components/Table/Table';
 import { Column, CellProps } from 'react-table';
 import { useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 
 interface UserResponse {
     telegramId: string;
@@ -65,7 +66,7 @@ function Page() {
 
     const [isToggledNotifications, setIsToggledNotifications] = useState(false);
     const [checkboxesNotifications, setCheckboxesNotifications] = useState<boolean[]>([false, false, false, false]);
-    
+
     const [shouldDisplayForNonModerators, setShouldDisplayForNonModerators] = useState(false);
 
 
@@ -83,6 +84,8 @@ function Page() {
     const [loadingButton, setLoadingButton] = useState('');
 
 
+    const pathname = usePathname();
+
     const handleButtonClick = async (buttonName: string, action: () => Promise<void>) => {
         setLoadingButton(buttonName);
         await action();
@@ -90,7 +93,7 @@ function Page() {
 
         // Устанавливаем таймер для перезагрузки страницы через 6 секунд
         setTimeout(() => {
-            location.reload();  // Перезагрузка всей страницы
+            router.push(pathname);
         }, 3000);
     };
 
@@ -152,7 +155,7 @@ function Page() {
                     throw new Error('Ошибка при получении userId');
                 }
                 const dataUserId = await responseUserId.json();
-                
+
                 console.log("Полученное айди:", dataUserId.userId);
 
                 // Получение роли пользователя
@@ -167,7 +170,7 @@ function Page() {
 
                 if (responseRole.ok) {
                     const resultRole = await responseRole.json();
-                
+
                     console.log("Роль пользователя:", resultRole.role);
 
                     // Проверка роли пользователя для отображения (теперь правильно используем роль)
