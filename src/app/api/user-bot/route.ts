@@ -592,14 +592,14 @@ bot.on("message:successful_payment", async (ctx) => {
             },
           },
         });
-        
+
 
         if (!subscription) {
           await sendLogToTelegram(`Подписка не найдена для цены: ${totalStars} stars`);
           throw new Error(`Подписка не найдена для цены: ${totalStars} stars`);
         }
 
-        
+
       } catch (subscriptionError) {
         const errorMessage = subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError);
         const errorStack = subscriptionError instanceof Error ? subscriptionError.stack : 'No stack trace';
@@ -939,18 +939,25 @@ bot.on('message:voice', async (ctx) => {
 
       const transcribedText = transcriptionResponse.data.text;
 
-      
-      const inputTokens = encode(transcribedText).length;
-      const maxAllowedTokens = 4096; 
-      const responseTokensLimit = 500; 
+      const openAiModel = await prisma.openAi.findFirst({});
+      if (!openAiModel) {
+        console.error('Не удалось загрузить промпт OpenAi.');
+        await ctx.reply('Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже.');
+        return;
+      }
+
+      const inputTokens = encode(transcribedText + openAiModel.prompt).length;
+      const maxAllowedTokens = 4096;
+      const responseTokensLimit = 500;
 
       if (inputTokens + responseTokensLimit > maxAllowedTokens) {
         await ctx.reply('Ваш запрос слишком длинный. Попробуйте сократить его.');
         return;
       }
 
-      await handleAIChat(telegramId, transcribedText, ctx);
-    } else if (activeRequest && activeRequest.assistant) {
+      await handleAIChat(telegramId, openAiModel.prompt + transcribedText, ctx);
+    }
+    else if (activeRequest && activeRequest.assistant) {
       if (!subscription?.allowVoiceToAssistant) {
         await ctx.reply('Отправка голосовых сообщений ассистенту не разрешена для вашей подписки.');
         return;
@@ -1155,43 +1162,56 @@ async function handleUserComplaint(telegramId: bigint, userMessage: string, lang
 
 
 async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Context) {
+  // Получение сохраненного промпта из базы данных
+  const modelData = await prisma.openAi.findFirst();
+  if (!modelData) {
+    await ctx.reply('Не удалось загрузить настройки AI. Пожалуйста, попробуйте позже.');
+    return;
+  }
+
+  const systemPrompt = modelData.prompt;
+  const maxTokensPerRequest = modelData.maxTokensPerRequest;
+
+  // Формирование сообщений с добавлением системного промпта
   const messages: ChatMessage[] = userConversations.get(telegramId) || [
-    { role: 'system', content: 'You are a helpful assistant.' },
+    { role: 'system', content: systemPrompt },
   ];
 
-  
+  // Добавление пользовательского сообщения
   messages.push({ role: 'user', content: userMessage });
 
-  
+  // Проверка количества токенов
   const inputTokens = messages.reduce((total, msg) => total + encode(msg.content).length, 0);
-  const maxAllowedTokens = 4096; 
-  const responseTokensLimit = 500; 
+  const maxAllowedTokens = maxTokensPerRequest;
+  const responseTokensLimit = 500;
 
-  
   if (inputTokens + responseTokensLimit > maxAllowedTokens) {
     await ctx.reply('Ваш запрос слишком длинный. Попробуйте сократить его.');
     return;
   }
 
   try {
+    // Запрос к OpenAI API
     const response = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: messages,
       temperature: 0.7,
-      max_tokens: responseTokensLimit, 
+      max_tokens: responseTokensLimit,
     });
 
+    // Обработка ответа
     const firstChoice = response.choices[0];
     if (firstChoice && firstChoice.message && firstChoice.message.content) {
       const aiMessage = firstChoice.message.content.trim();
 
-      
+      // Сохранение ответа AI в истории сообщений
       messages.push({ role: 'assistant', content: aiMessage });
       userConversations.set(telegramId, messages);
 
+      // Отправка ответа пользователю
       await ctx.reply(aiMessage);
 
-      
+      // Обновление количества запросов в базе данных
       await prisma.user.update({
         where: { telegramId },
         data: {
@@ -1207,6 +1227,7 @@ async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Contex
     await ctx.reply('Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже.');
   }
 }
+
 
 
 
