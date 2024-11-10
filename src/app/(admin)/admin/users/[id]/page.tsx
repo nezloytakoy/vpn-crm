@@ -330,7 +330,7 @@ function Page() {
 
 
   useEffect(() => {
-    // добавьте логику для получения роли пользователя, например, через API или глобальное состояние
+    
     const fetchUserRole = async () => {
       try {
         const response = await fetch('/api/get-user-role', {
@@ -343,7 +343,7 @@ function Page() {
 
         if (response.ok) {
           const result = await response.json();
-          setUserRole(result.role); // установите роль пользователя
+          setUserRole(result.role); 
           console.log("Роль", result.role)
         } else {
           console.error('Не удалось получить роль пользователя');
@@ -700,7 +700,7 @@ function Page() {
           {userRole !== 'Модератор' && (
             <div className={styles.containereight}>
               <div className={styles.messageboxfive}>
-                <h1 className={styles.gifttitle}>Текущее количество запросов к ИИ</h1>
+                <h1 className={styles.gifttitle}>Количество запросов к ИИ</h1>
                 <h1 className={styles.undertitletwo}>Изменить количество</h1>
                 <div className={`${styles.inputContainertwo} ${isToggled ? styles.active : ''}`}>
                   <input
@@ -723,7 +723,7 @@ function Page() {
 
 
               <div className={styles.messageboxfive}>
-                <h1 className={styles.gifttitle}>Текущее количество запросов к ассистенту</h1>
+                <h1 className={styles.gifttitle}>Количество запросов к ассистенту</h1>
                 <h1 className={styles.undertitletwo}>Изменить количество</h1>
                 <div className={`${styles.inputContainertwo} ${isToggled ? styles.active : ''}`}>
                   <input

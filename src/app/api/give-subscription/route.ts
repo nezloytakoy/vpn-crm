@@ -10,7 +10,7 @@ export async function POST(request: Request) {
         console.log('Received body:', body);
         const { userId, subscriptionId } = body;
 
-        // Validate the input
+        
         if (!userId || !subscriptionId) {
             console.log('Validation failed: Missing userId or subscriptionId');
             return NextResponse.json({ error: 'Invalid input data' }, { status: 400 });
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
         console.log('Validation passed, fetching subscription details...');
 
-        // Fetch subscription details
+        
         const subscription = await prisma.subscription.findUnique({
             where: { id: BigInt(subscriptionId) },
             select: {
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
 
         console.log('Subscription found:', subscription);
 
-        // Update user requests by adding to current values
+        
         const updatedUser = await prisma.user.update({
             where: { telegramId: BigInt(userId) },
             data: {
@@ -42,14 +42,15 @@ export async function POST(request: Request) {
                     increment: subscription.aiRequestCount,
                 },
                 assistantRequests: {
-                    increment: subscription.assistantRequestCount ?? 0, // Default to 0 if undefined
+                    increment: subscription.assistantRequestCount ?? 0, 
                 },
+                lastPaidSubscriptionId: BigInt(subscriptionId),
             },
         });
 
         console.log('User updated successfully:', updatedUser);
 
-        // Convert all BigInt fields to strings
+        
         const responseUser = {
             ...updatedUser,
             telegramId: updatedUser.telegramId.toString(),

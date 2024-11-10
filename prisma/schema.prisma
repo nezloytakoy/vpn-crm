@@ -129,7 +129,6 @@ model Subscription {
   assistantRequestCount Int?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @default(now()) @updatedAt
-
   users                 User[]   @relation("User_lastPaidSubscription")
 }
 
