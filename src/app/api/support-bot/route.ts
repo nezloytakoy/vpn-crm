@@ -800,7 +800,7 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
         data: {
           assistantId: assistantTelegramId,
           messages: [],
-          status: 'PENDING',
+          status: 'IN_PROGRESS',
           createdAt: new Date(),
           updatedAt: new Date(),
           lastMessageFrom: '',

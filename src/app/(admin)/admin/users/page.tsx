@@ -86,6 +86,9 @@ function Page() {
 
     const pathname = usePathname();
 
+    const [userStatusLoaded, setUserStatusLoaded] = useState(false); 
+
+
     const handleButtonClick = async (buttonName: string, action: () => Promise<void>) => {
         setLoadingButton(buttonName);
         await action();
@@ -146,37 +149,23 @@ function Page() {
     const defaultAssistantRequestValues = ['5', '14', '30', '0'];
 
     useEffect(() => {
-        
         const fetchUserData = async () => {
             try {
-                
                 const responseUserId = await fetch('/api/get-moder-id');
-                if (!responseUserId.ok) {
-                    throw new Error('Ошибка при получении userId');
-                }
+                if (!responseUserId.ok) throw new Error('Ошибка при получении userId');
                 const dataUserId = await responseUserId.json();
-
-                console.log("Полученное айди:", dataUserId.userId);
-
-                
-                console.log("Проверяем айди перед запросом роли", dataUserId.userId);
+    
                 const responseRole = await fetch('/api/get-user-role', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId: dataUserId.userId }),
                 });
-
+    
                 if (responseRole.ok) {
                     const resultRole = await responseRole.json();
-
-                    console.log("Роль пользователя:", resultRole.role);
-
+                    if (resultRole.role !== 'Модератор') setShouldDisplayForNonModerators(true);
                     
-                    if (resultRole.role !== 'Модератор') {
-                        setShouldDisplayForNonModerators(true);
-                    }
+                    setUserStatusLoaded(true); 
                 } else {
                     console.error('Не удалось получить роль пользователя');
                 }
@@ -184,9 +173,10 @@ function Page() {
                 console.error('Ошибка при получении данных пользователя:', error);
             }
         };
-
+    
         fetchUserData();
     }, []);
+    
 
 
 
@@ -749,7 +739,7 @@ function Page() {
         });
     }, [users, sortColumn, sortDirection]);
 
-    if (isLoading) {
+    if (isLoading || !userStatusLoaded) {
         return (
             <div className={styles.loaderWrapper}>
                 <div className={styles.loader}></div>
