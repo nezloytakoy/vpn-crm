@@ -835,7 +835,7 @@ bot.on('callback_query', async (ctx) => {
       // Обновляем количество коинов пользователя
       await prisma.user.update({
         where: { telegramId: userId },
-        data: { coins: { decrement: 1 } },
+        data: { assistantRequests: { decrement: 1 } },
       });
 
       const lastConversation = user.conversations[0];
