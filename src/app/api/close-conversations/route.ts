@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { sendTelegramMessageToUser, sendTelegramMessageToAssistant } from './telegramHelpers';
-import { awardAssistantBonus, awardMentorBonus, handleRejectRequest} from './helpers'
+import { awardAssistantBonus, awardMentorBonus, handleRejectRequest } from './helpers';
 
 const prisma = new PrismaClient();
 
@@ -8,7 +8,6 @@ export async function POST() {
   try {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
-    
     const usersWithAIChat = await prisma.user.findMany({
       where: {
         isActiveAIChat: true,
@@ -19,21 +18,15 @@ export async function POST() {
     });
 
     for (const user of usersWithAIChat) {
-      
       await prisma.user.update({
         where: { telegramId: user.telegramId },
         data: { isActiveAIChat: false },
       });
 
-      await sendTelegramMessageToUser(
-        user.telegramId.toString(),
-        'Диалог с ИИ окончен.'
-      );
-
+      await sendTelegramMessageToUser(user.telegramId.toString(), 'Диалог с ИИ окончен.');
       console.log(`Диалог с ИИ для пользователя ${user.telegramId} завершен.`);
     }
 
-    
     const conversations = await prisma.conversation.findMany({
       where: {
         status: 'IN_PROGRESS',
@@ -49,7 +42,6 @@ export async function POST() {
       });
     }
 
-    
     for (const conversation of conversations) {
       if (conversation.lastMessageFrom === 'ASSISTANT') {
         const activeRequest = await prisma.assistantRequest.findFirst({
@@ -81,7 +73,6 @@ export async function POST() {
           });
 
           const assistantId = activeRequest.assistantId;
-
           if (assistantId) {
             const totalCompletedConversations = await prisma.conversation.count({
               where: {
@@ -161,9 +152,19 @@ export async function POST() {
             console.error('Ошибка: ассистент не найден при начислении коинов');
           }
 
+          // Отправляем сообщение пользователю с кнопками
           await sendTelegramMessageToUser(
             conversation.userId.toString(),
-            'Диалог завершен.'
+            'Ваш сеанс закончился! Если остались вопросы, то вы можете продлить сеанс.',
+            {
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: 'Продлить', callback_data: 'extend_session' }],
+                  [{ text: 'Я доволен', callback_data: 'satisfied' }],
+                  [{ text: 'Пожаловаться - Мне не помогло', callback_data: 'complain' }],
+                ],
+              },
+            }
           );
         } else {
           console.error('Ошибка: активный запрос не найден');

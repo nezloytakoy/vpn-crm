@@ -3,7 +3,7 @@
 import fetch from 'node-fetch';
 
 // Function to send a message to the user
-export async function sendTelegramMessageToUser(chatId: string, text: string) {
+export async function sendTelegramMessageToUser(chatId: string, text: string, options = {}) {
   const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
   if (!botToken) {
     console.error('TELEGRAM_USER_BOT_TOKEN not found');
@@ -21,6 +21,7 @@ export async function sendTelegramMessageToUser(chatId: string, text: string) {
       body: JSON.stringify({
         chat_id: chatId,
         text,
+        ...options, // добавляем дополнительные опции (например, reply_markup)
       }),
     });
 
@@ -31,6 +32,7 @@ export async function sendTelegramMessageToUser(chatId: string, text: string) {
     console.error('Error sending message to user:', error);
   }
 }
+
 
 // Function to send a message to the assistant
 export async function sendTelegramMessageToAssistant(chatId: string, text: string) {

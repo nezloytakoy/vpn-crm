@@ -546,7 +546,7 @@ bot.on('callback_query:data', async (ctx) => {
         return;
       }
 
-      
+
       const pendingRequest = await prisma.assistantRequest.findFirst({
         where: {
           status: 'PENDING',
@@ -554,13 +554,13 @@ bot.on('callback_query:data', async (ctx) => {
       });
 
       if (pendingRequest) {
-        
+
         await prisma.assistantRequest.update({
           where: { id: pendingRequest.id },
           data: { assistantId: telegramId, status: 'IN_PROGRESS' },
         });
 
-        
+
         await sendTelegramMessageWithButtons(
           telegramId.toString(),
           getTranslation(lang, 'assistantRequestMessage'),
@@ -788,13 +788,13 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
       data: { isBusy: true },
     });
 
-    
+
     const existingConversation = await prisma.conversation.findFirst({
       where: { requestId: assistantRequest.id, status: 'ABORTED' },
     });
 
     if (existingConversation) {
-      
+
       await prisma.conversation.update({
         where: { id: existingConversation.id },
         data: {
@@ -816,7 +816,7 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
         'Ассистент присоединился к чату. Сформулируйте свой вопрос.'
       );
     } else {
-      
+
       await prisma.conversation.create({
         data: {
           userId: assistantRequest.userId,
@@ -846,28 +846,28 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
 
 async function handleRejectRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
   try {
-    
-    const edges = await prisma.edges.findFirst();
-    const maxRejects = edges ? edges.maxRejects : 7; 
 
-    
+    const edges = await prisma.edges.findFirst();
+    const maxRejects = edges ? edges.maxRejects : 7;
+
+
     const rejectCount = await prisma.requestAction.count({
       where: {
         assistantId: assistantTelegramId,
         action: 'REJECTED',
         createdAt: {
-          gte: new Date(Date.now() - 24 * 60 * 60 * 1000), 
+          gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
         },
       },
     });
 
-    
+
     if (rejectCount >= maxRejects) {
       await prisma.assistant.update({
         where: { telegramId: assistantTelegramId },
         data: {
           isBlocked: true,
-          unblockDate: new Date(Date.now() + 24 * 60 * 60 * 1000), 
+          unblockDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
         },
       });
 
@@ -875,7 +875,7 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
       return;
     }
 
-    
+
     const assistantRequest = await prisma.assistantRequest.findUnique({
       where: { id: BigInt(requestId) },
       include: { conversation: true },
@@ -987,7 +987,7 @@ bot.on('message', async (ctx) => {
       const responseMessage = `
 ${assistantMessage}
 --------------------------------
-Времени сеанса осталось ${remainingMinutes} минут
+До конца сеанса осталось ${remainingMinutes} минут
       `;
 
       await sendTelegramMessageToUser(

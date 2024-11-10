@@ -686,12 +686,6 @@ bot.on("message:successful_payment", async (ctx) => {
 
 
 
-
-
-
-
-
-
 bot.command('problem', async (ctx: Context) => {
   try {
     if (!ctx.from?.id) {
@@ -751,6 +745,125 @@ bot.command('problem', async (ctx: Context) => {
   } catch (error) {
     console.error('Ошибка при создании жалобы:', error);
     await ctx.reply('Произошла ошибка при создании жалобы. Пожалуйста, попробуйте позже.');
+  }
+});
+
+bot.on('callback_query', async (ctx) => {
+  try {
+    const callbackData = ctx.callbackQuery?.data;
+
+    if (callbackData === 'complain') {
+      // Обработчик для жалобы
+      if (!ctx.from?.id) {
+        await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
+        return;
+      }
+
+      const telegramId = BigInt(ctx.from.id);
+
+      const lastRequest = await prisma.assistantRequest.findFirst({
+        where: {
+          userId: telegramId,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      if (!lastRequest) {
+        await ctx.reply('⚠️ У вас нет запросов.');
+        return;
+      }
+
+      const existingComplaint = await prisma.complaint.findUnique({
+        where: { id: lastRequest.id },
+      });
+
+      if (existingComplaint) {
+        await ctx.reply('⚠️ Вы уже подали жалобу по этому запросу.');
+        return;
+      }
+
+      const assistantId = lastRequest.assistantId ?? BigInt(0);
+
+      await prisma.complaint.create({
+        data: {
+          id: lastRequest.id,
+          userId: telegramId,
+          assistantId: assistantId,
+          text: '',
+          status: 'PENDING',
+        },
+      });
+
+      await prisma.user.update({
+        where: { telegramId },
+        data: { isWaitingForComplaint: true },
+      });
+
+      await ctx.editMessageText('Опишите свою жалобу. После этого вы сможете загрузить скриншоты.');
+    } else if (callbackData === 'satisfied') {
+      // Обработчик для кнопки "Я доволен"
+      await ctx.reply('Спасибо за использование нашего сервиса');
+      await ctx.answerCallbackQuery(); // Закрываем уведомление о callback query
+    } else if (callbackData === 'extend_session') {
+      // Обработчик для продления сеанса
+      if (!ctx.from?.id) {
+        await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
+        return;
+      }
+
+      const userId = BigInt(ctx.from.id);
+
+      // Получаем пользователя
+      const user = await prisma.user.findUnique({
+        where: { telegramId: userId },
+        include: { conversations: { orderBy: { createdAt: 'desc' }, take: 1 } }, // Берем последний диалог
+      });
+
+      if (!user) {
+        await ctx.reply('Ошибка: пользователь не найден.');
+        return;
+      }
+
+      // Проверка коинов
+      if (user.coins < 1) {
+        await ctx.reply('У вас недостаточно коинов.');
+        return;
+      }
+
+      // Обновляем количество коинов пользователя
+      await prisma.user.update({
+        where: { telegramId: userId },
+        data: { coins: { decrement: 1 } },
+      });
+
+      const lastConversation = user.conversations[0];
+
+      // Проверяем, есть ли последний диалог
+      if (!lastConversation || !lastConversation.assistantId) {
+        await ctx.reply('Ошибка: не удалось найти ассистента для последнего диалога.');
+        return;
+      }
+
+      const assistantId = lastConversation.assistantId;
+
+      // Отправляем запрос на новый диалог ассистенту
+      await sendTelegramMessageWithButtons(
+        assistantId.toString(),
+        'Новый запрос на продление сеанса.',
+        [
+          { text: 'Принять', callback_data: `accept_${lastConversation.id}` },
+          { text: 'Отклонить', callback_data: `reject_${lastConversation.id}` },
+        ]
+      );
+
+      await ctx.reply('Ваш запрос на продление сеанса отправлен ассистенту.');
+      await ctx.answerCallbackQuery(); // Закрываем уведомление о callback query
+    }
+  } catch (error) {
+    console.error('Ошибка при обработке callback_query:', error);
+    await ctx.reply('Произошла ошибка. Пожалуйста, попробуйте позже.');
   }
 });
 
@@ -1250,7 +1363,30 @@ async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Contex
 }
 
 
+async function sendTelegramMessageWithButtons(chatId: string, text: string, buttons: TelegramButton[]) {
+  const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
+  await fetch(url, {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+          chat_id: chatId,
+          text,
+          reply_markup: {
+              inline_keyboard: buttons.map((button) => [{ text: button.text, callback_data: button.callback_data }]),
+          },
+      }),
+  });
+}
+
+
+type TelegramButton = {
+  text: string;
+  callback_data: string;
+};
 
 
 
