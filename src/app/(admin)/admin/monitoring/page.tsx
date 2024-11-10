@@ -7,8 +7,6 @@ import Table from '@/components/Table/Table';
 import { useRouter } from 'next/navigation';
 import styles from './Monitoring.module.css';
 
-export const fetchCache = 'force-no-store';
-
 interface AssistantData {
   telegramId: string;
   nick: string;
@@ -23,6 +21,7 @@ interface AssistantData {
 
 const Monitoring: React.FC = () => {
   const [assistantsData, setAssistantsData] = useState<AssistantData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
   const [currentAssistantTelegramId, setCurrentAssistantTelegramId] = useState<string | null>(null);
@@ -47,10 +46,11 @@ const Monitoring: React.FC = () => {
         }
 
         const data = await response.json();
-        console.log('Полученные данные ассистентов:', data);
         setAssistantsData(data);
       } catch (error) {
         console.error('Ошибка при получении данных ассистентов:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -131,7 +131,6 @@ const Monitoring: React.FC = () => {
   }, [isPopupOpen]);
 
   useEffect(() => {
-    // Получаем роль текущего пользователя при загрузке компонента
     const fetchRole = async () => {
       try {
         const moderResponse = await fetch('/api/get-moder-id', {
@@ -211,7 +210,6 @@ const Monitoring: React.FC = () => {
             <button
               className={styles.messageButton}
               onClick={() => {
-                console.log('Клик по сообщению, telegramId:', value);
                 if (!value) {
                   console.error('Ошибка: telegramId ассистента не установлен');
                   return;
@@ -230,34 +228,41 @@ const Monitoring: React.FC = () => {
 
   return (
     <div className={styles.main}>
-      <div className={styles.tableWrapper}>
-        <div className={styles.header}>
-          <h3>
-            Ассистенты <span>({assistantsData.length})</span>
-          </h3>
+      {isLoading ? (
+        <div className={styles.loaderWrapper}>
+          <div className={styles.loader}></div>
         </div>
-        <Table columns={columns} data={assistantsData} />
-      </div>
-
-      {isPopupOpen && (
-        <div className={styles.popupOverlay}>
-          <div className={styles.popup} ref={popupRef}>
-            <h3>Отправить сообщение</h3>
-            <textarea
-              value={popupMessage}
-              onChange={(e) => setPopupMessage(e.target.value)}
-              placeholder="Введите ваше сообщение"
-              className={styles.textarea}
-            />
-            <button className={styles.sendButton} onClick={handleSendMessage}>
-              Отправить
-            </button>
+      ) : (
+        <>
+          <div className={styles.tableWrapper}>
+            <div className={styles.header}>
+              <h3>
+                Ассистенты <span>({assistantsData.length})</span>
+              </h3>
+            </div>
+            <Table columns={columns} data={assistantsData} />
           </div>
-        </div>
+
+          {isPopupOpen && (
+            <div className={styles.popupOverlay}>
+              <div className={styles.popup} ref={popupRef}>
+                <h3>Отправить сообщение</h3>
+                <textarea
+                  value={popupMessage}
+                  onChange={(e) => setPopupMessage(e.target.value)}
+                  placeholder="Введите ваше сообщение"
+                  className={styles.textarea}
+                />
+                <button className={styles.sendButton} onClick={handleSendMessage}>
+                  Отправить
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
 };
 
 export default Monitoring;
-

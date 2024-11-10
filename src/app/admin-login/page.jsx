@@ -12,6 +12,7 @@ export default function Page() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false); // Состояние для отображения лоадера
     const router = useRouter();
 
     const togglePasswordVisibility = () => {
@@ -23,22 +24,21 @@ export default function Page() {
     };
 
     const handleLogin = async () => {
-     
         setError('');
+        setIsLoading(true); // Включаем лоадер
 
         try {
-         
             const result = await loginAction(email, password);
             if (!result) {
-            
                 router.push('/admin/monitoring');
             } else {
-              
                 setError(result);
             }
         } catch (err) {
             console.error('Login error:', err);
             setError('Ошибка при авторизации. Попробуйте снова.');
+        } finally {
+            setIsLoading(false); // Отключаем лоадер после завершения авторизации
         }
     };
 
@@ -89,7 +89,7 @@ export default function Page() {
                     </div>
                     <div className={styles.remember}>
                         <div className={styles.funcbox}>
-                            Remember me
+                            Запомнить меня
                             <div className={styles.customCheckboxContainer} onClick={handleCheckboxChange}>
                                 <input
                                     type="checkbox"
@@ -103,7 +103,11 @@ export default function Page() {
                     </div>
                     {error && <p className={styles.error}>{error}</p>}
                     <div className={styles.button} onClick={handleLogin}>
-                        Войти
+                        {isLoading ? (
+                            <div className={styles.loader}></div> // Лоадер вместо текста на кнопке
+                        ) : (
+                            "Войти"
+                        )}
                     </div>
                 </div>
             </div>

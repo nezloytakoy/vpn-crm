@@ -946,6 +946,8 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
 
 
 
+const SESSION_DURATION = 60; // Длительность сессии в минутах
+
 bot.on('message', async (ctx) => {
   try {
     const lang = detectUserLanguage(ctx);
@@ -963,25 +965,36 @@ bot.on('message', async (ctx) => {
       return;
     }
 
-
-    const [activeRequest] = await Promise.all([
-      prisma.assistantRequest.findFirst({
+    // Поиск активного разговора вместо запроса
+    const [activeConversation] = await Promise.all([
+      prisma.conversation.findFirst({
         where: {
           assistant: { telegramId: assistantTelegramId },
-          isActive: true,
+          status: 'IN_PROGRESS',
         },
         include: { user: true },
       }),
     ]);
 
-    if (activeRequest) {
+    if (activeConversation) {
+      // Вычисление оставшегося времени
+      const conversationStartTime = new Date(activeConversation.createdAt);
+      const currentTime = new Date();
+      const elapsedMinutes = Math.floor((currentTime.getTime() - conversationStartTime.getTime()) / 60000);
+      const remainingMinutes = Math.max(SESSION_DURATION - elapsedMinutes, 0);
+
+      // Формирование сообщения с информацией о времени
+      const responseMessage = `
+${assistantMessage}
+--------------------------------
+Времени сеанса осталось ${remainingMinutes} минут
+      `;
 
       await sendTelegramMessageToUser(
-        activeRequest.user.telegramId.toString(),
-        assistantMessage
+        activeConversation.user.telegramId.toString(),
+        responseMessage
       );
     } else {
-
       await ctx.reply(getTranslation(lang, 'no_user_requests'));
     }
   } catch (error) {
@@ -989,5 +1002,6 @@ bot.on('message', async (ctx) => {
     await ctx.reply(getTranslation(detectUserLanguage(ctx), 'error_processing_message'));
   }
 });
+
 
 export const POST = webhookCallback(bot, 'std/http');

@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   if (!user || !isCorrectPassword) {
     return new Response(
       JSON.stringify({
-        error: "Invalid email or password",
+        error: "Неправильный логин или пароль",
       }),
       { status: 400 }
     );
