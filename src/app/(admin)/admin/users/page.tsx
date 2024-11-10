@@ -91,7 +91,7 @@ function Page() {
         await action();
         setTimeout(() => setLoadingButton(''), 3000);
 
-        // Устанавливаем таймер для перезагрузки страницы через 6 секунд
+        
         setTimeout(() => {
             router.push(pathname);
         }, 3000);
@@ -146,10 +146,10 @@ function Page() {
     const defaultAssistantRequestValues = ['5', '14', '30', '0'];
 
     useEffect(() => {
-        // Получение userId и роли пользователя через API
+        
         const fetchUserData = async () => {
             try {
-                // Получение userId
+                
                 const responseUserId = await fetch('/api/get-moder-id');
                 if (!responseUserId.ok) {
                     throw new Error('Ошибка при получении userId');
@@ -158,7 +158,7 @@ function Page() {
 
                 console.log("Полученное айди:", dataUserId.userId);
 
-                // Получение роли пользователя
+                
                 console.log("Проверяем айди перед запросом роли", dataUserId.userId);
                 const responseRole = await fetch('/api/get-user-role', {
                     method: 'POST',
@@ -173,7 +173,7 @@ function Page() {
 
                     console.log("Роль пользователя:", resultRole.role);
 
-                    // Проверка роли пользователя для отображения (теперь правильно используем роль)
+                    
                     if (resultRole.role !== 'Модератор') {
                         setShouldDisplayForNonModerators(true);
                     }
@@ -279,6 +279,31 @@ function Page() {
         }
     };
 
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const response = await fetch('/api/get-users');
+                const data: UserResponse[] = await response.json();
+                setUsers(data.map(user => ({
+                    telegramId: user.telegramId,
+                    username: user.username,
+                    referralCount: user.referralCount,
+                    subscriptionType: user.subscriptionType,
+                    assistantRequests: user.assistantRequests,
+                    hasUpdatedSubscription: user.hasUpdatedSubscription,
+                })));
+            } catch (error) {
+                console.error('Ошибка при получении данных пользователей:', error);
+            }
+        };
+
+        fetchData(); 
+
+        const interval = setInterval(fetchData, 5000); 
+
+        return () => clearInterval(interval); 
+    }, []);
+
 
     useEffect(() => {
 
@@ -297,24 +322,6 @@ function Page() {
             }
         };
 
-        const fetchUsers = async () => {
-            try {
-                const response = await fetch('/api/get-users');
-                const data: UserResponse[] = await response.json();
-
-                const usersWithSubscriptions: UserData[] = data.map((user) => ({
-                    telegramId: user.telegramId,
-                    username: user.username,
-                    referralCount: user.referralCount,
-                    subscriptionType: user.subscriptionType,
-                    assistantRequests: user.assistantRequests,
-                    hasUpdatedSubscription: user.hasUpdatedSubscription,
-                }));
-                setUsers(usersWithSubscriptions);
-            } catch (error) {
-                console.error('Ошибка при получении данных пользователей:', error);
-            }
-        };
 
         const fetchRequestCounts = async () => {
             try {
@@ -377,7 +384,6 @@ function Page() {
         const fetchAllData = async () => {
             await Promise.all([
                 fetchSubscriptionData(),
-                fetchUsers(),
                 fetchRequestCounts(),
                 fetchPermissions(),
                 fetchSubscriptionPrices(),
@@ -661,7 +667,7 @@ function Page() {
         const assistantCount = getAssistantRequestCount(subscriptionId);
 
         if (subscriptionId === 'FOURTH') {
-            return 'Только AI';  // Убедитесь, что здесь используется правильное название
+            return 'Только AI';  
         }
 
         const label = assistantCount !== undefined

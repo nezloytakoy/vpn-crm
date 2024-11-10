@@ -17,7 +17,20 @@ const nextConfig = {
   },
   reactStrictMode: true,  // Включение строгого режима React для лучшего контроля ошибок
   swcMinify: true,  // Включение SWC для ускоренной минификации
+  
+  async headers() {
+    return [
+      {
+        source: '/(.*)', // Применяется ко всем маршрутам
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, max-age=0, must-revalidate',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
-
