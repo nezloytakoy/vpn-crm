@@ -14,6 +14,11 @@ import {
 
 const prisma = new PrismaClient();
 
+export async function GET() {
+  console.log('GET-запрос получен, перенаправляем в POST...');
+  return await POST();
+}
+
 export async function POST() {
   try {
     // --- ЛОГИКА ИЗ close-conversations ---
