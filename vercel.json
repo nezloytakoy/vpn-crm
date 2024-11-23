@@ -1,14 +1,8 @@
 {
-    "functions": {
-      "api/cron-job-1.js": {
-        "runtime": "nodejs18.x"
-      }
-    },
-    "cron": [
-      {
-        "path": "/api/cron-job-1",
-        "schedule": "*/10 * * * *"
-      }
+    "crons": [
+        {
+            "path": "/api/cron-job-1",
+            "schedule": "*/10 * * * *"
+        }
     ]
-  }
-  
+}
