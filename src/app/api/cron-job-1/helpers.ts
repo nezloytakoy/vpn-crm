@@ -43,7 +43,7 @@ export async function awardAssistantBonus(assistantId: bigint, amount: number, p
     );
   }
   
-async function sendTelegramMessageWithButtons(chatId: string, text: string, buttons: TelegramButton[]) {
+export async function sendTelegramMessageWithButtons(chatId: string, text: string, buttons: TelegramButton[]) {
     const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
     const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
   

@@ -1,18 +1,18 @@
-name: Check Conversations
+# name: Check Conversations
 
-on:
-  schedule:
-    - cron: "*/1 * * * *"  # Run every minute
-  workflow_dispatch:  # Allow manual triggering of the workflow
+# on:
+#   schedule:
+#     - cron: "*/1 * * * *"  # Run every minute
+#   workflow_dispatch:  # Allow manual triggering of the workflow
 
-jobs:
-  conversation-check:
-    runs-on: ubuntu-latest
+# jobs:
+#   conversation-check:
+#     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v3
 
-      - name: Run script to check and close old conversations
-        run: |
-          curl -X POST https://crm-vpn.vercel.app/api/close-conversations
+#       - name: Run script to check and close old conversations
+#         run: |
+#           curl -X POST https://crm-vpn.vercel.app/api/close-conversations
