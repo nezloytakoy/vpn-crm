@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient, Prisma, RequestStatus  } from '@prisma/client';
 import {
   awardAssistantBonus,
   awardMentorBonus,
@@ -244,9 +244,18 @@ async function processAssistantRewards(assistantId: bigint) {
 }
 
 // Функция обработки ожидающих запросов ассистентов
-async function processPendingRequest(
-  request: Prisma.AssistantRequestGetPayload<{}>
-) {
+async function processPendingRequest(request: {
+  createdAt: Date;
+  updatedAt: Date;
+  id: bigint;
+  assistantId: bigint | null;
+  status: RequestStatus;
+  userId: bigint;
+  message: string;
+  isActive: boolean;
+  ignoredAssistants: bigint[];
+}) {
+  console.log('Processing request:', request);
   let ignoredAssistants = request.ignoredAssistants || [];
 
   if (request.assistantId) {
