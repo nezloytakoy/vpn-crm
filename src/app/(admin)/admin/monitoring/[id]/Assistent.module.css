@@ -17,6 +17,7 @@
     font-size: 27px;
 }
 
+
 .pointerblock {
     width: 200px;
     height: 100px;
@@ -40,7 +41,7 @@
 }
 
 .infoblock {
-    width: 65%;
+    width: 100%;
     height: 650px;
     background-image: url('https://92eaarerohohicw5.public.blob.vercel-storage.com/loading-ecwQMeViO0GeoY0j8MAQ8w3CiFZBiZ.gif');
     background-size: 100px 100px;
@@ -257,6 +258,7 @@
     font-weight: 500;
     margin-bottom: 40px;
     border-radius: 10px;
+    margin-top: 50px;
 }
 
 .messageboxtwo {
@@ -270,6 +272,29 @@
     font-weight: 500;
     margin-bottom: 20px;
     margin-top: auto;
+}
+
+.messageboxthree {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    background-color: white;
+    border-radius: 10px;
+    padding: 30px;
+    font-weight: 500;
+    margin-bottom: 20px;
+    margin-top: auto;
+    transition: max-height 0.4s ease-in-out, opacity 0.4s ease-in-out;
+    overflow: hidden;
+    opacity: 1;
+    max-height: 500px;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    background-color: white;
+    width: 100%;
+    height: 250px;
+    border-radius: 10px;
+    padding: 30px;
+    font-weight: 500;
+    margin-bottom: 40px;
+
 }
 
 .gifttitle {
@@ -342,7 +367,7 @@
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
 
-    width: 40%;
+    width: 30%;
     margin-top: 20px;
 }
 
@@ -643,6 +668,20 @@
 }
 
 .submitButtonfour {
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+
+    width: 100%;
+    margin-top: 20px;
+    background-color: #365CF5;
+    color: white;
+}
+
+.submitButtonfive {
     border: none;
     border-radius: 5px;
     padding: 10px 20px;
@@ -1139,10 +1178,88 @@
     color: #888;
 }
 
+.messagebox {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    background-color: white;
+    width: 550px;
+    height: 250px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 30px;
+    font-weight: 500;
+    margin-bottom: 40px;
+
+}
+
+.gifttitle {
+    margin-bottom: 20px;
+    font-size: 17px;
+}
+.undertitletwo {
+    margin-bottom: 10px;
+    margin-top: 20px;
+    font-size: 12px;
+}
+
+.inputContainertwo {
+    display: flex;
+    align-items: center;
+    border: 1px solid #e5e5e5;
+    border-radius: 5px;
+    padding: 10px;
+    background-color: #fff;
+    width: 40%;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+    cursor: pointer;
+}
+
+
+.inputFieldtwo {
+    border: none;
+    outline: none;
+    font-size: 16px;
+    color: #333;
+    width: 90%;
+    background-color: transparent;
+}
+
+.inputContainertwo {
+    display: flex;
+    align-items: center;
+    border: 1px solid #e5e5e5;
+    border-radius: 5px;
+    padding: 10px;
+    background-color: #fff;
+    width: 100%;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+
+}
+
+.label {
+    margin-left: 40px;
+    vertical-align: middle;
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+    color: #333;
+}
+
+
+
 
 @media(min-width: 1300px) {
     .infoblock {
-        width: 70%;
+        width: 150%;
+    }
+
+    .avatarblock {
+        width: 170px;
+        height: 140px;
+    }
+}
+
+@media(min-width: 1500px) {
+    .infoblock {
+        width: 180%;
     }
 
     .avatarblock {
@@ -1153,7 +1270,7 @@
 
 @media(max-width: 1300px) {
     .infoblock {
-        width: 65%;
+        width: 130%;
     }
 
     .avatarblock {

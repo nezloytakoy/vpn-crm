@@ -88,7 +88,58 @@ function Page() {
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [coins, setCoins] = useState(''); // Хранение введённых данных
+  const [error, setError] = useState(''); // Хранение ошибок
+  const [success, setSuccess] = useState(''); // Сообщение об успехе
 
+  const handleSubmit = async () => {
+    // Проверка на пустой инпут
+    if (!coins.trim()) {
+      setError('Пожалуйста, введите количество коинов.');
+      setSuccess('');
+      return;
+    }
+
+    const coinsNumber = parseInt(coins, 10);
+
+    if (isNaN(coinsNumber) || coinsNumber <= 0) {
+      setError('Введите корректное число.');
+      setSuccess('');
+      return;
+    }
+
+    setError(''); // Очистка ошибки
+
+    try {
+      const response = await fetch('/api/add-coins', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          assistantId: currentAssistantId,
+          coins: coinsNumber,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Ошибка при добавлении коинов');
+      }
+
+      // Вместо установки сообщения успешного состояния, выводим alert
+      alert('Коины успешно подарены!');
+      setCoins(''); // Очистка инпута
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Произошла неизвестная ошибка.');
+      }
+      setSuccess('');
+    }
+  };
   useEffect(() => {
     const fetchAssistantData = async () => {
       try {
@@ -377,129 +428,154 @@ function Page() {
       </div>
 
       <div className={styles.assistantblock}>
-        <div className={styles.infoblock}>
-          <div className={styles.metricsblock}>
-            <div className={styles.logoparent}>
-              <div className={styles.avatarblock}>
-                {assistantData?.assistant.avatarUrl ? (
-                  <Image
-                    src={assistantData.assistant.avatarUrl}
-                    alt={`Аватар ассистента ${assistantData.assistant.username}`}
-                    className={styles.avatarImage}
-                    width={100}
-                    height={100}
-                    objectFit="cover"
-                  />
-                ) : (
-                  <p>Нет аватара</p>
-                )}
-              </div>
-              <div className={styles.numbers}>
-                <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.allRequests}</p>
-                  <p className={styles.smalltitle}>Запросы</p>
-                </div>
-                <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.rejectedRequests}</p>
-                  <p className={styles.smalltitle}>Отказы</p>
-                </div>
-                <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.complaints}</p>
-                  <p className={styles.smalltitle}>Жалобы</p>
-                </div>
-                <div className={styles.metrictwo}>
-
-                  <button
-                    className={styles.iconButton}
-                    onClick={() => setShowDropdown(!showDropdown)}
-                    aria-haspopup="true"
-                    aria-expanded={showDropdown}
-                  >
-                    <FaEllipsisH />
-                  </button>
-
-                  {showDropdown && (
-                    <div className={`${styles.dropdownMenu} ${showDropdown ? styles.fadeIn : styles.fadeOut}`} ref={dropdownRef}>
-                      <div className={styles.dropdownItem}>
-                        <p className={styles.number}>{assistantData?.requestsThisMonth}</p>
-                        <p className={styles.smalltitle}>Запросы/месяц</p>
-                      </div>
-                      <div className={styles.dropdownItem}>
-                        <p className={styles.number}>{assistantData?.requestsThisWeek}</p>
-                        <p className={styles.smalltitle}>Запросы/неделя</p>
-                      </div>
-                      <div className={styles.dropdownItem}>
-                        <p className={styles.number}>{assistantData?.requestsToday}</p>
-                        <p className={styles.smalltitle}>Запросы/сутки</p>
-                      </div>
-                      <div className={styles.dropdownItem}>
-                        <p className={styles.number}>{assistantData?.averageResponseTime ? assistantData.averageResponseTime.toFixed(2) : 0}</p>
-                        <p className={styles.smalltitle}>Время ответа(с)</p>
-                      </div>
-                    </div>
+        <div className={styles.fatherblock}>
+          <div className={styles.infoblock}>
+            <div className={styles.metricsblock}>
+              <div className={styles.logoparent}>
+                <div className={styles.avatarblock}>
+                  {assistantData?.assistant.avatarUrl ? (
+                    <Image
+                      src={assistantData.assistant.avatarUrl}
+                      alt={`Аватар ассистента ${assistantData.assistant.username}`}
+                      className={styles.avatarImage}
+                      width={100}
+                      height={100}
+                      objectFit="cover"
+                    />
+                  ) : (
+                    <p>Нет аватара</p>
                   )}
                 </div>
+                <div className={styles.numbers}>
+                  <div className={styles.metric}>
+                    <p className={styles.number}>{assistantData?.allRequests}</p>
+                    <p className={styles.smalltitle}>Запросы</p>
+                  </div>
+                  <div className={styles.metric}>
+                    <p className={styles.number}>{assistantData?.rejectedRequests}</p>
+                    <p className={styles.smalltitle}>Отказы</p>
+                  </div>
+                  <div className={styles.metric}>
+                    <p className={styles.number}>{assistantData?.complaints}</p>
+                    <p className={styles.smalltitle}>Жалобы</p>
+                  </div>
+                  <div className={styles.metrictwo}>
+
+                    <button
+                      className={styles.iconButton}
+                      onClick={() => setShowDropdown(!showDropdown)}
+                      aria-haspopup="true"
+                      aria-expanded={showDropdown}
+                    >
+                      <FaEllipsisH />
+                    </button>
+
+                    {showDropdown && (
+                      <div className={`${styles.dropdownMenu} ${showDropdown ? styles.fadeIn : styles.fadeOut}`} ref={dropdownRef}>
+                        <div className={styles.dropdownItem}>
+                          <p className={styles.number}>{assistantData?.requestsThisMonth}</p>
+                          <p className={styles.smalltitle}>Запросы/месяц</p>
+                        </div>
+                        <div className={styles.dropdownItem}>
+                          <p className={styles.number}>{assistantData?.requestsThisWeek}</p>
+                          <p className={styles.smalltitle}>Запросы/неделя</p>
+                        </div>
+                        <div className={styles.dropdownItem}>
+                          <p className={styles.number}>{assistantData?.requestsToday}</p>
+                          <p className={styles.smalltitle}>Запросы/сутки</p>
+                        </div>
+                        <div className={styles.dropdownItem}>
+                          <p className={styles.number}>{assistantData?.averageResponseTime ? assistantData.averageResponseTime.toFixed(2) : 0}</p>
+                          <p className={styles.smalltitle}>Время ответа(с)</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.datablock}>
+                <div className={styles.nameblock}>
+                  <p className={styles.name}>@{assistantData?.assistant.username}</p>
+                  <p className={styles.undername}>ID: {assistantData?.assistant.telegramId}</p>
+                </div>
+                <div className={styles.numberstwo}>
+                  <div className={styles.metric}>
+                    <p className={styles.number}>{assistantData?.sessionCount}</p>
+                    <p className={styles.smalltitle}>Рабочие сессии</p>
+                  </div>
+                  <div className={styles.metric}>
+                    <p className={styles.number}>{assistantData?.averageSessionTime ? assistantData.averageSessionTime.toFixed(2) : 0}</p>
+                    <p className={styles.smalltitle}>Время сессии</p>
+                  </div>
+                  <div className={styles.metric}>
+                    <p className={styles.number}>{assistantData?.ignoredRequests}</p>
+                    <p className={styles.smalltitle}>Пропусков запросов</p>
+                  </div>
+                  <div className={styles.metric}>
+                    <p className={styles.number}>{assistantData?.assistant.orderNumber}</p>
+                    <p className={styles.smalltitle}>Номер(№) ассистента</p>
+                  </div>
+                </div>
+              </div>
+              <div className={styles.numbersthree}>
+                <div className={styles.messageboxthree}>
+                  <h1 className={styles.gifttitle}>Заблокировать ассистента</h1>
+                  <h1 className={styles.undertitletwo}>Введите на какое время (в часах)</h1>
+                  <div className={styles.inputContainertwo}>
+                    <input
+                      type="text"
+                      className={styles.inputFieldtwo}
+                      placeholder="7"
+                      value={blockHours}
+                      onChange={(e) => setBlockHours(e.target.value)}
+                    />
+                    <span className={styles.label}>Часов</span>
+                  </div>
+                  <div className={styles.buttonblock}>
+                    <button
+                      className={styles.submitButtontwo}
+                      onClick={handleBlockAssistant}
+                      disabled={isBlocking}
+                    >
+                      {isBlocking ? 'Загрузка...' : 'Подтвердить'}
+                    </button>
+                    <button
+                      className={styles.submitButtonthree}
+                      onClick={() => setShowPopup(true)}
+                    >
+                      Удалить ассистента
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className={styles.datablock}>
-              <div className={styles.nameblock}>
-                <p className={styles.name}>@{assistantData?.assistant.username}</p>
-                <p className={styles.undername}>ID: {assistantData?.assistant.telegramId}</p>
-              </div>
-              <div className={styles.numberstwo}>
-                <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.sessionCount}</p>
-                  <p className={styles.smalltitle}>Рабочие сессии</p>
-                </div>
-                <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.averageSessionTime ? assistantData.averageSessionTime.toFixed(2) : 0}</p>
-                  <p className={styles.smalltitle}>Время сессии</p>
-                </div>
-                <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.ignoredRequests}</p>
-                  <p className={styles.smalltitle}>Пропусков запросов</p>
-                </div>
-                <div className={styles.metric}>
-                  <p className={styles.number}>{assistantData?.assistant.orderNumber}</p>
-                  <p className={styles.smalltitle}>Номер(№) ассистента</p>
-                </div>
-              </div>
+          </div>
+          <div className={styles.messagebox}>
+            <h1 className={styles.gifttitle}>Подарить коины</h1>
+            <h1 className={styles.undertitletwo}>Введите количество</h1>
+            <div className={styles.inputContainertwo}>
+              <input
+                type="text"
+                className={styles.inputFieldtwo}
+                value={coins}
+                onChange={(e) => setCoins(e.target.value)} // Обновление state при вводе данных
+              />
+              <span className={styles.label}>Коинов</span>
             </div>
-            <div className={styles.numbersthree}>
-              <div className={styles.messagebox}>
-                <h1 className={styles.gifttitle}>Заблокировать ассистента</h1>
-                <h1 className={styles.undertitletwo}>Введите на какое время (в часах)</h1>
-                <div className={styles.inputContainertwo}>
-                  <input
-                    type="text"
-                    className={styles.inputFieldtwo}
-                    placeholder="7"
-                    value={blockHours}
-                    onChange={(e) => setBlockHours(e.target.value)}
-                  />
-                  <span className={styles.label}>Часов</span>
-                </div>
-                <div className={styles.buttonblock}>
-                  <button
-                    className={styles.submitButtontwo}
-                    onClick={handleBlockAssistant}
-                    disabled={isBlocking}
-                  >
-                    {isBlocking ? 'Загрузка...' : 'Подтвердить'}
-                  </button>
-                  <button
-                    className={styles.submitButtonthree}
-                    onClick={() => setShowPopup(true)}
-                  >
-                    Удалить ассистента
-                  </button>
-                </div>
-              </div>
-            </div>
+
+            {error && <p className={styles.error}>{error}</p>} {/* Отображение ошибок */}
+            {success && <p className={styles.success}>{success}</p>} {/* Отображение успешного сообщения */}
+
+            <button
+              className={`${styles.submitButtonfive}`}
+              onClick={handleSubmit} // Вызов функции при нажатии
+            >
+              Подтвердить
+            </button>
           </div>
         </div>
-
         <div className={styles.pupil}>
           <div className={styles.pupiltitleblock}>
             <p className={styles.pupiltitle}>Подопечные</p>
@@ -541,6 +617,7 @@ function Page() {
               </button>
             </div>
           </div>
+
           <div className={`${styles.pupilsblock} ${isMessageboxVisible ? styles.hidePupils : styles.showPupils}`}>
             {isLoadingData ? (
               <p>Данные загружаются...</p>
@@ -572,20 +649,22 @@ function Page() {
                     styles.greenCircle}`;
 
                 return (
-                  <div key={pupil.telegramId} className={styles.pupilblock}>
-                    <div className={styles.pupillogo}>
-                      <div className={circleClass}></div>
-                    </div>
-                    <div className={styles.pupilnameblock}>
-                      <div className={styles.pupilinnername}>
-                        <p className={styles.nametext}>{pupil.username}</p>
-                        <div className={styles.pupilinfo}>
-                          <p className={styles.infotext} dangerouslySetInnerHTML={{ __html: formatTimeAgo(minutesAgo) }} />
-                        </div>
+                  <div>
+                    <div key={pupil.telegramId} className={styles.pupilblock}>
+                      <div className={styles.pupillogo}>
+                        <div className={circleClass}></div>
                       </div>
-                      <div className={styles.pupilunderblock}>
-                        <p className={styles.undertext}>{pupil.telegramId}</p>
-                        <p className={styles.undertext}>№{pupil.orderNumber}</p>
+                      <div className={styles.pupilnameblock}>
+                        <div className={styles.pupilinnername}>
+                          <p className={styles.nametext}>{pupil.username}</p>
+                          <div className={styles.pupilinfo}>
+                            <p className={styles.infotext} dangerouslySetInnerHTML={{ __html: formatTimeAgo(minutesAgo) }} />
+                          </div>
+                        </div>
+                        <div className={styles.pupilunderblock}>
+                          <p className={styles.undertext}>{pupil.telegramId}</p>
+                          <p className={styles.undertext}>№{pupil.orderNumber}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
