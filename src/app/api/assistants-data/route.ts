@@ -19,59 +19,65 @@ export async function GET() {
     });
 
     // Используем Promise.all для асинхронного выполнения операций внутри map
-    const assistantsData = await Promise.all(assistants.map(async (assistant) => {
-      const completedConversations = assistant.conversations.length;
-      const deniedRequests = assistant.requestActions.length;
+    const assistantsData = await Promise.all(
+      assistants.map(async (assistant) => {
+        const completedConversations = assistant.conversations.length;
+        const deniedRequests = assistant.requestActions.length;
 
-      // Рассчитываем среднее время ответа
-      const averageResponseTime = calculateAverageResponseTimeFromConversations(assistant.conversations);
+        // Рассчитываем среднее время ответа
+        const averageResponseTime = calculateAverageResponseTimeFromConversations(
+          assistant.conversations
+        );
 
-      // Получаем количество жалоб и количество активных жалоб (со статусом 'PENDING')
-      const totalComplaints = await prisma.complaint.count({
-        where: { assistantId: assistant.telegramId },
-      });
+        // Получаем количество жалоб и количество активных жалоб (со статусом 'PENDING')
+        const totalComplaints = await prisma.complaint.count({
+          where: { assistantId: assistant.telegramId },
+        });
 
-      const pendingComplaints = await prisma.complaint.count({
-        where: {
-          assistantId: assistant.telegramId,
-          status: 'PENDING',
-        },
-      });
+        const pendingComplaints = await prisma.complaint.count({
+          where: {
+            assistantId: assistant.telegramId,
+            status: 'PENDING',
+          },
+        });
 
-      const status = (() => {
-        const logMessage = `Assistant: ${assistant.telegramId} - isWorking: ${assistant.isWorking}, isBusy: ${assistant.isBusy}`;
-        
-        sendDebugLogToTelegram(logMessage); // Отправляем лог в Telegram
-      
-        if (assistant.isWorking && assistant.isBusy) {
-          return 'Работает';
-        } else if (assistant.isWorking && !assistant.isBusy) {
+        // Новая система статусов
+        const status = (() => {
+          const logMessage = `Assistant: ${assistant.telegramId} - isBlocked: ${assistant.isBlocked}, isWorking: ${assistant.isWorking}`;
+          sendDebugLogToTelegram(logMessage); // Отправляем лог в Telegram
+
+          if (assistant.isBlocked) {
+            return 'Выкинуло с линии';
+          }
+          if (assistant.isWorking) {
+            return 'Работает';
+          }
           return 'Не работает';
-        } else {
-          return 'Оффлайн';
-        }
-      })();
+        })();
 
-      return {
-        telegramId: assistant.telegramId.toString(), // Преобразуем BigInt в строку
-        nick: assistant.username ? `@${assistant.username}` : `@${assistant.telegramId.toString()}`, // Преобразуем BigInt в строку
-        averageResponseTime, // Среднее время ответа
-        completed: completedConversations,
-        denied: deniedRequests,
-        current: pendingComplaints, // Активные жалобы
-        complaints: totalComplaints, // Всего жалоб
-        status,
-        message: 'Сообщение ассистента',
-      };
-    }));
+        return {
+          telegramId: assistant.telegramId.toString(), // Преобразуем BigInt в строку
+          nick: assistant.username
+            ? `@${assistant.username}`
+            : `@${assistant.telegramId.toString()}`, // Преобразуем BigInt в строку
+          averageResponseTime, // Среднее время ответа
+          completed: completedConversations,
+          denied: deniedRequests,
+          current: pendingComplaints, // Активные жалобы
+          complaints: totalComplaints, // Всего жалоб
+          status,
+          message: 'Сообщение ассистента',
+        };
+      })
+    );
 
     return new NextResponse(JSON.stringify(assistantsData), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        Pragma: 'no-cache',
+        Expires: '0',
       },
     });
   } catch (error) {
@@ -81,8 +87,8 @@ export async function GET() {
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        Pragma: 'no-cache',
+        Expires: '0',
       },
     });
   }
@@ -90,7 +96,7 @@ export async function GET() {
 
 // Функция для расчета среднего времени ответа на основе разговоров
 function calculateAverageResponseTimeFromConversations(conversations: Conversation[]) {
-  const responseTimes: number[] = conversations.flatMap(conversation => {
+  const responseTimes: number[] = conversations.flatMap((conversation) => {
     if (Array.isArray(conversation.assistantResponseTimes)) {
       return conversation.assistantResponseTimes as number[]; // Время в миллисекундах
     }

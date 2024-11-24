@@ -39,23 +39,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Отсутствуют необходимые данные' }, { status: 400 });
     }
 
-    
+    // Проверяем, существует ли модератор или администратор
     const moderator = await prisma.moderator.findUnique({
       where: { id: BigInt(moderatorId) },
     });
 
+    const admin = await prisma.admin.findUnique({
+      where: { id: BigInt(moderatorId) },
+    });
+
+    if (!moderator && !admin) {
+      console.log('Модератор или администратор с указанным ID не найден');
+      return NextResponse.json({ error: 'Модератор или администратор не найден' }, { status: 404 });
+    }
+
+    // Обновляем поле lastActiveAt только для модераторов
     if (moderator) {
-      console.log(`Модератор с ID ${moderatorId} найден`);
       await prisma.moderator.update({
         where: { id: BigInt(moderatorId) },
         data: { lastActiveAt: new Date() },
       });
       console.log(`Последнее время активности модератора с ID ${moderatorId} обновлено`);
-    } else {
-      console.log(`Модератор с ID ${moderatorId} не найден. Логика, связанная с модератором, пропущена.`);
     }
 
-    
     console.log(`Поиск жалобы с ID ${complaintId}`);
     const complaint = await prisma.complaint.findUnique({
       where: { id: BigInt(complaintId) },
@@ -68,14 +74,12 @@ export async function POST(request: NextRequest) {
 
     console.log('Жалоба найдена:', complaint);
 
-    
     console.log(`Начисление коина пользователю с Telegram ID ${complaint.userId}`);
     await prisma.user.update({
       where: { telegramId: complaint.userId },
       data: { coins: { increment: 1 } },
     });
 
-    
     const userMessage = `Ваша жалоба одобрена. Вам начислен 1 койн. ${explanation}`;
     const assistantMessage = `Жалоба пользователя показалась модератору убедительной. ${explanation}`;
     const supportBotToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
@@ -94,18 +98,17 @@ export async function POST(request: NextRequest) {
 
     console.log('Сообщения успешно отправлены');
 
-    
     console.log(`Обновление статуса жалобы с ID ${complaint.id} на REVIEWED`);
     await prisma.complaint.update({
       where: { id: complaint.id },
       data: {
         status: 'REVIEWED',
         decision: explanation,
-        moderatorId: BigInt(moderatorId),  
+        moderatorId: moderator ? BigInt(moderatorId) : null, // Привязываем модератора, если он существует
       },
     });
 
-    
+    // Увеличиваем счетчик рассмотренных жалоб, если модератор
     if (moderator) {
       console.log(`Увеличение счетчика рассмотренных жалоб для модератора с ID ${moderatorId}`);
       await prisma.moderator.update({

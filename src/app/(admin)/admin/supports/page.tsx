@@ -158,40 +158,36 @@ function Page() {
 
     const handleUpdateDuration = async () => {
         if (durationInput.trim() === '') {
-            alert('Введите количество минут.');
+            alert('Введите количество секунд.');
             return;
         }
-
+    
         try {
-            const minutes = parseInt(durationInput, 10);
-            if (isNaN(minutes) || minutes < 0) {
+            const seconds = parseInt(durationInput, 10); // Теперь используем seconds
+            if (isNaN(seconds) || seconds < 0) {
                 alert('Пожалуйста, введите корректное положительное число.');
                 return;
             }
-
-
+    
             setIsUpdateDurationLoading(true);
-
+    
             const response = await fetch('/api/update-duration', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ minutes }),
+                body: JSON.stringify({ seconds }), // Отправляем секунды
             });
-
+    
             const result = await response.json();
             if (response.ok) {
-                alert(result.message || 'Количество минут успешно обновлено.');
-                setDuration(minutes);
+                alert(result.message || 'Количество секунд успешно обновлено.');
+                setDuration(seconds); // Обновляем локальное состояние
                 setDurationInput('');
-
-
+    
                 setTimeout(() => {
-
                     setIsUpdateDurationLoading(false);
-
-
+    
                     setTimeout(() => {
                         window.location.reload();
                     }, 3000);
@@ -201,12 +197,11 @@ function Page() {
                 setIsUpdateDurationLoading(false);
             }
         } catch (error) {
-            console.error('Ошибка при обновлении количества минут:', error);
-            alert('Произошла ошибка при обновлении количества минут.');
+            console.error('Ошибка при обновлении количества секунд:', error);
+            alert('Произошла ошибка при обновлении количества секунд.');
             setIsUpdateDurationLoading(false);
         }
     };
-
 
     useEffect(() => {
 
@@ -794,7 +789,7 @@ function Page() {
                                 value={durationInput}
                                 onChange={(e) => setDurationInput(e.target.value)}
                             />
-                            <span className={styles.label}>Минут</span>
+                            <span className={styles.label}>Секунд</span>
                         </div>
 
                         <button

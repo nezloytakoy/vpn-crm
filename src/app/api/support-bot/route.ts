@@ -178,7 +178,7 @@ const translations = {
   },
   ru: {
     end_dialog_error: "Ошибка: не удалось получить ваш идентификатор Telegram.",
-    no_active_requests: "⚠️ У вас нет активных запросов.",
+    no_active_requests: "⚠️ Активные запросы отсутствуют.",
     dialog_closed: "Диалог с пользователем завершен.",
     assistant_finished_dialog: "Ассистент завершил диалог.",
     start_invalid_link: "❌ Ссылка недействительна или уже была использована.",
@@ -404,8 +404,9 @@ bot.command('requests', async (ctx) => {
       .map((request) => {
         const userTelegramId = request.userId.toString();
         const message = request.message || getTranslation(lang, 'no_message');
-        const createdAt = request.createdAt.toLocaleString();
+        const createdAt = new Date(request.createdAt.getTime() + 2 * 60 * 60 * 1000).toLocaleString();
         return `👤 User: ${userTelegramId}\n📝 Message: ${message}\n📅 Created At: ${createdAt}`;
+
       })
       .join('\n\n');
 

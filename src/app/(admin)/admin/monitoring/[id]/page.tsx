@@ -64,6 +64,16 @@ interface Pupil {
   isBusy: boolean;
 }
 
+// New interface for Complaints
+interface ComplaintData {
+  id: string;
+  userId: string;
+  username: string | null;
+  status: string;
+  decision: string | null;
+  moderatorId: string | null;
+}
+
 function Page() {
   const { id: currentAssistantId } = useParams();
   const router = useRouter();
@@ -87,12 +97,38 @@ function Page() {
   const [blockHours, setBlockHours] = useState('');
   const [isBlocking, setIsBlocking] = useState(false);
 
-
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [coins, setCoins] = useState(''); // Хранение введённых данных
   const [error, setError] = useState(''); // Хранение ошибок
   const [success, setSuccess] = useState(''); // Сообщение об успехе
+
+  // New state for complaints
+  const [complaintsData, setComplaintsData] = useState<ComplaintData[]>([]);
+  const [isLoadingComplaints, setIsLoadingComplaints] = useState(true);
+
+  // Function to fetch complaints data
+  useEffect(() => {
+    const fetchComplaintsData = async () => {
+      try {
+        const response = await fetch(`/api/get-assistant-complaints?assistantId=${currentAssistantId}`);
+        const data = await response.json();
+        if (response.ok) {
+          setComplaintsData(data);
+        } else {
+          console.error('Ошибка:', data.error);
+        }
+      } catch (error) {
+        console.error('Ошибка при получении жалоб:', error);
+      } finally {
+        setIsLoadingComplaints(false);
+      }
+    };
+
+    if (currentAssistantId) {
+      fetchComplaintsData();
+    }
+  }, [currentAssistantId]);
 
   const handleSubmit = async () => {
     // Проверка на пустой инпут
@@ -163,6 +199,13 @@ function Page() {
       fetchAssistantData();
     }
   }, [currentAssistantId]);
+
+  const complaintsColumns: Column<ComplaintData>[] = [
+    { Header: 'ID Жалобы', accessor: 'id' },
+    { Header: 'ID Пользователя', accessor: 'userId' },
+    { Header: 'Username', accessor: 'username' },
+    { Header: 'Статус', accessor: 'status' },
+  ];
 
   const handleAddPupil = async () => {
     setIsLoading(true);
@@ -298,24 +341,33 @@ function Page() {
     URL.revokeObjectURL(url);
   };
 
+  // Определение столбцов для таблицы запросов
   const requestColumns: Column<AssistantRequest>[] = [
     { Header: 'ID запроса', accessor: 'id' },
     { Header: 'Действие', accessor: 'status' },
     {
       Header: 'Лог',
       accessor: 'messages',
-      Cell: ({ row }: { row: { original: AssistantRequest } }) => (
-        row.original.messages && row.original.messages.length > 0 ? (
+      Cell: ({ row }: { row: { original: AssistantRequest } }) => {
+        const { messages, status, id } = row.original;
+
+        // Проверяем статус запроса
+        if (status === 'IGNORED' || status === 'REJECTED') {
+          return <span>-</span>; // Не отображаем кнопку "Скачать"
+        }
+
+        // Проверяем наличие сообщений
+        return messages && messages.length > 0 ? (
           <button
-            onClick={() => handleDownload(row.original.messages, `request_${row.original.id}`)}
+            onClick={() => handleDownload(messages, `request_${id}`)}
             className={styles.downloadButton}
           >
             Скачать
           </button>
         ) : (
           <span>-</span>
-        )
-      ),
+        );
+      },
     },
     { Header: 'ID пользователя', accessor: 'userId' },
   ];
@@ -700,6 +752,22 @@ function Page() {
           </div>
         </div>
       )}
+      <div className={styles.tablebox}>
+        <div className={styles.tableWrapper}>
+          <div className={styles.header}>
+            <h3>
+              Жалобы на ассистента <span>({complaintsData.length})</span>
+            </h3>
+          </div>
+          {isLoadingComplaints ? (
+            <p>Загрузка жалоб...</p>
+          ) : complaintsData.length > 0 ? (
+            <Table columns={complaintsColumns} data={complaintsData} />
+          ) : (
+            <p>Жалобы не найдены.</p>
+          )}
+        </div>
+      </div>
 
       {showPopup && (
         <>
