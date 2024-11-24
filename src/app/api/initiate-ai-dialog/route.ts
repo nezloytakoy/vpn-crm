@@ -22,9 +22,9 @@ export async function POST(request: Request) {
 
     console.log(`Включаем режим общения с ИИ для пользователя с ID: ${userId}`);
 
-
+    const userIdBigInt = BigInt(userId);
     const user = await prisma.user.findUnique({
-      where: { telegramId: BigInt(userId) },
+      where: { telegramId: userIdBigInt },
     });
 
     if (!user) {
@@ -37,7 +37,25 @@ export async function POST(request: Request) {
       });
     }
 
-    if (user.aiRequests <= 0) {
+    // Новая логика: проверяем оставшиеся запросы к ИИ в UserTariff
+    const now = new Date();
+
+    // Суммируем оставшиеся запросы к ИИ из активных тарифов
+    const totalRemainingAIRequestsResult = await prisma.userTariff.aggregate({
+      _sum: {
+        remainingAIRequests: true,
+      },
+      where: {
+        userId: userIdBigInt,
+        expirationDate: {
+          gte: now,
+        },
+      },
+    });
+
+    const totalRemainingAIRequests = totalRemainingAIRequestsResult._sum.remainingAIRequests || 0;
+
+    if (totalRemainingAIRequests <= 0) {
       console.error('У пользователя нет доступных запросов к ИИ');
       return new Response(JSON.stringify({ error: 'Нет доступных запросов к ИИ' }), {
         status: 400,
@@ -47,13 +65,51 @@ export async function POST(request: Request) {
       });
     }
 
+    // Находим самый старый тариф с оставшимися запросами к ИИ
+    const userTariff = await prisma.userTariff.findFirst({
+      where: {
+        userId: userIdBigInt,
+        remainingAIRequests: {
+          gt: 0,
+        },
+        expirationDate: {
+          gte: now,
+        },
+      },
+      orderBy: {
+        expirationDate: 'asc',
+      },
+    });
 
+    if (!userTariff) {
+      console.error('У пользователя нет доступных запросов к ИИ');
+      return new Response(JSON.stringify({ error: 'Нет доступных запросов к ИИ' }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    }
 
+    // Уменьшаем оставшиеся запросы в тарифе на 1
+    await prisma.userTariff.update({
+      where: {
+        id: userTariff.id,
+      },
+      data: {
+        remainingAIRequests: {
+          decrement: 1,
+        },
+      },
+    });
+
+    console.log(`Запросов к ИИ в тарифе ID ${userTariff.id.toString()} пользователя ${userIdBigInt.toString()} уменьшено на 1`);
+
+    // Обновляем статус пользователя
     const updatedUser = await prisma.user.update({
-      where: { telegramId: BigInt(userId) },
+      where: { telegramId: userIdBigInt },
       data: {
         isActiveAIChat: true,
-        aiRequests: { decrement: 1 },
         usedAIRequests: { increment: 1 },
         lastAIChatOpenedAt: new Date(),
       },
@@ -74,7 +130,8 @@ export async function POST(request: Request) {
 
     console.log('BOT_TOKEN установлен');
 
-    const messageText = 'Приветствую! Режим общения с ИИ активирован. Вы можете задавать свои вопросы. Для завершения диалога отправьте команду /end_ai.';
+    const messageText =
+      'Приветствую! Режим общения с ИИ активирован. Вы можете задавать свои вопросы. Для завершения диалога отправьте команду /end_ai.';
 
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
 
@@ -108,12 +165,15 @@ export async function POST(request: Request) {
 
     console.log('Сообщение успешно отправлено через Telegram Bot API');
 
-    return new Response(JSON.stringify({ message: 'AI dialog initiated', aiRequestsRemaining: updatedUser.aiRequests }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    return new Response(
+      JSON.stringify({ message: 'AI dialog initiated', aiRequestsRemaining: totalRemainingAIRequests - 1 }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
   } catch (error) {
     console.error('Ошибка сервера в /api/initiate-ai-dialog:', error);
 

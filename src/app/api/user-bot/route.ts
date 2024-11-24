@@ -593,41 +593,38 @@ bot.on("message:successful_payment", async (ctx) => {
           },
         });
 
-
         if (!subscription) {
           await sendLogToTelegram(`Подписка не найдена для цены: ${totalStars} stars`);
           throw new Error(`Подписка не найдена для цены: ${totalStars} stars`);
         }
-
-
       } catch (subscriptionError) {
         const errorMessage = subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError);
-        const errorStack = subscriptionError instanceof Error ? subscriptionError.stack : 'No stack trace';
-        await sendLogToTelegram(`Ошибка при поиске подписки: ${errorMessage}\nStack trace: ${errorStack}`);
+        await sendLogToTelegram(`Ошибка при поиске подписки: ${errorMessage}`);
         throw subscriptionError;
       }
 
-      await sendLogToTelegram(`Preparing to update User ID ${decodedUserIdBigInt.toString()} with subscription: ${subscription.name}`);
+      const expirationDate = new Date();
+      expirationDate.setMonth(expirationDate.getMonth() + 1); // Устанавливаем дату истечения через 1 месяц
 
       try {
-        await prisma.user.update({
-          where: {
-            telegramId: decodedUserIdBigInt,
-          },
+        // Создаем запись в таблице UserTariff
+        await prisma.userTariff.create({
           data: {
-            lastPaidSubscriptionId: subscription.id,
-            hasUpdatedSubscription: true,
-            aiRequests: { increment: subscription.aiRequestCount },
-            assistantRequests: { increment: subscription.assistantRequestCount || 0 },
-            updatedAt: new Date(),
+            userId: decodedUserIdBigInt,
+            tariffId: subscription.id,
+            totalAssistantRequests: subscription.assistantRequestCount || 0,
+            totalAIRequests: subscription.aiRequestCount,
+            remainingAssistantRequests: subscription.assistantRequestCount || 0,
+            remainingAIRequests: subscription.aiRequestCount,
+            expirationDate,
           },
         });
-        await sendLogToTelegram(`User ${decodedUserIdBigInt.toString()} successfully updated with subscription: ${subscription.name}`);
-      } catch (updateError) {
-        const errorMessage = updateError instanceof Error ? updateError.message : String(updateError);
 
-        await sendLogToTelegram(`Error updating user subscription: ${errorMessage}`);
-        throw updateError;
+        await sendLogToTelegram(`User ${decodedUserIdBigInt.toString()} successfully added a tariff to UserTariff table.`);
+      } catch (userTariffError) {
+        const errorMessage = userTariffError instanceof Error ? userTariffError.message : String(userTariffError);
+        await sendLogToTelegram(`Error creating UserTariff entry: ${errorMessage}`);
+        throw userTariffError;
       }
 
       try {

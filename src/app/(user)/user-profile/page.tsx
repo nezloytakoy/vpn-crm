@@ -12,7 +12,7 @@ import i18n from '../../../i18n';
 const TELEGRAM_LOG_USER_ID = 5829159515;
 
 const sendLogToTelegram = async (message: string) => {
-    const TELEGRAM_BOT_TOKEN = '7956735167:AAGzZ_G97SfqE-ulMJZgi1Jt1l8VrR5aC5M';
+    const TELEGRAM_BOT_TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'; // Замените на ваш токен
     const CHAT_ID = TELEGRAM_LOG_USER_ID;
 
     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
@@ -52,11 +52,9 @@ const WaveComponent = () => {
     const [dots, setDots] = useState('...');
     const defaultAvatarUrl = 'https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg';
 
-
     const [assistantRequests, setAssistantRequests] = useState<number | null>(null);
 
     const [tariffs, setTariffs] = useState<{ [key: string]: { displayName: string; price: number } }>({});
-
 
     useEffect(() => {
         const userLang = window?.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
@@ -95,6 +93,25 @@ const WaveComponent = () => {
 
                 await sendLogToTelegram(`Fetching data for Telegram ID: ${telegramId}`);
 
+                // *** Добавляем вызов нового роута здесь ***
+                const checkSubscriptionsResponse = await fetch('/api/check-subscriptions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ userId: telegramId }),
+                });
+
+                if (!checkSubscriptionsResponse.ok) {
+                    const errorText = await checkSubscriptionsResponse.text();
+                    await sendLogToTelegram(`Error checking subscriptions: ${errorText}`);
+                    throw new Error('Ошибка при проверке подписок');
+                } else {
+                    const checkSubscriptionsData = await checkSubscriptionsResponse.json();
+                    await sendLogToTelegram(`Subscriptions check result: ${JSON.stringify(checkSubscriptionsData)}`);
+                }
+                // *** Конец нового кода ***
+
                 const profileResponse = await fetch(`/api/get-profile-data?telegramId=${telegramId}`);
                 await sendLogToTelegram(`Profile data response status: ${profileResponse.status}`);
 
@@ -118,8 +135,6 @@ const WaveComponent = () => {
 
                 await sendLogToTelegram(`Profile data received: ${JSON.stringify(profileData)}`);
                 await sendLogToTelegram(`Requests data received: ${JSON.stringify(requestsData)}`);
-
-                const defaultAvatarUrl = 'https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg';
 
                 if (profileData.avatarUrl) {
                     await sendLogToTelegram(`Setting avatar URL: ${profileData.avatarUrl}`);
@@ -145,10 +160,6 @@ const WaveComponent = () => {
                 await sendLogToTelegram(`Error fetching subscription or requests: ${errorMessage}`);
             }
         };
-
-
-
-
 
         fetchUserData();
     }, []);
@@ -185,8 +196,6 @@ const WaveComponent = () => {
                 await sendLogToTelegram(`Error fetching tariffs: ${error}`);
             }
         };
-
-
 
         fetchTariffs();
     }, []);

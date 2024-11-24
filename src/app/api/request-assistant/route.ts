@@ -41,7 +41,7 @@ function getTranslation(lang: "en" | "ru", key: keyof typeof translations["en"])
 // Функция для определения языка пользователя (например, по запросу или другим критериям)
 function detectLanguage(): "en" | "ru" {
     // Здесь можно добавить логику определения языка
-    return "en";
+    return "ru";
 }
 
 async function getPenaltyPointsForLast24Hours(assistantId: bigint): Promise<number> {
@@ -49,7 +49,6 @@ async function getPenaltyPointsForLast24Hours(assistantId: bigint): Promise<numb
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
 
-    // Преобразуем assistantId в число для совместимости
     const assistantIdNumber = Number(assistantId);
 
     const actions = await prisma.requestAction.findMany({
@@ -115,7 +114,25 @@ export async function POST(request: Request) {
             });
         }
 
-        if (userExists.assistantRequests <= 0) {
+        // Новая логика: проверяем оставшиеся запросы в UserTariff
+        const now = new Date();
+
+        // Суммируем оставшиеся запросы к ассистенту из активных тарифов
+        const totalRemainingAssistantRequestsResult = await prisma.userTariff.aggregate({
+            _sum: {
+                remainingAssistantRequests: true,
+            },
+            where: {
+                userId: userIdBigInt,
+                expirationDate: {
+                    gte: now,
+                },
+            },
+        });
+
+        const totalRemainingAssistantRequests = totalRemainingAssistantRequestsResult._sum.remainingAssistantRequests || 0;
+
+        if (totalRemainingAssistantRequests <= 0) {
             await sendLogToTelegram(`Недостаточно запросов у пользователя ${userIdBigInt.toString()}`);
             return new Response(JSON.stringify({ error: getTranslation(lang, 'notEnoughRequests') }), {
                 status: 400,
@@ -123,12 +140,43 @@ export async function POST(request: Request) {
             });
         }
 
-        await prisma.user.update({
-            where: { telegramId: userIdBigInt },
-            data: { assistantRequests: { decrement: 1 } },
+        // Находим самый старый тариф с оставшимися запросами к ассистенту
+        const userTariff = await prisma.userTariff.findFirst({
+            where: {
+                userId: userIdBigInt,
+                remainingAssistantRequests: {
+                    gt: 0,
+                },
+                expirationDate: {
+                    gte: now,
+                },
+            },
+            orderBy: {
+                expirationDate: 'asc',
+            },
         });
 
-        await sendLogToTelegram(`Запросов у пользователя ${userIdBigInt.toString()} уменьшено на 1`);
+        if (!userTariff) {
+            await sendLogToTelegram(`Недостаточно запросов у пользователя ${userIdBigInt.toString()}`);
+            return new Response(JSON.stringify({ error: getTranslation(lang, 'notEnoughRequests') }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        // Уменьшаем оставшиеся запросы в тарифе на 1
+        await prisma.userTariff.update({
+            where: {
+                id: userTariff.id,
+            },
+            data: {
+                remainingAssistantRequests: {
+                    decrement: 1,
+                },
+            },
+        });
+
+        await sendLogToTelegram(`Запросов в тарифе ID ${userTariff.id.toString()} пользователя ${userIdBigInt.toString()} уменьшено на 1`);
 
         await sendTelegramMessageToUser(userIdBigInt.toString(), getTranslation(lang, 'requestReceived'));
 
