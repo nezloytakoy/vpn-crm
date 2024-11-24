@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
     try {
-        let { seconds } = await req.json(); // Извлекаем секунды из запроса
+        const { seconds } = await req.json(); // Извлекаем секунды из запроса
 
         // Проверяем корректность переданных данных
         if (typeof seconds !== 'number' || seconds < 0) {
