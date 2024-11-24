@@ -22,7 +22,7 @@ export async function GET() {
 export async function POST() {
   try {
     console.log('--- Начало выполнения POST ---');
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 10);
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     console.log(`Время для сравнения: ${oneHourAgo.toISOString()}`);
 
     // Закрытие диалогов с ИИ, которые длятся более часа
