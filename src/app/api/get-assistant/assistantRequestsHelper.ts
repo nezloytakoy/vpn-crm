@@ -97,22 +97,22 @@ export async function getAssistantRequests(assistantBigInt: bigint): Promise<Ser
         }
 
         return messages
-            .map((msg) => {
+            .map((msg): Message | null => {
                 if (
                     typeof msg === 'object' &&
                     msg !== null &&
                     'sender' in msg &&
                     'message' in msg &&
                     'timestamp' in msg &&
-                    typeof (msg as any).sender === 'string' &&
-                    typeof (msg as any).message === 'string' &&
-                    typeof (msg as any).timestamp === 'string'
+                    typeof (msg as { sender: unknown }).sender === 'string' &&
+                    typeof (msg as { message: unknown }).message === 'string' &&
+                    typeof (msg as { timestamp: unknown }).timestamp === 'string'
                 ) {
                     return {
-                        sender: (msg as any).sender,
-                        message: (msg as any).message,
-                        timestamp: (msg as any).timestamp,
-                    } as Message;
+                        sender: (msg as { sender: string }).sender as 'USER' | 'ASSISTANT',
+                        message: (msg as { message: string }).message,
+                        timestamp: (msg as { timestamp: string }).timestamp,
+                    };
                 }
                 return null;
             })
