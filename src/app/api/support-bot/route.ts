@@ -282,43 +282,84 @@ async function findNewAssistant(requestId: bigint, ignoredAssistants: bigint[]) 
 
 
 async function checkAssistantBlockStatus(ctx: Context) {
-  if (!ctx.from?.id) return;
+  if (!ctx.from?.id) {
+    console.log("Пользовательский ID отсутствует в контексте.");
+    return;
+  }
 
   const telegramId = BigInt(ctx.from.id);
-
+  console.log(`Проверка блокировки для пользователя с ID: ${telegramId.toString()}`);
 
   const assistant = await prisma.assistant.findUnique({
     where: { telegramId },
     select: { isBlocked: true, unblockDate: true },
   });
 
-  if (assistant?.isBlocked && assistant.unblockDate) {
+  if (!assistant) {
+    console.log(`Пользователь с ID: ${telegramId.toString()} не найден в базе.`);
+    return false;
+  }
+
+  console.log(
+    `Данные ассистента: isBlocked=${assistant.isBlocked}, unblockDate=${assistant.unblockDate}`
+  );
+
+  if (assistant.isBlocked && assistant.unblockDate) {
     const currentTime = new Date();
-    const remainingTime = Math.ceil((assistant.unblockDate.getTime() - currentTime.getTime()) / (1000 * 60 * 60));
+    console.log(`Текущее время: ${currentTime.toISOString()}`);
+    console.log(`Дата разблокировки: ${assistant.unblockDate.toISOString()}`);
+
+    const remainingTime = Math.ceil(
+      (assistant.unblockDate.getTime() - currentTime.getTime()) / (1000 * 60 * 60)
+    );
+
+    console.log(`Оставшееся время блокировки: ${remainingTime}ч`);
 
     if (remainingTime > 0) {
+      console.log(`Пользователь ${telegramId.toString()} ещё заблокирован. Оставшееся время: ${remainingTime}ч`);
 
-      await ctx.reply(`Вы заблокированы администратором, до разблокировки осталось ${remainingTime}ч.`);
+      await ctx.reply(
+        `Вы заблокированы администратором, до разблокировки осталось ${remainingTime}ч.`
+      );
       return true;
     } else {
+      console.log(
+        `Время блокировки для пользователя ${telegramId.toString()} истекло. Снимаем блокировку.`
+      );
 
       await prisma.assistant.update({
         where: { telegramId },
         data: { isBlocked: false, unblockDate: null },
       });
-      await ctx.reply("Время блокировки вышло, вы можете продолжать пользоваться ботом.");
+
+      console.log(
+        `Блокировка пользователя ${telegramId.toString()} успешно снята в базе данных.`
+      );
+
+      await ctx.reply(
+        "Время блокировки вышло, вы можете продолжать пользоваться ботом."
+      );
     }
+  } else {
+    console.log(`Пользователь ${telegramId.toString()} не заблокирован.`);
   }
+
   return false;
 }
 
-
 bot.use(async (ctx, next) => {
+  console.log("Запуск промежуточного слоя для проверки блокировки.");
   const isBlocked = await checkAssistantBlockStatus(ctx);
-  if (!isBlocked) {
-    await next();
+
+  if (isBlocked) {
+    console.log("Пользователь заблокирован. Останавливаем обработку.");
+    return;
   }
+
+  console.log("Пользователь не заблокирован. Продолжаем выполнение.");
+  await next();
 });
+
 
 
 
