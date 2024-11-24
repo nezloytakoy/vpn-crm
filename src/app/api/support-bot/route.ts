@@ -172,6 +172,9 @@ const translations = {
     accept: "Accept",
     reject: "Reject",
     requestSent: "The request has been sent to the assistant.",
+    active_requests_list: "📄 Here is the list of active user requests:",
+    server_error: "⚠️ An error occurred on the server. Please try again later.",
+    no_message: "No message provided.",
   },
   ru: {
     end_dialog_error: "Ошибка: не удалось получить ваш идентификатор Telegram.",
@@ -199,6 +202,9 @@ const translations = {
     accept: "Принять",
     reject: "Отклонить",
     requestSent: "Запрос отправлен ассистенту.",
+    active_requests_list: "📄 Вот список активных запросов пользователей:",
+    server_error: "⚠️ На сервере произошла ошибка. Пожалуйста, попробуйте позже.",
+    no_message: "Сообщение отсутствует.",
   },
 };
 
@@ -360,6 +366,59 @@ bot.use(async (ctx, next) => {
   await next();
 });
 
+bot.command('requests', async (ctx) => {
+  const lang = detectUserLanguage(ctx);
+
+  try {
+    // Проверка наличия ID отправителя
+    if (!ctx.from?.id) {
+      await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+      return;
+    }
+
+    const telegramId = BigInt(ctx.from.id);
+
+    // Проверка, является ли отправитель ассистентом
+    const assistant = await prisma.assistant.findUnique({
+      where: { telegramId },
+    });
+
+    if (!assistant) {
+      await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+      return;
+    }
+
+    // Получение активных запросов (статус PENDING)
+    const activeRequests = await prisma.assistantRequest.findMany({
+      where: { status: 'PENDING' },
+      include: { user: true }, // Включаем данные пользователя для вывода информации
+    });
+
+    if (activeRequests.length === 0) {
+      await ctx.reply(getTranslation(lang, 'no_active_requests'));
+      return;
+    }
+
+    // Формирование сообщения со списком активных запросов
+    const requestsMessage = activeRequests
+      .map((request) => {
+        const userTelegramId = request.userId.toString();
+        const message = request.message || getTranslation(lang, 'no_message');
+        const createdAt = request.createdAt.toLocaleString();
+        return `👤 User: ${userTelegramId}\n📝 Message: ${message}\n📅 Created At: ${createdAt}`;
+      })
+      .join('\n\n');
+
+    // Отправка сообщения ассистенту с активными запросами
+    await ctx.reply(
+      `${getTranslation(lang, 'active_requests_list')}\n\n${requestsMessage}`
+    );
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+    console.error('Error fetching requests:', errorMessage);
+    await ctx.reply(getTranslation(lang, 'server_error'));
+  }
+});
 
 
 
