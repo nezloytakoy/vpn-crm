@@ -22,7 +22,7 @@ export async function GET() {
 export async function POST() {
   try {
     console.log('--- Начало выполнения POST ---');
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 10);
     console.log(`Время для сравнения: ${oneHourAgo.toISOString()}`);
 
     // Закрытие диалогов с ИИ, которые длятся более часа
@@ -50,12 +50,12 @@ export async function POST() {
     // Закрытие активных разговоров, которые длятся более часа
     const conversations = await prisma.conversation.findMany({
       where: {
-        status: 'PENDING',
+        status: 'IN_PROGRESS',
         updatedAt: { lt: oneHourAgo }, // Используем updatedAt вместо createdAt
       },
       include: { user: true, assistant: true },
     });
-    console.log(`Найдено диалогов со статусом 'PENDING': ${conversations.length}`);
+    console.log(`Найдено диалогов со статусом 'IN_PROGRESS': ${conversations.length}`);
 
     // Используем функцию для корректной сериализации BigInt
     console.log(
