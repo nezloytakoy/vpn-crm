@@ -1574,7 +1574,7 @@ async function getPenaltyPointsForLast24Hours(
   return penaltyPoints;
 }
 
-export async function sendTelegramMessageToUser(chatId: string, text: string) {
+async function sendTelegramMessageToUser(chatId: string, text: string) {
   const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
