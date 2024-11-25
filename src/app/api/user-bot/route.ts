@@ -926,12 +926,13 @@ bot.on('callback_query', async (ctx) => {
 
 
 bot.on('message:text', async (ctx: Context) => {
-  const languageCode: Language = 'en'; // Declare languageCode outside the try block
+  let languageCode: Language = 'en'; // Default language
 
   try {
-    const languageCode: Language = ctx.from?.language_code as Language || 'en';
+    languageCode = ctx.from?.language_code as Language || 'en';
 
     if (!ctx.from?.id) {
+      console.error('No user ID found in the message context.');
       await ctx.reply(getTranslation(languageCode, 'no_user_id'));
       return;
     }
@@ -940,26 +941,36 @@ bot.on('message:text', async (ctx: Context) => {
     const userMessage = ctx.message?.text;
 
     if (!userMessage) {
+      console.error(`No text message received from user ID: ${telegramId.toString()}`);
       await ctx.reply(getTranslation(languageCode, 'no_text_message'));
       return;
     }
 
+    console.log(`Received message from user ID: ${telegramId.toString()} - Message: ${userMessage}`);
+
     const user = await prisma.user.findUnique({ where: { telegramId } });
 
     if (!user) {
+      console.error(`No user found with telegramId: ${telegramId.toString()}`);
       await ctx.reply(getTranslation(languageCode, 'no_user_found'));
       return;
     }
 
+    console.log(`User found: ${JSON.stringify(user)}`);
+
     if (user.isWaitingForComplaint) {
+      console.log(`User ${telegramId.toString()} is waiting to file a complaint.`);
       await handleUserComplaint(telegramId, userMessage, languageCode, ctx);
       return;
     }
 
     if (user.isWaitingForSubject) {
+      console.log(`User ${telegramId.toString()} is providing a subject for their request.`);
       const activeRequest = await prisma.assistantRequest.findFirst({
         where: { userId: telegramId, isActive: true, subject: null },
       });
+
+      console.log(`Active request for subject: ${JSON.stringify(activeRequest)}`);
 
       if (activeRequest) {
         await prisma.assistantRequest.update({
@@ -967,21 +978,27 @@ bot.on('message:text', async (ctx: Context) => {
           data: { subject: userMessage },
         });
 
+        console.log(`Subject updated for request ID: ${activeRequest.id} - Subject: ${userMessage}`);
+
         await prisma.user.update({
           where: { telegramId },
           data: { isWaitingForSubject: false },
         });
 
+        console.log(`User ${telegramId.toString()} is no longer waiting for a subject.`);
+
         await assignAssistantToRequest(activeRequest, languageCode);
 
         await ctx.reply(getTranslation(languageCode, 'subjectReceived'));
       } else {
+        console.error(`No active request found for user ID: ${telegramId.toString()} while expecting a subject.`);
         await ctx.reply(getTranslation(languageCode, 'no_active_request'));
       }
       return;
     }
 
     if (user.isActiveAIChat) {
+      console.log(`User ${telegramId.toString()} is in active AI chat.`);
       await handleAIChat(telegramId, userMessage, ctx);
     } else {
       const activeRequest = await prisma.assistantRequest.findFirst({
@@ -989,25 +1006,30 @@ bot.on('message:text', async (ctx: Context) => {
         include: { assistant: true },
       });
 
+      console.log(`Active request found for user: ${JSON.stringify(activeRequest)}`);
+
       if (activeRequest) {
         if (activeRequest.assistant) {
+          console.log(`Sending message to assistant ID: ${activeRequest.assistant.telegramId}`);
           await sendMessageToAssistant(
             ctx,
             activeRequest.assistant.telegramId.toString(),
             userMessage
           );
         } else {
-          console.error('Ошибка: Ассистент не найден для активного запроса.');
+          console.error(`No assistant found for active request ID: ${activeRequest.id}`);
         }
       } else {
+        console.log(`No active dialog found for user ID: ${telegramId.toString()}`);
         await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
       }
     }
   } catch (error) {
-    console.error('Ошибка при обработке сообщения:', error);
-    await ctx.reply(getTranslation(languageCode, 'server_error')); // languageCode is now accessible
+    console.error('Error processing the message:', error);
+    await ctx.reply(getTranslation(languageCode, 'server_error'));
   }
 });
+
 
 
 
@@ -1475,9 +1497,11 @@ type TelegramButton = {
 
 async function assignAssistantToRequest(assistantRequest: AssistantRequest, languageCode: string) {
   try {
+    console.log(`Assigning assistant for request ID: ${assistantRequest.id}`);
+    console.log(`Request details: ${JSON.stringify(assistantRequest)}`);
+
     const userIdBigInt = assistantRequest.userId;
 
-    // Get available assistants as before
     const availableAssistants = await prisma.assistant.findMany({
       where: {
         isWorking: true,
@@ -1486,13 +1510,16 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
       },
     });
 
-    // Calculate penalty points and sort assistants as before
+    console.log(`Available assistants: ${JSON.stringify(availableAssistants)}`);
+
     const assistantsWithPenalties = await Promise.all(
       availableAssistants.map(async (assistant) => {
         const penaltyPoints = await getPenaltyPointsForLast24Hours(assistant.telegramId);
         return { ...assistant, penaltyPoints };
       })
     );
+
+    console.log(`Assistants with penalties: ${JSON.stringify(assistantsWithPenalties)}`);
 
     assistantsWithPenalties.sort((a, b) => {
       if (a.penaltyPoints !== b.penaltyPoints) {
@@ -1501,47 +1528,51 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
       return (b.lastActiveAt ? b.lastActiveAt.getTime() : 0) - (a.lastActiveAt ? a.lastActiveAt.getTime() : 0);
     });
 
+    console.log(`Sorted assistants: ${JSON.stringify(assistantsWithPenalties)}`);
+
     if (assistantsWithPenalties.length === 0) {
-      await sendLogToTelegram('Нет доступных ассистентов после сортировки.');
+      console.log('No available assistants after sorting.');
       await sendTelegramMessageToUser(userIdBigInt.toString(), getTranslation(languageCode, 'noAssistantsAvailable'));
       return;
     }
 
     const selectedAssistant = assistantsWithPenalties[0];
 
-    // Update assistant status
+    console.log(`Selected assistant: ${JSON.stringify(selectedAssistant)}`);
+
     await prisma.assistant.update({
       where: { telegramId: selectedAssistant.telegramId },
       data: { isBusy: true, lastActiveAt: new Date() },
     });
 
-    // Update AssistantRequest with assistantId
     await prisma.assistantRequest.update({
       where: { id: assistantRequest.id },
       data: { assistantId: selectedAssistant.telegramId },
     });
 
-    // Send message to assistant with the user's subject
+    const updatedRequest = await prisma.assistantRequest.findUnique({ where: { id: assistantRequest.id } });
+
+    console.log(`Updated request after assigning assistant: ${JSON.stringify(updatedRequest)}`);
+
     await sendTelegramMessageWithButtons(
       selectedAssistant.telegramId.toString(),
-      `${getTranslation(languageCode, 'assistantRequestMessage')}\n\nТема: ${assistantRequest.subject}`,
+      `${getTranslation(languageCode, 'assistantRequestMessage')}\n\nТема: ${updatedRequest?.subject}`,
       [
         { text: getTranslation(languageCode, 'accept'), callback_data: `accept_${assistantRequest.id.toString()}` },
         { text: getTranslation(languageCode, 'reject'), callback_data: `reject_${assistantRequest.id.toString()}` },
       ]
     );
 
-    await sendLogToTelegram(`Отправлено сообщение ассистенту ID: ${selectedAssistant.telegramId.toString()} с запросом от пользователя ${userIdBigInt.toString()}`);
+    console.log(`Message sent to assistant ID: ${selectedAssistant.telegramId}`);
 
-    // Notify the user
     await sendTelegramMessageToUser(userIdBigInt.toString(), getTranslation(languageCode, 'requestSent'));
-
   } catch (error) {
-    console.error('Ошибка при назначении ассистента:', error);
-    await sendLogToTelegram(`Ошибка при назначении ассистента: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error('Error assigning assistant:', error);
+    await sendLogToTelegram(`Error assigning assistant: ${error instanceof Error ? error.message : 'Unknown error'}`);
     await sendTelegramMessageToUser(assistantRequest.userId.toString(), getTranslation(languageCode, 'server_error'));
   }
 }
+
 
 
 async function getPenaltyPointsForLast24Hours(
