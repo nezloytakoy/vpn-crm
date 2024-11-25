@@ -568,7 +568,7 @@ bot.on("message:successful_payment", async (ctx) => {
       const payloadData = JSON.parse(payment.invoice_payload);
       await sendLogToTelegram(`payloadData: ${JSON.stringify(payloadData)}, type: ${typeof payloadData}`);
 
-      const { userId: decodedUserId } = payloadData;
+      const { userId: decodedUserId, assistantRequests, aiRequests } = payloadData;
       await sendLogToTelegram(`decodedUserId: ${decodedUserId}, type: ${typeof decodedUserId}`);
 
       let decodedUserIdBigInt;
@@ -581,52 +581,80 @@ bot.on("message:successful_payment", async (ctx) => {
         throw new Error(`Invalid decodedUserId format for BigInt conversion`);
       }
 
-      let subscription;
-      try {
-        await sendLogToTelegram(`Before subscription query: totalStars = ${totalStars}`);
-        subscription = await prisma.subscription.findFirst({
-          where: {
-            price: {
-              gte: Number(totalStars) - 0.01,
-              lte: Number(totalStars) + 0.01,
+      // Determine if this is a tariff purchase or extra requests purchase
+      if (assistantRequests || aiRequests) {
+        // Extra requests purchase
+        try {
+          await prisma.userTariff.create({
+            data: {
+              userId: decodedUserIdBigInt,
+              totalAssistantRequests: assistantRequests || 0,
+              totalAIRequests: aiRequests || 0,
+              remainingAssistantRequests: assistantRequests || 0,
+              remainingAIRequests: aiRequests || 0,
+              expirationDate: "never", // Set expirationDate to "never"
             },
-          },
-        });
+          });
 
-        if (!subscription) {
-          await sendLogToTelegram(`Подписка не найдена для цены: ${totalStars} stars`);
-          throw new Error(`Подписка не найдена для цены: ${totalStars} stars`);
+          await sendLogToTelegram(
+            `User ${decodedUserIdBigInt.toString()} successfully added extra requests: Assistant = ${assistantRequests}, AI = ${aiRequests}`
+          );
+        } catch (userTariffError) {
+          const errorMessage = userTariffError instanceof Error ? userTariffError.message : String(userTariffError);
+          await sendLogToTelegram(`Error creating UserTariff entry for extra requests: ${errorMessage}`);
+          throw userTariffError;
         }
-      } catch (subscriptionError) {
-        const errorMessage = subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError);
-        await sendLogToTelegram(`Ошибка при поиске подписки: ${errorMessage}`);
-        throw subscriptionError;
+      } else {
+        // Tariff purchase
+        let subscription;
+        try {
+          await sendLogToTelegram(`Before subscription query: totalStars = ${totalStars}`);
+          subscription = await prisma.subscription.findFirst({
+            where: {
+              price: {
+                gte: Number(totalStars) - 0.01,
+                lte: Number(totalStars) + 0.01,
+              },
+            },
+          });
+
+          if (!subscription) {
+            await sendLogToTelegram(`Subscription not found for price: ${totalStars} stars`);
+            throw new Error(`Subscription not found for price: ${totalStars} stars`);
+          }
+        } catch (subscriptionError) {
+          const errorMessage = subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError);
+          await sendLogToTelegram(`Error finding subscription: ${errorMessage}`);
+          throw subscriptionError;
+        }
+
+        const expirationDate = new Date();
+        expirationDate.setMonth(expirationDate.getMonth() + 1); // Set expiration date to 1 month later
+
+        try {
+          await prisma.userTariff.create({
+            data: {
+              userId: decodedUserIdBigInt,
+              tariffId: null, // No tariff ID for extra requests
+              totalAssistantRequests: assistantRequests || 0,
+              totalAIRequests: aiRequests || 0,
+              remainingAssistantRequests: assistantRequests || 0,
+              remainingAIRequests: aiRequests || 0,
+              expirationDate: new Date("9999-12-31T23:59:59.999Z"), // Equivalent to "never"
+            },
+          });
+
+          await sendLogToTelegram(
+            `User ${decodedUserIdBigInt.toString()} successfully added a tariff to UserTariff table.`
+          );
+        } catch (userTariffError) {
+          const errorMessage = userTariffError instanceof Error ? userTariffError.message : String(userTariffError);
+          await sendLogToTelegram(`Error creating UserTariff entry: ${errorMessage}`);
+          throw userTariffError;
+        }
       }
 
-      const expirationDate = new Date();
-      expirationDate.setMonth(expirationDate.getMonth() + 1); // Устанавливаем дату истечения через 1 месяц
-
-      try {
-        // Создаем запись в таблице UserTariff
-        await prisma.userTariff.create({
-          data: {
-            userId: decodedUserIdBigInt,
-            tariffId: subscription.id,
-            totalAssistantRequests: subscription.assistantRequestCount || 0,
-            totalAIRequests: subscription.aiRequestCount,
-            remainingAssistantRequests: subscription.assistantRequestCount || 0,
-            remainingAIRequests: subscription.aiRequestCount,
-            expirationDate,
-          },
-        });
-
-        await sendLogToTelegram(`User ${decodedUserIdBigInt.toString()} successfully added a tariff to UserTariff table.`);
-      } catch (userTariffError) {
-        const errorMessage = userTariffError instanceof Error ? userTariffError.message : String(userTariffError);
-        await sendLogToTelegram(`Error creating UserTariff entry: ${errorMessage}`);
-        throw userTariffError;
-      }
-
+      // Referral logic remains unchanged
       try {
         const referral = await prisma.referral.findFirst({
           where: {
@@ -647,8 +675,10 @@ bot.on("message:successful_payment", async (ctx) => {
           });
 
           if (referringUser) {
-            const referralCoins = subscription.price * (referringUser.referralPercentage || 0);
-            await sendLogToTelegram(`Referral found for User ${decodedUserIdBigInt.toString()}. Referring User ${referral.userId.toString()} receives ${referralCoins} coins`);
+            const referralCoins = totalStars * (referringUser.referralPercentage || 0);
+            await sendLogToTelegram(
+              `Referral found for User ${decodedUserIdBigInt.toString()}. Referring User ${referral.userId.toString()} receives ${referralCoins} coins`
+            );
 
             await prisma.user.update({
               where: { telegramId: referral.userId },
@@ -661,10 +691,8 @@ bot.on("message:successful_payment", async (ctx) => {
         } else {
           await sendLogToTelegram(`No referral found for User ${decodedUserIdBigInt.toString()}`);
         }
-
       } catch (referralError) {
         const errorMessage = referralError instanceof Error ? referralError.message : String(referralError);
-
         await sendLogToTelegram(`Error handling referral bonus: ${errorMessage}`);
         throw referralError;
       }
@@ -672,7 +700,7 @@ bot.on("message:successful_payment", async (ctx) => {
       await ctx.reply("Ваш платеж прошел успешно! Привилегии активированы.");
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     await sendLogToTelegram(`Error handling successful payment: ${errorMessage}`);
     console.error("Ошибка обработки успешного платежа:", errorMessage);
 
@@ -885,43 +913,72 @@ bot.on('message:text', async (ctx: Context) => {
       return;
     }
 
-
-    const [user, activeRequest] = await Promise.all([
-      prisma.user.findUnique({ where: { telegramId } }),
-      prisma.assistantRequest.findFirst({
-        where: { user: { telegramId }, isActive: true },
-        include: { assistant: true },
-      }),
-    ]);
+    const user = await prisma.user.findUnique({ where: { telegramId } });
 
     if (!user) {
       await ctx.reply(getTranslation(languageCode, 'no_user_found'));
       return;
     }
 
-
     if (user.isWaitingForComplaint) {
       await handleUserComplaint(telegramId, userMessage, languageCode, ctx);
       return;
     }
 
+    if (user.isWaitingForSubject) {
+      // User is expected to provide the subject of their request
+      const activeRequest = await prisma.assistantRequest.findFirst({
+        where: { userId: telegramId, isActive: true, subject: null },
+      });
 
+      if (activeRequest) {
+        // Update the AssistantRequest with the subject
+        await prisma.assistantRequest.update({
+          where: { id: activeRequest.id },
+          data: { subject: userMessage },
+        });
+
+        // Reset the user's waiting state
+        await prisma.user.update({
+          where: { telegramId },
+          data: { isWaitingForSubject: false },
+        });
+
+        // Proceed to assign an assistant
+        await assignAssistantToRequest(activeRequest, languageCode);
+
+        await ctx.reply(getTranslation(languageCode, 'subjectReceived'));
+      } else {
+        await ctx.reply(getTranslation(languageCode, 'no_active_request'));
+      }
+      return;
+    }
+
+    // Existing logic for AI chat or active requests
     if (user.isActiveAIChat) {
       await handleAIChat(telegramId, userMessage, ctx);
-    } else if (activeRequest) {
-      if (activeRequest.assistant) {
-        await sendMessageToAssistant(ctx, activeRequest.assistant.telegramId.toString(), userMessage);
-      } else {
-        console.error('Ошибка: Ассистент не найден для активного запроса.');
-      }
     } else {
-      await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
+      const activeRequest = await prisma.assistantRequest.findFirst({
+        where: { userId: telegramId, isActive: true },
+        include: { assistant: true },
+      });
+
+      if (activeRequest) {
+        if (activeRequest.assistant) {
+          await sendMessageToAssistant(ctx, activeRequest.assistant.telegramId.toString(), userMessage);
+        } else {
+          console.error('Ошибка: Ассистент не найден для активного запроса.');
+        }
+      } else {
+        await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
+      }
     }
   } catch (error) {
     console.error('Ошибка при обработке сообщения:', error);
-    await ctx.reply("Не получилось обработать сообщение");
+    await ctx.reply(getTranslation(languageCode, 'server_error'));
   }
 });
+
 
 
 
@@ -1027,20 +1084,20 @@ bot.on('message:voice', async (ctx) => {
         const voice = ctx.message.voice;
         const fileId = voice.file_id;
 
-        
+
         const file = await ctx.api.getFile(fileId);
         const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${file.file_path}`;
 
-        
+
         const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
         const audioBuffer = Buffer.from(response.data, 'binary');
 
-        
+
         const formData = new FormData();
         formData.append('file', audioBuffer, { filename: 'audio.ogg' });
         formData.append('model', 'whisper-1');
 
-        
+
         const transcriptionResponse = await axios.post(
           'https://api.openai.com/v1/audio/transcriptions',
           formData,
@@ -1052,10 +1109,10 @@ bot.on('message:voice', async (ctx) => {
           }
         );
 
-        
+
         const transcribedText = transcriptionResponse.data.text;
 
-        
+
         const openAiModel = await prisma.openAi.findFirst({});
         if (!openAiModel) {
           console.error('Не удалось загрузить промпт OpenAi.');
@@ -1063,10 +1120,10 @@ bot.on('message:voice', async (ctx) => {
           return;
         }
 
-        
+
         const combinedMessage = `${transcribedText}`;
 
-        
+
         const inputTokens = encode(combinedMessage).length;
         const maxAllowedTokens = 4096;
         const responseTokensLimit = 500;
@@ -1076,7 +1133,7 @@ bot.on('message:voice', async (ctx) => {
           return;
         }
 
-        
+
         await handleAIChat(telegramId, combinedMessage, ctx);
 
       } catch (error) {
@@ -1365,17 +1422,17 @@ async function sendTelegramMessageWithButtons(chatId: string, text: string, butt
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
   await fetch(url, {
-      method: 'POST',
-      headers: {
-          'Content-Type': 'application/json',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      reply_markup: {
+        inline_keyboard: buttons.map((button) => [{ text: button.text, callback_data: button.callback_data }]),
       },
-      body: JSON.stringify({
-          chat_id: chatId,
-          text,
-          reply_markup: {
-              inline_keyboard: buttons.map((button) => [{ text: button.text, callback_data: button.callback_data }]),
-          },
-      }),
+    }),
   });
 }
 

@@ -255,7 +255,7 @@ const WaveComponent = () => {
                         <div className={styles.buttons}>
                             <div className={styles.leftblock} onClick={() => handleButtonClick('FIRST')}>
                                 <Image
-                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-JV9mpH87gcyosXasiIjyWSapEkqbaQ.png"
+                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/0AJW56153T8k4vML6v-otMACZR9mNqWDNzMOiWQRDDmR8PWFN.gif"
                                     alt="avatar"
                                     width={90}
                                     height={90}
@@ -266,7 +266,7 @@ const WaveComponent = () => {
 
                             <div className={styles.centerblock} onClick={() => handleButtonClick('SECOND')}>
                                 <Image
-                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-three-cGoXQPamKncukOKvfhxY8Gwhd4xKpO.png"
+                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/jE6SDe7l2dN1nP5r7s-leizKIGomi1dMjfHE1qavcrvcr53xa.gif"
                                     alt="avatar"
                                     width={100}
                                     height={100}
@@ -277,7 +277,7 @@ const WaveComponent = () => {
 
                             <div className={styles.rightblock} onClick={() => handleButtonClick('THIRD')}>
                                 <Image
-                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/GIU%20AMA%20255-02-kdT58Hckjc871B2UsslUF7ZrAg9SAi.png"
+                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/3Gp4U52HVs6Vc0Oa4L-VvFqf9YswsVh5d3QhBUu0Eqh6HJYKn.gif"
                                     alt="avatar"
                                     width={90}
                                     height={105}
@@ -289,24 +289,36 @@ const WaveComponent = () => {
                         <div className={styles.section}>
                             <div className={styles.block} onClick={() => handleButtonClick('FOURTH')}>
                                 <Image
-                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ai-one-FlMUqahx2zNkY322YXOHKnGKchz1wT.gif"
+                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/7QPk28f67h3q7dV2ZB-E8BhSgh2E2HG4MlAl14ISqgBCaMyUZ.gif"
                                     alt="avatar"
-                                    width={80}
-                                    height={80}
-                                    className={styles.ai}
+                                    width={100}
+                                    height={100}
+                                    className={styles.aionly}
                                 />
                                 <p className={styles.aitext}>{tariffs['FOURTH']?.displayName || 'Loading...'}</p>
                             </div>
 
                             <Link href="/referal-page" className={styles.block}>
                                 <Image
-                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/f3BR23dMA4SapXd0Jg-TxjGLHkcqjJKq8zONZRfnlVilJLKGw.gif"
+                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/a140h5GWxHkA11HZi8-EPAX13JKlAygeA9jQ5MrqHdpb7mztu.gif"
+                                    alt="avatar"
+                                    width={75}
+                                    height={75}
+                                    className={styles.referals}
+                                />
+                                <p className={styles.aitext}>{t('referral')}</p>
+                            </Link>
+                        </div>
+                        <div className={styles.section}>
+                            <Link href="/buy-requests" className={styles.block}>
+                                <Image
+                                    src="https://92eaarerohohicw5.public.blob.vercel-storage.com/HvK33q26JBPQOB64aE-1DkCZcXkMRjdKNJSDnN0Qp1othEWEG.gif"
                                     alt="avatar"
                                     width={80}
                                     height={80}
-                                    className={styles.ai}
+                                    className={styles.ainew}
                                 />
-                                <p className={styles.aitext}>{t('referral')}</p>
+                                <p className={styles.aitext}>Купить запросы</p>
                             </Link>
                         </div>
                     </div>

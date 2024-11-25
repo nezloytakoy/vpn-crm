@@ -16,6 +16,7 @@
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
+    min-height: 700px;
 }
 
 .greetings {
@@ -85,7 +86,7 @@
 
 .leftblock, .centerblock, .rightblock {
     animation: pulse-border 3s infinite;
-    border: 2px solid #99bcf6;
+    border: 2px solid #4581E9;
     cursor: pointer;
 }
 
@@ -93,7 +94,7 @@
 .leftblock {
     width: 29%;
     height: 200px;
-    background: linear-gradient(145deg, #99bcf6, #175cd4);
+
     border-radius: 25px;
     border-top-left-radius: 50px;
     display: flex;
@@ -105,7 +106,7 @@
 .centerblock {
     width: 32%;
     height: 230px;
-    background: linear-gradient(145deg, #99bcf6, #175cd4);
+
     border-radius: 15px;
     display: flex;
     align-items: center;
@@ -118,7 +119,7 @@
 .rightblock {
     width: 29%;
     height: 200px;
-    background: linear-gradient(145deg, #99bcf6, #175cd4);
+
     border-radius: 25px;
     border-top-right-radius: 50px;
     display: flex;
@@ -131,7 +132,7 @@
 .text {
     margin-top: 10px;
     font-weight: 800;
-    color: white;
+    color: black;
     text-align: center;
     font-size: 14px;
     width: 80px;
@@ -166,12 +167,30 @@
     width: 70px;
 }
 
+.referals {
+    margin-top: 5px;
+    margin-bottom: -5px;
+}
+
+.aionly {
+    margin-right: 6px;
+    width: 85px; 
+    margin-top: -4px;
+    margin-bottom: -5px;
+}
+
 .aitext {
     font-size: 13px;
     text-align: center;
-    width: 100px;
+    width: 120px;
+    margin-top: 0px;
 }
 
+.ainew {
+    margin-top: 6px;
+    margin-right: 6px;
+    width: 70px;
+}
 
 
 

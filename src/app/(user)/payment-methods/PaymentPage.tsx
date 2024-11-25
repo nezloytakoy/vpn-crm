@@ -18,18 +18,40 @@ function PaymentPage() {
   const [telegramUsername, setTelegramUsername] = useState('');
   const [fontSize, setFontSize] = useState('24px');
   const [userId, setUserId] = useState<number | null>(null);
-  const [price, setPrice] = useState<number>(0); // Состояние для цены тарифа
-  const [tariffName, setTariffName] = useState<string>(''); // Состояние для названия тарифа
+
+  // Old logic state variables
+  const [price, setPrice] = useState<number>(0);
+  const [tariffName, setTariffName] = useState<string>('');
+
+  // New logic state variables
+  const [assistantRequests, setAssistantRequests] = useState<number>(0);
+  const [aiRequests, setAiRequests] = useState<number>(0);
+
+  // Prices per request
+  const ASSISTANT_REQUEST_PRICE = 0.1; // $0.10 per assistant request
+  const AI_REQUEST_PRICE = 0.2; // $0.20 per AI request
+
+  // Calculate total price for new logic
+  const totalPrice = (assistantRequests * ASSISTANT_REQUEST_PRICE) + (aiRequests * AI_REQUEST_PRICE);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const queryPrice = searchParams.get('price');
-      const queryTariff = searchParams.get('tariff'); // Извлекаем название тарифа
+      const queryTariff = searchParams.get('tariff');
+      const queryAssistantRequests = searchParams.get('assistantRequests');
+      const queryAiRequests = searchParams.get('aiRequests');
+
       if (queryPrice) {
         setPrice(Number(queryPrice));
       }
       if (queryTariff) {
-        setTariffName(queryTariff); // Сохраняем название тарифа
+        setTariffName(queryTariff);
+      }
+      if (queryAssistantRequests) {
+        setAssistantRequests(Number(queryAssistantRequests));
+      }
+      if (queryAiRequests) {
+        setAiRequests(Number(queryAiRequests));
       }
     }
   }, [searchParams]);
@@ -74,40 +96,97 @@ function PaymentPage() {
   };
 
   const handleContinue = async () => {
-    if (selectedMethod === 1) {
-      setIsLoading(true);
-      try {
-        if (!userId) {
-          throw new Error(t('errorNoUserId'));
-        }
+    if (selectedMethod === null) {
+      alert('Please select a payment method.');
+      return;
+    }
 
-        // Передаем цену в долларах и название тарифа
-        const response = await fetch('/api/telegram-invoice', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId: userId, priceInDollars: price, tariffName: tariffName }), // Передаем цену и тариф
-        });
-
-        const data = await response.json();
-        if (response.ok) {
-          window.open(data.invoiceLink, '_blank');
-        } else {
-          alert(data.message || t('invoice_error'));
-        }
-      } catch (error) {
-        console.error('Ошибка при создании инвойса:', error);
-        if (error instanceof Error) {
-          alert(t('invoice_creation_failed') + error.message);
-        } else {
-          alert(t('unknownError'));
-        }
-      } finally {
-        setIsLoading(false);
+    setIsLoading(true);
+    try {
+      if (!userId) {
+        throw new Error(t('errorNoUserId'));
       }
+
+      // Prepare the request body based on the available data
+      const requestBody: any = {
+        userId: userId,
+        paymentMethod: selectedMethod,
+      };
+
+      if (price > 0) {
+        // Old logic
+        requestBody.priceInDollars = price;
+        requestBody.tariffName = tariffName;
+      } else if (totalPrice > 0) {
+        // New logic
+        requestBody.priceInDollars = totalPrice;
+        requestBody.assistantRequests = assistantRequests;
+        requestBody.aiRequests = aiRequests;
+      } else {
+        alert('No price or requests specified.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Create payment invoice
+      const response = await fetch('/api/telegram-invoice', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        // Open the invoice link or proceed to payment
+        window.open(data.invoiceLink, '_blank');
+
+        // If assistantRequests or aiRequests are present, call 'extra-requests' API
+        if (assistantRequests > 0 || aiRequests > 0) {
+          // After payment confirmation, call 'extra-requests' API to update the user's requests
+          // Note: In a real application, you should confirm payment success before updating
+          const extraRequestsResponse = await fetch('/api/extra-requests', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: userId,
+              assistantRequests: assistantRequests,
+              aiRequests: aiRequests,
+            }),
+          });
+
+          const extraRequestsData = await extraRequestsResponse.json();
+          if (extraRequestsResponse.ok) {
+            alert('Extra requests added successfully.');
+          } else {
+            alert(extraRequestsData.message || 'Error adding extra requests.');
+          }
+        }
+      } else {
+        alert(data.message || t('invoice_error'));
+      }
+    } catch (error) {
+      console.error('Error during payment:', error);
+      if (error instanceof Error) {
+        alert(t('invoice_creation_failed') + error.message);
+      } else {
+        alert(t('unknownError'));
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  // Determine the amount due based on available data
+  let amountDue = 0;
+  if (price > 0) {
+    amountDue = price;
+  } else if (totalPrice > 0) {
+    amountDue = totalPrice;
+  }
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
@@ -141,7 +220,7 @@ function PaymentPage() {
           </div>
         </div>
         <div className={styles.content}>
-          <p className={styles.title}>{t('to_pay')}: {price}$</p> {/* Отображаем стоимость тарифа */}
+          <p className={styles.title}>Amount Due: ${amountDue.toFixed(2)}</p> {/* Display the amount due */}
           <div className={styles.methodbox}>
             <div
               className={`${styles.method} ${selectedMethod === 0 ? styles.selectedMethod : ''}`}
