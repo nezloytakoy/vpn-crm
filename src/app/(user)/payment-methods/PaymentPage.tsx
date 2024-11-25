@@ -8,10 +8,6 @@ import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
 
-interface RequestBody {
-  userId: string; // or number if it's numeric
-  paymentMethod: string; // adjust the type based on your actual data
-}
 
 export const dynamic = 'force-dynamic';
 

@@ -5,7 +5,6 @@ import styles from "./requests.module.css";
 import Image from 'next/image';
 import Wave from 'react-wavify';
 import Script from 'next/script';
-import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
 import { useRouter } from 'next/navigation';
 

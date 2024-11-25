@@ -926,10 +926,10 @@ bot.on('callback_query', async (ctx) => {
 
 
 bot.on('message:text', async (ctx: Context) => {
-  let languageCode: Language = 'en'; // Declare languageCode outside the try block
+  const languageCode: Language = 'en'; // Declare languageCode outside the try block
 
   try {
-    let languageCode: Language = ctx.from?.language_code as Language || 'en';
+    const languageCode: Language = ctx.from?.language_code as Language || 'en';
 
     if (!ctx.from?.id) {
       await ctx.reply(getTranslation(languageCode, 'no_user_id'));
