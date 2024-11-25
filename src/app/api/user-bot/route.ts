@@ -929,15 +929,17 @@ bot.on('message:text', async (ctx: Context) => {
   let languageCode: Language = 'en'; // Default language
 
   try {
-    languageCode = ctx.from?.language_code as Language || 'en';
+    // Determine the user's language
+    languageCode = (ctx.from?.language_code as Language) || 'en';
 
+    // Ensure the user ID is present
     if (!ctx.from?.id) {
       console.error('No user ID found in the message context.');
       await ctx.reply(getTranslation(languageCode, 'no_user_id'));
       return;
     }
 
-    const telegramId = BigInt(ctx.from.id);
+    const telegramId = BigInt(ctx.from.id); // Convert user ID to BigInt
     const userMessage = ctx.message?.text;
 
     if (!userMessage) {
@@ -948,6 +950,7 @@ bot.on('message:text', async (ctx: Context) => {
 
     console.log(`Received message from user ID: ${telegramId.toString()} - Message: ${userMessage}`);
 
+    // Find the user in the database
     const user = await prisma.user.findUnique({ where: { telegramId } });
 
     if (!user) {
@@ -956,23 +959,33 @@ bot.on('message:text', async (ctx: Context) => {
       return;
     }
 
-    console.log(`User found: ${JSON.stringify(user)}`);
+    // Convert user object to a serializable format for logging
+    console.log(`User found: ${JSON.stringify({ ...user, telegramId: user.telegramId.toString() }, serializeBigInt, 2)}`);
 
+    // Handle if the user is waiting to file a complaint
     if (user.isWaitingForComplaint) {
       console.log(`User ${telegramId.toString()} is waiting to file a complaint.`);
       await handleUserComplaint(telegramId, userMessage, languageCode, ctx);
       return;
     }
 
+    // Handle if the user is waiting to provide a subject for their request
     if (user.isWaitingForSubject) {
       console.log(`User ${telegramId.toString()} is providing a subject for their request.`);
       const activeRequest = await prisma.assistantRequest.findFirst({
         where: { userId: telegramId, isActive: true, subject: null },
       });
 
-      console.log(`Active request for subject: ${JSON.stringify(activeRequest)}`);
-
       if (activeRequest) {
+        console.log(
+          `Active request for subject: ${JSON.stringify(
+            { ...activeRequest, userId: activeRequest.userId.toString() },
+            serializeBigInt,
+            2
+          )}`
+        );
+
+        // Update the assistant request with the subject
         await prisma.assistantRequest.update({
           where: { id: activeRequest.id },
           data: { subject: userMessage },
@@ -980,6 +993,7 @@ bot.on('message:text', async (ctx: Context) => {
 
         console.log(`Subject updated for request ID: ${activeRequest.id} - Subject: ${userMessage}`);
 
+        // Update the user's state
         await prisma.user.update({
           where: { telegramId },
           data: { isWaitingForSubject: false },
@@ -987,28 +1001,39 @@ bot.on('message:text', async (ctx: Context) => {
 
         console.log(`User ${telegramId.toString()} is no longer waiting for a subject.`);
 
+        // Assign an assistant to the updated request
         await assignAssistantToRequest(activeRequest, languageCode);
 
         await ctx.reply(getTranslation(languageCode, 'subjectReceived'));
       } else {
-        console.error(`No active request found for user ID: ${telegramId.toString()} while expecting a subject.`);
+        console.error(
+          `No active request found for user ID: ${telegramId.toString()} while expecting a subject.`
+        );
         await ctx.reply(getTranslation(languageCode, 'no_active_request'));
       }
       return;
     }
 
+    // Handle active AI chat
     if (user.isActiveAIChat) {
       console.log(`User ${telegramId.toString()} is in active AI chat.`);
       await handleAIChat(telegramId, userMessage, ctx);
     } else {
+      // Find an active assistant request
       const activeRequest = await prisma.assistantRequest.findFirst({
         where: { userId: telegramId, isActive: true },
         include: { assistant: true },
       });
 
-      console.log(`Active request found for user: ${JSON.stringify(activeRequest)}`);
-
       if (activeRequest) {
+        console.log(
+          `Active request found for user: ${JSON.stringify(
+            { ...activeRequest, userId: activeRequest.userId.toString() },
+            serializeBigInt,
+            2
+          )}`
+        );
+
         if (activeRequest.assistant) {
           console.log(`Sending message to assistant ID: ${activeRequest.assistant.telegramId}`);
           await sendMessageToAssistant(
@@ -1029,7 +1054,6 @@ bot.on('message:text', async (ctx: Context) => {
     await ctx.reply(getTranslation(languageCode, 'server_error'));
   }
 });
-
 
 
 
@@ -1495,10 +1519,21 @@ type TelegramButton = {
   callback_data: string;
 };
 
+// Serializer function to handle BigInt
+function serializeBigInt(_: string, value: unknown): unknown {
+  // Convert BigInt to string for serialization, otherwise return the value as is
+  return typeof value === 'bigint' ? value.toString() : value;
+}
+
+// Logging function with type safety
+function logWithBigInt<T>(obj: T): void {
+  console.log(JSON.stringify(obj, serializeBigInt, 2));
+}
+
 async function assignAssistantToRequest(assistantRequest: AssistantRequest, languageCode: string) {
   try {
     console.log(`Assigning assistant for request ID: ${assistantRequest.id}`);
-    console.log(`Request details: ${JSON.stringify(assistantRequest)}`);
+    console.log(`Request details: ${JSON.stringify(assistantRequest, serializeBigInt, 2)}`);
 
     const userIdBigInt = assistantRequest.userId;
 
@@ -1510,7 +1545,7 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
       },
     });
 
-    console.log(`Available assistants: ${JSON.stringify(availableAssistants)}`);
+    logWithBigInt({ availableAssistants });
 
     const assistantsWithPenalties = await Promise.all(
       availableAssistants.map(async (assistant) => {
@@ -1519,7 +1554,7 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
       })
     );
 
-    console.log(`Assistants with penalties: ${JSON.stringify(assistantsWithPenalties)}`);
+    logWithBigInt({ assistantsWithPenalties });
 
     assistantsWithPenalties.sort((a, b) => {
       if (a.penaltyPoints !== b.penaltyPoints) {
@@ -1528,7 +1563,7 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
       return (b.lastActiveAt ? b.lastActiveAt.getTime() : 0) - (a.lastActiveAt ? a.lastActiveAt.getTime() : 0);
     });
 
-    console.log(`Sorted assistants: ${JSON.stringify(assistantsWithPenalties)}`);
+    console.log(`Sorted assistants: ${JSON.stringify(assistantsWithPenalties, serializeBigInt, 2)}`);
 
     if (assistantsWithPenalties.length === 0) {
       console.log('No available assistants after sorting.');
@@ -1538,7 +1573,7 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
 
     const selectedAssistant = assistantsWithPenalties[0];
 
-    console.log(`Selected assistant: ${JSON.stringify(selectedAssistant)}`);
+    console.log(`Selected assistant: ${JSON.stringify(selectedAssistant, serializeBigInt, 2)}`);
 
     await prisma.assistant.update({
       where: { telegramId: selectedAssistant.telegramId },
@@ -1552,7 +1587,7 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
 
     const updatedRequest = await prisma.assistantRequest.findUnique({ where: { id: assistantRequest.id } });
 
-    console.log(`Updated request after assigning assistant: ${JSON.stringify(updatedRequest)}`);
+    console.log(`Updated request after assigning assistant: ${JSON.stringify(updatedRequest, serializeBigInt, 2)}`);
 
     await sendTelegramMessageWithButtons(
       selectedAssistant.telegramId.toString(),
@@ -1572,6 +1607,7 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
     await sendTelegramMessageToUser(assistantRequest.userId.toString(), getTranslation(languageCode, 'server_error'));
   }
 }
+
 
 
 
