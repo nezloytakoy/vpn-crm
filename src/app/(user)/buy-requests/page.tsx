@@ -10,7 +10,7 @@ import i18n from '../../../i18n';
 import { useRouter } from 'next/navigation';
 
 function Page() {
-    const { t } = useTranslation();
+
     const router = useRouter();
 
     const [assistantRequestInput, setAssistantRequestInput] = useState('');

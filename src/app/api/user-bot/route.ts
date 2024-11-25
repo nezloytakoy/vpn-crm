@@ -1,10 +1,9 @@
 import { Bot, webhookCallback } from 'grammy';
 import { Context } from 'grammy';
 import OpenAI from 'openai';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, AssistantRequest } from '@prisma/client';
 import { InputFile } from 'grammy';
 import { encode } from 'gpt-3-encoder';
-
 import axios from 'axios';
 import FormData from 'form-data';
 
@@ -136,7 +135,17 @@ type TranslationKey =
   | 'coin_awarded'
   | 'no_user_found'
   | 'no_active_dialogs'
-  | 'complaint_submitted';
+  | 'complaint_submitted'
+  | 'enterSubject'
+  | 'subjectReceived'
+  | 'no_active_request'
+  | 'server_error'
+  | 'assistantRequestMessage'
+  | 'noAssistantsAvailable'
+  | 'requestSent'
+  | 'accept'
+  | 'reject'; // Ensure all keys are included here
+
 
 type Language = 'en' | 'ru';
 
@@ -162,6 +171,17 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       no_user_found: 'Пользователь не найден.',
       no_active_dialogs: 'У вас нет активных диалогов.',
       complaint_submitted: 'Ваша жалоба была отправлена.',
+      enterSubject: 'Пожалуйста, введите тему вашего запроса.',
+      subjectReceived: 'Тема получена. Соединяем вас с ассистентом.',
+      no_active_request: 'Активный запрос не найден.',
+      server_error: 'Произошла ошибка. Пожалуйста, попробуйте позже.',
+      assistantRequestMessage: "Запрос пользователя на разговор",
+      noAssistantsAvailable: 'Нет доступных ассистентов',
+      requestSent: "Запрос отправлен ассистенту.",
+      accept: 'Принять',
+      reject: 'Отклонить',
+
+
     },
     en: {
       start_message:
@@ -183,6 +203,15 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       no_user_found: 'User not found.',
       no_active_dialogs: 'You have no active dialogs.',
       complaint_submitted: 'Your complaint has been submitted.',
+      enterSubject: 'Please enter the subject of your request.',
+      subjectReceived: 'Subject received. Connecting you to an assistant.',
+      no_active_request: 'No active request found.',
+      server_error: 'An error occurred. Please try again later.',
+      assistantRequestMessage: 'User request for conversation',
+      noAssistantsAvailable: 'No assistants available',
+      requestSent: 'The request has been sent to the assistant.',
+      accept: 'Accept',
+      reject: 'Reject',
     },
   };
 
@@ -897,8 +926,10 @@ bot.on('callback_query', async (ctx) => {
 
 
 bot.on('message:text', async (ctx: Context) => {
+  let languageCode: Language = 'en'; // Declare languageCode outside the try block
+
   try {
-    const languageCode = ctx.from?.language_code || 'en';
+    let languageCode: Language = ctx.from?.language_code as Language || 'en';
 
     if (!ctx.from?.id) {
       await ctx.reply(getTranslation(languageCode, 'no_user_id'));
@@ -926,25 +957,21 @@ bot.on('message:text', async (ctx: Context) => {
     }
 
     if (user.isWaitingForSubject) {
-      // User is expected to provide the subject of their request
       const activeRequest = await prisma.assistantRequest.findFirst({
         where: { userId: telegramId, isActive: true, subject: null },
       });
 
       if (activeRequest) {
-        // Update the AssistantRequest with the subject
         await prisma.assistantRequest.update({
           where: { id: activeRequest.id },
           data: { subject: userMessage },
         });
 
-        // Reset the user's waiting state
         await prisma.user.update({
           where: { telegramId },
           data: { isWaitingForSubject: false },
         });
 
-        // Proceed to assign an assistant
         await assignAssistantToRequest(activeRequest, languageCode);
 
         await ctx.reply(getTranslation(languageCode, 'subjectReceived'));
@@ -954,7 +981,6 @@ bot.on('message:text', async (ctx: Context) => {
       return;
     }
 
-    // Existing logic for AI chat or active requests
     if (user.isActiveAIChat) {
       await handleAIChat(telegramId, userMessage, ctx);
     } else {
@@ -965,7 +991,11 @@ bot.on('message:text', async (ctx: Context) => {
 
       if (activeRequest) {
         if (activeRequest.assistant) {
-          await sendMessageToAssistant(ctx, activeRequest.assistant.telegramId.toString(), userMessage);
+          await sendMessageToAssistant(
+            ctx,
+            activeRequest.assistant.telegramId.toString(),
+            userMessage
+          );
         } else {
           console.error('Ошибка: Ассистент не найден для активного запроса.');
         }
@@ -975,9 +1005,10 @@ bot.on('message:text', async (ctx: Context) => {
     }
   } catch (error) {
     console.error('Ошибка при обработке сообщения:', error);
-    await ctx.reply(getTranslation(languageCode, 'server_error'));
+    await ctx.reply(getTranslation(languageCode, 'server_error')); // languageCode is now accessible
   }
 });
+
 
 
 
@@ -1441,6 +1472,124 @@ type TelegramButton = {
   text: string;
   callback_data: string;
 };
+
+async function assignAssistantToRequest(assistantRequest: AssistantRequest, languageCode: string) {
+  try {
+    const userIdBigInt = assistantRequest.userId;
+
+    // Get available assistants as before
+    const availableAssistants = await prisma.assistant.findMany({
+      where: {
+        isWorking: true,
+        isBusy: false,
+        telegramId: { notIn: assistantRequest.ignoredAssistants || [] },
+      },
+    });
+
+    // Calculate penalty points and sort assistants as before
+    const assistantsWithPenalties = await Promise.all(
+      availableAssistants.map(async (assistant) => {
+        const penaltyPoints = await getPenaltyPointsForLast24Hours(assistant.telegramId);
+        return { ...assistant, penaltyPoints };
+      })
+    );
+
+    assistantsWithPenalties.sort((a, b) => {
+      if (a.penaltyPoints !== b.penaltyPoints) {
+        return a.penaltyPoints - b.penaltyPoints;
+      }
+      return (b.lastActiveAt ? b.lastActiveAt.getTime() : 0) - (a.lastActiveAt ? a.lastActiveAt.getTime() : 0);
+    });
+
+    if (assistantsWithPenalties.length === 0) {
+      await sendLogToTelegram('Нет доступных ассистентов после сортировки.');
+      await sendTelegramMessageToUser(userIdBigInt.toString(), getTranslation(languageCode, 'noAssistantsAvailable'));
+      return;
+    }
+
+    const selectedAssistant = assistantsWithPenalties[0];
+
+    // Update assistant status
+    await prisma.assistant.update({
+      where: { telegramId: selectedAssistant.telegramId },
+      data: { isBusy: true, lastActiveAt: new Date() },
+    });
+
+    // Update AssistantRequest with assistantId
+    await prisma.assistantRequest.update({
+      where: { id: assistantRequest.id },
+      data: { assistantId: selectedAssistant.telegramId },
+    });
+
+    // Send message to assistant with the user's subject
+    await sendTelegramMessageWithButtons(
+      selectedAssistant.telegramId.toString(),
+      `${getTranslation(languageCode, 'assistantRequestMessage')}\n\nТема: ${assistantRequest.subject}`,
+      [
+        { text: getTranslation(languageCode, 'accept'), callback_data: `accept_${assistantRequest.id.toString()}` },
+        { text: getTranslation(languageCode, 'reject'), callback_data: `reject_${assistantRequest.id.toString()}` },
+      ]
+    );
+
+    await sendLogToTelegram(`Отправлено сообщение ассистенту ID: ${selectedAssistant.telegramId.toString()} с запросом от пользователя ${userIdBigInt.toString()}`);
+
+    // Notify the user
+    await sendTelegramMessageToUser(userIdBigInt.toString(), getTranslation(languageCode, 'requestSent'));
+
+  } catch (error) {
+    console.error('Ошибка при назначении ассистента:', error);
+    await sendLogToTelegram(`Ошибка при назначении ассистента: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    await sendTelegramMessageToUser(assistantRequest.userId.toString(), getTranslation(languageCode, 'server_error'));
+  }
+}
+
+
+export async function getPenaltyPointsForLast24Hours(
+  assistantId: bigint
+): Promise<number> {
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+
+  const assistantIdNumber = Number(assistantId);
+
+  const actions = await prisma.requestAction.findMany({
+    where: {
+      assistantId: assistantIdNumber,
+      createdAt: {
+        gte: yesterday,
+      },
+    },
+  });
+
+  let penaltyPoints = 0;
+  for (const action of actions) {
+    if (action.action === 'REJECTED') {
+      penaltyPoints += 1;
+    } else if (action.action === 'IGNORED') {
+      penaltyPoints += 3;
+    }
+  }
+
+  return penaltyPoints;
+}
+
+export async function sendTelegramMessageToUser(chatId: string, text: string) {
+  const botToken = process.env.TELEGRAM_USER_BOT_TOKEN;
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+  await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+    }),
+  });
+}
+
 
 
 

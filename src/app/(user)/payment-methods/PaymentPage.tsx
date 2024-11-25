@@ -8,6 +8,11 @@ import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
 
+interface RequestBody {
+  userId: string; // or number if it's numeric
+  paymentMethod: string; // adjust the type based on your actual data
+}
+
 export const dynamic = 'force-dynamic';
 
 function PaymentPage() {
@@ -100,19 +105,26 @@ function PaymentPage() {
       alert('Please select a payment method.');
       return;
     }
-
+  
     setIsLoading(true);
     try {
       if (!userId) {
         throw new Error(t('errorNoUserId'));
       }
-
+  
       // Prepare the request body based on the available data
-      const requestBody: any = {
-        userId: userId,
-        paymentMethod: selectedMethod,
+      const requestBody: {
+        userId: string | number;
+        paymentMethod: string;
+        priceInDollars?: number;
+        tariffName?: string;
+        assistantRequests?: number;
+        aiRequests?: number;
+      } = {
+        userId: userId, // Ensure `userId` is a string or number
+        paymentMethod: String(selectedMethod), // Convert `selectedMethod` to a string
       };
-
+  
       if (price > 0) {
         // Old logic
         requestBody.priceInDollars = price;
@@ -127,7 +139,7 @@ function PaymentPage() {
         setIsLoading(false);
         return;
       }
-
+  
       // Create payment invoice
       const response = await fetch('/api/telegram-invoice', {
         method: 'POST',
@@ -136,16 +148,14 @@ function PaymentPage() {
         },
         body: JSON.stringify(requestBody),
       });
-
+  
       const data = await response.json();
       if (response.ok) {
         // Open the invoice link or proceed to payment
         window.open(data.invoiceLink, '_blank');
-
+  
         // If assistantRequests or aiRequests are present, call 'extra-requests' API
         if (assistantRequests > 0 || aiRequests > 0) {
-          // After payment confirmation, call 'extra-requests' API to update the user's requests
-          // Note: In a real application, you should confirm payment success before updating
           const extraRequestsResponse = await fetch('/api/extra-requests', {
             method: 'POST',
             headers: {
@@ -157,7 +167,7 @@ function PaymentPage() {
               aiRequests: aiRequests,
             }),
           });
-
+  
           const extraRequestsData = await extraRequestsResponse.json();
           if (extraRequestsResponse.ok) {
             alert('Extra requests added successfully.');
@@ -171,7 +181,7 @@ function PaymentPage() {
     } catch (error) {
       console.error('Error during payment:', error);
       if (error instanceof Error) {
-        alert(t('invoice_creation_failed') + error.message);
+        alert(`${t('invoice_creation_failed')}: ${error.message}`);
       } else {
         alert(t('unknownError'));
       }
@@ -179,6 +189,7 @@ function PaymentPage() {
       setIsLoading(false);
     }
   };
+  
 
   // Determine the amount due based on available data
   let amountDue = 0;

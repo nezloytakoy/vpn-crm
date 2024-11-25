@@ -112,7 +112,7 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
     );
 
     // Create a new AssistantRequest without assigning an assistant yet
-    const assistantRequest = await prisma.assistantRequest.create({
+    await prisma.assistantRequest.create({
       data: {
         userId: userIdBigInt,
         assistantId: null,
