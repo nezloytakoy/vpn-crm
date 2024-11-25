@@ -1544,7 +1544,7 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
 }
 
 
-export async function getPenaltyPointsForLast24Hours(
+async function getPenaltyPointsForLast24Hours(
   assistantId: bigint
 ): Promise<number> {
   const now = new Date();
