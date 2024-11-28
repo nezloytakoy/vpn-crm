@@ -1680,10 +1680,14 @@ async function sendTelegramMediaToUser(userId: string, mediaUrl: string, caption
   }
 }
 
-// Функция для отправки фото
-async function sendPhoto(userId: string, mediaUrl: string, caption: string) {
+async function sendPhoto(userId: string, mediaUrl: string, caption: string): Promise<void> {
   try {
-    await bot.api.sendPhoto(userId, mediaUrl, { caption });
+    // Загрузка изображения
+    const response = await axios.get(mediaUrl, { responseType: 'arraybuffer' });
+    const buffer = Buffer.from(response.data, 'binary');
+
+    // Отправка изображения
+    await bot.api.sendPhoto(userId, new InputFile(buffer), { caption });
     console.log(`Photo sent to user ${userId}`);
   } catch (error) {
     console.error('Error sending photo:', error);
