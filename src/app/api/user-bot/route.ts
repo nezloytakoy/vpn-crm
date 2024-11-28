@@ -15,6 +15,8 @@ if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY не найде
 
 const bot = new Bot(token);
 
+const assistantBot = new Bot(process.env.TELEGRAM_SUPPORT_BOT_TOKEN || "");
+
 type ChatMessage = {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -1412,7 +1414,23 @@ bot.on('message:video_note', async (ctx) => {
 
 
 
-
+// Общая функция для отправки медиа ассистенту
+async function sendTelegramMediaToAssistant(userId: string, mediaUrl: string, caption: string): Promise<void> {
+  try {
+    if (mediaUrl.endsWith('.jpg') || mediaUrl.endsWith('.png')) {
+      await sendPhoto(userId, mediaUrl, caption);
+    } else if (mediaUrl.endsWith('.mp4')) {
+      await sendVideo(userId, mediaUrl, caption);
+    } else if (mediaUrl.endsWith('.ogg') || mediaUrl.endsWith('.mp3')) {
+      await sendVoice(userId, mediaUrl, caption);
+    } else {
+      console.error('Unsupported media type:', mediaUrl);
+    }
+  } catch (error) {
+    console.error("Error sending media to assistant:", error);
+    throw error;
+  }
+}
 
 
 
@@ -1637,14 +1655,14 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
       : `${getTranslation(languageCode, 'assistantRequestMessage')}\n\nТема: отсутствует`;
 
     if (updatedRequest?.subject?.startsWith('http')) {
-      // If subject is a media link, send it as media
-      await sendTelegramMediaToUser(
+      // Если subject - это ссылка на медиа, отправляем её ассистенту
+      await sendTelegramMediaToAssistant(
         selectedAssistant.telegramId.toString(),
         updatedRequest.subject,
         messageText
       );
 
-      // После отправки медиа отправляем кнопки
+      // После отправки медиа отправляем сообщение с кнопками
       await sendTelegramMessageWithButtons(
         selectedAssistant.telegramId.toString(),
         getTranslation(languageCode, 'assistantRequestMessage'),
@@ -1654,7 +1672,7 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
         ]
       );
     } else {
-      // Otherwise, send it as text with buttons
+      // Если это текст, отправляем сообщение с кнопками
       await sendTelegramMessageWithButtons(
         selectedAssistant.telegramId.toString(),
         messageText,
@@ -1676,19 +1694,8 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
 }
 
 
-async function sendTelegramMediaToUser(userId: string, mediaUrl: string, caption: string) {
-  // Вызов Telegram API для отправки медиа
-  // Определяем тип медиа: фото, видео, голос
-  if (mediaUrl.endsWith('.jpg') || mediaUrl.endsWith('.png')) {
-    await sendPhoto(userId, mediaUrl, caption);
-  } else if (mediaUrl.endsWith('.mp4')) {
-    await sendVideo(userId, mediaUrl, caption);
-  } else if (mediaUrl.endsWith('.ogg') || mediaUrl.endsWith('.mp3')) {
-    await sendVoice(userId, mediaUrl, caption);
-  } else {
-    console.error('Unsupported media type:', mediaUrl);
-  }
-}
+
+
 
 async function sendPhoto(userId: string, mediaUrl: string, caption: string): Promise<void> {
   try {
