@@ -662,7 +662,7 @@ bot.on("message:successful_payment", async (ctx) => {
         }
 
         const expirationDate = new Date();
-        expirationDate.setMonth(expirationDate.getMonth() + 1); // Срок действия подписки: 1 месяц
+        expirationDate.setMonth(expirationDate.getMonth() + 1);
 
         try {
           await prisma.userTariff.create({
