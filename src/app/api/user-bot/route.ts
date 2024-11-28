@@ -117,7 +117,6 @@ async function sendMessageToAssistant(
 
 
 
-
 type TranslationKey =
   | 'start_message'
   | 'webapp_button'
@@ -144,8 +143,9 @@ type TranslationKey =
   | 'noAssistantsAvailable'
   | 'requestSent'
   | 'accept'
-  | 'reject'; // Ensure all keys are included here
-
+  | 'reject'
+  | 'unexpected_photo'
+  | 'no_photo_detected'; // Новые ключи добавлены
 
 type Language = 'en' | 'ru';
 
@@ -180,8 +180,8 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       requestSent: "Запрос отправлен ассистенту.",
       accept: 'Принять',
       reject: 'Отклонить',
-
-
+      unexpected_photo: 'Ваше фото получено, но не ожидается. Попробуйте снова.',
+      no_photo_detected: 'Пожалуйста, отправьте изображение.',
     },
     en: {
       start_message:
@@ -212,6 +212,8 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       requestSent: 'The request has been sent to the assistant.',
       accept: 'Accept',
       reject: 'Reject',
+      unexpected_photo: 'Your photo has been received but was not expected. Please try again.',
+      no_photo_detected: 'Please send an image.',
     },
   };
 
@@ -1060,8 +1062,11 @@ bot.on('message:text', async (ctx: Context) => {
 
 
 bot.on('message:photo', async (ctx: Context) => {
+  let languageCode: string = 'en'; // Установка значения по умолчанию
+
   try {
-    const languageCode = ctx.from?.language_code || 'en';
+    // Определяем язык пользователя
+    languageCode = ctx.from?.language_code || 'en';
 
     if (!ctx.from?.id) {
       await ctx.reply(getTranslation(languageCode, 'no_user_id'));
@@ -1079,43 +1084,65 @@ bot.on('message:photo', async (ctx: Context) => {
     }
 
     if (ctx.message?.photo) {
-
       const largestPhoto = ctx.message.photo[ctx.message.photo.length - 1];
 
+      // Получаем ссылку на файл
       const file = await ctx.api.getFile(largestPhoto.file_id);
       const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${file.file_path}`;
 
+      if (user.isWaitingForSubject) {
+        console.log(`User ${telegramId.toString()} is providing a subject as a photo.`);
 
-      const lastComplaint = await prisma.complaint.findFirst({
-        where: {
-          userId: telegramId,
-          status: 'PENDING',
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      });
+        const activeRequest = await prisma.assistantRequest.findFirst({
+          where: { userId: telegramId, isActive: true, subject: null },
+        });
 
-      if (!lastComplaint) {
-        await ctx.reply('Ошибка: не найдена активная жалоба для прикрепления фото.');
-        return;
+        if (activeRequest) {
+          console.log(
+            `Active request for subject as photo: ${JSON.stringify(
+              { ...activeRequest, userId: activeRequest.userId.toString() },
+              serializeBigInt,
+              2
+            )}`
+          );
+
+          // Сохраняем ссылку на фото как тему
+          await prisma.assistantRequest.update({
+            where: { id: activeRequest.id },
+            data: { subject: fileUrl },
+          });
+
+          console.log(`Subject updated for request ID: ${activeRequest.id} - Subject (photo URL): ${fileUrl}`);
+
+          // Обновляем состояние пользователя
+          await prisma.user.update({
+            where: { telegramId },
+            data: { isWaitingForSubject: false },
+          });
+
+          console.log(`User ${telegramId.toString()} is no longer waiting for a subject.`);
+
+          // Назначаем ассистента на обновлённую заявку
+          await assignAssistantToRequest(activeRequest, languageCode);
+
+          await ctx.reply(getTranslation(languageCode, 'subjectReceived'));
+        } else {
+          console.error(
+            `No active request found for user ID: ${telegramId.toString()} while expecting a subject.`
+          );
+          await ctx.reply(getTranslation(languageCode, 'no_active_request'));
+        }
+      } else {
+        // Если пользователь не в режиме ожидания темы
+        await ctx.reply(getTranslation(languageCode, 'unexpected_photo'));
       }
-
-
-      await prisma.complaint.update({
-        where: { id: lastComplaint.id },
-        data: {
-          photoUrls: { push: fileUrl },
-        },
-      });
-
-      await ctx.reply('Скриншоты были успешно прикреплены к вашей жалобе.');
     } else {
-      await ctx.reply('Пожалуйста, отправьте фото для прикрепления к жалобе.');
+      await ctx.reply(getTranslation(languageCode, 'no_photo_detected'));
     }
   } catch (error) {
-    console.error('Ошибка при обработке фото:', error);
-    await ctx.reply('Произошла ошибка при загрузке ваших фото.');
+    console.error('Error processing photo:', error);
+    // Используем доступный languageCode
+    await ctx.reply(getTranslation(languageCode, 'server_error'));
   }
 });
 
