@@ -15,7 +15,6 @@ if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY не найде
 
 const bot = new Bot(token);
 
-const assistantBot = new Bot(process.env.TELEGRAM_SUPPORT_BOT_TOKEN || "");
 
 type ChatMessage = {
   role: 'system' | 'user' | 'assistant';
