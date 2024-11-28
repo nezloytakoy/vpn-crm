@@ -30,7 +30,7 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
         status: 404,
       };
     }
-    await sendLogToTelegram(`[Success] User found: ${JSON.stringify(userExists)}`);
+    await sendLogToTelegram(`[Success] User found: ${JSON.stringify(serializeBigInt(userExists))}`);
 
     // Проверяем, есть ли активные запросы у пользователя
     const existingActiveRequest = await prisma.assistantRequest.findFirst({
@@ -39,7 +39,7 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
 
     if (existingActiveRequest) {
       await sendLogToTelegram(
-        `[Info] User ${userIdBigInt.toString()} already has an active request: ${JSON.stringify(existingActiveRequest)}`
+        `[Info] User ${userIdBigInt.toString()} already has an active request: ${JSON.stringify(serializeBigInt(existingActiveRequest))}`
       );
       await sendTelegramMessageToUser(
         userIdBigInt.toString(),
@@ -105,7 +105,7 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
         status: 400,
       };
     }
-    await sendLogToTelegram(`[Success] User tariff found: ${JSON.stringify(userTariff)}`);
+    await sendLogToTelegram(`[Success] User tariff found: ${JSON.stringify(serializeBigInt(userTariff))}`);
 
     // Уменьшаем количество оставшихся запросов
     await prisma.userTariff.update({
@@ -136,7 +136,7 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
       },
     });
 
-    await sendLogToTelegram(`[Success] New assistant request created: ${JSON.stringify(newRequest)}`);
+    await sendLogToTelegram(`[Success] New assistant request created: ${JSON.stringify(serializeBigInt(newRequest))}`);
 
     // Обновляем статус пользователя
     await prisma.user.update({
@@ -167,4 +167,20 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
       status: 500,
     };
   }
+}
+
+
+function serializeBigInt(obj: any): any {
+  if (typeof obj === 'bigint') {
+    return obj.toString();
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(serializeBigInt);
+  }
+  if (typeof obj === 'object' && obj !== null) {
+    return Object.fromEntries(
+      Object.entries(obj).map(([key, value]) => [key, serializeBigInt(value)])
+    );
+  }
+  return obj;
 }
