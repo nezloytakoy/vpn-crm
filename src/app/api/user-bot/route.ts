@@ -612,9 +612,9 @@ bot.on("message:successful_payment", async (ctx) => {
         throw new Error(`Invalid decodedUserId format for BigInt conversion`);
       }
 
-      // Determine if this is a tariff purchase or extra requests purchase
+      // Определяем, что именно было куплено: подписка или дополнительные запросы
       if (assistantRequests || aiRequests) {
-        // Extra requests purchase
+        // Покупка дополнительных запросов
         try {
           await prisma.userTariff.create({
             data: {
@@ -623,7 +623,7 @@ bot.on("message:successful_payment", async (ctx) => {
               totalAIRequests: aiRequests || 0,
               remainingAssistantRequests: assistantRequests || 0,
               remainingAIRequests: aiRequests || 0,
-              expirationDate: "never", // Set expirationDate to "never"
+              expirationDate: new Date("9999-12-31T23:59:59.999Z"), // Без срока действия
             },
           });
 
@@ -636,7 +636,7 @@ bot.on("message:successful_payment", async (ctx) => {
           throw userTariffError;
         }
       } else {
-        // Tariff purchase
+        // Покупка подписки
         let subscription;
         try {
           await sendLogToTelegram(`Before subscription query: totalStars = ${totalStars}`);
@@ -653,6 +653,8 @@ bot.on("message:successful_payment", async (ctx) => {
             await sendLogToTelegram(`Subscription not found for price: ${totalStars} stars`);
             throw new Error(`Subscription not found for price: ${totalStars} stars`);
           }
+
+          await sendLogToTelegram(`Subscription found: ${JSON.stringify(subscription)}`);
         } catch (subscriptionError) {
           const errorMessage = subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError);
           await sendLogToTelegram(`Error finding subscription: ${errorMessage}`);
@@ -660,23 +662,23 @@ bot.on("message:successful_payment", async (ctx) => {
         }
 
         const expirationDate = new Date();
-        expirationDate.setMonth(expirationDate.getMonth() + 1); // Set expiration date to 1 month later
+        expirationDate.setMonth(expirationDate.getMonth() + 1); // Срок действия подписки: 1 месяц
 
         try {
           await prisma.userTariff.create({
             data: {
               userId: decodedUserIdBigInt,
-              tariffId: null, // No tariff ID for extra requests
-              totalAssistantRequests: assistantRequests || 0,
-              totalAIRequests: aiRequests || 0,
-              remainingAssistantRequests: assistantRequests || 0,
-              remainingAIRequests: aiRequests || 0,
-              expirationDate: new Date("9999-12-31T23:59:59.999Z"), // Equivalent to "never"
+              tariffId: subscription.id,
+              totalAssistantRequests: subscription.assistantRequestCount || 0,
+              totalAIRequests: subscription.aiRequestCount || 0,
+              remainingAssistantRequests: subscription.assistantRequestCount || 0, // Устанавливаем равным totalAssistantRequests
+              remainingAIRequests: subscription.aiRequestCount || 0, // Устанавливаем равным totalAIRequests
+              expirationDate, // Дата истечения подписки
             },
           });
 
           await sendLogToTelegram(
-            `User ${decodedUserIdBigInt.toString()} successfully added a tariff to UserTariff table.`
+            `User ${decodedUserIdBigInt.toString()} successfully added a tariff with subscription ID ${subscription.id}.`
           );
         } catch (userTariffError) {
           const errorMessage = userTariffError instanceof Error ? userTariffError.message : String(userTariffError);
@@ -685,7 +687,7 @@ bot.on("message:successful_payment", async (ctx) => {
         }
       }
 
-      // Referral logic remains unchanged
+      // Логика реферальных бонусов
       try {
         const referral = await prisma.referral.findFirst({
           where: {
@@ -715,6 +717,7 @@ bot.on("message:successful_payment", async (ctx) => {
               where: { telegramId: referral.userId },
               data: { coins: { increment: referralCoins } },
             });
+
             await sendLogToTelegram(`User ${referral.userId.toString()} received ${referralCoins} coins as a referral bonus.`);
           } else {
             await sendLogToTelegram(`Referring user not found for User ${decodedUserIdBigInt.toString()}`);
