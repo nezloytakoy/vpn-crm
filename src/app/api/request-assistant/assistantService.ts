@@ -170,7 +170,7 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
 }
 
 
-function serializeBigInt(obj: any): any {
+function serializeBigInt(obj: unknown): unknown {
   if (typeof obj === 'bigint') {
     return obj.toString();
   }
