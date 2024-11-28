@@ -569,6 +569,8 @@ const sendLogToTelegram = async (message: string) => {
 };
 
 
+
+
 bot.on("pre_checkout_query", async (ctx) => {
   try {
 
@@ -589,7 +591,7 @@ bot.on("message:successful_payment", async (ctx) => {
     const payment = ctx.message?.successful_payment;
     const userId = ctx.from?.id;
 
-    await sendLogToTelegram(`payment: ${JSON.stringify(payment)}, type: ${typeof payment}`);
+    await sendLogToTelegram(`payment: ${JSON.stringify(serializeBigInt(payment))}, type: ${typeof payment}`);
     await sendLogToTelegram(`userId: ${userId}, type: ${typeof userId}`);
 
     if (payment && userId) {
@@ -597,7 +599,7 @@ bot.on("message:successful_payment", async (ctx) => {
       await sendLogToTelegram(`totalStars: ${totalStars}, type: ${typeof totalStars}`);
 
       const payloadData = JSON.parse(payment.invoice_payload);
-      await sendLogToTelegram(`payloadData: ${JSON.stringify(payloadData)}, type: ${typeof payloadData}`);
+      await sendLogToTelegram(`payloadData: ${JSON.stringify(serializeBigInt(payloadData))}, type: ${typeof payloadData}`);
 
       const { userId: decodedUserId, assistantRequests, aiRequests } = payloadData;
       await sendLogToTelegram(`decodedUserId: ${decodedUserId}, type: ${typeof decodedUserId}`);
@@ -612,9 +614,9 @@ bot.on("message:successful_payment", async (ctx) => {
         throw new Error(`Invalid decodedUserId format for BigInt conversion`);
       }
 
-      // Определяем, что именно было куплено: подписка или дополнительные запросы
+      // Determine if this is a tariff purchase or extra requests purchase
       if (assistantRequests || aiRequests) {
-        // Покупка дополнительных запросов
+        // Extra requests purchase
         try {
           await prisma.userTariff.create({
             data: {
@@ -636,7 +638,7 @@ bot.on("message:successful_payment", async (ctx) => {
           throw userTariffError;
         }
       } else {
-        // Покупка подписки
+        // Tariff purchase
         let subscription;
         try {
           await sendLogToTelegram(`Before subscription query: totalStars = ${totalStars}`);
@@ -654,7 +656,7 @@ bot.on("message:successful_payment", async (ctx) => {
             throw new Error(`Subscription not found for price: ${totalStars} stars`);
           }
 
-          await sendLogToTelegram(`Subscription found: ${JSON.stringify(subscription)}`);
+          await sendLogToTelegram(`Subscription found: ${JSON.stringify(serializeBigInt(subscription))}`);
         } catch (subscriptionError) {
           const errorMessage = subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError);
           await sendLogToTelegram(`Error finding subscription: ${errorMessage}`);
@@ -662,7 +664,7 @@ bot.on("message:successful_payment", async (ctx) => {
         }
 
         const expirationDate = new Date();
-        expirationDate.setMonth(expirationDate.getMonth() + 1);
+        expirationDate.setMonth(expirationDate.getMonth() + 1); // Срок действия подписки: 1 месяц
 
         try {
           await prisma.userTariff.create({
@@ -671,8 +673,8 @@ bot.on("message:successful_payment", async (ctx) => {
               tariffId: subscription.id,
               totalAssistantRequests: subscription.assistantRequestCount || 0,
               totalAIRequests: subscription.aiRequestCount || 0,
-              remainingAssistantRequests: subscription.assistantRequestCount || 0, // Устанавливаем равным totalAssistantRequests
-              remainingAIRequests: subscription.aiRequestCount || 0, // Устанавливаем равным totalAIRequests
+              remainingAssistantRequests: subscription.assistantRequestCount || 0,
+              remainingAIRequests: subscription.aiRequestCount || 0,
               expirationDate, // Дата истечения подписки
             },
           });
@@ -699,7 +701,7 @@ bot.on("message:successful_payment", async (ctx) => {
           },
         });
 
-        await sendLogToTelegram(`referral: ${JSON.stringify(referral)}, type: ${typeof referral}`);
+        await sendLogToTelegram(`referral: ${JSON.stringify(serializeBigInt(referral))}, type: ${typeof referral}`);
 
         if (referral) {
           const referringUser = await prisma.user.findUnique({
@@ -1549,10 +1551,19 @@ type TelegramButton = {
   callback_data: string;
 };
 
-// Serializer function to handle BigInt
-function serializeBigInt(_: string, value: unknown): unknown {
-  // Convert BigInt to string for serialization, otherwise return the value as is
-  return typeof value === 'bigint' ? value.toString() : value;
+function serializeBigInt(obj: unknown): unknown {
+  if (typeof obj === 'bigint') {
+    return obj.toString(); // Преобразуем BigInt в строку
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(serializeBigInt); // Рекурсивно обрабатываем массивы
+  }
+  if (typeof obj === 'object' && obj !== null) {
+    return Object.fromEntries(
+      Object.entries(obj).map(([key, value]) => [key, serializeBigInt(value)])
+    ); // Рекурсивно обрабатываем объекты
+  }
+  return obj; // Возвращаем остальные типы (string, number, boolean и т. д.)
 }
 
 // Logging function with type safety
