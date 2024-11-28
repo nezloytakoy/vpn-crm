@@ -1530,7 +1530,7 @@ function logWithBigInt<T>(obj: T): void {
   console.log(JSON.stringify(obj, serializeBigInt, 2));
 }
 
-export async function assignAssistantToRequest(assistantRequest: AssistantRequest, languageCode: string) {
+async function assignAssistantToRequest(assistantRequest: AssistantRequest, languageCode: string) {
   try {
     console.log(`Assigning assistant for request ID: ${assistantRequest.id}`);
     console.log(`Request details: ${JSON.stringify(assistantRequest, serializeBigInt, 2)}`);
