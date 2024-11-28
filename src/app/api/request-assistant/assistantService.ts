@@ -46,7 +46,6 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
       };
     }
 
-    // Check remaining assistant requests (existing logic)
     const now = new Date();
 
     const totalRemainingAssistantRequestsResult = await prisma.userTariff.aggregate({
@@ -120,7 +119,7 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
         status: 'PENDING',
         isActive: true,
         ignoredAssistants: [],
-        subject: null, // Subject is null initially
+        subject: null, // Initially null, updated later when media or text is received
       },
     });
 
@@ -130,7 +129,7 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
       data: { isWaitingForSubject: true },
     });
 
-    // Prompt the user to enter the subject
+    // Prompt the user to enter the subject or send media
     await sendTelegramMessageToUser(
       userIdBigInt.toString(),
       getTranslation(lang, 'enterSubject')

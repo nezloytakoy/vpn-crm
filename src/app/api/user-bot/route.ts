@@ -1530,7 +1530,7 @@ function logWithBigInt<T>(obj: T): void {
   console.log(JSON.stringify(obj, serializeBigInt, 2));
 }
 
-async function assignAssistantToRequest(assistantRequest: AssistantRequest, languageCode: string) {
+export async function assignAssistantToRequest(assistantRequest: AssistantRequest, languageCode: string) {
   try {
     console.log(`Assigning assistant for request ID: ${assistantRequest.id}`);
     console.log(`Request details: ${JSON.stringify(assistantRequest, serializeBigInt, 2)}`);
@@ -1589,14 +1589,30 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
 
     console.log(`Updated request after assigning assistant: ${JSON.stringify(updatedRequest, serializeBigInt, 2)}`);
 
-    await sendTelegramMessageWithButtons(
-      selectedAssistant.telegramId.toString(),
-      `${getTranslation(languageCode, 'assistantRequestMessage')}\n\nТема: ${updatedRequest?.subject}`,
-      [
-        { text: getTranslation(languageCode, 'accept'), callback_data: `accept_${assistantRequest.id.toString()}` },
-        { text: getTranslation(languageCode, 'reject'), callback_data: `reject_${assistantRequest.id.toString()}` },
-      ]
-    );
+    const messageText = updatedRequest?.subject
+      ? updatedRequest.subject.startsWith('http')
+        ? `${getTranslation(languageCode, 'assistantRequestMessage')}\n\n(см. вложение)`
+        : `${getTranslation(languageCode, 'assistantRequestMessage')}\n\nТема: ${updatedRequest.subject}`
+      : `${getTranslation(languageCode, 'assistantRequestMessage')}\n\nТема: отсутствует`;
+
+    if (updatedRequest?.subject?.startsWith('http')) {
+      // If subject is a media link, send it as media
+      await sendTelegramMediaToUser(
+        selectedAssistant.telegramId.toString(),
+        updatedRequest.subject,
+        messageText
+      );
+    } else {
+      // Otherwise, send it as text
+      await sendTelegramMessageWithButtons(
+        selectedAssistant.telegramId.toString(),
+        messageText,
+        [
+          { text: getTranslation(languageCode, 'accept'), callback_data: `accept_${assistantRequest.id.toString()}` },
+          { text: getTranslation(languageCode, 'reject'), callback_data: `reject_${assistantRequest.id.toString()}` },
+        ]
+      );
+    }
 
     console.log(`Message sent to assistant ID: ${selectedAssistant.telegramId}`);
 
@@ -1605,6 +1621,51 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
     console.error('Error assigning assistant:', error);
     await sendLogToTelegram(`Error assigning assistant: ${error instanceof Error ? error.message : 'Unknown error'}`);
     await sendTelegramMessageToUser(assistantRequest.userId.toString(), getTranslation(languageCode, 'server_error'));
+  }
+}
+
+
+async function sendTelegramMediaToUser(userId: string, mediaUrl: string, caption: string) {
+  // Вызов Telegram API для отправки медиа
+  // Определяем тип медиа: фото, видео, голос
+  if (mediaUrl.endsWith('.jpg') || mediaUrl.endsWith('.png')) {
+    await sendPhoto(userId, mediaUrl, caption);
+  } else if (mediaUrl.endsWith('.mp4')) {
+    await sendVideo(userId, mediaUrl, caption);
+  } else if (mediaUrl.endsWith('.ogg') || mediaUrl.endsWith('.mp3')) {
+    await sendVoice(userId, mediaUrl, caption);
+  } else {
+    console.error('Unsupported media type:', mediaUrl);
+  }
+}
+
+// Функция для отправки фото
+async function sendPhoto(userId: string, mediaUrl: string, caption: string) {
+  try {
+    await bot.api.sendPhoto(userId, mediaUrl, { caption });
+    console.log(`Photo sent to user ${userId}`);
+  } catch (error) {
+    console.error('Error sending photo:', error);
+  }
+}
+
+// Функция для отправки видео
+async function sendVideo(userId: string, mediaUrl: string, caption: string) {
+  try {
+    await bot.api.sendVideo(userId, mediaUrl, { caption });
+    console.log(`Video sent to user ${userId}`);
+  } catch (error) {
+    console.error('Error sending video:', error);
+  }
+}
+
+// Функция для отправки голосового сообщения
+async function sendVoice(userId: string, mediaUrl: string, caption: string) {
+  try {
+    await bot.api.sendVoice(userId, mediaUrl, { caption });
+    console.log(`Voice message sent to user ${userId}`);
+  } catch (error) {
+    console.error('Error sending voice message:', error);
   }
 }
 
