@@ -15,6 +15,7 @@ if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY не найде
 
 const bot = new Bot(token);
 
+const assistantBot = new Bot(process.env.TELEGRAM_SUPPORT_BOT_TOKEN || "");
 
 type ChatMessage = {
   role: 'system' | 'user' | 'assistant';
@@ -1703,7 +1704,7 @@ async function sendPhoto(userId: string, mediaUrl: string, caption: string): Pro
     const buffer = Buffer.from(response.data, 'binary');
 
     // Отправка изображения
-    await bot.api.sendPhoto(userId, new InputFile(buffer), { caption });
+    await assistantBot.api.sendPhoto(userId, new InputFile(buffer), { caption });
     console.log(`Photo sent to user ${userId}`);
   } catch (error) {
     console.error('Error sending photo:', error);
@@ -1713,7 +1714,7 @@ async function sendPhoto(userId: string, mediaUrl: string, caption: string): Pro
 // Функция для отправки видео
 async function sendVideo(userId: string, mediaUrl: string, caption: string) {
   try {
-    await bot.api.sendVideo(userId, mediaUrl, { caption });
+    await assistantBot.api.sendVideo(userId, mediaUrl, { caption });
     console.log(`Video sent to user ${userId}`);
   } catch (error) {
     console.error('Error sending video:', error);
@@ -1723,7 +1724,7 @@ async function sendVideo(userId: string, mediaUrl: string, caption: string) {
 // Функция для отправки голосового сообщения
 async function sendVoice(userId: string, mediaUrl: string, caption: string) {
   try {
-    await bot.api.sendVoice(userId, mediaUrl, { caption });
+    await assistantBot.api.sendVoice(userId, mediaUrl, { caption });
     console.log(`Voice message sent to user ${userId}`);
   } catch (error) {
     console.error('Error sending voice message:', error);
