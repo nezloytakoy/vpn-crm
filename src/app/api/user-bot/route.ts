@@ -1643,8 +1643,18 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
         updatedRequest.subject,
         messageText
       );
+
+      // После отправки медиа отправляем кнопки
+      await sendTelegramMessageWithButtons(
+        selectedAssistant.telegramId.toString(),
+        getTranslation(languageCode, 'assistantRequestMessage'),
+        [
+          { text: getTranslation(languageCode, 'accept'), callback_data: `accept_${assistantRequest.id.toString()}` },
+          { text: getTranslation(languageCode, 'reject'), callback_data: `reject_${assistantRequest.id.toString()}` },
+        ]
+      );
     } else {
-      // Otherwise, send it as text
+      // Otherwise, send it as text with buttons
       await sendTelegramMessageWithButtons(
         selectedAssistant.telegramId.toString(),
         messageText,
