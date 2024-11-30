@@ -185,6 +185,7 @@ export async function processPendingRequest(request: {
     console.log(`processPendingRequest: Завершение обработки запроса ID: ${request.id.toString()}`);
 }
 
+
 async function addIgnoreAction(assistantId: bigint, requestId: bigint) {
     console.log(
         `addIgnoreAction: Ассистент ID: ${assistantId.toString()} игнорировал запрос ID: ${requestId.toString()}`
