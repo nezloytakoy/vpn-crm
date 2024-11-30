@@ -1,6 +1,8 @@
 import { Bot, webhookCallback, Context } from 'grammy';
 import { PrismaClient } from '@prisma/client';
 import { Prisma } from '@prisma/client';
+import axios from 'axios';
+import { InputFile } from 'grammy';
 
 
 const token = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
@@ -8,6 +10,8 @@ if (!token) throw new Error('TELEGRAM_SUPPORT_BOT_TOKEN not found.');
 
 const bot = new Bot(token);
 const prisma = new PrismaClient();
+
+const assistantBot = new Bot(process.env.TELEGRAM_SUPPORT_BOT_TOKEN || "");
 
 
 type TelegramButton = {
@@ -947,10 +951,8 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
 
 async function handleRejectRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
   try {
-
     const edges = await prisma.edges.findFirst();
     const maxRejects = edges ? edges.maxRejects : 7;
-
 
     const rejectCount = await prisma.requestAction.count({
       where: {
@@ -961,7 +963,6 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
         },
       },
     });
-
 
     if (rejectCount >= maxRejects) {
       await prisma.assistant.update({
@@ -975,7 +976,6 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
       await ctx.reply('🚫 Вы превысили лимит отказов и были заблокированы на 24 часа.');
       return;
     }
-
 
     const assistantRequest = await prisma.assistantRequest.findUnique({
       where: { id: BigInt(requestId) },
@@ -992,6 +992,7 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
       });
     }
 
+    // Сохраняем действие отклонения
     await prisma.requestAction.create({
       data: {
         requestId: BigInt(requestId),
@@ -1000,6 +1001,7 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
       },
     });
 
+    // Обновляем статус запроса и добавляем игнорируемого ассистента
     await prisma.assistantRequest.update({
       where: { id: BigInt(requestId) },
       data: {
@@ -1010,9 +1012,11 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
       },
     });
 
+    // Находим нового ассистента
     const newAssistant = await findNewAssistant(BigInt(requestId), ignoredAssistants);
 
     if (newAssistant) {
+      // Обновляем запрос с новым ассистентом
       await prisma.assistantRequest.update({
         where: { id: BigInt(requestId) },
         data: {
@@ -1020,12 +1024,36 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
         },
       });
 
+      // Обрабатываем поле subject и отправляем соответствующее медиа или текст
+      if (assistantRequest?.subject) {
+        const caption = 'Тема запроса от пользователя';
+        if (assistantRequest.subject.startsWith('http')) {
+          // Отправляем медиа (фото, видео, голосовое сообщение)
+          await sendTelegramMediaToAssistant(
+            newAssistant.telegramId.toString(),
+            assistantRequest.subject,
+            caption
+          );
+        } else {
+          // Отправляем текстовое сообщение с кнопками
+          await sendTelegramMessageWithButtons(
+            newAssistant.telegramId.toString(),
+            `Тема запроса: ${assistantRequest.subject}`,
+            [
+              { text: getTranslation('en', 'accept'), callback_data: `accept_${assistantRequest.id.toString()}` },
+              { text: getTranslation('en', 'reject'), callback_data: `reject_${assistantRequest.id.toString()}` },
+            ]
+          );
+        }
+      }
+
+      // Отправляем основное сообщение с кнопками
       await sendTelegramMessageWithButtons(
         newAssistant.telegramId.toString(),
-        'Новый запрос от пользователя',
+        assistantRequest?.message || 'Новое сообщение от пользователя',
         [
-          { text: 'Принять', callback_data: `accept_${requestId}` },
-          { text: 'Отклонить', callback_data: `reject_${requestId}` },
+          { text: getTranslation('en', 'accept'), callback_data: `accept_${requestId}` },
+          { text: getTranslation('en', 'reject'), callback_data: `reject_${requestId}` },
         ]
       );
 
@@ -1034,6 +1062,7 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
       await ctx.reply('❌ Вы отклонили запрос, но доступных ассистентов больше нет.');
     }
 
+    // Снимаем флаг занятости с ассистента
     await prisma.assistant.update({
       where: { telegramId: assistantTelegramId },
       data: { isBusy: false },
@@ -1043,6 +1072,65 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
     await ctx.reply('❌ Произошла ошибка при отклонении запроса.');
   }
 }
+
+
+
+
+
+// Общая функция для отправки медиа ассистенту
+async function sendTelegramMediaToAssistant(userId: string, mediaUrl: string, caption: string): Promise<void> {
+  try {
+    if (mediaUrl.endsWith('.jpg') || mediaUrl.endsWith('.png')) {
+      await sendPhoto(userId, mediaUrl, caption);
+    } else if (mediaUrl.endsWith('.mp4')) {
+      await sendVideo(userId, mediaUrl, caption);
+    } else if (mediaUrl.endsWith('.ogg') || mediaUrl.endsWith('.mp3')) {
+      await sendVoice(userId, mediaUrl, caption);
+    } else {
+      console.error('Unsupported media type:', mediaUrl);
+    }
+  } catch (error) {
+    console.error("Error sending media to assistant:", error);
+    throw error;
+  }
+}
+
+
+async function sendPhoto(userId: string, mediaUrl: string, caption: string): Promise<void> {
+  try {
+    // Загрузка изображения
+    const response = await axios.get(mediaUrl, { responseType: 'arraybuffer' });
+    const buffer = Buffer.from(response.data, 'binary');
+
+    // Отправка изображения
+    await assistantBot.api.sendPhoto(userId, new InputFile(buffer), { caption });
+    console.log(`Photo sent to user ${userId}`);
+  } catch (error) {
+    console.error('Error sending photo:', error);
+  }
+}
+
+// Функция для отправки видео
+async function sendVideo(userId: string, mediaUrl: string, caption: string) {
+  try {
+    await assistantBot.api.sendVideo(userId, mediaUrl, { caption });
+    console.log(`Video sent to user ${userId}`);
+  } catch (error) {
+    console.error('Error sending video:', error);
+  }
+}
+
+// Функция для отправки голосового сообщения
+async function sendVoice(userId: string, mediaUrl: string, caption: string) {
+  try {
+    await assistantBot.api.sendVoice(userId, mediaUrl, { caption });
+    console.log(`Voice message sent to user ${userId}`);
+  } catch (error) {
+    console.error('Error sending voice message:', error);
+  }
+}
+
+
 
 
 
