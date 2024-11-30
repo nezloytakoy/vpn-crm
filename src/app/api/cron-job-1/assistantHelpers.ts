@@ -12,63 +12,74 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Функция обработки бонусов для ассистента и его наставника
 export async function processAssistantRewards(assistantId: bigint) {
-    console.log(`processAssistantRewards: Обработка бонусов для ассистента ID: ${assistantId.toString()}`); // Добавлено .toString()
-    const totalCompletedConversations = await prisma.conversation.count({
-        where: {
-            assistantId: assistantId,
-            status: 'COMPLETED',
-        },
-    });
-    console.log(`Ассистент ID: ${assistantId.toString()} завершил всего диалогов: ${totalCompletedConversations}`);
+    console.log(`processAssistantRewards: Обработка бонусов для ассистента ID: ${assistantId.toString()}`);
+    
+    try {
+        // Подсчет завершенных диалогов
+        const totalCompletedConversations = await prisma.conversation.count({
+            where: {
+                assistantId: assistantId,
+                status: 'COMPLETED',
+            },
+        });
+        console.log(`Ассистент ID: ${assistantId.toString()} завершил всего диалогов: ${totalCompletedConversations}`);
+        
+        // Получение параметров наград
+        const rewards = await prisma.rewards.findFirst();
+        console.log(`Параметры наград: ${JSON.stringify(rewards, (key, value) =>
+            typeof value === 'bigint' ? value.toString() : value
+        )}`);
+        
+        const periodRequestCount = rewards?.rewardRequestCount ?? 10;
+        const assistantReward = rewards?.assistantReward ?? 5;
+        const isPermanentBonus = rewards?.isPermanentBonus ?? false;
+        const referralPeriodRequestCount = rewards?.referralRequestCount ?? 20;
+        const isPermanentReferral = rewards?.isPermanentReferral ?? false;
+        const mentorReward = rewards?.mentorReward ?? 10;
 
-    const rewards = await prisma.rewards.findFirst();
-    console.log(`Параметры наград: ${JSON.stringify(rewards)}`);
+        // Получение данных об ассистенте
+        const assistantData = await prisma.assistant.findUnique({
+            where: { telegramId: assistantId },
+            select: { mentorId: true },
+        });
+        console.log(`Наставник ассистента ID: ${assistantId.toString()} - ${assistantData?.mentorId?.toString()}`);
 
-    const periodRequestCount = rewards?.rewardRequestCount ?? 10;
-    const assistantReward = rewards?.assistantReward ?? 5;
-    const isPermanentBonus = rewards?.isPermanentBonus ?? false;
-    const referralPeriodRequestCount = rewards?.referralRequestCount ?? 20;
-    const isPermanentReferral = rewards?.isPermanentReferral ?? false;
-    const mentorReward = rewards?.mentorReward ?? 10;
+        const mentorId = assistantData?.mentorId;
 
-    const assistantData = await prisma.assistant.findUnique({
-        where: { telegramId: assistantId },
-        select: { mentorId: true },
-    });
-    console.log(`Наставник ассистента ID: ${assistantId.toString()} - ${assistantData?.mentorId?.toString()}`); // Добавлено .toString()
+        // Начисление бонусов ассистенту
+        if (rewards?.isRegularBonusEnabled) {
+            if (!isPermanentBonus) {
+                if (totalCompletedConversations === periodRequestCount) {
+                    await awardAssistantBonus(assistantId, assistantReward, periodRequestCount);
+                    console.log(`✅ Начислен бонус ассистенту ID: ${assistantId.toString()}`);
+                }
+            } else {
+                if (totalCompletedConversations % periodRequestCount === 0) {
+                    await awardAssistantBonus(assistantId, assistantReward, periodRequestCount);
+                    console.log(`✅ Начислен постоянный бонус ассистенту ID: ${assistantId.toString()}`);
+                }
+            }
+        }
 
-    const mentorId = assistantData?.mentorId;
-
-    if (rewards?.isRegularBonusEnabled) {
-        if (!isPermanentBonus) {
-            if (totalCompletedConversations === periodRequestCount) {
-                await awardAssistantBonus(assistantId, assistantReward, periodRequestCount);
-                console.log(`Начислен бонус ассистенту ID: ${assistantId.toString()}`); // Добавлено .toString()
+        // Начисление бонусов наставнику
+        if (!isPermanentReferral) {
+            if (totalCompletedConversations === referralPeriodRequestCount) {
+                if (mentorId) {
+                    await awardMentorBonus(mentorId, mentorReward, referralPeriodRequestCount);
+                    console.log(`✅ Начислен бонус наставнику ID: ${mentorId?.toString()}`);
+                }
             }
         } else {
-            if (totalCompletedConversations % periodRequestCount === 0) {
-                await awardAssistantBonus(assistantId, assistantReward, periodRequestCount);
-                console.log(`Начислен постоянный бонус ассистенту ID: ${assistantId.toString()}`); // Добавлено .toString()
+            if (totalCompletedConversations % referralPeriodRequestCount === 0) {
+                if (mentorId) {
+                    await awardMentorBonus(mentorId, mentorReward, referralPeriodRequestCount);
+                    console.log(`✅ Начислен постоянный бонус наставнику ID: ${mentorId?.toString()}`);
+                }
             }
         }
-    }
-
-    if (!isPermanentReferral) {
-        if (totalCompletedConversations === referralPeriodRequestCount) {
-            if (mentorId) {
-                await awardMentorBonus(mentorId, mentorReward, referralPeriodRequestCount);
-                console.log(`Начислен бонус наставнику ID: ${mentorId.toString()}`); // Добавлено .toString()
-            }
-        }
-    } else {
-        if (totalCompletedConversations % referralPeriodRequestCount === 0) {
-            if (mentorId) {
-                await awardMentorBonus(mentorId, mentorReward, referralPeriodRequestCount);
-                console.log(`Начислен постоянный бонус наставнику ID: ${mentorId.toString()}`); // Добавлено .toString()
-            }
-        }
+    } catch (error) {
+        console.error(`❌ Ошибка в процессе обработки бонусов:`, error);
     }
 }
 
@@ -189,7 +200,7 @@ export async function processPendingRequest(request: {
 async function addIgnoreAction(assistantId: bigint, requestId: bigint) {
     console.log(
         `addIgnoreAction: Ассистент ID: ${assistantId.toString()} игнорировал запрос ID: ${requestId.toString()}`
-    ); // Добавлено .toString()
+    );
     await prisma.requestAction.create({
         data: {
             assistantId: assistantId,
@@ -216,6 +227,6 @@ async function countIgnoredActionsInLast24Hours(assistantId: bigint) {
 
     console.log(
         `Ассистент ID: ${assistantId.toString()} игнорировал ${ignoredCount} запросов за последние 24 часа`
-    ); // Добавлено .toString()
+    );
     return ignoredCount;
 }
