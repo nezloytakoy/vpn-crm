@@ -947,8 +947,6 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
 }
 
 
-
-
 async function handleRejectRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
   try {
     const edges = await prisma.edges.findFirst();
@@ -1035,14 +1033,11 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
             caption
           );
         } else {
-          // Отправляем текстовое сообщение с кнопками
+          // Отправляем текст без кнопок
           await sendTelegramMessageWithButtons(
             newAssistant.telegramId.toString(),
             `Тема запроса: ${assistantRequest.subject}`,
-            [
-              { text: getTranslation('en', 'accept'), callback_data: `accept_${assistantRequest.id.toString()}` },
-              { text: getTranslation('en', 'reject'), callback_data: `reject_${assistantRequest.id.toString()}` },
-            ]
+            []
           );
         }
       }
@@ -1072,6 +1067,7 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
     await ctx.reply('❌ Произошла ошибка при отклонении запроса.');
   }
 }
+
 
 
 
