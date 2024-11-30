@@ -32,19 +32,6 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
     }
     await sendLogToTelegram(`[Success] User found: ${JSON.stringify(serializeBigInt(userExists))}`);
 
-    // Проверяем, ожидает ли пользователь ввода темы
-    if (userExists.isWaitingForSubject) {
-      await sendLogToTelegram(`[Info] User ${userIdBigInt.toString()} is already waiting for a subject.`);
-      await sendTelegramMessageToUser(
-        userIdBigInt.toString(),
-        getTranslation(lang, 'waitingForSubject')
-      );
-      return {
-        message: getTranslation(lang, 'waitingForSubject'),
-        status: 200,
-      };
-    }
-
     // Проверяем, есть ли активные запросы у пользователя
     const existingActiveRequest = await prisma.assistantRequest.findFirst({
       where: { userId: userIdBigInt, isActive: true },
