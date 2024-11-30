@@ -16,6 +16,7 @@ export const translations = {
         enterSubject: 'Please enter the subject of your request.',
         existingActiveRequest: 'You already have an active request to an assistant.',
         noActiveRequest: 'You have no active assistant requests.',
+        waitingForSubject: 'We are waiting for you to provide the subject of your request.',
     },
     ru: {
         userIdRequired: 'Требуется UserId',
@@ -32,6 +33,7 @@ export const translations = {
         enterSubject: 'Пожалуйста, введите тему вашего запроса.',
         existingActiveRequest: 'У вас уже есть открытый запрос к ассистенту.',
         noActiveRequest: 'У вас нет активных запросов к ассистенту.',
+        waitingForSubject: 'Мы ожидаем от вас ввода темы запроса.',
     },
 };
 

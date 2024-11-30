@@ -946,7 +946,6 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
   }
 }
 
-
 async function handleRejectRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
   try {
     const edges = await prisma.edges.findFirst();
@@ -1022,7 +1021,7 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
         },
       });
 
-      // Обрабатываем поле subject и отправляем соответствующее медиа или текст
+      // Обрабатываем поле subject и отправляем только одно сообщение
       if (assistantRequest?.subject) {
         const caption = 'Тема запроса от пользователя';
         if (assistantRequest.subject.startsWith('http')) {
