@@ -5,22 +5,38 @@ const prisma = new PrismaClient();
 
 
 async function findAvailableAssistant(ignoredAssistants: bigint[]) {
-    const availableAssistant = await prisma.assistant.findFirst({
-        where: {
-            isWorking: true,
-            isBusy: false,
-            isBlocked: false,
-            telegramId: {
-                notIn: ignoredAssistants,
-            },
-        },
-        orderBy: {
-            lastActiveAt: 'desc',
-        },
-    });
-    return availableAssistant;
-}
+    console.log(`=== Начало поиска доступного ассистента ===`);
+    console.log(`Игнорируемые ассистенты: ${ignoredAssistants.map((id) => id.toString())}`);
 
+    try {
+        const availableAssistant = await prisma.assistant.findFirst({
+            where: {
+                isWorking: true,
+                isBusy: false,
+                isBlocked: false,
+                telegramId: {
+                    notIn: ignoredAssistants,
+                },
+            },
+            orderBy: {
+                lastActiveAt: 'desc',
+            },
+        });
+
+        if (availableAssistant) {
+            console.log(`✅ Найден доступный ассистент: ${JSON.stringify(availableAssistant, (key, value) =>
+                typeof value === 'bigint' ? value.toString() : value
+            )}`);
+        } else {
+            console.log(`❌ Нет доступных ассистентов, подходящих под критерии.`);
+        }
+
+        return availableAssistant;
+    } catch (error) {
+        console.error(`❌ Ошибка при поиске доступного ассистента:`, error);
+        throw error;
+    }
+}
 
 async function addIgnoreAction(assistantId: bigint, requestId: bigint) {
     await prisma.requestAction.create({
