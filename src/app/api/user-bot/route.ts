@@ -1367,7 +1367,7 @@ async function sendTelegramMediaToAssistant(userId: string, mediaUrl: string, ca
       await sendPhoto(userId, mediaUrl, caption);
     } else if (mediaUrl.endsWith('.mp4')) {
       await sendVideo(userId, mediaUrl, caption);
-    } else if (mediaUrl.endsWith('.ogg') || mediaUrl.endsWith('.mp3')) {
+    } else if (mediaUrl.endsWith('.ogg') || mediaUrl.endsWith('.mp3') || mediaUrl.endsWith('.oga')) {
       await sendVoice(userId, mediaUrl, caption);
     } else {
       console.error('Unsupported media type:', mediaUrl);
@@ -1605,7 +1605,7 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
       await sendTelegramMediaToAssistant(
         selectedAssistant.telegramId.toString(),
         updatedRequest.subject,
-        messageText
+        ''
       );
 
       // После отправки медиа отправляем сообщение с кнопками
