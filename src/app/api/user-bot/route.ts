@@ -1810,10 +1810,24 @@ async function sendPhoto(userId: string, mediaUrl: string, caption: string): Pro
 // Функция для отправки видео
 async function sendVideo(userId: string, mediaUrl: string, caption: string) {
   try {
-    await assistantBot.api.sendVideo(userId, mediaUrl, { caption });
-    console.log(`Video sent to user ${userId}`);
+    console.log(`sendVideo: Preparing to send video to user ${userId}`);
+    console.log(`Video Media URL: ${mediaUrl}, Caption: ${caption}`);
+
+    // Загрузка видео с mediaUrl
+    const response = await axios.get(mediaUrl, { responseType: 'arraybuffer' });
+    const videoBuffer = Buffer.from(response.data, 'binary');
+    const fileName = 'video.mp4'; // Имя файла для видео
+
+    console.log(`Sending video to user ${userId}`);
+
+    // Отправка видео как файла
+    await assistantBot.api.sendVideo(userId, new InputFile(videoBuffer, fileName), {
+      caption: caption,
+    });
+
+    console.log(`Video successfully sent to user ${userId}`);
   } catch (error) {
-    console.error('Error sending video:', error);
+    console.error(`Error sending video to user ${userId}:`, error);
   }
 }
 
