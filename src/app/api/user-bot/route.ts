@@ -1677,7 +1677,7 @@ async function sendVoice(userId: string, mediaUrl: string, caption: string) {
   try {
     console.log(`sendVoice: Preparing to send voice message to user ${userId}`);
     console.log(`Voice Media URL: ${mediaUrl}, Caption: ${caption}`);
-    
+
     // Проверяем доступность mediaUrl перед отправкой
     const response = await axios.head(mediaUrl);
     console.log(`Media URL check status: ${response.status}`);
@@ -1685,14 +1685,19 @@ async function sendVoice(userId: string, mediaUrl: string, caption: string) {
       throw new Error(`Media URL ${mediaUrl} is not accessible`);
     }
 
-    // Отправляем голосовое сообщение
-    await assistantBot.api.sendVoice(userId, mediaUrl, { caption });
+    // Отправляем голосовое сообщение без подписи
+    if (caption.trim() === '') {
+      await assistantBot.api.sendVoice(userId, mediaUrl);
+    } else {
+      console.warn('Caption is not supported for voice messages. Ignoring caption.');
+      await assistantBot.api.sendVoice(userId, mediaUrl); // Убираем caption
+    }
+
     console.log(`Voice message sent to user ${userId}`);
   } catch (error) {
     console.error('Error sending voice message:', error);
   }
 }
-
 
 
 async function getPenaltyPointsForLast24Hours(
