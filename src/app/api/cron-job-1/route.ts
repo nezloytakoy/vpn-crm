@@ -7,7 +7,9 @@ import {
   handleRejectRequest,
 } from './helpers';
 
-import { processAssistantRewards, processPendingRequest } from './assistantHelpers'
+import { processPendingRequest } from './assistantHelpers'
+
+import { processAssistantRewards } from './processAssistantRewards'
 
 export const revalidate = 1;
 
