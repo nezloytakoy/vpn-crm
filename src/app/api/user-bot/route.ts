@@ -1363,11 +1363,17 @@ bot.on('message:video_note', async (ctx) => {
 // Общая функция для отправки медиа ассистенту
 async function sendTelegramMediaToAssistant(userId: string, mediaUrl: string, caption: string): Promise<void> {
   try {
+    console.log(`sendTelegramMediaToAssistant: Preparing to send media to user ${userId}`);
+    console.log(`Media URL: ${mediaUrl}, Caption: ${caption}`);
+    
     if (mediaUrl.endsWith('.jpg') || mediaUrl.endsWith('.png')) {
+      console.log('Detected media type: Photo');
       await sendPhoto(userId, mediaUrl, caption);
     } else if (mediaUrl.endsWith('.mp4')) {
+      console.log('Detected media type: Video');
       await sendVideo(userId, mediaUrl, caption);
     } else if (mediaUrl.endsWith('.ogg') || mediaUrl.endsWith('.mp3') || mediaUrl.endsWith('.oga')) {
+      console.log('Detected media type: Voice');
       await sendVoice(userId, mediaUrl, caption);
     } else {
       console.error('Unsupported media type:', mediaUrl);
@@ -1377,8 +1383,6 @@ async function sendTelegramMediaToAssistant(userId: string, mediaUrl: string, ca
     throw error;
   }
 }
-
-
 
 async function handleUserComplaint(telegramId: bigint, userMessage: string, languageCode: string, ctx: Context) {
   try {
@@ -1667,16 +1671,27 @@ async function sendVideo(userId: string, mediaUrl: string, caption: string) {
   }
 }
 
+
 // Функция для отправки голосового сообщения
 async function sendVoice(userId: string, mediaUrl: string, caption: string) {
   try {
+    console.log(`sendVoice: Preparing to send voice message to user ${userId}`);
+    console.log(`Voice Media URL: ${mediaUrl}, Caption: ${caption}`);
+    
+    // Проверяем доступность mediaUrl перед отправкой
+    const response = await axios.head(mediaUrl);
+    console.log(`Media URL check status: ${response.status}`);
+    if (response.status !== 200) {
+      throw new Error(`Media URL ${mediaUrl} is not accessible`);
+    }
+
+    // Отправляем голосовое сообщение
     await assistantBot.api.sendVoice(userId, mediaUrl, { caption });
     console.log(`Voice message sent to user ${userId}`);
   } catch (error) {
     console.error('Error sending voice message:', error);
   }
 }
-
 
 
 
