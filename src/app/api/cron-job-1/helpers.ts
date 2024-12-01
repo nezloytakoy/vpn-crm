@@ -226,4 +226,70 @@ export async function sendTelegramMessageWithButtons(chatId: string, text: strin
   
     return penaltyPoints;
   }
+
+  export async function handleIgnoredRequest(requestId: string, assistantTelegramId: bigint) {
+    try {
+      const assistantRequest = await prisma.assistantRequest.findUnique({
+        where: { id: BigInt(requestId) },
+        include: { conversation: true },
+      });
+  
+      const ignoredAssistants = assistantRequest?.ignoredAssistants || [];
+      ignoredAssistants.push(assistantTelegramId);
+  
+      if (assistantRequest?.conversation) {
+        await prisma.conversation.update({
+          where: { id: assistantRequest.conversation.id },
+          data: { status: 'ABORTED' },
+        });
+      }
+  
+      await prisma.requestAction.create({
+        data: {
+          requestId: BigInt(requestId),
+          assistantId: assistantTelegramId,
+          action: 'IGNORED',
+        },
+      });
+  
+      await prisma.assistantRequest.update({
+        where: { id: BigInt(requestId) },
+        data: {
+          status: 'PENDING',
+          isActive: true,
+          assistantId: null,
+          ignoredAssistants,
+        },
+      });
+  
+      const newAssistant = await findNewAssistant(BigInt(requestId), ignoredAssistants);
+  
+      if (newAssistant) {
+        await prisma.assistantRequest.update({
+          where: { id: BigInt(requestId) },
+          data: {
+            assistantId: newAssistant.telegramId,
+          },
+        });
+  
+        await sendTelegramMessageWithButtons(
+          newAssistant.telegramId.toString(),
+          'Новый запрос от пользователя',
+          [
+            { text: 'Принять', callback_data: `accept_${requestId}` },
+            { text: 'Отклонить', callback_data: `reject_${requestId}` },
+          ]
+        );
+      } else {
+        console.error('Нет доступных ассистентов.');
+      }
+  
+      await prisma.assistant.update({
+        where: { telegramId: assistantTelegramId },
+        data: { isBusy: false },
+      });
+    } catch (error) {
+      console.error('Ошибка при обработке игнорированного запроса:', error);
+    }
+  }
   
