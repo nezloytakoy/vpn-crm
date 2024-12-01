@@ -1389,9 +1389,12 @@ bot.on('message:document', async (ctx) => {
   }
 });
 
+
 bot.on('message:video_note', async (ctx) => {
+  let languageCode: string = 'en'; // Установка значения по умолчанию
+
   try {
-    const languageCode = ctx.from?.language_code || 'en';
+    languageCode = ctx.from?.language_code || 'en'; // Определение языка пользователя
 
     if (!ctx.from?.id) {
       await ctx.reply(getTranslation(languageCode, 'no_user_id'));
@@ -1412,45 +1415,94 @@ bot.on('message:video_note', async (ctx) => {
 
     const subscription = user.lastPaidSubscription;
 
-    if (!subscription?.allowVideoToAssistant) {
-      await ctx.reply('Отправка видео-кружков ассистенту не разрешена для вашей подписки.');
-      return;
+    // Если пользователь ожидает ввода темы
+    if (user.isWaitingForSubject) {
+      console.log(`User ${telegramId.toString()} is providing a subject as a video note.`);
+
+      const activeRequest = await prisma.assistantRequest.findFirst({
+        where: { userId: telegramId, isActive: true, subject: null },
+      });
+
+      if (activeRequest) {
+        const videoNote = ctx.message.video_note;
+        const fileId = videoNote.file_id;
+
+        // Получаем ссылку на файл
+        const fileInfo = await ctx.api.getFile(fileId);
+        const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileInfo.file_path}`;
+
+        // Сохраняем ссылку на видео-кружок как тему
+        await prisma.assistantRequest.update({
+          where: { id: activeRequest.id },
+          data: { subject: fileUrl },
+        });
+
+        console.log(`Subject updated for request ID: ${activeRequest.id} - Subject (video note URL): ${fileUrl}`);
+
+        // Обновляем состояние пользователя
+        await prisma.user.update({
+          where: { telegramId },
+          data: { isWaitingForSubject: false },
+        });
+
+        console.log(`User ${telegramId.toString()} is no longer waiting for a subject.`);
+
+        // Назначаем ассистента на обновлённую заявку
+        await assignAssistantToRequest(activeRequest, languageCode);
+
+        await ctx.reply(getTranslation(languageCode, 'subjectReceived'));
+        return;
+      } else {
+        console.error(
+          `No active request found for user ID: ${telegramId.toString()} while expecting a subject.`
+        );
+        await ctx.reply(getTranslation(languageCode, 'no_active_request'));
+        return;
+      }
     }
 
+    // Если у пользователя есть активный диалог
     const activeRequest = await prisma.assistantRequest.findFirst({
       where: { userId: telegramId, isActive: true },
       include: { assistant: true },
     });
 
-    if (!activeRequest || !activeRequest.assistant) {
-      await ctx.reply(getTranslation(languageCode, 'no_active_dialog'));
+    if (activeRequest && activeRequest.assistant) {
+      if (!subscription?.allowVideoToAssistant) {
+        await ctx.reply('Отправка видео-кружков ассистенту не разрешена для вашей подписки.');
+        return;
+      }
+
+      const videoNote = ctx.message.video_note;
+      const fileId = videoNote.file_id;
+      const fileInfo = await ctx.api.getFile(fileId);
+      const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileInfo.file_path}`;
+
+      const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
+      const fileBuffer = Buffer.from(response.data, 'binary');
+      const fileName = 'video_note.mp4';
+
+      await sendFileToAssistant(activeRequest.assistant.telegramId.toString(), fileBuffer, fileName);
+      await ctx.reply('Видео-кружок успешно отправлен ассистенту.');
+
+      await prisma.conversation.update({
+        where: { id: activeRequest.id },
+        data: {
+          lastMessageFrom: 'USER',
+          lastUserMessageAt: currentTime,
+        },
+      });
       return;
     }
 
-    const videoNote = ctx.message.video_note;
-    const fileId = videoNote.file_id;
-    const fileInfo = await ctx.api.getFile(fileId);
-    const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileInfo.file_path}`;
-
-    const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
-    const fileBuffer = Buffer.from(response.data, 'binary');
-    const fileName = 'video_note.mp4';
-
-    await sendFileToAssistant(activeRequest.assistant.telegramId.toString(), fileBuffer, fileName);
-    await ctx.reply('Видео-кружок успешно отправлен ассистенту.');
-
-    await prisma.conversation.update({
-      where: { id: activeRequest.id },
-      data: {
-        lastMessageFrom: 'USER',
-        lastUserMessageAt: currentTime,
-      },
-    });
+    // Если тема не ожидается и активного диалога нет
+    await ctx.reply(getTranslation(languageCode, 'unexpected_file'));
   } catch (error) {
     console.error('Ошибка при обработке видео-кружка:', error);
-    await ctx.reply('Произошла ошибка при обработке вашего видео-кружка.');
+    await ctx.reply(getTranslation(languageCode, 'server_error')); // Используем определенный languageCode
   }
 });
+
 
 
 
