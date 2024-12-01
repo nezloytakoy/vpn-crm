@@ -5,6 +5,7 @@ import {
 } from './telegramHelpers';
 import {
   handleRejectRequest,
+  handleIgnoredRequest
 } from './helpers';
 
 import { processPendingRequest } from './assistantHelpers'
@@ -38,27 +39,26 @@ export async function POST() {
     console.log(`Найдено пользователей с активным AI-чатом: ${usersWithAIChat.length}`);
 
     for (const user of usersWithAIChat) {
-      console.log(`Завершаем AI-чат для пользователя ${user.telegramId.toString()}`); // Добавлено .toString()
+      console.log(`Завершаем AI-чат для пользователя ${user.telegramId.toString()}`);
       await prisma.user.update({
         where: { telegramId: user.telegramId },
         data: { isActiveAIChat: false },
       });
 
       await sendTelegramMessageToUser(user.telegramId.toString(), 'Диалог с ИИ окончен.');
-      console.log(`Диалог с ИИ для пользователя ${user.telegramId.toString()} завершен.`); // Добавлено .toString()
+      console.log(`Диалог с ИИ для пользователя ${user.telegramId.toString()} завершен.`);
     }
 
     // Закрытие активных разговоров, которые длятся более часа
     const conversations = await prisma.conversation.findMany({
       where: {
         status: 'IN_PROGRESS',
-        updatedAt: { lt: oneHourAgo }, // Используем updatedAt вместо createdAt
+        updatedAt: { lt: oneHourAgo },
       },
       include: { user: true, assistant: true },
     });
     console.log(`Найдено диалогов со статусом 'IN_PROGRESS': ${conversations.length}`);
 
-    // Используем функцию для корректной сериализации BigInt
     console.log(
       'Список диалогов:',
       JSON.stringify(
@@ -69,7 +69,7 @@ export async function POST() {
     );
 
     for (const conversation of conversations) {
-      console.log(`Обработка диалога ID: ${conversation.id.toString()}`); // Добавлено .toString()
+      console.log(`Обработка диалога ID: ${conversation.id.toString()}`);
       if (conversation.lastMessageFrom === 'ASSISTANT') {
         const activeRequest = await prisma.assistantRequest.findFirst({
           where: {
@@ -82,7 +82,7 @@ export async function POST() {
         if (activeRequest) {
           console.log(
             `Найден активный запрос ID: ${activeRequest.id.toString()} для диалога ID: ${conversation.id.toString()}`
-          ); // Добавлено .toString()
+          );
 
           await prisma.assistantRequest.update({
             where: { id: activeRequest.id },
@@ -152,12 +152,12 @@ export async function POST() {
           );
           console.log(
             `Пользователю ID: ${conversation.userId.toString()} отправлено сообщение о завершении сеанса`
-          ); // Добавлено .toString()
+          );
         } else {
           console.error('Ошибка: активный запрос не найден');
         }
       } else {
-        console.log(`Последнее сообщение от пользователя в диалоге ID: ${conversation.id.toString()}`); // Добавлено .toString()
+        console.log(`Последнее сообщение от пользователя в диалоге ID: ${conversation.id.toString()}`);
 
         await sendTelegramMessageToUser(
           conversation.userId.toString(),
@@ -169,7 +169,87 @@ export async function POST() {
         );
 
         await handleRejectRequest(conversation.requestId.toString(), conversation.assistantId);
-        console.log(`Запрос ID: ${conversation.requestId.toString()} обработан как отклоненный`); // Добавлено .toString()
+        console.log(`Запрос ID: ${conversation.requestId.toString()} обработан как отклоненный`);
+      }
+    }
+
+    // *** Новая логика: Проверка активных бесед на наличие непрочитанных сообщений от пользователя ***
+
+    console.log('Проверка активных бесед на наличие непрочитанных сообщений от пользователя...');
+
+    const activeConversations = await prisma.conversation.findMany({
+      where: {
+        status: 'IN_PROGRESS',
+      },
+      include: {
+        assistant: true,
+        assistantRequest: true,
+      },
+    });
+
+    for (const conversation of activeConversations) {
+      if (conversation.lastMessageFrom === 'USER') {
+        console.log(`Последнее сообщение от пользователя в диалоге ID: ${conversation.id.toString()}`);
+
+        if (!conversation.reminderSent) {
+          // Отправляем напоминание ассистенту
+          const assistantTelegramId = conversation.assistantId;
+          const requestId = conversation.assistantRequest.id.toString();
+
+          await sendTelegramMessageToAssistant(
+            assistantTelegramId.toString(),
+            `Пожалуйста, дайте ответ пользователю, запрос - ${requestId}`
+          );
+
+          // Обновляем беседу, помечая, что напоминание отправлено
+          await prisma.conversation.update({
+            where: { id: conversation.id },
+            data: { reminderSent: true },
+          });
+
+          console.log(`Напоминание отправлено ассистенту ${assistantTelegramId.toString()} для диалога ${conversation.id.toString()}`);
+
+          // *** Отправляем 5 одинаковых сообщений пользователю с интервалом в 1 секунду ***
+          const userTelegramId = conversation.userId.toString();
+
+          for (let i = 1; i <= 5; i++) {
+            await sendTelegramMessageToUser(
+              userTelegramId,
+              `Пожалуйста, дайте ответ пользователю, запрос - ${requestId}`
+            );
+            console.log(`Пользователю ${userTelegramId} отправлено сообщение номер ${i}`);
+            // Ждем 1 секунду перед отправкой следующего сообщения
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        } else {
+          // Напоминание уже было отправлено ранее, блокируем ассистента и перенаправляем запрос
+          const assistantTelegramId = conversation.assistantId;
+          const requestId = conversation.assistantRequest.id.toString();
+
+          // Блокируем ассистента навсегда
+          await prisma.assistant.update({
+            where: { telegramId: assistantTelegramId },
+            data: {
+              isBlocked: true,
+              unblockDate: null,
+            },
+          });
+
+          console.log(`Ассистент ${assistantTelegramId.toString()} был заблокирован навсегда.`);
+
+          // Обновляем статус беседы
+          await prisma.conversation.update({
+            where: { id: conversation.id },
+            data: {
+              status: 'ABORTED',
+            },
+          });
+
+          // Обрабатываем игнорированный запрос и перенаправляем его следующему ассистенту
+          await handleIgnoredRequest(requestId, assistantTelegramId);
+
+          console.log(`Запрос ${requestId} перенаправлен следующему ассистенту.`);
+        }
       }
     }
 
@@ -182,7 +262,7 @@ export async function POST() {
     console.log(`Найдено ожидающих запросов ассистентов: ${pendingRequests.length}`);
 
     for (const request of pendingRequests) {
-      console.log(`Обработка запроса ID: ${request.id.toString()}`); // Добавлено .toString()
+      console.log(`Обработка запроса ID: ${request.id.toString()}`);
       await processPendingRequest(request);
     }
 

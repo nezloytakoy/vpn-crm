@@ -184,7 +184,7 @@ model Referral {
   user           User     @relation("Referrer", fields: [userId], references: [telegramId])
 }
 
-model Conversation {
+model Conversation { 
   id                     BigInt           @id @default(autoincrement())
   userId                 BigInt
   messages               Json             @default("[]")
@@ -196,6 +196,7 @@ model Conversation {
   lastMessageFrom        String           @default("USER")
   assistantResponseTimes Json             @default("[]")
   lastUserMessageAt      DateTime?
+  reminderSent           Boolean          @default(false) // Новое поле
   assistant              Assistant        @relation(fields: [assistantId], references: [telegramId])
   assistantRequest       AssistantRequest @relation(fields: [requestId], references: [id])
   user                   User             @relation(fields: [userId], references: [telegramId])
