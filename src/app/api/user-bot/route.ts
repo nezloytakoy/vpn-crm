@@ -1718,24 +1718,19 @@ async function sendVoice(userId: string, mediaUrl: string, caption: string) {
     console.log(`sendVoice: Preparing to send voice message to user ${userId}`);
     console.log(`Voice Media URL: ${mediaUrl}, Caption: ${caption}`);
 
-    // Проверяем доступность mediaUrl перед отправкой
-    const response = await axios.head(mediaUrl);
-    console.log(`Media URL check status: ${response.status}`);
-    if (response.status !== 200) {
-      throw new Error(`Media URL ${mediaUrl} is not accessible`);
-    }
+    // Загрузка голосового сообщения с mediaUrl
+    const response = await axios.get(mediaUrl, { responseType: 'arraybuffer' });
+    const voiceBuffer = Buffer.from(response.data, 'binary');
+    const fileName = 'voice.ogg'; // Имя файла для голосового сообщения
 
-    // Отправляем голосовое сообщение без подписи
-    if (caption.trim() === '') {
-      await assistantBot.api.sendVoice(userId, mediaUrl);
-    } else {
-      console.warn('Caption is not supported for voice messages. Ignoring caption.');
-      await assistantBot.api.sendVoice(userId, mediaUrl); // Убираем caption
-    }
-
-    console.log(`Voice message sent to user ${userId}`);
+    console.log(`Sending voice message to user ${userId}`);
+    
+    // Отправка голосового сообщения как файла
+    await assistantBot.api.sendDocument(userId, new InputFile(voiceBuffer, fileName));
+    
+    console.log(`Voice message successfully sent to user ${userId}`);
   } catch (error) {
-    console.error('Error sending voice message:', error);
+    console.error(`Error sending voice message to user ${userId}:`, error);
   }
 }
 
