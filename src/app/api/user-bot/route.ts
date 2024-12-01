@@ -1730,10 +1730,6 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
 
     console.log(`Selected assistant: ${JSON.stringify(selectedAssistant, serializeBigInt, 2)}`);
 
-    await prisma.assistant.update({
-      where: { telegramId: selectedAssistant.telegramId },
-      data: { isBusy: true, lastActiveAt: new Date() },
-    });
 
     await prisma.assistantRequest.update({
       where: { id: assistantRequest.id },
