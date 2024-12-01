@@ -5,7 +5,6 @@ import { PrismaClient, AssistantRequest } from '@prisma/client';
 import { InputFile } from 'grammy';
 import { encode } from 'gpt-3-encoder';
 import axios from 'axios';
-import FormData from 'form-data';
 
 const prisma = new PrismaClient();
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
