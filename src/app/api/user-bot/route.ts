@@ -1400,7 +1400,6 @@ bot.on('message:video_note', async (ctx) => {
 
 
 
-// Общая функция для отправки медиа ассистенту
 async function sendTelegramMediaToAssistant(userId: string, mediaUrl: string, caption: string): Promise<void> {
   try {
     console.log(`sendTelegramMediaToAssistant: Preparing to send media to user ${userId}`);
@@ -1416,7 +1415,8 @@ async function sendTelegramMediaToAssistant(userId: string, mediaUrl: string, ca
       console.log('Detected media type: Voice');
       await sendVoice(userId, mediaUrl, caption);
     } else {
-      console.error('Unsupported media type:', mediaUrl);
+      console.log('Unsupported media type, treating as a document:', mediaUrl);
+      await sendDocument(userId, mediaUrl, caption);
     }
   } catch (error) {
     console.error("Error sending media to assistant:", error);
@@ -1734,6 +1734,28 @@ async function sendVoice(userId: string, mediaUrl: string, caption: string) {
   }
 }
 
+async function sendDocument(userId: string, mediaUrl: string, caption: string) {
+  try {
+    console.log(`sendDocument: Preparing to send document to user ${userId}`);
+    console.log(`Document Media URL: ${mediaUrl}, Caption: ${caption}`);
+
+    // Загрузка документа с mediaUrl
+    const response = await axios.get(mediaUrl, { responseType: 'arraybuffer' });
+    const documentBuffer = Buffer.from(response.data, 'binary');
+    const fileName = mediaUrl.split('/').pop() || 'document'; // Получаем имя файла из URL
+
+    console.log(`Sending document to user ${userId}`);
+
+    // Отправка документа
+    await assistantBot.api.sendDocument(userId, new InputFile(documentBuffer, fileName), {
+      caption: caption,
+    });
+
+    console.log(`Document successfully sent to user ${userId}`);
+  } catch (error) {
+    console.error(`Error sending document to user ${userId}:`, error);
+  }
+}
 
 async function getPenaltyPointsForLast24Hours(
   assistantId: bigint
