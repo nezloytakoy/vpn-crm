@@ -147,6 +147,7 @@ type TranslationKey =
   | 'accept'
   | 'reject'
   | 'unexpected_photo'
+  | 'unexpected_voice'
   | 'no_photo_detected'; // Новые ключи добавлены
 
 type Language = 'en' | 'ru';
@@ -177,13 +178,14 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       subjectReceived: 'Тема получена. Соединяем вас с ассистентом.',
       no_active_request: 'Активный запрос не найден.',
       server_error: 'Произошла ошибка. Пожалуйста, попробуйте позже.',
-      assistantRequestMessage: "Запрос пользователя на разговор",
+      assistantRequestMessage: 'Запрос пользователя на разговор',
       noAssistantsAvailable: 'Нет доступных ассистентов',
-      requestSent: "Запрос отправлен ассистенту.",
+      requestSent: 'Запрос отправлен ассистенту.',
       accept: 'Принять',
       reject: 'Отклонить',
       unexpected_photo: 'Ваше фото получено, но не ожидается. Попробуйте снова.',
       no_photo_detected: 'Пожалуйста, отправьте изображение.',
+      unexpected_voice: 'Ваше голосовое сообщение получено, но не ожидается. Попробуйте снова.',
     },
     en: {
       start_message:
@@ -216,6 +218,7 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       reject: 'Reject',
       unexpected_photo: 'Your photo has been received but was not expected. Please try again.',
       no_photo_detected: 'Please send an image.',
+      unexpected_voice: 'Your voice message has been received but was not expected. Please try again.',
     },
   };
 
@@ -1156,8 +1159,10 @@ bot.on('message:photo', async (ctx: Context) => {
 
 
 bot.on('message:voice', async (ctx) => {
+  let languageCode: string = 'en'; // Установить значение по умолчанию
+
   try {
-    const languageCode = ctx.from?.language_code || 'en';
+    languageCode = ctx.from?.language_code || 'en'; // Определить язык пользователя
 
     if (!ctx.from?.id) {
       await ctx.reply(getTranslation(languageCode, 'no_user_id'));
@@ -1165,126 +1170,68 @@ bot.on('message:voice', async (ctx) => {
     }
 
     const telegramId = BigInt(ctx.from.id);
-    const currentTime = new Date();
 
-    const [user, activeRequest] = await Promise.all([
-      prisma.user.findUnique({
-        where: { telegramId },
-        include: { lastPaidSubscription: true },
-      }),
-      prisma.assistantRequest.findFirst({
-        where: { user: { telegramId }, isActive: true },
-        include: { assistant: true },
-      }),
-    ]);
+    const user = await prisma.user.findUnique({
+      where: { telegramId },
+    });
 
     if (!user) {
       await ctx.reply(getTranslation(languageCode, 'no_user_found'));
       return;
     }
 
-    const subscription = user.lastPaidSubscription;
+    if (user.isWaitingForSubject) {
+      console.log(`User ${telegramId.toString()} is providing a subject as a voice message.`);
 
-    if (user.isActiveAIChat) {
-      if (!subscription?.allowVoiceToAI) {
-        await ctx.reply('Отправка голосовых сообщений ИИ не разрешена для вашей подписки.');
-        return;
-      }
+      const activeRequest = await prisma.assistantRequest.findFirst({
+        where: { userId: telegramId, isActive: true, subject: null },
+      });
 
-      try {
+      if (activeRequest) {
         const voice = ctx.message.voice;
         const fileId = voice.file_id;
 
-
+        // Получаем ссылку на файл
         const file = await ctx.api.getFile(fileId);
-        const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${file.file_path}`;
+        const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${file.file_path}`;
 
+        // Сохраняем ссылку на голосовое сообщение как тему
+        await prisma.assistantRequest.update({
+          where: { id: activeRequest.id },
+          data: { subject: fileUrl },
+        });
 
-        const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
-        const audioBuffer = Buffer.from(response.data, 'binary');
+        console.log(`Subject updated for request ID: ${activeRequest.id} - Subject (voice URL): ${fileUrl}`);
 
+        // Обновляем состояние пользователя
+        await prisma.user.update({
+          where: { telegramId },
+          data: { isWaitingForSubject: false },
+        });
 
-        const formData = new FormData();
-        formData.append('file', audioBuffer, { filename: 'audio.ogg' });
-        formData.append('model', 'whisper-1');
+        console.log(`User ${telegramId.toString()} is no longer waiting for a subject.`);
 
+        // Назначаем ассистента на обновлённую заявку
+        await assignAssistantToRequest(activeRequest, languageCode);
 
-        const transcriptionResponse = await axios.post(
-          'https://api.openai.com/v1/audio/transcriptions',
-          formData,
-          {
-            headers: {
-              'Content-Type': `multipart/form-data; boundary=${formData.getBoundary()}`,
-              'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-            },
-          }
+        await ctx.reply(getTranslation(languageCode, 'subjectReceived'));
+      } else {
+        console.error(
+          `No active request found for user ID: ${telegramId.toString()} while expecting a subject.`
         );
-
-
-        const transcribedText = transcriptionResponse.data.text;
-
-
-        const openAiModel = await prisma.openAi.findFirst({});
-        if (!openAiModel) {
-          console.error('Не удалось загрузить промпт OpenAi.');
-          await ctx.reply('Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже.');
-          return;
-        }
-
-
-        const combinedMessage = `${transcribedText}`;
-
-
-        const inputTokens = encode(combinedMessage).length;
-        const maxAllowedTokens = 4096;
-        const responseTokensLimit = 500;
-
-        if (inputTokens + responseTokensLimit > maxAllowedTokens) {
-          await ctx.reply('Ваш запрос слишком длинный. Попробуйте сократить его.');
-          return;
-        }
-
-
-        await handleAIChat(telegramId, combinedMessage, ctx);
-
-      } catch (error) {
-        console.error('Ошибка при обработке голосового сообщения:', error);
-        await ctx.reply('Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже.');
+        await ctx.reply(getTranslation(languageCode, 'no_active_request'));
       }
-    }
-
-    else if (activeRequest && activeRequest.assistant) {
-      if (!subscription?.allowVoiceToAssistant) {
-        await ctx.reply('Отправка голосовых сообщений ассистенту не разрешена для вашей подписки.');
-        return;
-      }
-
-      const voice = ctx.message.voice;
-      const fileId = voice.file_id;
-      const fileInfo = await ctx.api.getFile(fileId);
-      const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileInfo.file_path}`;
-
-      const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
-      const voiceBuffer = Buffer.from(response.data, 'binary');
-
-      await sendFileToAssistant(activeRequest.assistant.telegramId.toString(), voiceBuffer, 'voice.ogg');
-      await ctx.reply('Голосовое сообщение успешно отправлено ассистенту.');
-
-      await prisma.conversation.update({
-        where: { id: activeRequest.id },
-        data: {
-          lastMessageFrom: 'USER',
-          lastUserMessageAt: currentTime,
-        },
-      });
     } else {
-      await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
+      // Если пользователь не в режиме ожидания темы
+      await ctx.reply(getTranslation(languageCode, 'unexpected_voice'));
     }
   } catch (error) {
-    console.error('Ошибка при обработке голосового сообщения:', error);
-    await ctx.reply('Не получилось отправить голосовое сообщение.');
+    console.error('Error processing voice message:', error);
+    await ctx.reply(getTranslation(languageCode, 'server_error'));
   }
 });
+
+
 
 bot.on('message:document', async (ctx) => {
   try {
@@ -1650,7 +1597,7 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
 
     const messageText = updatedRequest?.subject
       ? updatedRequest.subject.startsWith('http')
-        ? `${getTranslation(languageCode, 'assistantRequestMessage')}\n\n(см. вложение)`
+        ? `${getTranslation(languageCode, 'assistantRequestMessage')}`
         : `${getTranslation(languageCode, 'assistantRequestMessage')}\n\nТема: ${updatedRequest.subject}`
       : `${getTranslation(languageCode, 'assistantRequestMessage')}\n\nТема: отсутствует`;
 
