@@ -1080,7 +1080,7 @@ async function sendTelegramMediaToAssistant(userId: string, mediaUrl: string, ca
     } else if (mediaUrl.endsWith('.mp4')) {
       await sendVideo(userId, mediaUrl, caption);
     } else if (mediaUrl.endsWith('.ogg') || mediaUrl.endsWith('.mp3')) {
-      await sendVoice(userId, mediaUrl, caption);
+      await sendVoice(userId, mediaUrl);
     } else {
       console.error('Unsupported media type:', mediaUrl);
     }
@@ -1116,16 +1116,42 @@ async function sendVideo(userId: string, mediaUrl: string, caption: string) {
 }
 
 // Функция для отправки голосового сообщения
-async function sendVoice(userId: string, mediaUrl: string, caption: string) {
+async function sendVoice(userId: string, mediaUrl: string) {
   try {
-    await assistantBot.api.sendVoice(userId, mediaUrl, { caption });
-    console.log(`Voice message sent to user ${userId}`);
+    console.log(`sendVoice: Preparing to send voice message to assistant ${userId}`);
+    console.log(`Media URL: ${mediaUrl}`);
+
+    // Загрузка голосового сообщения
+    const response = await axios.get(mediaUrl, { responseType: 'arraybuffer' });
+    const voiceBuffer = Buffer.from(response.data, 'binary');
+    const fileName = 'voice.ogg'; // Фиксированное имя файла для голосовых сообщений
+
+    console.log(`Sending voice message to assistant ${userId}`);
+    await sendFileToAssistant(userId, voiceBuffer, fileName);
+
+    console.log(`Voice message successfully sent to assistant ${userId}`);
   } catch (error) {
-    console.error('Error sending voice message:', error);
+    console.error(`Error sending voice message to assistant ${userId}:`, error);
   }
 }
 
+// Функция для отправки файла ассистенту
+async function sendFileToAssistant(assistantChatId: string, fileBuffer: Buffer, fileName: string) {
+  const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
+  if (!botToken) {
+    console.error('Ошибка: TELEGRAM_SUPPORT_BOT_TOKEN не установлен');
+    return;
+  }
 
+  const assistantBot = new Bot(botToken);
+
+  try {
+    await assistantBot.api.sendDocument(assistantChatId, new InputFile(fileBuffer, fileName));
+    console.log(`File sent to assistant: ${assistantChatId}`);
+  } catch (error) {
+    console.error('Ошибка при отправке файла ассистенту:', error);
+  }
+}
 
 
 
