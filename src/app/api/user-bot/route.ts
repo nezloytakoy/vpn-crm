@@ -147,7 +147,8 @@ type TranslationKey =
   | 'reject'
   | 'unexpected_photo'
   | 'unexpected_voice'
-  | 'no_photo_detected'; // Новые ключи добавлены
+  | 'no_photo_detected'
+  | 'unexpected_file'; // Новый ключ добавлен
 
 type Language = 'en' | 'ru';
 
@@ -161,7 +162,8 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       no_text_message: 'Пожалуйста, отправьте текстовое сообщение.',
       error_processing_message:
         'Произошла ошибка при обработке вашего сообщения. Пожалуйста, попробуйте еще раз позже.',
-      dialog_closed: 'Диалог с ассистентом завершен. Спасибо за использование нашего сервиса! Написать жалобу вы можете вызвав команду /problem',
+      dialog_closed:
+        'Диалог с ассистентом завершен. Спасибо за использование нашего сервиса! Написать жалобу вы можете вызвав команду /problem',
       error_end_dialog: 'Произошла ошибка при завершении диалога. Пожалуйста, попробуйте еще раз позже.',
       no_active_dialog: 'У вас нет активного диалога с ассистентом.',
       user_ended_dialog: 'Пользователь завершил диалог.',
@@ -185,6 +187,7 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       unexpected_photo: 'Ваше фото получено, но не ожидается. Попробуйте снова.',
       no_photo_detected: 'Пожалуйста, отправьте изображение.',
       unexpected_voice: 'Ваше голосовое сообщение получено, но не ожидается. Попробуйте снова.',
+      unexpected_file: 'Ваш файл получен, но не ожидается. Попробуйте снова.', // Новый перевод
     },
     en: {
       start_message:
@@ -218,6 +221,7 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       unexpected_photo: 'Your photo has been received but was not expected. Please try again.',
       no_photo_detected: 'Please send an image.',
       unexpected_voice: 'Your voice message has been received but was not expected. Please try again.',
+      unexpected_file: 'Your file has been received but was not expected. Please try again.', // Новый перевод
     },
   };
 
@@ -1273,8 +1277,10 @@ bot.on('message:voice', async (ctx) => {
 
 
 bot.on('message:document', async (ctx) => {
+  let languageCode: string = 'en'; // Установка значения по умолчанию
+
   try {
-    const languageCode = ctx.from?.language_code || 'en';
+    languageCode = ctx.from?.language_code || 'en'; // Определить язык пользователя
 
     if (!ctx.from?.id) {
       await ctx.reply(getTranslation(languageCode, 'no_user_id'));
@@ -1295,43 +1301,91 @@ bot.on('message:document', async (ctx) => {
 
     const subscription = user.lastPaidSubscription;
 
-    if (!subscription?.allowFilesToAssistant) {
-      await ctx.reply('Отправка файлов ассистенту не разрешена для вашей подписки.');
-      return;
+    // Если пользователь ожидает ввода темы
+    if (user.isWaitingForSubject) {
+      console.log(`User ${telegramId.toString()} is providing a subject as a file message.`);
+
+      const activeRequest = await prisma.assistantRequest.findFirst({
+        where: { userId: telegramId, isActive: true, subject: null },
+      });
+
+      if (activeRequest) {
+        const document = ctx.message.document;
+        const fileId = document.file_id;
+
+        // Получаем ссылку на файл
+        const fileInfo = await ctx.api.getFile(fileId);
+        const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileInfo.file_path}`;
+
+        // Сохраняем ссылку на файл как тему
+        await prisma.assistantRequest.update({
+          where: { id: activeRequest.id },
+          data: { subject: fileUrl },
+        });
+
+        console.log(`Subject updated for request ID: ${activeRequest.id} - Subject (file URL): ${fileUrl}`);
+
+        // Обновляем состояние пользователя
+        await prisma.user.update({
+          where: { telegramId },
+          data: { isWaitingForSubject: false },
+        });
+
+        console.log(`User ${telegramId.toString()} is no longer waiting for a subject.`);
+
+        // Назначаем ассистента на обновлённую заявку
+        await assignAssistantToRequest(activeRequest, languageCode);
+
+        await ctx.reply(getTranslation(languageCode, 'subjectReceived'));
+        return;
+      } else {
+        console.error(
+          `No active request found for user ID: ${telegramId.toString()} while expecting a subject.`
+        );
+        await ctx.reply(getTranslation(languageCode, 'no_active_request'));
+        return;
+      }
     }
 
+    // Если у пользователя есть активный диалог
     const activeRequest = await prisma.assistantRequest.findFirst({
       where: { userId: telegramId, isActive: true },
       include: { assistant: true },
     });
 
-    if (!activeRequest || !activeRequest.assistant) {
-      await ctx.reply(getTranslation(languageCode, 'no_active_dialog'));
+    if (activeRequest && activeRequest.assistant) {
+      if (!subscription?.allowFilesToAssistant) {
+        await ctx.reply('Отправка файлов ассистенту не разрешена для вашей подписки.');
+        return;
+      }
+
+      const document = ctx.message.document;
+      const fileId = document.file_id;
+      const fileInfo = await ctx.api.getFile(fileId);
+      const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileInfo.file_path}`;
+
+      const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
+      const fileBuffer = Buffer.from(response.data, 'binary');
+      const fileName = document.file_name || 'document';
+
+      await sendFileToAssistant(activeRequest.assistant.telegramId.toString(), fileBuffer, fileName);
+      await ctx.reply('Файл успешно отправлен ассистенту.');
+
+      await prisma.conversation.update({
+        where: { id: activeRequest.id },
+        data: {
+          lastMessageFrom: 'USER',
+          lastUserMessageAt: currentTime,
+        },
+      });
       return;
     }
 
-    const document = ctx.message.document;
-    const fileId = document.file_id;
-    const fileInfo = await ctx.api.getFile(fileId);
-    const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileInfo.file_path}`;
-
-    const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
-    const fileBuffer = Buffer.from(response.data, 'binary');
-    const fileName = document.file_name || 'document';
-
-    await sendFileToAssistant(activeRequest.assistant.telegramId.toString(), fileBuffer, fileName);
-    await ctx.reply('Файл успешно отправлен ассистенту.');
-
-    await prisma.conversation.update({
-      where: { id: activeRequest.id },
-      data: {
-        lastMessageFrom: 'USER',
-        lastUserMessageAt: currentTime,
-      },
-    });
+    // Если тема не ожидается и активного диалога нет
+    await ctx.reply(getTranslation(languageCode, 'unexpected_file'));
   } catch (error) {
     console.error('Ошибка при обработке документа:', error);
-    await ctx.reply('Произошла ошибка при обработке вашего файла.');
+    await ctx.reply(getTranslation(languageCode, 'server_error'));
   }
 });
 
@@ -1404,7 +1458,7 @@ async function sendTelegramMediaToAssistant(userId: string, mediaUrl: string, ca
   try {
     console.log(`sendTelegramMediaToAssistant: Preparing to send media to user ${userId}`);
     console.log(`Media URL: ${mediaUrl}, Caption: ${caption}`);
-    
+
     if (mediaUrl.endsWith('.jpg') || mediaUrl.endsWith('.png')) {
       console.log('Detected media type: Photo');
       await sendPhoto(userId, mediaUrl, caption);
@@ -1724,10 +1778,10 @@ async function sendVoice(userId: string, mediaUrl: string, caption: string) {
     const fileName = 'voice.ogg'; // Имя файла для голосового сообщения
 
     console.log(`Sending voice message to user ${userId}`);
-    
+
     // Отправка голосового сообщения как файла
     await assistantBot.api.sendDocument(userId, new InputFile(voiceBuffer, fileName));
-    
+
     console.log(`Voice message successfully sent to user ${userId}`);
   } catch (error) {
     console.error(`Error sending voice message to user ${userId}:`, error);
