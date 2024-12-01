@@ -213,7 +213,7 @@ export async function POST() {
           const userTelegramId = conversation.userId.toString();
 
           for (let i = 1; i <= 5; i++) {
-            await sendTelegramMessageToUser(
+            await sendTelegramMessageToAssistant(
               userTelegramId,
               `Пожалуйста, дайте ответ пользователю, запрос - ${requestId}`
             );
@@ -237,6 +237,15 @@ export async function POST() {
 
           console.log(`Ассистент ${assistantTelegramId.toString()} был заблокирован навсегда.`);
 
+          // *** Отправляем пользователю сообщение о потере связи с ассистентом ***
+          const userTelegramId = conversation.userId.toString();
+          await sendTelegramMessageToUser(
+            userTelegramId,
+            'Связь с ассистентом потеряна, переключаем вас на другого ассистента...'
+          );
+
+          console.log(`Пользователю ${userTelegramId} отправлено сообщение о переключении ассистента.`);
+
           // Обновляем статус беседы
           await prisma.conversation.update({
             where: { id: conversation.id },
@@ -252,7 +261,6 @@ export async function POST() {
         }
       }
     }
-
     // Обработка ожидающих запросов ассистентов
     const pendingRequests = await prisma.assistantRequest.findMany({
       where: {

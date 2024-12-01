@@ -942,7 +942,7 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
     }
   } catch (error) {
     console.error('Ошибка при принятии запроса:', error);
-    await ctx.reply('❌ Произошла ошибка при принятии запроса.');
+    await ctx.reply('❌ Другой ассистент уже принял запрос.');
   }
 }
 
