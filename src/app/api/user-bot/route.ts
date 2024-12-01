@@ -148,6 +148,11 @@ type TranslationKey =
   | 'unexpected_photo'
   | 'unexpected_voice'
   | 'no_photo_detected'
+  | 'no_active_subscription'
+  | 'no_permission_to_send_photos'
+  | 'no_permission_to_send_voice'
+  | 'no_permission_to_send_files'
+  | 'no_permission_to_send_videos'
   | 'unexpected_file'; // Новый ключ добавлен
 
 type Language = 'en' | 'ru';
@@ -188,6 +193,12 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       no_photo_detected: 'Пожалуйста, отправьте изображение.',
       unexpected_voice: 'Ваше голосовое сообщение получено, но не ожидается. Попробуйте снова.',
       unexpected_file: 'Ваш файл получен, но не ожидается. Попробуйте снова.', // Новый перевод
+      no_active_subscription: 'У вас нет активной подписки.',
+      no_permission_to_send_photos: 'Ваша подписка не позволяет отправлять фотографии ассистентам.',
+      no_permission_to_send_voice: 'Ваша подписка не позволяет отправлять голосовые сообщения ассистентам.',
+      no_permission_to_send_files: "Ваша подписка не позволяет отправлять файлы ассистентам.",
+      no_permission_to_send_videos: "Ваша подписка не позволяет отправлять видео-кружки ассистентам."
+
     },
     en: {
       start_message:
@@ -222,6 +233,12 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       no_photo_detected: 'Please send an image.',
       unexpected_voice: 'Your voice message has been received but was not expected. Please try again.',
       unexpected_file: 'Your file has been received but was not expected. Please try again.', // Новый перевод
+      no_active_subscription: 'You do not have an active subscription.',
+      no_permission_to_send_photos: 'Your subscription does not allow sending photos to assistants.',
+      no_permission_to_send_voice: 'Your subscription does not allow sending voice messages to assistants.',
+      no_permission_to_send_files: "Your subscription does not allow sending files to assistants.",
+      no_permission_to_send_videos: "Your subscription does not allow sending video notes to assistants.",
+      
     },
   };
 
@@ -1073,7 +1090,6 @@ bot.on('message:text', async (ctx: Context) => {
 
 
 
-
 bot.on('message:photo', async (ctx: Context) => {
   let languageCode: string = 'en'; // Установка значения по умолчанию
 
@@ -1087,6 +1103,8 @@ bot.on('message:photo', async (ctx: Context) => {
     }
 
     const telegramId = BigInt(ctx.from.id);
+
+    // Проверка существования пользователя
     const user = await prisma.user.findUnique({
       where: { telegramId },
     });
@@ -1096,6 +1114,39 @@ bot.on('message:photo', async (ctx: Context) => {
       return;
     }
 
+    // Проверяем, есть ли активные подписки, разрешающие отправку фотографий
+    const activeTariffs = await prisma.userTariff.findMany({
+      where: {
+        userId: telegramId,
+        expirationDate: { gte: new Date() }, // Проверяем, что срок действия не истек
+      },
+      select: {
+        tariffId: true,
+      },
+    });
+
+    // Фильтрация валидных тарифов (исключаем null)
+    const validTariffIds = activeTariffs.map((tariff) => tariff.tariffId).filter((id): id is bigint => id !== null);
+
+    if (validTariffIds.length === 0) {
+      await ctx.reply(getTranslation(languageCode, 'no_active_subscription'));
+      return;
+    }
+
+    // Проверяем, есть ли среди активных подписок разрешение на отправку фотографий ассистенту
+    const hasPermission = await prisma.subscription.findMany({
+      where: {
+        id: { in: validTariffIds },
+        allowFilesToAssistant: true,
+      },
+    });
+
+    if (hasPermission.length === 0) {
+      await ctx.reply(getTranslation(languageCode, 'no_permission_to_send_photos'));
+      return;
+    }
+
+    // Если разрешение есть, продолжаем обработку фотографии
     if (ctx.message?.photo) {
       const largestPhoto = ctx.message.photo[ctx.message.photo.length - 1];
 
@@ -1114,7 +1165,7 @@ bot.on('message:photo', async (ctx: Context) => {
           console.log(
             `Active request for subject as photo: ${JSON.stringify(
               { ...activeRequest, userId: activeRequest.userId.toString() },
-              serializeBigInt,
+              null,
               2
             )}`
           );
@@ -1159,12 +1210,11 @@ bot.on('message:photo', async (ctx: Context) => {
   }
 });
 
-
 bot.on('message:voice', async (ctx) => {
   let languageCode: string = 'en'; // Установка значения по умолчанию
 
   try {
-    languageCode = ctx.from?.language_code || 'en'; // Определить язык пользователя
+    languageCode = ctx.from?.language_code || 'en'; // Определяем язык пользователя
 
     if (!ctx.from?.id) {
       await ctx.reply(getTranslation(languageCode, 'no_user_id'));
@@ -1176,7 +1226,6 @@ bot.on('message:voice', async (ctx) => {
 
     const user = await prisma.user.findUnique({
       where: { telegramId },
-      include: { lastPaidSubscription: true },
     });
 
     if (!user) {
@@ -1184,7 +1233,37 @@ bot.on('message:voice', async (ctx) => {
       return;
     }
 
-    const subscription = user.lastPaidSubscription;
+    // Проверяем, есть ли активные подписки, разрешающие отправку голосовых сообщений ассистенту
+    const activeTariffs = await prisma.userTariff.findMany({
+      where: {
+        userId: telegramId,
+        expirationDate: { gte: new Date() }, // Проверяем, что срок действия не истек
+      },
+      select: {
+        tariffId: true,
+      },
+    });
+
+    // Фильтруем валидные тарифы (исключаем null)
+    const validTariffIds = activeTariffs.map((tariff) => tariff.tariffId).filter((id): id is bigint => id !== null);
+
+    if (validTariffIds.length === 0) {
+      await ctx.reply(getTranslation(languageCode, 'no_active_subscription'));
+      return;
+    }
+
+    // Проверяем, есть ли среди активных подписок разрешение на отправку голосовых сообщений
+    const hasPermission = await prisma.subscription.findMany({
+      where: {
+        id: { in: validTariffIds },
+        allowVoiceToAssistant: true,
+      },
+    });
+
+    if (hasPermission.length === 0) {
+      await ctx.reply(getTranslation(languageCode, 'no_permission_to_send_voice'));
+      return;
+    }
 
     // Если пользователь ожидает ввода темы
     if (user.isWaitingForSubject) {
@@ -1239,11 +1318,6 @@ bot.on('message:voice', async (ctx) => {
     });
 
     if (activeRequest && activeRequest.assistant) {
-      if (!subscription?.allowVoiceToAssistant) {
-        await ctx.reply('Отправка голосовых сообщений ассистенту не разрешена для вашей подписки.');
-        return;
-      }
-
       const voice = ctx.message.voice;
       const fileId = voice.file_id;
       const fileInfo = await ctx.api.getFile(fileId);
@@ -1276,11 +1350,12 @@ bot.on('message:voice', async (ctx) => {
 
 
 
+
 bot.on('message:document', async (ctx) => {
   let languageCode: string = 'en'; // Установка значения по умолчанию
 
   try {
-    languageCode = ctx.from?.language_code || 'en'; // Определить язык пользователя
+    languageCode = ctx.from?.language_code || 'en'; // Определяем язык пользователя
 
     if (!ctx.from?.id) {
       await ctx.reply(getTranslation(languageCode, 'no_user_id'));
@@ -1289,9 +1364,9 @@ bot.on('message:document', async (ctx) => {
 
     const telegramId = BigInt(ctx.from.id);
     const currentTime = new Date();
+
     const user = await prisma.user.findUnique({
       where: { telegramId },
-      include: { lastPaidSubscription: true },
     });
 
     if (!user) {
@@ -1299,7 +1374,37 @@ bot.on('message:document', async (ctx) => {
       return;
     }
 
-    const subscription = user.lastPaidSubscription;
+    // Проверяем, есть ли активные подписки, разрешающие отправку файлов ассистенту
+    const activeTariffs = await prisma.userTariff.findMany({
+      where: {
+        userId: telegramId,
+        expirationDate: { gte: new Date() }, // Проверяем, что срок действия не истек
+      },
+      select: {
+        tariffId: true,
+      },
+    });
+
+    // Фильтруем валидные тарифы (исключаем null)
+    const validTariffIds = activeTariffs.map((tariff) => tariff.tariffId).filter((id): id is bigint => id !== null);
+
+    if (validTariffIds.length === 0) {
+      await ctx.reply(getTranslation(languageCode, 'no_active_subscription'));
+      return;
+    }
+
+    // Проверяем, есть ли среди активных подписок разрешение на отправку файлов
+    const hasPermission = await prisma.subscription.findMany({
+      where: {
+        id: { in: validTariffIds },
+        allowFilesToAssistant: true,
+      },
+    });
+
+    if (hasPermission.length === 0) {
+      await ctx.reply(getTranslation(languageCode, 'no_permission_to_send_files'));
+      return;
+    }
 
     // Если пользователь ожидает ввода темы
     if (user.isWaitingForSubject) {
@@ -1354,11 +1459,6 @@ bot.on('message:document', async (ctx) => {
     });
 
     if (activeRequest && activeRequest.assistant) {
-      if (!subscription?.allowFilesToAssistant) {
-        await ctx.reply('Отправка файлов ассистенту не разрешена для вашей подписки.');
-        return;
-      }
-
       const document = ctx.message.document;
       const fileId = document.file_id;
       const fileInfo = await ctx.api.getFile(fileId);
@@ -1390,6 +1490,7 @@ bot.on('message:document', async (ctx) => {
 });
 
 
+
 bot.on('message:video_note', async (ctx) => {
   let languageCode: string = 'en'; // Установка значения по умолчанию
 
@@ -1403,9 +1504,9 @@ bot.on('message:video_note', async (ctx) => {
 
     const telegramId = BigInt(ctx.from.id);
     const currentTime = new Date();
+
     const user = await prisma.user.findUnique({
       where: { telegramId },
-      include: { lastPaidSubscription: true },
     });
 
     if (!user) {
@@ -1413,7 +1514,37 @@ bot.on('message:video_note', async (ctx) => {
       return;
     }
 
-    const subscription = user.lastPaidSubscription;
+    // Проверяем, есть ли активные подписки, разрешающие отправку видео ассистенту
+    const activeTariffs = await prisma.userTariff.findMany({
+      where: {
+        userId: telegramId,
+        expirationDate: { gte: new Date() }, // Проверяем, что срок действия не истек
+      },
+      select: {
+        tariffId: true,
+      },
+    });
+
+    // Фильтруем валидные тарифы (исключаем null)
+    const validTariffIds = activeTariffs.map((tariff) => tariff.tariffId).filter((id): id is bigint => id !== null);
+
+    if (validTariffIds.length === 0) {
+      await ctx.reply(getTranslation(languageCode, 'no_active_subscription'));
+      return;
+    }
+
+    // Проверяем, есть ли среди активных подписок разрешение на отправку видео
+    const hasPermission = await prisma.subscription.findMany({
+      where: {
+        id: { in: validTariffIds },
+        allowVideoToAssistant: true,
+      },
+    });
+
+    if (hasPermission.length === 0) {
+      await ctx.reply(getTranslation(languageCode, 'no_permission_to_send_videos'));
+      return;
+    }
 
     // Если пользователь ожидает ввода темы
     if (user.isWaitingForSubject) {
@@ -1468,11 +1599,6 @@ bot.on('message:video_note', async (ctx) => {
     });
 
     if (activeRequest && activeRequest.assistant) {
-      if (!subscription?.allowVideoToAssistant) {
-        await ctx.reply('Отправка видео-кружков ассистенту не разрешена для вашей подписки.');
-        return;
-      }
-
       const videoNote = ctx.message.video_note;
       const fileId = videoNote.file_id;
       const fileInfo = await ctx.api.getFile(fileId);
@@ -1499,7 +1625,7 @@ bot.on('message:video_note', async (ctx) => {
     await ctx.reply(getTranslation(languageCode, 'unexpected_file'));
   } catch (error) {
     console.error('Ошибка при обработке видео-кружка:', error);
-    await ctx.reply(getTranslation(languageCode, 'server_error')); // Используем определенный languageCode
+    await ctx.reply(getTranslation(languageCode, 'server_error'));
   }
 });
 
