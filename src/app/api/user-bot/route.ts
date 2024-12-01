@@ -1156,9 +1156,8 @@ bot.on('message:photo', async (ctx: Context) => {
 });
 
 
-
 bot.on('message:voice', async (ctx) => {
-  let languageCode: string = 'en'; // Установить значение по умолчанию
+  let languageCode: string = 'en'; // Установка значения по умолчанию
 
   try {
     languageCode = ctx.from?.language_code || 'en'; // Определить язык пользователя
@@ -1169,9 +1168,11 @@ bot.on('message:voice', async (ctx) => {
     }
 
     const telegramId = BigInt(ctx.from.id);
+    const currentTime = new Date();
 
     const user = await prisma.user.findUnique({
       where: { telegramId },
+      include: { lastPaidSubscription: true },
     });
 
     if (!user) {
@@ -1179,6 +1180,9 @@ bot.on('message:voice', async (ctx) => {
       return;
     }
 
+    const subscription = user.lastPaidSubscription;
+
+    // Если пользователь ожидает ввода темы
     if (user.isWaitingForSubject) {
       console.log(`User ${telegramId.toString()} is providing a subject as a voice message.`);
 
@@ -1214,18 +1218,54 @@ bot.on('message:voice', async (ctx) => {
         await assignAssistantToRequest(activeRequest, languageCode);
 
         await ctx.reply(getTranslation(languageCode, 'subjectReceived'));
+        return;
       } else {
         console.error(
           `No active request found for user ID: ${telegramId.toString()} while expecting a subject.`
         );
         await ctx.reply(getTranslation(languageCode, 'no_active_request'));
+        return;
       }
-    } else {
-      // Если пользователь не в режиме ожидания темы
-      await ctx.reply(getTranslation(languageCode, 'unexpected_voice'));
     }
+
+    // Если у пользователя есть активный диалог
+    const activeRequest = await prisma.assistantRequest.findFirst({
+      where: { userId: telegramId, isActive: true },
+      include: { assistant: true },
+    });
+
+    if (activeRequest && activeRequest.assistant) {
+      if (!subscription?.allowVoiceToAssistant) {
+        await ctx.reply('Отправка голосовых сообщений ассистенту не разрешена для вашей подписки.');
+        return;
+      }
+
+      const voice = ctx.message.voice;
+      const fileId = voice.file_id;
+      const fileInfo = await ctx.api.getFile(fileId);
+      const fileLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileInfo.file_path}`;
+
+      const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
+      const voiceBuffer = Buffer.from(response.data, 'binary');
+      const fileName = 'voice.ogg';
+
+      await sendFileToAssistant(activeRequest.assistant.telegramId.toString(), voiceBuffer, fileName);
+      await ctx.reply('Голосовое сообщение успешно отправлено ассистенту.');
+
+      await prisma.conversation.update({
+        where: { id: activeRequest.id },
+        data: {
+          lastMessageFrom: 'USER',
+          lastUserMessageAt: currentTime,
+        },
+      });
+      return;
+    }
+
+    // Если тема не ожидается и активного диалога нет
+    await ctx.reply(getTranslation(languageCode, 'unexpected_voice'));
   } catch (error) {
-    console.error('Error processing voice message:', error);
+    console.error('Ошибка при обработке голосового сообщения:', error);
     await ctx.reply(getTranslation(languageCode, 'server_error'));
   }
 });
