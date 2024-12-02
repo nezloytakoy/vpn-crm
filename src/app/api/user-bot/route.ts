@@ -346,14 +346,6 @@ bot.command('end_dialog', async (ctx) => {
     });
 
 
-    if (activeRequest.assistant) {
-      await prisma.assistant.update({
-        where: { telegramId: activeRequest.assistant.telegramId },
-        data: { isBusy: false },
-      });
-    } else {
-      console.error('Ошибка: ассистент не найден для запроса');
-    }
 
 
     const messages = conversation.messages as JsonArray | null;
@@ -1821,7 +1813,6 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
     const availableAssistants = await prisma.assistant.findMany({
       where: {
         isWorking: true,
-        isBusy: false,
         telegramId: { notIn: assistantRequest.ignoredAssistants || [] },
       },
     });

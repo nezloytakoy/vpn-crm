@@ -1055,8 +1055,6 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
 
 
 
-
-
 // Общая функция для отправки медиа ассистенту
 async function sendTelegramMediaToAssistant(userId: string, mediaUrl: string, caption: string): Promise<void> {
   try {
