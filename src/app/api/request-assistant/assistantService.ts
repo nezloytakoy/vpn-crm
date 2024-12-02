@@ -1,12 +1,10 @@
 import { PrismaClient } from '@prisma/client';
-import {
-  getTranslation,
-  detectLanguage,
-} from './translations';
+import { getTranslation, detectLanguage } from './translations';
 import {
   sendTelegramMessageToUser,
-  sendLogToTelegram,
+  sendLogToTelegram
 } from './helpers';
+import { Bot } from 'grammy';
 
 const prisma = new PrismaClient();
 
@@ -37,7 +35,9 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
 
     if (existingActiveRequest) {
       await sendLogToTelegram(
-        `[Info] User ${userIdBigInt.toString()} already has an active request: ${JSON.stringify(serializeBigInt(existingActiveRequest))}`
+        `[Info] User ${userIdBigInt.toString()} already has an active request: ${JSON.stringify(
+          serializeBigInt(existingActiveRequest)
+        )}`
       );
       await sendTelegramMessageToUser(
         userIdBigInt.toString(),
@@ -97,13 +97,17 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
     });
 
     if (!userTariff) {
-      await sendLogToTelegram(`[Error] No valid tariffs found for user ${userIdBigInt.toString()}`);
+      await sendLogToTelegram(
+        `[Error] No valid tariffs found for user ${userIdBigInt.toString()}`
+      );
       return {
         error: getTranslation(lang, 'notEnoughRequests'),
         status: 400,
       };
     }
-    await sendLogToTelegram(`[Success] User tariff found: ${JSON.stringify(serializeBigInt(userTariff))}`);
+    await sendLogToTelegram(
+      `[Success] User tariff found: ${JSON.stringify(serializeBigInt(userTariff))}`
+    );
 
     // Уменьшаем количество оставшихся запросов
     await prisma.userTariff.update({
@@ -134,13 +138,17 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
       },
     });
 
-    await sendLogToTelegram(`[Success] New assistant request created: ${JSON.stringify(serializeBigInt(newRequest))}`);
+    await sendLogToTelegram(
+      `[Success] New assistant request created: ${JSON.stringify(serializeBigInt(newRequest))}`
+    );
 
     // Распределяем запрос на ассистента
     const assignedAssistant = await assignAssistant(newRequest.id);
 
     if (!assignedAssistant) {
-      await sendLogToTelegram(`[Warning] No available assistants for request ID ${newRequest.id.toString()}`);
+      await sendLogToTelegram(
+        `[Warning] No available assistants for request ID ${newRequest.id.toString()}`
+      );
       await sendTelegramMessageToUser(
         userIdBigInt.toString(),
         getTranslation(lang, 'noAssistantsAvailable')
@@ -161,7 +169,9 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
     };
   } catch (error) {
     console.error('Error:', error);
-    await sendLogToTelegram(`[Critical Error]: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    await sendLogToTelegram(
+      `[Critical Error]: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
 
     return {
       error: getTranslation(detectLanguage(), 'serverError'),
@@ -170,7 +180,7 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
   }
 }
 
-// Распределение запросов с созданием Conversation
+// Распределение запросов с уведомлением ассистента
 async function assignAssistant(requestId: bigint) {
   // Получаем список всех ассистентов с их текущей нагрузкой
   const assistants = await prisma.assistant.findMany({
@@ -201,26 +211,92 @@ async function assignAssistant(requestId: bigint) {
       where: { id: requestId },
       data: {
         assistantId: selectedAssistant.telegramId,
-        status: 'IN_PROGRESS',
+        status: 'PENDING',
       },
     });
 
-    // Получаем данные запроса и пользователя
-    const request = await prisma.assistantRequest.findUnique({
-      where: { id: requestId },
-      include: { user: true },
-    });
+    // Уведомляем ассистента о новом запросе
+    await sendAssistantNotification(requestId, selectedAssistant.telegramId);
 
-    if (!request) {
-      console.error(`[assignAssistant] Ошибка: запрос с ID ${requestId.toString()} не найден.`);
-      return null;
-    }
+    return selectedAssistant;
+  }
+
+  return null;
+}
+
+// Отправка уведомления ассистенту с кнопками "Принять" и "Отклонить"
+async function sendAssistantNotification(requestId: bigint, assistantTelegramId: bigint) {
+  const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
+  if (!botToken) {
+    console.error('Ошибка: TELEGRAM_SUPPORT_BOT_TOKEN не установлен');
+    return;
+  }
+
+  const request = await prisma.assistantRequest.findUnique({
+    where: { id: requestId },
+    include: { user: true },
+  });
+
+  if (!request) {
+    console.error(
+      `[sendAssistantNotification] Ошибка: запрос с ID ${requestId.toString()} не найден.`
+    );
+    return;
+  }
+
+  const assistantBot = new Bot(botToken);
+
+  try {
+    await assistantBot.api.sendMessage(
+      assistantTelegramId.toString(),
+      `Новый запрос от пользователя ${request.user?.username || 'без имени'}.`,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: 'Принять', callback_data: `accept_${requestId.toString()}` }],
+            [{ text: 'Отклонить', callback_data: `reject_${requestId.toString()}` }],
+          ],
+        },
+      }
+    );
+
+    console.log(
+      `[sendAssistantNotification] Уведомление отправлено ассистенту ${assistantTelegramId.toString()} для запроса ${requestId.toString()}`
+    );
+  } catch (error) {
+    console.error('[sendAssistantNotification] Ошибка при отправке уведомления ассистенту:', error);
+  }
+}
+
+// Обработка принятия или отклонения запроса ассистентом
+export async function handleAssistantResponse(
+  requestId: bigint,
+  action: 'ACCEPT' | 'REJECT'
+) {
+  const request = await prisma.assistantRequest.findUnique({
+    where: { id: requestId },
+    include: { user: true, assistant: true },
+  });
+
+  if (!request) {
+    console.error(
+      `[handleAssistantResponse] Ошибка: запрос с ID ${requestId.toString()} не найден.`
+    );
+    return;
+  }
+
+  if (action === 'ACCEPT') {
+    // Обновляем статус запроса
+    await prisma.assistantRequest.update({
+      where: { id: requestId },
+      data: { status: 'IN_PROGRESS', isActive: true },
+    });
 
     // Создаем запись в таблице Conversation
     const conversation = await prisma.conversation.create({
       data: {
         userId: request.userId,
-        assistantId: selectedAssistant.telegramId,
+        assistantId: request.assistantId!,
         requestId: request.id,
         messages: [],
         status: 'IN_PROGRESS',
@@ -230,13 +306,32 @@ async function assignAssistant(requestId: bigint) {
     });
 
     console.log(
-      `[assignAssistant] Создана новая беседа с ID ${conversation.id.toString()} между пользователем ${request.userId.toString()} и ассистентом ${selectedAssistant.telegramId.toString()}`
+      `[handleAssistantResponse] Ассистент принял запрос. Создана беседа с ID ${conversation.id.toString()}`
     );
 
-    return selectedAssistant;
-  }
+    // Уведомляем пользователя
+    await sendTelegramMessageToUser(
+      request.userId.toString(),
+      'Ваш запрос принят! Ассистент готов помочь.'
+    );
+  } else if (action === 'REJECT') {
+    console.log(
+      `[handleAssistantResponse] Ассистент отклонил запрос с ID ${requestId.toString()}`
+    );
 
-  return null;
+    // Обновляем запрос и переназначаем его другому ассистенту
+    await prisma.assistantRequest.update({
+      where: { id: requestId },
+      data: {
+        assistantId: null,
+        status: 'PENDING',
+        ignoredAssistants: [...request.ignoredAssistants, request.assistantId!],
+      },
+    });
+
+    // Повторное назначение
+    await assignAssistant(requestId);
+  }
 }
 
 function serializeBigInt(obj: unknown): unknown {
