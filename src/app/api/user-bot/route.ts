@@ -49,7 +49,7 @@ async function sendMessageToAssistant(
 ) {
   const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
   if (!botToken) {
-    console.error('Ошибка: TELEGRAM_SUPPORT_BOT_TOKEN не установлен');
+    console.error('[sendMessageToAssistant] Ошибка: TELEGRAM_SUPPORT_BOT_TOKEN не установлен');
     return;
   }
 
@@ -57,22 +57,22 @@ async function sendMessageToAssistant(
 
   try {
     if (message) {
-
+      console.log(`[sendMessageToAssistant] Отправка текстового сообщения ассистенту. Chat ID: ${assistantChatId}, Message: ${message}`);
       await assistantBot.api.sendMessage(assistantChatId, message);
     } else if (ctx && ctx.chat && ctx.message) {
-
+      console.log(`[sendMessageToAssistant] Копирование сообщения пользователю. Chat ID: ${assistantChatId}, Source Chat ID: ${ctx.chat.id}, Message ID: ${ctx.message.message_id}`);
       await assistantBot.api.copyMessage(
         assistantChatId,
         ctx.chat.id,
         ctx.message.message_id
       );
     } else {
-      console.error('Ошибка: ни message, ни ctx не определены или ctx.chat/ctx.message отсутствуют');
+      console.error('[sendMessageToAssistant] Ошибка: ни message, ни ctx не определены или ctx.chat/ctx.message отсутствуют');
       return;
     }
 
-
     const assistantTelegramId = BigInt(assistantChatId);
+    console.log(`[sendMessageToAssistant] Идентификатор ассистента: ${assistantTelegramId}`);
 
     const activeConversation = await prisma.conversation.findFirst({
       where: {
@@ -82,13 +82,18 @@ async function sendMessageToAssistant(
     });
 
     if (activeConversation) {
+      console.log(`[sendMessageToAssistant] Найден активный разговор. ID: ${activeConversation.id}`);
+
       const currentTime = new Date();
+      console.log(`[sendMessageToAssistant] Текущее время: ${currentTime.toISOString()}`);
 
       const newMessage = {
         sender: 'USER',
         message: message || 'Media message',
         timestamp: currentTime.toISOString(),
       };
+
+      console.log(`[sendMessageToAssistant] Новое сообщение для добавления: ${JSON.stringify(newMessage)}`);
 
       const updatedMessages = [
         ...(activeConversation.messages as Array<{
@@ -99,6 +104,8 @@ async function sendMessageToAssistant(
         newMessage,
       ];
 
+      console.log(`[sendMessageToAssistant] Обновленные сообщения: ${JSON.stringify(updatedMessages)}`);
+
       await prisma.conversation.update({
         where: { id: activeConversation.id },
         data: {
@@ -107,13 +114,16 @@ async function sendMessageToAssistant(
           messages: updatedMessages,
         },
       });
+
+      console.log(`[sendMessageToAssistant] Разговор обновлен. ID: ${activeConversation.id}`);
     } else {
-      console.error('Ошибка: активный разговор не найден для ассистента');
+      console.error(`[sendMessageToAssistant] Ошибка: активный разговор не найден для ассистента с ID: ${assistantTelegramId}`);
     }
   } catch (error) {
-    console.error('Ошибка при отправке сообщения ассистенту:', error);
+    console.error('[sendMessageToAssistant] Ошибка при отправке сообщения ассистенту:', error);
   }
 }
+
 
 
 
