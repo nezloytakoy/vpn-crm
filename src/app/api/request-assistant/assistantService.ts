@@ -1,8 +1,11 @@
 import { PrismaClient } from '@prisma/client';
-import { getTranslation, detectLanguage } from './translations';
+import {
+  getTranslation,
+  detectLanguage,
+} from './translations';
 import {
   sendTelegramMessageToUser,
-  sendLogToTelegram
+  sendLogToTelegram,
 } from './helpers';
 import { Bot } from 'grammy';
 
@@ -125,7 +128,7 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
       `[Info] Decremented requests in tariff ID ${userTariff.id.toString()} for user ${userIdBigInt.toString()} by 1`
     );
 
-    // Создаём новый запрос ассистента
+    // Создаём новый запрос ассистента с пустой темой
     const newRequest = await prisma.assistantRequest.create({
       data: {
         userId: userIdBigInt,
@@ -134,7 +137,7 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
         status: 'PENDING',
         isActive: true,
         ignoredAssistants: [],
-        subject: null, // Initially null, updated later when media or text is received
+        subject: null, // Тема будет обновлена после ввода пользователем
       },
     });
 
@@ -142,29 +145,24 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
       `[Success] New assistant request created: ${JSON.stringify(serializeBigInt(newRequest))}`
     );
 
-    // Распределяем запрос на ассистента
-    const assignedAssistant = await assignAssistant(newRequest.id);
+    // Обновляем статус пользователя, чтобы ждать ввода темы
+    await prisma.user.update({
+      where: { telegramId: userIdBigInt },
+      data: { isWaitingForSubject: true },
+    });
 
-    if (!assignedAssistant) {
-      await sendLogToTelegram(
-        `[Warning] No available assistants for request ID ${newRequest.id.toString()}`
-      );
-      await sendTelegramMessageToUser(
-        userIdBigInt.toString(),
-        getTranslation(lang, 'noAssistantsAvailable')
-      );
-      return {
-        message: getTranslation(lang, 'noAssistantsAvailable'),
-        status: 200,
-      };
-    }
+    // Запрашиваем у пользователя тему
+    await sendTelegramMessageToUser(
+      userIdBigInt.toString(),
+      'Пожалуйста, введите тему вашего запроса:'
+    );
 
     await sendLogToTelegram(
-      `[Success] Request ID ${newRequest.id.toString()} assigned to assistant ${assignedAssistant.telegramId.toString()}`
+      `[Info] Prompted user ${userIdBigInt.toString()} to enter the subject of the request`
     );
 
     return {
-      message: 'Request assigned successfully.',
+      message: 'Waiting for user to enter the subject.',
       status: 200,
     };
   } catch (error) {
@@ -177,6 +175,74 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
       error: getTranslation(detectLanguage(), 'serverError'),
       status: 500,
     };
+  }
+}
+
+// Обработка ввода темы от пользователя
+export async function handleUserSubjectInput(userIdBigInt: bigint, subject: string) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { telegramId: userIdBigInt },
+    });
+
+    if (!user || !user.isWaitingForSubject) {
+      console.error(`[handleUserSubjectInput] User not waiting for subject or not found.`);
+      return;
+    }
+
+    // Находим активный запрос пользователя
+    const activeRequest = await prisma.assistantRequest.findFirst({
+      where: { userId: userIdBigInt, isActive: true, subject: null },
+    });
+
+    if (!activeRequest) {
+      console.error(`[handleUserSubjectInput] Active request not found for user ${userIdBigInt}`);
+      return;
+    }
+
+    // Обновляем запрос с введенной темой
+    await prisma.assistantRequest.update({
+      where: { id: activeRequest.id },
+      data: { subject },
+    });
+
+    // Обновляем статус пользователя
+    await prisma.user.update({
+      where: { telegramId: userIdBigInt },
+      data: { isWaitingForSubject: false },
+    });
+
+    await sendLogToTelegram(
+      `[handleUserSubjectInput] User ${userIdBigInt.toString()} entered subject: ${subject}`
+    );
+
+    // Распределяем запрос на ассистента
+    const assignedAssistant = await assignAssistant(activeRequest.id);
+
+    if (!assignedAssistant) {
+      await sendLogToTelegram(
+        `[Warning] No available assistants for request ID ${activeRequest.id.toString()}`
+      );
+      await sendTelegramMessageToUser(
+        userIdBigInt.toString(),
+        getTranslation(detectLanguage(), 'noAssistantsAvailable')
+      );
+      return;
+    }
+
+    await sendLogToTelegram(
+      `[Success] Request ID ${activeRequest.id.toString()} assigned to assistant ${assignedAssistant.telegramId.toString()}`
+    );
+
+    await sendTelegramMessageToUser(
+      userIdBigInt.toString(),
+      'Ваш запрос отправлен ассистенту. Ожидайте подтверждения.'
+    );
+  } catch (error) {
+    console.error('Error in handleUserSubjectInput:', error);
+    await sendLogToTelegram(
+      `[Critical Error in handleUserSubjectInput]: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -249,7 +315,7 @@ async function sendAssistantNotification(requestId: bigint, assistantTelegramId:
   try {
     await assistantBot.api.sendMessage(
       assistantTelegramId.toString(),
-      `Новый запрос от пользователя ${request.user?.username || 'без имени'}.`,
+      `Новый запрос от пользователя ${request.user?.username || 'без имени'}.\nТема: ${request.subject}`,
       {
         reply_markup: {
           inline_keyboard: [
