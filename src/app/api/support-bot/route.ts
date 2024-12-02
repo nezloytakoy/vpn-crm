@@ -370,7 +370,6 @@ bot.use(async (ctx, next) => {
   console.log("Пользователь не заблокирован. Продолжаем выполнение.");
   await next();
 });
-
 bot.command('requests', async (ctx) => {
   const lang = detectUserLanguage(ctx);
 
@@ -389,33 +388,35 @@ bot.command('requests', async (ctx) => {
     });
 
     if (!assistant) {
-      await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+      await ctx.reply(getTranslation(lang, 'no_assistant_found'));
       return;
     }
 
-    // Получение активных запросов (статус PENDING)
-    const activeRequests = await prisma.assistantRequest.findMany({
-      where: { status: 'PENDING' },
-      include: { user: true }, // Включаем данные пользователя для вывода информации
+    // Получение всех запросов, связанных с этим ассистентом
+    const assistantRequests = await prisma.assistantRequest.findMany({
+      where: {
+        assistantId: telegramId,
+        isActive: true, // Только активные запросы
+      },
+      include: { user: true }, // Включаем данные пользователя для отображения
     });
 
-    if (activeRequests.length === 0) {
+    if (assistantRequests.length === 0) {
       await ctx.reply(getTranslation(lang, 'no_active_requests'));
       return;
     }
 
-    // Формирование сообщения со списком активных запросов
-    const requestsMessage = activeRequests
+    // Формирование сообщения со списком запросов ассистента
+    const requestsMessage = assistantRequests
       .map((request) => {
         const userTelegramId = request.userId.toString();
-        const message = request.message || getTranslation(lang, 'no_message');
-        const createdAt = new Date(request.createdAt.getTime() + 2 * 60 * 60 * 1000).toLocaleString();
-        return `👤 User: ${userTelegramId}\n📝 Message: ${message}\n📅 Created At: ${createdAt}`;
-
+        const subject = request.subject || getTranslation(lang, 'no_message');
+        const createdAt = new Date(request.createdAt.getTime() + 2 * 60 * 60 * 1000).toLocaleString(); // С учетом часового пояса
+        return `👤 User: ${userTelegramId}\n📝 Subject: ${subject}\n📅 Created At: ${createdAt}`;
       })
       .join('\n\n');
 
-    // Отправка сообщения ассистенту с активными запросами
+    // Отправка ассистенту списка запросов
     await ctx.reply(
       `${getTranslation(lang, 'active_requests_list')}\n\n${requestsMessage}`
     );
