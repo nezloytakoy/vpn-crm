@@ -1834,6 +1834,7 @@ function logWithBigInt<T>(obj: T): void {
   console.log(JSON.stringify(obj, serializeBigInt, 2));
 }
 
+
 async function assignAssistantToRequest(assistantRequest: AssistantRequest, languageCode: string) {
   try {
     console.log(`Assigning assistant for request ID: ${assistantRequest.id}`);
@@ -1841,9 +1842,11 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
 
     const userIdBigInt = assistantRequest.userId;
 
+    // Fetch only assistants who are working and not blocked
     const availableAssistants = await prisma.assistant.findMany({
       where: {
         isWorking: true,
+        isBlocked: false, // Exclude blocked assistants
         telegramId: { notIn: assistantRequest.ignoredAssistants || [] },
       },
     });
@@ -1859,6 +1862,7 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
 
     logWithBigInt({ assistantsWithPenalties });
 
+    // Sort assistants based on penalties and activity
     assistantsWithPenalties.sort((a, b) => {
       if (a.penaltyPoints !== b.penaltyPoints) {
         return a.penaltyPoints - b.penaltyPoints;
@@ -1878,7 +1882,7 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
 
     console.log(`Selected assistant: ${JSON.stringify(selectedAssistant, serializeBigInt, 2)}`);
 
-
+    // Assign the selected assistant to the request
     await prisma.assistantRequest.update({
       where: { id: assistantRequest.id },
       data: { assistantId: selectedAssistant.telegramId },
@@ -1895,14 +1899,14 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
       : `${getTranslation(languageCode, 'assistantRequestMessage')}\n\nТема: отсутствует`;
 
     if (updatedRequest?.subject?.startsWith('http')) {
-      // Если subject - это ссылка на медиа, отправляем её ассистенту
+      // If subject is a media link, send it to the assistant
       await sendTelegramMediaToAssistant(
         selectedAssistant.telegramId.toString(),
         updatedRequest.subject,
         ''
       );
 
-      // После отправки медиа отправляем сообщение с кнопками
+      // Follow up with message containing action buttons
       await sendTelegramMessageWithButtons(
         selectedAssistant.telegramId.toString(),
         getTranslation(languageCode, 'assistantRequestMessage'),
@@ -1912,7 +1916,7 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
         ]
       );
     } else {
-      // Если это текст, отправляем сообщение с кнопками
+      // If subject is text, send message with action buttons
       await sendTelegramMessageWithButtons(
         selectedAssistant.telegramId.toString(),
         messageText,
@@ -1932,7 +1936,6 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
     await sendTelegramMessageToUser(assistantRequest.userId.toString(), getTranslation(languageCode, 'server_error'));
   }
 }
-
 
 
 
