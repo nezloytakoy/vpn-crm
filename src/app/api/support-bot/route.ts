@@ -251,7 +251,6 @@ async function findNewAssistant(requestId: bigint, ignoredAssistants: bigint[]) 
   const availableAssistants = await prisma.assistant.findMany({
     where: {
       isWorking: true,
-      isBusy: false,
       telegramId: {
         notIn: ignoredAssistants,
       },
@@ -460,11 +459,6 @@ bot.command('end_work', async (ctx) => {
       return;
     }
 
-
-    await prisma.assistant.update({
-      where: { telegramId: telegramId },
-      data: { isWorking: false, isBusy: false },
-    });
 
 
     const activeSession = await prisma.assistantSession.findFirst({
@@ -681,7 +675,7 @@ bot.on('callback_query:data', async (ctx) => {
 
       await prisma.assistant.update({
         where: { telegramId: telegramId },
-        data: { isWorking: true, isBusy: false },
+        data: { isWorking: true },
       });
 
 
@@ -888,10 +882,6 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
       include: { user: true },
     });
 
-    await prisma.assistant.update({
-      where: { telegramId: assistantTelegramId },
-      data: { isBusy: true },
-    });
 
 
     const existingConversation = await prisma.conversation.findFirst({
@@ -1056,11 +1046,6 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
       await ctx.reply('❌ Вы отклонили запрос, но доступных ассистентов больше нет.');
     }
 
-    // Снимаем флаг занятости с ассистента
-    await prisma.assistant.update({
-      where: { telegramId: assistantTelegramId },
-      data: { isBusy: false },
-    });
   } catch (error) {
     console.error('Ошибка при отклонении запроса:', error);
     await ctx.reply('❌ Произошла ошибка при отклонении запроса.');
