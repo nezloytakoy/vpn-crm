@@ -370,11 +370,12 @@ bot.use(async (ctx, next) => {
   console.log("Пользователь не заблокирован. Продолжаем выполнение.");
   await next();
 });
+
+
 bot.command('requests', async (ctx) => {
   const lang = detectUserLanguage(ctx);
 
   try {
-    // Проверка наличия ID отправителя
     if (!ctx.from?.id) {
       await ctx.reply(getTranslation(lang, 'end_dialog_error'));
       return;
@@ -382,7 +383,6 @@ bot.command('requests', async (ctx) => {
 
     const telegramId = BigInt(ctx.from.id);
 
-    // Проверка, является ли отправитель ассистентом
     const assistant = await prisma.assistant.findUnique({
       where: { telegramId },
     });
@@ -392,13 +392,12 @@ bot.command('requests', async (ctx) => {
       return;
     }
 
-    // Получение всех запросов, связанных с этим ассистентом
     const assistantRequests = await prisma.assistantRequest.findMany({
       where: {
         assistantId: telegramId,
-        isActive: true, // Только активные запросы
+        isActive: true,
       },
-      include: { user: true }, // Включаем данные пользователя для отображения
+      include: { user: true },
     });
 
     if (assistantRequests.length === 0) {
@@ -406,23 +405,25 @@ bot.command('requests', async (ctx) => {
       return;
     }
 
-    // Формирование сообщения со списком запросов ассистента
-    const requestsMessage = assistantRequests
-      .map((request) => {
-        const userTelegramId = request.userId.toString();
-        const subject = request.subject || getTranslation(lang, 'no_message');
-        const createdAt = new Date(request.createdAt.getTime() + 2 * 60 * 60 * 1000).toLocaleString(); // С учетом часового пояса
-        return `👤 User: ${userTelegramId}\n📝 Subject: ${subject}\n📅 Created At: ${createdAt}`;
-      })
-      .join('\n\n');
+    const requestsMessage = assistantRequests.map((request) => {
+      const userTelegramId = request.userId.toString();
+      const subject = request.subject || getTranslation(lang, 'no_message');
+      const createdAt = new Date(request.createdAt.getTime() + 2 * 60 * 60 * 1000).toLocaleString();
+      return {
+        text: `👤 User: ${userTelegramId}\n📝 Subject: ${subject}\n📅 Created At: ${createdAt}`,
+        callback_data: `activate_${request.id}`,
+      };
+    });
 
-    // Отправка ассистенту списка запросов
-    await ctx.reply(
-      `${getTranslation(lang, 'active_requests_list')}\n\n${requestsMessage}`
-    );
+    const inlineKeyboard = requestsMessage.map((request) => [
+      { text: request.text, callback_data: request.callback_data },
+    ]);
+
+    await ctx.reply(getTranslation(lang, 'active_requests_list'), {
+      reply_markup: { inline_keyboard: inlineKeyboard },
+    });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-    console.error('Error fetching requests:', errorMessage);
+    console.error('Error fetching requests:', error);
     await ctx.reply(getTranslation(lang, 'server_error'));
   }
 });

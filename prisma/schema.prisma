@@ -70,6 +70,7 @@ model Assistant {
   sessions         AssistantSession[]         // Связь с сессиями
   conversations    Conversation[]             // Связь с беседами
   requestActions   RequestAction[]            // История действий ассистента
+  activeRequestId BigInt?
 }
 
 model Edges {
