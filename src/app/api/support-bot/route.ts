@@ -383,6 +383,7 @@ bot.command('requests', async (ctx) => {
 
     const telegramId = BigInt(ctx.from.id);
 
+    // Проверяем, является ли отправитель ассистентом
     const assistant = await prisma.assistant.findUnique({
       where: { telegramId },
     });
@@ -392,32 +393,33 @@ bot.command('requests', async (ctx) => {
       return;
     }
 
-    const assistantRequests = await prisma.assistantRequest.findMany({
+    // Получаем активные беседы для текущего ассистента
+    const activeConversations = await prisma.conversation.findMany({
       where: {
         assistantId: telegramId,
-        isActive: true,
+        status: 'IN_PROGRESS',
       },
-      include: { user: true },
+      include: {
+        assistantRequest: true,
+      },
     });
 
-    if (assistantRequests.length === 0) {
+    if (activeConversations.length === 0) {
       await ctx.reply(getTranslation(lang, 'no_active_requests'));
       return;
     }
 
-    const requestsMessage = assistantRequests.map((request) => {
-      const userTelegramId = request.userId.toString();
-      const subject = request.subject || getTranslation(lang, 'no_message');
-      const createdAt = new Date(request.createdAt.getTime() + 2 * 60 * 60 * 1000).toLocaleString();
-      return {
-        text: `👤 User: ${userTelegramId}\n📝 Subject: ${subject}\n📅 Created At: ${createdAt}`,
-        callback_data: `activate_${request.id}`,
-      };
+    // Формируем кнопки для каждого активного запроса
+    const inlineKeyboard = activeConversations.map((conversation) => {
+      const subject = conversation.assistantRequest.subject || getTranslation(lang, 'no_message');
+      const timeRemaining = calculateTimeRemaining(conversation.createdAt);
+      return [
+        {
+          text: `Запрос: ${subject} | Осталось: ${timeRemaining}`,
+          callback_data: `activate_${conversation.id}`,
+        },
+      ];
     });
-
-    const inlineKeyboard = requestsMessage.map((request) => [
-      { text: request.text, callback_data: request.callback_data },
-    ]);
 
     await ctx.reply(getTranslation(lang, 'active_requests_list'), {
       reply_markup: { inline_keyboard: inlineKeyboard },
@@ -425,6 +427,59 @@ bot.command('requests', async (ctx) => {
   } catch (error) {
     console.error('Error fetching requests:', error);
     await ctx.reply(getTranslation(lang, 'server_error'));
+  }
+});
+
+function calculateTimeRemaining(createdAt: Date): string {
+  const maxDuration = 60 * 60 * 1000; // 60 минут
+  const timePassed = Date.now() - createdAt.getTime();
+  const timeLeft = maxDuration - timePassed;
+
+  if (timeLeft <= 0) {
+    return 'время истекло';
+  }
+
+  const minutes = Math.floor(timeLeft / (60 * 1000));
+  const seconds = Math.floor((timeLeft % (60 * 1000)) / 1000);
+
+  return `${minutes}м ${seconds}с`;
+}
+
+
+bot.on('callback_query:data', async (ctx) => {
+  const data = ctx.callbackQuery?.data;
+
+  if (data?.startsWith('activate_')) {
+    const requestId = BigInt(data.split('_')[1]);
+    const assistantId = BigInt(ctx.from?.id);
+
+    const assistant = await prisma.assistant.findUnique({
+      where: { telegramId: assistantId },
+    });
+
+    if (!assistant) {
+      await ctx.answerCallbackQuery({ text: 'Assistant not found', show_alert: true });
+      return;
+    }
+
+    const request = await prisma.assistantRequest.findUnique({
+      where: { id: requestId },
+      include: { user: true },
+    });
+
+    if (!request || request.assistantId !== assistantId) {
+      await ctx.answerCallbackQuery({ text: 'Request not found or not assigned to you', show_alert: true });
+      return;
+    }
+
+    // Активируем выбранный запрос для ассистента
+    await prisma.assistant.update({
+      where: { telegramId: assistantId },
+      data: { activeRequestId: requestId },
+    });
+
+    await ctx.answerCallbackQuery({ text: `Активирован запрос с темой: ${request.subject}` });
+    await ctx.reply(`Вы сейчас общаетесь с пользователем: ${request.user.username || request.userId}`);
   }
 });
 
