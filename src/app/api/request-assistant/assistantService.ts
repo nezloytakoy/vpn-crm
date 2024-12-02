@@ -365,7 +365,7 @@ export async function handleAssistantResponse(
         assistantId: request.assistantId!,
         requestId: request.id,
         messages: [],
-        status: 'IN_PROGRESS',
+        status: 'PENDING',
         lastMessageFrom: 'USER',
         lastUserMessageAt: new Date(),
       },
