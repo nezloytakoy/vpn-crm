@@ -742,13 +742,25 @@ bot.on('callback_query:data', async (ctx) => {
       await handleRejectRequest(requestId.toString(), telegramId, ctx);
     }
   } else if (data === 'start_work') {
-    // Handle starting work
     const assistant = await prisma.assistant.findUnique({ where: { telegramId: telegramId } });
 
     if (assistant?.isWorking) {
       await ctx.reply(getTranslation(lang, 'already_working'));
       return;
     }
+
+    // Установить статус ассистента как работающего
+    await prisma.assistant.update({
+      where: { telegramId: telegramId },
+      data: { isWorking: true },
+    });
+
+    // Создать сессию работы ассистента
+    await prisma.assistantSession.create({
+      data: {
+        assistantId: telegramId,
+      },
+    });
 
     const pendingRequest = await prisma.assistantRequest.findFirst({
       where: {
@@ -773,17 +785,6 @@ bot.on('callback_query:data', async (ctx) => {
 
       return;
     }
-
-    await prisma.assistant.update({
-      where: { telegramId: telegramId },
-      data: { isWorking: true },
-    });
-
-    await prisma.assistantSession.create({
-      data: {
-        assistantId: telegramId,
-      },
-    });
 
     await ctx.reply(getTranslation(lang, 'work_started'));
   } else if (data === 'my_coins') {
