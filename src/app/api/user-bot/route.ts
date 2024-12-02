@@ -163,7 +163,9 @@ type TranslationKey =
   | 'no_permission_to_send_voice'
   | 'no_permission_to_send_files'
   | 'no_permission_to_send_videos'
-  | 'unexpected_file'; // Новый ключ добавлен
+  | 'unexpected_file'
+  | 'subjectExpected'; // Added new key
+
 
 type Language = 'en' | 'ru';
 
@@ -202,52 +204,53 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       unexpected_photo: 'Ваше фото получено, но не ожидается. Попробуйте снова.',
       no_photo_detected: 'Пожалуйста, отправьте изображение.',
       unexpected_voice: 'Ваше голосовое сообщение получено, но не ожидается. Попробуйте снова.',
-      unexpected_file: 'Ваш файл получен, но не ожидается. Попробуйте снова.', // Новый перевод
+      unexpected_file: 'Ваш файл получен, но не ожидается. Попробуйте снова.',
       no_active_subscription: 'У вас нет активной подписки.',
       no_permission_to_send_photos: 'Ваша подписка не позволяет отправлять фотографии ассистентам.',
       no_permission_to_send_voice: 'Ваша подписка не позволяет отправлять голосовые сообщения ассистентам.',
-      no_permission_to_send_files: "Ваша подписка не позволяет отправлять файлы ассистентам.",
-      no_permission_to_send_videos: "Ваша подписка не позволяет отправлять видео-кружки ассистентам."
-
+      no_permission_to_send_files: 'Ваша подписка не позволяет отправлять файлы ассистентам.',
+      no_permission_to_send_videos: 'Ваша подписка не позволяет отправлять видео-кружки ассистентам.',
+      subjectExpected: 'Мы ожидаем от вас тему вашего запроса. Пожалуйста, укажите её.', // New translation
     },
     en: {
       start_message:
-        '👋 This is the user bot! To continue, click the button below and log into the Telegram Web App.',
-      webapp_button: '🚪 Log into Web App',
-      no_user_id: 'Failed to retrieve your user ID.',
-      no_text_message: 'Please send a text message.',
-      error_processing_message:
-        'An error occurred while processing your message. Please try again later.',
-      dialog_closed: 'The dialog with the assistant has ended. Thank you for using our service!',
-      error_end_dialog: 'An error occurred while ending the dialog. Please try again later.',
-      no_active_dialog: 'You have no active dialog with an assistant.',
-      user_ended_dialog: 'The user has ended the dialog.',
-      user_ended_dialog_no_reward: 'The user has ended the dialog. No reward was granted.',
-      ai_no_response: 'Sorry, could not get a response from the AI.',
-      ai_chat_deactivated: 'AI chat mode has been deactivated. Thank you for using our service!',
-      ai_chat_not_active: 'You have no active AI dialog.',
-      coin_awarded: 'You have been awarded 1 coin for completing the dialog.',
-      no_user_found: 'User not found.',
-      no_active_dialogs: 'You have no active dialogs.',
-      complaint_submitted: 'Your complaint has been submitted.',
-      enterSubject: 'Please enter the subject of your request.',
-      subjectReceived: 'Subject received. Connecting you to an assistant.',
-      no_active_request: 'No active request found.',
-      server_error: 'An error occurred. Please try again later.',
-      assistantRequestMessage: 'User request for conversation',
-      noAssistantsAvailable: 'No assistants available',
-      requestSent: 'The request has been sent to the assistant.',
-      accept: 'Accept',
-      reject: 'Reject',
-      unexpected_photo: 'Your photo has been received but was not expected. Please try again.',
-      no_photo_detected: 'Please send an image.',
-      unexpected_voice: 'Your voice message has been received but was not expected. Please try again.',
-      unexpected_file: 'Your file has been received but was not expected. Please try again.', // Новый перевод
-      no_active_subscription: 'You do not have an active subscription.',
-      no_permission_to_send_photos: 'Your subscription does not allow sending photos to assistants.',
-      no_permission_to_send_voice: 'Your subscription does not allow sending voice messages to assistants.',
-      no_permission_to_send_files: "Your subscription does not allow sending files to assistants.",
-      no_permission_to_send_videos: "Your subscription does not allow sending video notes to assistants.",
+      '👋 This is the user bot! To continue, click the button below and log into the Telegram Web App.',
+    webapp_button: '🚪 Log into Web App',
+    no_user_id: 'Failed to retrieve your user ID.',
+    no_text_message: 'Please send a text message.',
+    error_processing_message:
+      'An error occurred while processing your message. Please try again later.',
+    dialog_closed: 'The dialog with the assistant has ended. Thank you for using our service!',
+    error_end_dialog: 'An error occurred while ending the dialog. Please try again later.',
+    no_active_dialog: 'You have no active dialog with an assistant.',
+    user_ended_dialog: 'The user has ended the dialog.',
+    user_ended_dialog_no_reward: 'The user has ended the dialog. No reward was granted.',
+    ai_no_response: 'Sorry, could not get a response from the AI.',
+    ai_chat_deactivated: 'AI chat mode has been deactivated. Thank you for using our service!',
+    ai_chat_not_active: 'You have no active AI dialog.',
+    coin_awarded: 'You have been awarded 1 coin for completing the dialog.',
+    no_user_found: 'User not found.',
+    no_active_dialogs: 'You have no active dialogs.',
+    complaint_submitted: 'Your complaint has been submitted.',
+    enterSubject: 'Please enter the subject of your request.',
+    subjectReceived: 'Subject received. Connecting you to an assistant.',
+    no_active_request: 'No active request found.',
+    server_error: 'An error occurred. Please try again later.',
+    assistantRequestMessage: 'User request for conversation',
+    noAssistantsAvailable: 'No assistants available',
+    requestSent: 'The request has been sent to the assistant.',
+    accept: 'Accept',
+    reject: 'Reject',
+    unexpected_photo: 'Your photo has been received but was not expected. Please try again.',
+    no_photo_detected: 'Please send an image.',
+    unexpected_voice: 'Your voice message has been received but was not expected. Please try again.',
+    unexpected_file: 'Your file has been received but was not expected. Please try again.',
+    no_active_subscription: 'You do not have an active subscription.',
+    no_permission_to_send_photos: 'Your subscription does not allow sending photos to assistants.',
+    no_permission_to_send_voice: 'Your subscription does not allow sending voice messages to assistants.',
+    no_permission_to_send_files: 'Your subscription does not allow sending files to assistants.',
+    no_permission_to_send_videos: 'Your subscription does not allow sending video notes to assistants.',
+    subjectExpected: 'We are waiting for you to provide the subject of your request. Please specify it.', // New translation
       
     },
   };
@@ -993,8 +996,13 @@ bot.on('message:text', async (ctx: Context) => {
       return;
     }
 
-    // Convert user object to a serializable format for logging
-    console.log(`User found: ${JSON.stringify({ ...user, telegramId: user.telegramId.toString() }, serializeBigInt, 2)}`);
+    console.log(
+      `User found: ${JSON.stringify(
+        { ...user, telegramId: user.telegramId.toString() },
+        serializeBigInt,
+        2
+      )}`
+    );
 
     // Handle if the user is waiting to file a complaint
     if (user.isWaitingForComplaint) {
@@ -1052,34 +1060,46 @@ bot.on('message:text', async (ctx: Context) => {
     if (user.isActiveAIChat) {
       console.log(`User ${telegramId.toString()} is in active AI chat.`);
       await handleAIChat(telegramId, userMessage, ctx);
-    } else {
-      // Find an active assistant request
-      const activeRequest = await prisma.assistantRequest.findFirst({
-        where: { userId: telegramId, isActive: true },
-        include: { assistant: true },
-      });
+      return;
+    }
 
-      if (activeRequest) {
-        console.log(
-          `Active request found for user: ${JSON.stringify(
-            { ...activeRequest, userId: activeRequest.userId.toString() },
-            serializeBigInt,
-            2
-          )}`
+    // Check for an active conversation
+    const activeConversation = await prisma.conversation.findFirst({
+      where: {
+        userId: telegramId,
+        status: 'IN_PROGRESS',
+      },
+      include: { assistant: true },
+    });
+
+    if (activeConversation) {
+      console.log(
+        `Active conversation found: ${JSON.stringify(
+          { ...activeConversation, userId: activeConversation.userId.toString() },
+          serializeBigInt,
+          2
+        )}`
+      );
+
+      if (activeConversation.assistant) {
+        console.log(`Sending message to assistant ID: ${activeConversation.assistant.telegramId}`);
+        await sendMessageToAssistant(
+          ctx,
+          activeConversation.assistant.telegramId.toString(),
+          userMessage
         );
-
-        if (activeRequest.assistant) {
-          console.log(`Sending message to assistant ID: ${activeRequest.assistant.telegramId}`);
-          await sendMessageToAssistant(
-            ctx,
-            activeRequest.assistant.telegramId.toString(),
-            userMessage
-          );
-        } else {
-          console.error(`No assistant found for active request ID: ${activeRequest.id}`);
-        }
       } else {
-        console.log(`No active dialog found for user ID: ${telegramId.toString()}`);
+        console.error(
+          `No assistant assigned to the active conversation with ID: ${activeConversation.id}`
+        );
+        await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
+      }
+    } else {
+      // No active conversation or dialogs
+      console.log(`No active conversation found for user ID: ${telegramId.toString()}`);
+      if (user.isWaitingForSubject) {
+        await ctx.reply(getTranslation(languageCode, 'subjectExpected'));
+      } else {
         await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
       }
     }
@@ -1088,6 +1108,7 @@ bot.on('message:text', async (ctx: Context) => {
     await ctx.reply(getTranslation(languageCode, 'server_error'));
   }
 });
+
 
 
 
