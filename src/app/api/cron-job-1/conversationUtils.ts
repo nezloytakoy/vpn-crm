@@ -150,7 +150,7 @@ async function remindAssistant(conversation: Conversation & { assistantRequest: 
 
   const userTelegramId = conversation.userId.toString();
   for (let i = 1; i <= 5; i++) {
-    await sendTelegramMessageToUser(
+    await sendTelegramMessageToAssistant(
       userTelegramId,
       `Пожалуйста, дайте ответ пользователю, запрос - ${requestId}`
     );

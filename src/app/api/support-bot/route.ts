@@ -693,8 +693,8 @@ bot.on('callback_query:data', async (ctx) => {
   const telegramId = BigInt(ctx.from.id);
 
   if (data?.startsWith('activate_')) {
-    // Handle activation of a request
-    const requestId = BigInt(data.split('_')[1]);
+    // Handle activation of a conversation
+    const conversationId = BigInt(data.split('_')[1]);
     const assistantId = telegramId;
 
     const assistant = await prisma.assistant.findUnique({
@@ -706,12 +706,12 @@ bot.on('callback_query:data', async (ctx) => {
       return;
     }
 
-    const request = await prisma.assistantRequest.findUnique({
-      where: { id: requestId },
-      include: { user: true },
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+      include: { assistantRequest: true, user: true },
     });
 
-    if (!request || request.assistantId !== assistantId) {
+    if (!conversation || conversation.assistantId !== assistantId) {
       await ctx.answerCallbackQuery({
         text: getTranslation(lang, 'request_not_found_or_not_assigned'),
         show_alert: true,
@@ -719,17 +719,17 @@ bot.on('callback_query:data', async (ctx) => {
       return;
     }
 
-    // Activate the selected request for the assistant
+    // Activate the selected conversation for the assistant
     await prisma.assistant.update({
       where: { telegramId: assistantId },
-      data: { activeRequestId: requestId },
+      data: { activeConversationId: conversationId },
     });
 
     await ctx.answerCallbackQuery({
-      text: `${getTranslation(lang, 'activated_request_with_subject')}: ${request.subject}`,
+      text: `${getTranslation(lang, 'activated_request_with_subject')}: ${conversation.assistantRequest.subject}`,
     });
     await ctx.reply(
-      `${getTranslation(lang, 'now_chatting_with_user')}: ${request.user.username || request.userId}`
+      `${getTranslation(lang, 'now_chatting_with_user')}: ${conversation.user.username || conversation.userId}`
     );
   } else if (data.startsWith('accept_') || data.startsWith('reject_')) {
     // Handle accept or reject actions
@@ -1231,15 +1231,43 @@ async function sendFileToAssistant(assistantChatId: string, fileBuffer: Buffer, 
 const SESSION_DURATION = 60; // Длительность сессии в минутах
 
 bot.on('message', async (ctx) => {
-  try {
-    const lang = detectUserLanguage(ctx);
+  const lang = detectUserLanguage(ctx); // Перенесли объявление 'lang' выше
 
+  try {
     if (!ctx.from?.id) {
       await ctx.reply(getTranslation(lang, 'end_dialog_error'));
       return;
     }
 
     const assistantTelegramId = BigInt(ctx.from.id);
+
+    // Получаем ассистента и включаем активную беседу
+    const assistant = await prisma.assistant.findUnique({
+      where: { telegramId: assistantTelegramId },
+      include: { activeConversation: true },
+    });
+
+    if (!assistant) {
+      await ctx.reply(getTranslation(lang, 'no_assistant_found'));
+      return;
+    }
+
+    if (!assistant.activeConversationId) {
+      await ctx.reply(getTranslation(lang, 'no_active_requests'));
+      return;
+    }
+
+    // Получаем активную беседу
+    const activeConversation = await prisma.conversation.findUnique({
+      where: { id: assistant.activeConversationId },
+      include: { user: true },
+    });
+
+    if (!activeConversation) {
+      await ctx.reply(getTranslation(lang, 'no_active_requests'));
+      return;
+    }
+
     const assistantMessage = ctx.message?.text;
 
     if (!assistantMessage) {
@@ -1247,43 +1275,30 @@ bot.on('message', async (ctx) => {
       return;
     }
 
-    // Поиск активного разговора вместо запроса
-    const [activeConversation] = await Promise.all([
-      prisma.conversation.findFirst({
-        where: {
-          assistant: { telegramId: assistantTelegramId },
-          status: 'IN_PROGRESS',
-        },
-        include: { user: true },
-      }),
-    ]);
+    // Вычисление оставшегося времени
+    const conversationStartTime = new Date(activeConversation.createdAt);
+    const currentTime = new Date();
+    const elapsedMinutes = Math.floor((currentTime.getTime() - conversationStartTime.getTime()) / 60000);
+    const remainingMinutes = Math.max(SESSION_DURATION - elapsedMinutes, 0);
 
-    if (activeConversation) {
-      // Вычисление оставшегося времени
-      const conversationStartTime = new Date(activeConversation.createdAt);
-      const currentTime = new Date();
-      const elapsedMinutes = Math.floor((currentTime.getTime() - conversationStartTime.getTime()) / 60000);
-      const remainingMinutes = Math.max(SESSION_DURATION - elapsedMinutes, 0);
-
-      // Формирование сообщения с информацией о времени
-      const responseMessage = `
+    // Формирование сообщения с информацией о времени
+    const responseMessage = `
 ${assistantMessage}
 --------------------------------
 До конца сеанса осталось ${remainingMinutes} минут
-      `;
+    `;
 
-      await sendTelegramMessageToUser(
-        activeConversation.user.telegramId.toString(),
-        responseMessage
-      );
-    } else {
-      await ctx.reply(getTranslation(lang, 'no_user_requests'));
-    }
+    // Отправляем сообщение пользователю
+    await sendTelegramMessageToUser(
+      activeConversation.userId.toString(),
+      responseMessage
+    );
   } catch (error) {
     console.error('Ошибка при обработке сообщения от ассистента:', error);
-    await ctx.reply(getTranslation(detectUserLanguage(ctx), 'error_processing_message'));
+    await ctx.reply(getTranslation(lang, 'error_processing_message'));
   }
 });
+
 
 
 export const POST = webhookCallback(bot, 'std/http');

@@ -50,27 +50,30 @@ model OpenAi {
 }
 
 model Assistant {
-  role             String                     @default("assistant")
-  isWorking        Boolean                    @default(false)
-  startedAt        DateTime?
-  joinedAt         DateTime                   @default(now())
-  createdAt        DateTime                   @default(now())
-  updatedAt        DateTime                   @updatedAt
-  telegramId       BigInt                     @id @unique
-  coins            Int                        @default(0)
-  lastActiveAt     DateTime?
-  username         String?
-  orderNumber      Int?
-  avatarFileId     String?
-  mentorId         BigInt?
-  isBlocked        Boolean                    @default(false)
-  unblockDate      DateTime?
-  coinTransactions AssistantCoinTransaction[] @relation("AssistantToCoinTransactions")
-  requests         AssistantRequest[]         // Связь с запросами
-  sessions         AssistantSession[]         // Связь с сессиями
-  conversations    Conversation[]             // Связь с беседами
-  requestActions   RequestAction[]            // История действий ассистента
-  activeRequestId BigInt?
+  telegramId             BigInt                     @id @unique
+  role                   String                     @default("assistant")
+  isWorking              Boolean                    @default(false)
+  startedAt              DateTime?
+  joinedAt               DateTime                   @default(now())
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+  coins                  Int                        @default(0)
+  lastActiveAt           DateTime?
+  username               String?
+  orderNumber            Int?
+  avatarFileId           String?
+  mentorId               BigInt?
+  isBlocked              Boolean                    @default(false)
+  unblockDate            DateTime?
+  activeConversationId   BigInt?                    @unique
+
+  // Relations
+  coinTransactions       AssistantCoinTransaction[] @relation("AssistantToCoinTransactions")
+  requests               AssistantRequest[]         // Relation to assistant requests
+  sessions               AssistantSession[]         // Relation to sessions
+  conversations          Conversation[]             @relation("AssistantToConversations") // All related conversations
+  requestActions         RequestAction[]            @relation("AssistantToRequestActions") // Added relation
+  activeConversation     Conversation?              @relation("AssistantActiveConversation", fields: [activeConversationId], references: [id])
 }
 
 model Edges {
@@ -184,7 +187,7 @@ model Referral {
   user           User     @relation("Referrer", fields: [userId], references: [telegramId])
 }
 
-model Conversation { 
+model Conversation {
   id                     BigInt           @id @default(autoincrement())
   userId                 BigInt
   messages               Json             @default("[]")
@@ -196,10 +199,15 @@ model Conversation {
   lastMessageFrom        String           @default("USER")
   assistantResponseTimes Json             @default("[]")
   lastUserMessageAt      DateTime?
-  reminderSent           Boolean          @default(false) // Новое поле
-  assistant              Assistant        @relation(fields: [assistantId], references: [telegramId])
+  reminderSent           Boolean          @default(false)
+
+  // Relations
+  assistant              Assistant        @relation("AssistantToConversations", fields: [assistantId], references: [telegramId])
   assistantRequest       AssistantRequest @relation(fields: [requestId], references: [id])
   user                   User             @relation(fields: [userId], references: [telegramId])
+
+  // Reverse relation for active conversation
+  activeAssistant        Assistant?       @relation("AssistantActiveConversation")
 }
 
 model AssistantRequest {
@@ -257,13 +265,15 @@ model Complaint {
 }
 
 model RequestAction {
-  id               BigInt           @id @default(autoincrement())
-  requestId        BigInt
+  id               BigInt             @id @default(autoincrement())
   assistantId      BigInt
+  requestId        BigInt
   action           String
-  createdAt        DateTime         @default(now())
-  Assistant        Assistant        @relation(fields: [assistantId], references: [telegramId])
-  AssistantRequest AssistantRequest @relation("RequestActionsOnAssistantRequest", fields: [requestId], references: [id])
+  createdAt        DateTime           @default(now())
+
+  // Relations
+  Assistant        Assistant          @relation("AssistantToRequestActions", fields: [assistantId], references: [telegramId])
+  AssistantRequest AssistantRequest   @relation("RequestActionsOnAssistantRequest", fields: [requestId], references: [id])
 }
 
 
