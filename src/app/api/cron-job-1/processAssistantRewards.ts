@@ -1,7 +1,7 @@
 import {
     awardAssistantBonus,
     awardMentorBonus
-} from './helpers';
+} from './bonusHandlers';
 
 
 import { PrismaClient } from '@prisma/client';

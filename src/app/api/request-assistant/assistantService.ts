@@ -1,5 +1,3 @@
-// assistantService.ts
-
 import { PrismaClient } from '@prisma/client';
 import {
   getTranslation,
@@ -138,24 +136,27 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
 
     await sendLogToTelegram(`[Success] New assistant request created: ${JSON.stringify(serializeBigInt(newRequest))}`);
 
-    // Обновляем статус пользователя
-    await prisma.user.update({
-      where: { telegramId: userIdBigInt },
-      data: { isWaitingForSubject: true },
-    });
+    // Распределяем запрос на ассистента
+    const assignedAssistant = await assignAssistant(newRequest.id);
 
-    await sendLogToTelegram(`[Info] Updated user state to waiting for subject`);
+    if (!assignedAssistant) {
+      await sendLogToTelegram(`[Warning] No available assistants for request ID ${newRequest.id.toString()}`);
+      await sendTelegramMessageToUser(
+        userIdBigInt.toString(),
+        getTranslation(lang, 'noAssistantsAvailable')
+      );
+      return {
+        message: getTranslation(lang, 'noAssistantsAvailable'),
+        status: 200,
+      };
+    }
 
-    // Запрашиваем у пользователя тему
-    await sendTelegramMessageToUser(
-      userIdBigInt.toString(),
-      getTranslation(lang, 'enterSubject')
+    await sendLogToTelegram(
+      `[Success] Request ID ${newRequest.id.toString()} assigned to assistant ${assignedAssistant.telegramId.toString()}`
     );
 
-    await sendLogToTelegram(`[End] Prompted user ${userIdBigInt.toString()} to enter subject`);
-
     return {
-      message: 'Request initiated. Waiting for subject.',
+      message: 'Request assigned successfully.',
       status: 200,
     };
   } catch (error) {
@@ -169,6 +170,45 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
   }
 }
 
+// Распределение запросов
+async function assignAssistant(requestId: bigint) {
+  // Получаем список всех ассистентов с их текущей нагрузкой
+  const assistants = await prisma.assistant.findMany({
+    where: {
+      isWorking: true,
+      isBlocked: false,
+    },
+    include: {
+      requests: {
+        where: {
+          isActive: true,
+        },
+      },
+    },
+  });
+
+  // Сортируем ассистентов по количеству активных запросов
+  const sortedAssistants = assistants.sort(
+    (a, b) => a.requests.length - b.requests.length
+  );
+
+  // Выбираем ассистента с наименьшей нагрузкой
+  const selectedAssistant = sortedAssistants[0];
+
+  if (selectedAssistant) {
+    await prisma.assistantRequest.update({
+      where: { id: requestId },
+      data: {
+        assistantId: selectedAssistant.telegramId,
+        status: 'IN_PROGRESS',
+      },
+    });
+
+    return selectedAssistant;
+  }
+
+  return null;
+}
 
 function serializeBigInt(obj: unknown): unknown {
   if (typeof obj === 'bigint') {

@@ -52,7 +52,6 @@ model OpenAi {
 model Assistant {
   role             String                     @default("assistant")
   isWorking        Boolean                    @default(false)
-  isBusy           Boolean                    @default(false)
   startedAt        DateTime?
   joinedAt         DateTime                   @default(now())
   createdAt        DateTime                   @default(now())
@@ -67,10 +66,10 @@ model Assistant {
   isBlocked        Boolean                    @default(false)
   unblockDate      DateTime?
   coinTransactions AssistantCoinTransaction[] @relation("AssistantToCoinTransactions")
-  requests         AssistantRequest[]
-  sessions         AssistantSession[]
-  conversations    Conversation[]
-  requestActions   RequestAction[]
+  requests         AssistantRequest[]         // Связь с запросами
+  sessions         AssistantSession[]         // Связь с сессиями
+  conversations    Conversation[]             // Связь с беседами
+  requestActions   RequestAction[]            // История действий ассистента
 }
 
 model Edges {
