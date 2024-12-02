@@ -32,7 +32,6 @@ export async function sendTelegramMessageWithButtons(chatId: string, text: strin
     const availableAssistants = await prisma.assistant.findMany({
       where: {
         isWorking: true,
-        isBusy: false,
         telegramId: {
           notIn: ignoredAssistants,
         },
@@ -148,10 +147,6 @@ export async function sendTelegramMessageWithButtons(chatId: string, text: strin
         console.error('Нет доступных ассистентов.');
       }
   
-      await prisma.assistant.update({
-        where: { telegramId: assistantTelegramId },
-        data: { isBusy: false },
-      });
     } catch (error) {
       console.error('Ошибка при обработке игнорированного запроса:', error);
     }

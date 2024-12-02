@@ -86,8 +86,7 @@ export async function GET(request: NextRequest) {
         username: true,
         lastActiveAt: true,
         orderNumber: true,
-        isWorking: true,
-        isBusy: true,
+        isWorking: true
       },
     });
     console.log('Ученики ассистента:', pupils);

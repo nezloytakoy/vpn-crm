@@ -35,12 +35,6 @@ export async function findAvailableAssistant(ignoredAssistants: bigint[]) {
                 )}`
             );
 
-            if (assistant.isBusy) {
-                console.log(
-                    `❌ Ассистент ID: ${assistant.telegramId.toString()} отклонен: ассистент занят (isBusy: true)`
-                );
-                continue;
-            }
 
             if (assistant.isBlocked) {
                 console.log(
