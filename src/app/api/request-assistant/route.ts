@@ -1,7 +1,7 @@
 // index.ts
 
 import { getTranslation, detectLanguage } from './translations';
-import { handleAssistantRequest } from './assistantService';
+import { handleAssistantRequest } from './tariffValidation';
 
 export async function POST(request: Request) {
   try {
