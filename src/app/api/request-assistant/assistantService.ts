@@ -170,7 +170,7 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
   }
 }
 
-// Распределение запросов
+// Распределение запросов с созданием Conversation
 async function assignAssistant(requestId: bigint) {
   // Получаем список всех ассистентов с их текущей нагрузкой
   const assistants = await prisma.assistant.findMany({
@@ -196,6 +196,7 @@ async function assignAssistant(requestId: bigint) {
   const selectedAssistant = sortedAssistants[0];
 
   if (selectedAssistant) {
+    // Обновляем запрос, назначая ассистента
     await prisma.assistantRequest.update({
       where: { id: requestId },
       data: {
@@ -203,6 +204,34 @@ async function assignAssistant(requestId: bigint) {
         status: 'IN_PROGRESS',
       },
     });
+
+    // Получаем данные запроса и пользователя
+    const request = await prisma.assistantRequest.findUnique({
+      where: { id: requestId },
+      include: { user: true },
+    });
+
+    if (!request) {
+      console.error(`[assignAssistant] Ошибка: запрос с ID ${requestId.toString()} не найден.`);
+      return null;
+    }
+
+    // Создаем запись в таблице Conversation
+    const conversation = await prisma.conversation.create({
+      data: {
+        userId: request.userId,
+        assistantId: selectedAssistant.telegramId,
+        requestId: request.id,
+        messages: [],
+        status: 'IN_PROGRESS',
+        lastMessageFrom: 'USER',
+        lastUserMessageAt: new Date(),
+      },
+    });
+
+    console.log(
+      `[assignAssistant] Создана новая беседа с ID ${conversation.id.toString()} между пользователем ${request.userId.toString()} и ассистентом ${selectedAssistant.telegramId.toString()}`
+    );
 
     return selectedAssistant;
   }
