@@ -180,6 +180,22 @@ const translations = {
     server_error: "⚠️ An error occurred on the server. Please try again later.",
     no_message: "No message provided.",
     no_assistant_found: "❌ Assistant not found.",
+    request_not_found_or_not_assigned: "❌ Request not found or not assigned to you.",
+    activated_request_with_subject: "Activated request with subject",
+    now_chatting_with_user: "Now chatting with user",
+    request_withdrawal: "Request withdrawal",
+    total_conversations: "Total conversations",
+    conversations_last_24_hours: "Conversations in the last 24 hours",
+    ignored_requests: "Ignored requests",
+    rejected_requests: "Rejected requests",
+    complaints_last_24_hours: "Complaints in the last 24 hours",
+    view_limits: "View limits",
+    complaint_pending: "Complaint is pending. You cannot withdraw until it is resolved.",
+    balance_frozen: "Your balance is frozen for 24 hours due to low activity.",
+    withdrawal_request_sent: "Withdrawal request sent.",
+    withdrawal_request_created: "Your withdrawal request has been created successfully.",
+    limits_info: "If skipped requests exceed 3 or rejections exceed 10 in a day, your activity will decrease, and your balance will be frozen for 24 hours. Complaints also pause withdrawals until resolved.",
+    unknown_action: "Unknown action.",
   },
   ru: {
     end_dialog_error: "Ошибка: не удалось получить ваш идентификатор Telegram.",
@@ -211,6 +227,22 @@ const translations = {
     server_error: "⚠️ На сервере произошла ошибка. Пожалуйста, попробуйте позже.",
     no_message: "Сообщение отсутствует.",
     no_assistant_found: "❌ Ассистент не найден.",
+    request_not_found_or_not_assigned: "❌ Запрос не найден или не назначен вам.",
+    activated_request_with_subject: "Активирован запрос с темой",
+    now_chatting_with_user: "Сейчас общаетесь с пользователем",
+    request_withdrawal: "Запросить вывод",
+    total_conversations: "Всего диалогов",
+    conversations_last_24_hours: "Диалогов за последние 24 часа",
+    ignored_requests: "Пропущено запросов",
+    rejected_requests: "Отклонено запросов",
+    complaints_last_24_hours: "Жалобы за последние 24 часа",
+    view_limits: "Просмотреть лимиты",
+    complaint_pending: "На вас написана жалоба. Вывод недоступен, пока она не будет решена.",
+    balance_frozen: "Ваш баланс заморожен на 24 часа из-за низкой активности.",
+    withdrawal_request_sent: "Запрос на вывод отправлен.",
+    withdrawal_request_created: "Ваш запрос на вывод успешно создан.",
+    limits_info: "Если за сутки вы пропустите более 3 запросов или отклоните более 10, ваша активность снизится, и баланс заморозится на 24 часа. Жалобы также временно блокируют вывод до их решения.",
+    unknown_action: "Неизвестное действие.",
   },
 };
 
@@ -446,44 +478,6 @@ function calculateTimeRemaining(createdAt: Date): string {
 }
 
 
-bot.on('callback_query:data', async (ctx) => {
-  const data = ctx.callbackQuery?.data;
-
-  if (data?.startsWith('activate_')) {
-    const requestId = BigInt(data.split('_')[1]);
-    const assistantId = BigInt(ctx.from?.id);
-
-    const assistant = await prisma.assistant.findUnique({
-      where: { telegramId: assistantId },
-    });
-
-    if (!assistant) {
-      await ctx.answerCallbackQuery({ text: 'Assistant not found', show_alert: true });
-      return;
-    }
-
-    const request = await prisma.assistantRequest.findUnique({
-      where: { id: requestId },
-      include: { user: true },
-    });
-
-    if (!request || request.assistantId !== assistantId) {
-      await ctx.answerCallbackQuery({ text: 'Request not found or not assigned to you', show_alert: true });
-      return;
-    }
-
-    // Активируем выбранный запрос для ассистента
-    await prisma.assistant.update({
-      where: { telegramId: assistantId },
-      data: { activeRequestId: requestId },
-    });
-
-    await ctx.answerCallbackQuery({ text: `Активирован запрос с темой: ${request.subject}` });
-    await ctx.reply(`Вы сейчас общаетесь с пользователем: ${request.user.username || request.userId}`);
-  }
-});
-
-
 
 bot.command('end_work', async (ctx) => {
   try {
@@ -688,194 +682,219 @@ bot.command('menu', async (ctx) => {
 });
 
 bot.on('callback_query:data', async (ctx) => {
+  const data = ctx.callbackQuery?.data;
   const lang = detectUserLanguage(ctx);
 
-  if (ctx.from?.id) {
-    const telegramId = BigInt(ctx.from.id);
-    const data = ctx.callbackQuery?.data;
+  if (!ctx.from?.id) {
+    await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+    return;
+  }
 
-    if (data.startsWith('accept_') || data.startsWith('reject_')) {
-      const [action, requestId] = data.split('_');
+  const telegramId = BigInt(ctx.from.id);
 
-      if (action === 'accept') {
-        await handleAcceptRequest(requestId, telegramId, ctx);
-      } else if (action === 'reject') {
-        await handleRejectRequest(requestId, telegramId, ctx);
-      }
+  if (data?.startsWith('activate_')) {
+    // Handle activation of a request
+    const requestId = BigInt(data.split('_')[1]);
+    const assistantId = telegramId;
+
+    const assistant = await prisma.assistant.findUnique({
+      where: { telegramId: assistantId },
+    });
+
+    if (!assistant) {
+      await ctx.answerCallbackQuery({ text: getTranslation(lang, 'no_assistant_found'), show_alert: true });
+      return;
+    }
+
+    const request = await prisma.assistantRequest.findUnique({
+      where: { id: requestId },
+      include: { user: true },
+    });
+
+    if (!request || request.assistantId !== assistantId) {
+      await ctx.answerCallbackQuery({
+        text: getTranslation(lang, 'request_not_found_or_not_assigned'),
+        show_alert: true,
+      });
+      return;
+    }
+
+    // Activate the selected request for the assistant
+    await prisma.assistant.update({
+      where: { telegramId: assistantId },
+      data: { activeRequestId: requestId },
+    });
+
+    await ctx.answerCallbackQuery({
+      text: `${getTranslation(lang, 'activated_request_with_subject')}: ${request.subject}`,
+    });
+    await ctx.reply(
+      `${getTranslation(lang, 'now_chatting_with_user')}: ${request.user.username || request.userId}`
+    );
+  } else if (data.startsWith('accept_') || data.startsWith('reject_')) {
+    // Handle accept or reject actions
+    const [action, requestIdString] = data.split('_');
+    const requestId = BigInt(requestIdString);
+
+    if (action === 'accept') {
+      await handleAcceptRequest(requestId.toString(), telegramId, ctx);
+    } else if (action === 'reject') {
+      await handleRejectRequest(requestId.toString(), telegramId, ctx);
+    }
+  } else if (data === 'start_work') {
+    // Handle starting work
+    const assistant = await prisma.assistant.findUnique({ where: { telegramId: telegramId } });
+
+    if (assistant?.isWorking) {
+      await ctx.reply(getTranslation(lang, 'already_working'));
+      return;
+    }
+
+    const pendingRequest = await prisma.assistantRequest.findFirst({
+      where: {
+        status: 'PENDING',
+      },
+    });
+
+    if (pendingRequest) {
+      await prisma.assistantRequest.update({
+        where: { id: pendingRequest.id },
+        data: { assistantId: telegramId, status: 'IN_PROGRESS' },
+      });
+
+      await sendTelegramMessageWithButtons(
+        telegramId.toString(),
+        getTranslation(lang, 'assistantRequestMessage'),
+        [
+          { text: getTranslation(lang, 'accept'), callback_data: `accept_${pendingRequest.id}` },
+          { text: getTranslation(lang, 'reject'), callback_data: `reject_${pendingRequest.id}` },
+        ]
+      );
 
       return;
     }
 
-    if (data === 'start_work') {
-      const assistant = await prisma.assistant.findUnique({ where: { telegramId: telegramId } });
+    await prisma.assistant.update({
+      where: { telegramId: telegramId },
+      data: { isWorking: true },
+    });
 
-      if (assistant?.isWorking) {
-        await ctx.reply(getTranslation(lang, 'already_working'));
-        return;
-      }
+    await prisma.assistantSession.create({
+      data: {
+        assistantId: telegramId,
+      },
+    });
 
+    await ctx.reply(getTranslation(lang, 'work_started'));
+  } else if (data === 'my_coins') {
+    // Handle displaying coins
+    const assistant = await prisma.assistant.findUnique({
+      where: { telegramId: telegramId },
+    });
 
-      const pendingRequest = await prisma.assistantRequest.findFirst({
+    if (assistant) {
+      const coinsMessage = `${getTranslation(lang, 'my_coins')}: ${assistant.coins}`;
+
+      await ctx.reply(coinsMessage, {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: getTranslation(lang, 'request_withdrawal'), callback_data: 'request_withdrawal' }],
+          ],
+        },
+      });
+    } else {
+      await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+    }
+  } else if (data === 'my_activity') {
+    // Handle displaying activity
+    const stats = await getAssistantActivity(telegramId);
+
+    const activityMessage = `
+📊 ${getTranslation(lang, 'my_activity')}:
+- ${getTranslation(lang, 'total_conversations')}: ${stats.totalConversations}
+- ${getTranslation(lang, 'conversations_last_24_hours')}: ${stats.conversationsLast24Hours}
+- ${getTranslation(lang, 'ignored_requests')}: ${stats.ignoredRequests}
+- ${getTranslation(lang, 'rejected_requests')}: ${stats.rejectedRequests}
+- ${getTranslation(lang, 'complaints_last_24_hours')}: ${stats.complaintsLast24Hours}
+`;
+
+    await ctx.reply(activityMessage, {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: getTranslation(lang, 'view_limits'), callback_data: 'view_limits' }],
+        ],
+      },
+    });
+  } else if (data === 'request_withdrawal') {
+    // Handle withdrawal request
+    const assistant = await prisma.assistant.findUnique({
+      where: { telegramId: telegramId },
+    });
+
+    if (assistant) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      const pendingComplaints = await prisma.complaint.count({
         where: {
+          assistantId: assistant.telegramId,
           status: 'PENDING',
         },
       });
 
-      if (pendingRequest) {
-
-        await prisma.assistantRequest.update({
-          where: { id: pendingRequest.id },
-          data: { assistantId: telegramId, status: 'IN_PROGRESS' },
-        });
-
-
-        await sendTelegramMessageWithButtons(
-          telegramId.toString(),
-          getTranslation(lang, 'assistantRequestMessage'),
-          [
-            { text: getTranslation(lang, 'accept'), callback_data: `accept_${pendingRequest.id}` },
-            { text: getTranslation(lang, 'reject'), callback_data: `reject_${pendingRequest.id}` },
-          ]
-        );
-
+      if (pendingComplaints > 0) {
+        await ctx.reply(getTranslation(lang, 'complaint_pending'));
         return;
       }
 
-
-      await prisma.assistant.update({
-        where: { telegramId: telegramId },
-        data: { isWorking: true },
+      const rejectedActions = await prisma.requestAction.count({
+        where: {
+          assistantId: assistant.telegramId,
+          action: 'REJECTED',
+          createdAt: {
+            gte: yesterday,
+          },
+        },
       });
 
+      const ignoredActions = await prisma.requestAction.count({
+        where: {
+          assistantId: assistant.telegramId,
+          action: 'IGNORED',
+          createdAt: {
+            gte: yesterday,
+          },
+        },
+      });
 
-      await prisma.assistantSession.create({
+      if (rejectedActions > 10 || ignoredActions > 3) {
+        await ctx.reply(getTranslation(lang, 'balance_frozen'));
+        return;
+      }
+
+      const withdrawalAmount = assistant.coins;
+
+      await ctx.reply(getTranslation(lang, 'withdrawal_request_sent'));
+
+      await prisma.withdrawalRequest.create({
         data: {
-          assistantId: telegramId,
-
+          userId: assistant.telegramId,
+          userNickname: ctx.from?.username || null,
+          userRole: 'assistant',
+          amount: withdrawalAmount,
         },
       });
 
-      await ctx.reply(getTranslation(lang, 'work_started'));
-      return;
-    } else if (data === 'my_coins') {
-
-      const assistant = await prisma.assistant.findUnique({
-        where: { telegramId: telegramId },
-      });
-
-      if (assistant) {
-        const coinsMessage = `${getTranslation(lang, 'my_coins')}: ${assistant.coins}`;
-
-
-        await ctx.reply(coinsMessage, {
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: 'Запросить вывод', callback_data: 'request_withdrawal' }],
-            ],
-          },
-        });
-      } else {
-        await ctx.reply(getTranslation(lang, 'end_dialog_error'));
-      }
-    } else if (data === 'my_activity') {
-
-      const stats = await getAssistantActivity(telegramId);
-
-      const activityMessage = `
-        📊 Моя активность:
-        - Всего диалогов: ${stats.totalConversations}
-        - Диалогов за последние сутки: ${stats.conversationsLast24Hours}
-        - Пропусков за последние сутки: ${stats.ignoredRequests}
-        - Отказов за последние сутки: ${stats.rejectedRequests}
-        - Жалоб за последние сутки: ${stats.complaintsLast24Hours}
-      `;
-
-
-      await ctx.reply(activityMessage, {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: 'Лимиты', callback_data: 'view_limits' }],
-          ],
-        },
-      });
-    } else if (data === 'request_withdrawal') {
-
-      const assistant = await prisma.assistant.findUnique({
-        where: { telegramId: telegramId },
-      });
-
-      if (assistant) {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-
-
-        const pendingComplaints = await prisma.complaint.count({
-          where: {
-            assistantId: assistant.telegramId,
-            status: 'PENDING',
-          },
-        });
-
-        if (pendingComplaints > 0) {
-          await ctx.reply('Пользователь написал на вас жалобу, вы не можете сделать вывод, пока она не будет рассмотрена.');
-          return;
-        }
-
-
-        const rejectedActions = await prisma.requestAction.count({
-          where: {
-            assistantId: assistant.telegramId,
-            action: 'REJECTED',
-            createdAt: {
-              gte: yesterday,
-            },
-          },
-        });
-
-        const ignoredActions = await prisma.requestAction.count({
-          where: {
-            assistantId: assistant.telegramId,
-            action: 'IGNORED',
-            createdAt: {
-              gte: yesterday,
-            },
-          },
-        });
-
-
-        if (rejectedActions > 10 || ignoredActions > 3) {
-          await ctx.reply('Ваш баланс заморожен на 24 часа за низкую активность.');
-          return;
-        }
-
-        const withdrawalAmount = assistant.coins;
-
-
-        await ctx.reply('Запрос на вывод отправлен.');
-
-
-        await prisma.withdrawalRequest.create({
-          data: {
-            userId: assistant.telegramId,
-            userNickname: ctx.from?.username || null,
-            userRole: 'assistant',
-            amount: withdrawalAmount,
-          },
-        });
-
-        await ctx.reply('Ваш запрос на вывод успешно создан.');
-      } else {
-        await ctx.reply(getTranslation(lang, 'end_dialog_error'));
-      }
-    } else if (data === 'view_limits') {
-
-      await ctx.reply(
-        `Если пропуски запросов за сутки будет больше 3 или отказов больше 10, то ваша активность снизится и вы получите заморозку до 24 часов. 
-        Вывод коинов будет недоступен за это время. Получение жалобы также приостанавливает вывод коинов до того как ситуация не будет разрешена.`
-      );
+      await ctx.reply(getTranslation(lang, 'withdrawal_request_created'));
+    } else {
+      await ctx.reply(getTranslation(lang, 'end_dialog_error'));
     }
+  } else if (data === 'view_limits') {
+    // Handle viewing limits
+    await ctx.reply(getTranslation(lang, 'limits_info'));
   } else {
-    await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+    // Unknown callback data
+    await ctx.answerCallbackQuery({ text: getTranslation(lang, 'unknown_action'), show_alert: true });
   }
 });
 
