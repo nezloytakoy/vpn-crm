@@ -179,6 +179,7 @@ const translations = {
     active_requests_list: "📄 Here is the list of active user requests:",
     server_error: "⚠️ An error occurred on the server. Please try again later.",
     no_message: "No message provided.",
+    no_assistant_found: "❌ Assistant not found.",
   },
   ru: {
     end_dialog_error: "Ошибка: не удалось получить ваш идентификатор Telegram.",
@@ -209,6 +210,7 @@ const translations = {
     active_requests_list: "📄 Вот список активных запросов пользователей:",
     server_error: "⚠️ На сервере произошла ошибка. Пожалуйста, попробуйте позже.",
     no_message: "Сообщение отсутствует.",
+    no_assistant_found: "❌ Ассистент не найден.",
   },
 };
 
@@ -436,7 +438,7 @@ bot.command('end_work', async (ctx) => {
     const telegramId = BigInt(ctx.from.id);
     const lang = detectUserLanguage(ctx);
 
-
+    // Проверяем, есть ли активный диалог
     const activeConversation = await prisma.conversation.findFirst({
       where: {
         assistantId: telegramId,
@@ -445,22 +447,27 @@ bot.command('end_work', async (ctx) => {
     });
 
     if (activeConversation) {
-
       await ctx.reply(getTranslation(lang, 'active_dialog_exists'));
       return;
     }
 
+    // Получаем ассистента
     const assistant = await prisma.assistant.findUnique({
       where: { telegramId: telegramId },
     });
 
-    if (!assistant?.isWorking) {
+    if (!assistant) {
+      console.error(`Assistent not found with telegramId: ${telegramId}`);
+      await ctx.reply(getTranslation(lang, 'no_assistant_found'));
+      return;
+    }
+
+    if (!assistant.isWorking) {
       await ctx.reply(getTranslation(lang, 'no_working_status'));
       return;
     }
 
-
-
+    // Завершаем активную сессию, если есть
     const activeSession = await prisma.assistantSession.findFirst({
       where: {
         assistantId: telegramId,
@@ -472,22 +479,27 @@ bot.command('end_work', async (ctx) => {
     });
 
     if (activeSession) {
-
       await prisma.assistantSession.update({
         where: { id: activeSession.id },
         data: { endedAt: new Date() },
       });
     } else {
-
-      console.warn(`Не найдена активная сессия для ассистента ${telegramId}`);
+      console.warn(`No active session found for assistant ${telegramId}`);
     }
+
+    // Обновляем статус isWorking на false
+    await prisma.assistant.update({
+      where: { telegramId: telegramId },
+      data: { isWorking: false },
+    });
 
     await ctx.reply(getTranslation(lang, 'end_work'));
   } catch (error) {
-    console.error('Ошибка при завершении работы:', error);
+    console.error('Error ending work:', error);
     await ctx.reply(getTranslation(detectUserLanguage(ctx), 'end_dialog_error'));
   }
 });
+
 
 
 
