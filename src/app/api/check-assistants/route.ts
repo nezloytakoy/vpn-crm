@@ -12,7 +12,6 @@ async function findAvailableAssistant(ignoredAssistants: bigint[]) {
         const availableAssistant = await prisma.assistant.findFirst({
             where: {
                 isWorking: true,
-                isBusy: false,
                 isBlocked: false,
                 telegramId: {
                     notIn: ignoredAssistants,
