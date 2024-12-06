@@ -19,38 +19,38 @@ export interface BlockedAssistantData {
     isBlocked: boolean;
     unblockDate: string | null;
     activeConversationId: string | null;
-  }
+}
 
 export function useBlockedAssistantsData() {
-  const [blockedAssistants, setBlockedAssistants] = useState<BlockedAssistantData[]>([]);
-  const [isBlockedLoading, setIsBlockedLoading] = useState(true);
+    const [blockedAssistants, setBlockedAssistants] = useState<BlockedAssistantData[]>([]);
+    const [isBlockedLoading, setIsBlockedLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchBlockedAssistants = async () => {
-      try {
-        const response = await fetch("/api/get-blocked-assistants", {
-          headers: {
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            Pragma: "no-cache",
-            Expires: "0",
-          },
-        });
+    useEffect(() => {
+        const fetchBlockedAssistants = async () => {
+            try {
+                const response = await fetch("/api/get-blocked-assistants", {
+                    headers: {
+                        "Cache-Control": "no-cache, no-store, must-revalidate",
+                        Pragma: "no-cache",
+                        Expires: "0",
+                    },
+                });
 
-        if (!response.ok) {
-          throw new Error("Ошибка загрузки заблокированных ассистентов");
-        }
+                if (!response.ok) {
+                    throw new Error("Ошибка загрузки заблокированных ассистентов");
+                }
 
-        const data = await response.json();
-        setBlockedAssistants(data);
-      } catch (error) {
-        console.error("Ошибка при получении заблокированных ассистентов:", error);
-      } finally {
-        setIsBlockedLoading(false);
-      }
-    };
+                const data = await response.json();
+                setBlockedAssistants(data);
+            } catch (error) {
+                console.error("Ошибка при получении заблокированных ассистентов:", error);
+            } finally {
+                setIsBlockedLoading(false);
+            }
+        };
 
-    fetchBlockedAssistants();
-  }, []);
+        fetchBlockedAssistants();
+    }, []);
 
-  return { blockedAssistants, isBlockedLoading };
+    return { blockedAssistants, isBlockedLoading };
 }

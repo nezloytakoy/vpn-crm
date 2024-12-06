@@ -3,12 +3,12 @@ import { NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
-function bigIntToString(obj: any) {
-  return JSON.parse(
-    JSON.stringify(obj, (key, value) =>
-      typeof value === "bigint" ? value.toString() : value
-    )
-  );
+function bigIntToString<T>(obj: T): T {
+    return JSON.parse(
+        JSON.stringify(obj, (key, value) =>
+            typeof value === "bigint" ? value.toString() : value
+        )
+    ) as T;
 }
 
 export async function GET() {
@@ -21,13 +21,13 @@ export async function GET() {
         const processedBlockedUsers = bigIntToString(blockedUsers);
 
         console.log(processedBlockedUsers)
-        
+
         return NextResponse.json(processedBlockedUsers);
     } catch (error) {
         console.error(error);
         return NextResponse.json(
-          { error: "Не удалось получить заблокированных ассистентов" },
-          { status: 500 }
+            { error: "Не удалось получить заблокированных ассистентов" },
+            { status: 500 }
         );
     }
 }

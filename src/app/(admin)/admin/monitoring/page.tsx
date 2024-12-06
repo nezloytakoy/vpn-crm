@@ -1,56 +1,22 @@
 "use client";
 
-import React, { useEffect, useCallback, useMemo, useState } from "react";
-import { Column } from "react-table";
-import { FaEnvelope } from "react-icons/fa";
+import React, { useEffect, useCallback } from "react";
 import Table from "@/components/Table/Table";
 import { useRouter } from "next/navigation";
 import styles from "./Monitoring.module.css";
-import { useAssistantsData } from "./useAssistantsData";
 import { useUserRole } from "./useUserRole";
 import { useMessagePopup } from "./useMessagePopup";
-import { useBlockedAssistantsData } from "./useBlockedAssistantsData";
-
-interface RegularAssistantData {
-  telegramId: string;
-  nick: string;
-  averageResponseTime: number;
-  completed: number;
-  denied: number;
-  current: number;
-  complaints: number;
-  status: string;
-  message: string;
-}
-
-interface BlockedAssistantData {
-  telegramId: string;
-  username: string;
-  role: string;
-  isWorking: boolean;
-  startedAt: string | null;
-  joinedAt: string;
-  createdAt: string;
-  updatedAt: string;
-  coins: number;
-  lastActiveAt: string | null;
-  orderNumber: number | null;
-  avatarFileId: string | null;
-  mentorId: string | null;
-  isBlocked: boolean;
-  unblockDate: string | null;
-  activeConversationId: string | null;
-}
+import { RegularAssistantData, useAssistantsData } from './useAssistantsData';
+import { BlockedAssistantData,useBlockedAssistantsData } from './useBlockedAssistantsData';
+import { useUnblockConfirmation } from "./useUnblockConfirmation";
+import { useRegularColumns, useBlockedColumns } from "./useMonitoringColumns";
 
 const Monitoring: React.FC = () => {
   const { assistantsData, isLoading } = useAssistantsData(); // RegularAssistantData[]
-  const { userRole, fetchUserRole } = useUserRole();
+  const { fetchUserRole } = useUserRole();
   const { blockedAssistants, isBlockedLoading } = useBlockedAssistantsData(); // BlockedAssistantData[]
 
   const router = useRouter();
-
-  const [isConfirmUnblockOpen, setIsConfirmUnblockOpen] = useState(false);
-  const [selectedUnblockTelegramId, setSelectedUnblockTelegramId] = useState<string | null>(null);
 
   const onSendMessage = async (message: string, chatId: string) => {
     const response = await fetch("/api/send-message", {
@@ -68,7 +34,7 @@ const Monitoring: React.FC = () => {
     console.log("Отправлено сообщение:", message);
   };
 
-  const handleUnblock = async (telegramId: string) => {
+  const onUnblock = async (telegramId: string) => {
     try {
       const response = await fetch("/api/unblock-assistant", {
         method: "POST",
@@ -99,6 +65,13 @@ const Monitoring: React.FC = () => {
     handleSendMessage
   } = useMessagePopup({ onSendMessage });
 
+  const {
+    isConfirmUnblockOpen,
+    openConfirmUnblock,
+    handleConfirmUnblock,
+    handleCancelUnblock
+  } = useUnblockConfirmation({ onUnblock });
+
   const handleRowClick = useCallback((telegramId: string) => {
     router.push(`/admin/monitoring/${telegramId}`);
   }, [router]);
@@ -125,130 +98,15 @@ const Monitoring: React.FC = () => {
     fetchRole();
   }, [fetchUserRole]);
 
-  // Первая таблица (Основные ассистенты)
-  const columns: Column<RegularAssistantData>[] = useMemo(
-    () => [
-      {
-        Header: "Имя",
-        accessor: "nick",
-        Cell: ({ row }) => (
-          <span onClick={() => handleRowClick(row.original.telegramId)} style={{ cursor: "pointer" }}>
-            <strong className={styles.nick}>{row.original.nick}</strong>
-          </span>
-        ),
-      },
-      {
-        Header: "Время ответа(секунды)",
-        accessor: "averageResponseTime",
-      },
-      {
-        Header: "Завершенные",
-        accessor: "completed",
-      },
-      {
-        Header: "Отказы",
-        accessor: "denied",
-      },
-      {
-        Header: "Открытые жалобы",
-        accessor: "current",
-      },
-      {
-        Header: "Жалобы",
-        accessor: "complaints",
-      },
-      {
-        Header: "",
-        accessor: "status",
-        Cell: ({ value }) => (
-          <button
-            className={
-              value === "Работает"
-                ? styles.statusWorking
-                : value === "Не работает"
-                ? styles.statusOffline
-                : value === "Выкинуло с линии"
-                ? styles.statusNotWorking
-                : ""
-            }
-          >
-            {value}
-          </button>
-        ),
-      },
-      {
-        Header: "",
-        accessor: "telegramId",
-        Cell: ({ value }) => (
-          <button
-            className={styles.messageButton}
-            onClick={() => {
-              if (!value) {
-                console.error("Ошибка: telegramId ассистента не установлен");
-                return;
-              }
-              setCurrentAssistantTelegramId(value);
-              setIsPopupOpen(true);
-            }}
-          >
-            <FaEnvelope />
-          </button>
-        ),
-      },
-    ],
-    [handleRowClick, setCurrentAssistantTelegramId, setIsPopupOpen]
-  );
+  const columns = useRegularColumns({
+    handleRowClick,
+    setCurrentAssistantTelegramId,
+    setIsPopupOpen
+  });
 
-  // Таблица заблокированных ассистентов
-  const blockedColumns: Column<BlockedAssistantData>[] = useMemo(() => [
-    {
-      Header: "Имя",
-      accessor: "username",
-      Cell: ({ row }) => (
-        <span style={{ cursor: "pointer" }}>
-          <strong className={styles.nick}>{row.original.username}</strong>
-        </span>
-      ),
-    },
-    {
-      Header: "Последняя активность",
-      accessor: "lastActiveAt",
-      Cell: ({ value }) => (value ? new Date(value).toLocaleString() : "N/A"),
-    },
-    {
-      Header: "Telegram ID",
-      accessor: "telegramId",
-    },
-    {
-      id: "unblock_action",
-      Header: "",
-      Cell: ({ row }) =>
-        row.original.telegramId && (
-          <button
-            className={styles.unblockButton}
-            onClick={() => {
-              setSelectedUnblockTelegramId(row.original.telegramId);
-              setIsConfirmUnblockOpen(true);
-            }}
-          >
-            Разблокировать
-          </button>
-        ),
-    },
-  ], []);
-
-  const handleConfirmUnblock = async () => {
-    if (selectedUnblockTelegramId) {
-      await handleUnblock(selectedUnblockTelegramId);
-    }
-    setIsConfirmUnblockOpen(false);
-    setSelectedUnblockTelegramId(null);
-  };
-
-  const handleCancelUnblock = () => {
-    setIsConfirmUnblockOpen(false);
-    setSelectedUnblockTelegramId(null);
-  };
+  const blockedColumns = useBlockedColumns({
+    openConfirmUnblock
+  });
 
   return (
     <div className={styles.main}>
@@ -321,4 +179,3 @@ const Monitoring: React.FC = () => {
 };
 
 export default Monitoring;
-

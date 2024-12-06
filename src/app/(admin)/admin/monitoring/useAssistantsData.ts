@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-export interface RegularAssistantData {
+interface RegularAssistantData {
     telegramId: string;
     nick: string;
     averageResponseTime: number;
@@ -13,6 +13,7 @@ export interface RegularAssistantData {
     status: string;
     message: string;
   }
+  
   
 
 export function useAssistantsData() {
