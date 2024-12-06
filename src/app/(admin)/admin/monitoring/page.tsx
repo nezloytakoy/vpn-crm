@@ -1,13 +1,17 @@
 "use client";
 
-import React, { useMemo, useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useCallback, useMemo, useState } from "react";
 import { Column } from "react-table";
 import { FaEnvelope } from "react-icons/fa";
 import Table from "@/components/Table/Table";
 import { useRouter } from "next/navigation";
 import styles from "./Monitoring.module.css";
+import { useAssistantsData } from "./useAssistantsData";
+import { useUserRole } from "./useUserRole";
+import { useMessagePopup } from "./useMessagePopup";
+import { useBlockedAssistantsData } from "./useBlockedAssistantsData";
 
-interface AssistantData {
+interface RegularAssistantData {
   telegramId: string;
   nick: string;
   averageResponseTime: number;
@@ -19,56 +23,54 @@ interface AssistantData {
   message: string;
 }
 
+interface BlockedAssistantData {
+  telegramId: string;
+  username: string;
+  role: string;
+  isWorking: boolean;
+  startedAt: string | null;
+  joinedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  coins: number;
+  lastActiveAt: string | null;
+  orderNumber: number | null;
+  avatarFileId: string | null;
+  mentorId: string | null;
+  isBlocked: boolean;
+  unblockDate: string | null;
+  activeConversationId: string | null;
+}
+
 const Monitoring: React.FC = () => {
-  const [assistantsData, setAssistantsData] = useState<AssistantData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isPopupOpen, setIsPopupOpen] = useState(false);
-  const [popupMessage, setPopupMessage] = useState("");
-  const [currentAssistantTelegramId, setCurrentAssistantTelegramId] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const popupRef = useRef<HTMLDivElement>(null);
+  const { assistantsData, isLoading } = useAssistantsData(); // RegularAssistantData[]
+  const { userRole, fetchUserRole } = useUserRole();
+  const { blockedAssistants, isBlockedLoading } = useBlockedAssistantsData(); // BlockedAssistantData[]
 
   const router = useRouter();
 
-  const fetchAssistantsData = useCallback(async () => {
-    try {
-      const response = await fetch("/api/assistants-data", {
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          Pragma: "no-cache",
-          Expires: "0",
-        },
-      });
+  const [isConfirmUnblockOpen, setIsConfirmUnblockOpen] = useState(false);
+  const [selectedUnblockTelegramId, setSelectedUnblockTelegramId] = useState<string | null>(null);
 
-      if (!response.ok) {
-        throw new Error("Ошибка загрузки данных с сервера");
-      }
+  const onSendMessage = async (message: string, chatId: string) => {
+    const response = await fetch("/api/send-message", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message, chatId }),
+    });
 
-      const data = await response.json();
-      setAssistantsData(data);
-    } catch (error) {
-      console.error("Ошибка при получении данных ассистентов:", error);
-    } finally {
-      setIsLoading(false);
+    if (!response.ok) {
+      throw new Error("Ошибка при отправке сообщения");
     }
-  }, []);
 
-  useEffect(() => {
-    // Первичная загрузка данных
-    fetchAssistantsData();
+    console.log("Отправлено сообщение:", message);
+  };
 
-    // Установка интервала для обновления данных каждые 5 секунд
-    const intervalId = setInterval(() => {
-      fetchAssistantsData();
-    }, 5000);
-
-    // Очистка интервала при размонтировании компонента
-    return () => clearInterval(intervalId);
-  }, [fetchAssistantsData]);
-
-  const fetchUserRole = async (telegramId: string) => {
+  const handleUnblock = async (telegramId: string) => {
     try {
-      const response = await fetch("/api/get-user-role", {
+      const response = await fetch("/api/unblock-assistant", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -77,70 +79,29 @@ const Monitoring: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error("Не удалось получить роль пользователя");
+        throw new Error("Ошибка при разблокировке ассистента");
       }
 
-      const result = await response.json();
-      setUserRole(result.role);
+      console.log("Ассистент разблокирован:", telegramId);
+      window.location.reload();
     } catch (error) {
-      console.error("Ошибка при получении роли пользователя:", error);
+      console.error("Ошибка при разблокировке ассистента:", error);
     }
   };
 
-  const handleRowClick = useCallback(
-    (telegramId: string) => {
-      router.push(`/admin/monitoring/${telegramId}`);
-    },
-    [router]
-  );
+  const {
+    isPopupOpen,
+    setIsPopupOpen,
+    popupMessage,
+    setPopupMessage,
+    setCurrentAssistantTelegramId,
+    popupRef,
+    handleSendMessage
+  } = useMessagePopup({ onSendMessage });
 
-  const handleSendMessage = async () => {
-    try {
-      if (!currentAssistantTelegramId) {
-        console.error("Ошибка: telegramId ассистента не установлен");
-        return;
-      }
-
-      const response = await fetch("/api/send-message", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: popupMessage,
-          chatId: currentAssistantTelegramId,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Ошибка при отправке сообщения");
-      }
-
-      console.log("Отправлено сообщение:", popupMessage);
-      setIsPopupOpen(false);
-      setPopupMessage("");
-    } catch (error) {
-      console.error("Ошибка отправки сообщения:", error);
-    }
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
-        setIsPopupOpen(false);
-      }
-    };
-
-    if (isPopupOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    } else {
-      document.removeEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isPopupOpen]);
+  const handleRowClick = useCallback((telegramId: string) => {
+    router.push(`/admin/monitoring/${telegramId}`);
+  }, [router]);
 
   useEffect(() => {
     const fetchRole = async () => {
@@ -162,9 +123,10 @@ const Monitoring: React.FC = () => {
     };
 
     fetchRole();
-  }, []);
+  }, [fetchUserRole]);
 
-  const columns: Column<AssistantData>[] = useMemo(
+  // Первая таблица (Основные ассистенты)
+  const columns: Column<RegularAssistantData>[] = useMemo(
     () => [
       {
         Header: "Имя",
@@ -217,26 +179,76 @@ const Monitoring: React.FC = () => {
       {
         Header: "",
         accessor: "telegramId",
-        Cell: ({ value }) =>
-          userRole === "Администратор" && (
-            <button
-              className={styles.messageButton}
-              onClick={() => {
-                if (!value) {
-                  console.error("Ошибка: telegramId ассистента не установлен");
-                  return;
-                }
-                setCurrentAssistantTelegramId(value);
-                setIsPopupOpen(true);
-              }}
-            >
-              <FaEnvelope />
-            </button>
-          ),
+        Cell: ({ value }) => (
+          <button
+            className={styles.messageButton}
+            onClick={() => {
+              if (!value) {
+                console.error("Ошибка: telegramId ассистента не установлен");
+                return;
+              }
+              setCurrentAssistantTelegramId(value);
+              setIsPopupOpen(true);
+            }}
+          >
+            <FaEnvelope />
+          </button>
+        ),
       },
     ],
-    [handleRowClick, userRole]
+    [handleRowClick, setCurrentAssistantTelegramId, setIsPopupOpen]
   );
+
+  // Таблица заблокированных ассистентов
+  const blockedColumns: Column<BlockedAssistantData>[] = useMemo(() => [
+    {
+      Header: "Имя",
+      accessor: "username",
+      Cell: ({ row }) => (
+        <span style={{ cursor: "pointer" }}>
+          <strong className={styles.nick}>{row.original.username}</strong>
+        </span>
+      ),
+    },
+    {
+      Header: "Последняя активность",
+      accessor: "lastActiveAt",
+      Cell: ({ value }) => (value ? new Date(value).toLocaleString() : "N/A"),
+    },
+    {
+      Header: "Telegram ID",
+      accessor: "telegramId",
+    },
+    {
+      id: "unblock_action",
+      Header: "",
+      Cell: ({ row }) =>
+        row.original.telegramId && (
+          <button
+            className={styles.unblockButton}
+            onClick={() => {
+              setSelectedUnblockTelegramId(row.original.telegramId);
+              setIsConfirmUnblockOpen(true);
+            }}
+          >
+            Разблокировать
+          </button>
+        ),
+    },
+  ], []);
+
+  const handleConfirmUnblock = async () => {
+    if (selectedUnblockTelegramId) {
+      await handleUnblock(selectedUnblockTelegramId);
+    }
+    setIsConfirmUnblockOpen(false);
+    setSelectedUnblockTelegramId(null);
+  };
+
+  const handleCancelUnblock = () => {
+    setIsConfirmUnblockOpen(false);
+    setSelectedUnblockTelegramId(null);
+  };
 
   return (
     <div className={styles.main}>
@@ -246,14 +258,33 @@ const Monitoring: React.FC = () => {
         </div>
       ) : (
         <>
+          {/* Первая таблица (Основные ассистенты) */}
           <div className={styles.tableWrapper}>
             <div className={styles.header}>
               <h3>
                 Ассистенты <span>({assistantsData.length})</span>
               </h3>
             </div>
-            <Table columns={columns} data={assistantsData} />
+            <Table<RegularAssistantData> columns={columns} data={assistantsData} />
           </div>
+
+          {/* Таблица с заблокированными ассистентами */}
+          {isBlockedLoading ? (
+            <div className={styles.loaderWrapper}>
+              <div className={styles.loader}></div>
+            </div>
+          ) : (
+            blockedAssistants.length > 0 && (
+              <div className={styles.tableWrapper}>
+                <div className={styles.header}>
+                  <h3>
+                    Заблокированные ассистенты <span>({blockedAssistants.length})</span>
+                  </h3>
+                </div>
+                <Table<BlockedAssistantData> columns={blockedColumns} data={blockedAssistants} />
+              </div>
+            )
+          )}
 
           {isPopupOpen && (
             <div className={styles.popupOverlay}>
@@ -271,6 +302,18 @@ const Monitoring: React.FC = () => {
               </div>
             </div>
           )}
+
+          {isConfirmUnblockOpen && (
+            <div className={styles.popupOverlay}>
+              <div className={styles.popup}>
+                <h3>Разблокировать ассистента?</h3>
+                <div className={styles.butblock}>
+                  <button className={styles.confirmButton} onClick={handleConfirmUnblock}>Да</button>
+                  <button className={styles.cancelButton} onClick={handleCancelUnblock}>Нет</button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -278,3 +321,4 @@ const Monitoring: React.FC = () => {
 };
 
 export default Monitoring;
+
