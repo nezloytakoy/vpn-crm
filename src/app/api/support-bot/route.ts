@@ -479,11 +479,10 @@ function calculateTimeRemaining(createdAt: Date): string {
   return `${minutes}м ${seconds}с`;
 }
 
-// Функция для переназначения запроса другому ассистенту
 async function reassignRequest(requestId: bigint, blockedAssistantId: bigint, ctx: Context) {
   try {
     const assistantRequest = await prisma.assistantRequest.findUnique({
-      where: { id: BigInt(requestId) },
+      where: { id: requestId },
       include: { conversation: true },
     });
 
@@ -502,7 +501,7 @@ async function reassignRequest(requestId: bigint, blockedAssistantId: bigint, ct
 
     // Переводим запрос в режим ожидания другого ассистента
     await prisma.assistantRequest.update({
-      where: { id: BigInt(requestId) },
+      where: { id: requestId },
       data: {
         status: 'PENDING',
         isActive: true,
@@ -512,12 +511,20 @@ async function reassignRequest(requestId: bigint, blockedAssistantId: bigint, ct
     });
 
     // Находим нового ассистента
-    const newAssistant = await findNewAssistant(BigInt(requestId), ignoredAssistants);
+    const newAssistant = await findNewAssistant(requestId, ignoredAssistants);
+
+    // Получаем userId пользователя, которому нужно отправить сообщение
+    const userId = assistantRequest?.conversation?.userId;
+
+    if (!userId) {
+      console.error('User ID not found in the conversation. Cannot send a message to user.');
+      return;
+    }
 
     if (newAssistant) {
       // Обновляем запрос с новым ассистентом
       await prisma.assistantRequest.update({
-        where: { id: BigInt(requestId) },
+        where: { id: requestId },
         data: {
           assistantId: newAssistant.telegramId,
         },
@@ -553,17 +560,28 @@ async function reassignRequest(requestId: bigint, blockedAssistantId: bigint, ct
         ]
       );
 
-      // Сообщаем пользователю (конечному) о попытке подключить другого ассистента
-      await ctx.reply('Связь с ассистентом потеряна, подключаем другого ассистента...');
+      // Сообщаем пользователю через userBot
+      await userBot.api.sendMessage(Number(userId), 'Связь с ассистентом потеряна, подключаем другого ассистента...');
     } else {
-      await ctx.reply('Связь с ассистентом потеряна, но доступных ассистентов больше нет.');
+      // Нет доступных ассистентов
+      await userBot.api.sendMessage(Number(userId), 'Связь с ассистентом потеряна, но доступных ассистентов больше нет.');
     }
 
   } catch (error) {
     console.error('Ошибка при переназначении запроса:', error);
-    await ctx.reply('❌ Произошла ошибка при переназначении запроса.');
+    // Если произошла ошибка, уведомляем пользователя об ошибке
+    // Можно отправить сообщение о проблеме пользователю или же логировать без ответа
+    const assistantRequest = await prisma.assistantRequest.findUnique({
+      where: { id: requestId },
+      include: { conversation: true },
+    });
+    const userId = assistantRequest?.conversation?.userId;
+    if (userId) {
+      await userBot.api.sendMessage(Number(userId), '❌ Произошла ошибка при переназначении запроса.');
+    }
   }
 }
+
 
 bot.command('end_work', async (ctx) => {
   try {
