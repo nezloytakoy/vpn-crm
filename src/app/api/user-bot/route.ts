@@ -1083,10 +1083,34 @@ bot.on('message:text', async (ctx: Context) => {
 
       if (activeConversation.assistant) {
         console.log(`Sending message to assistant ID: ${activeConversation.assistant.telegramId}`);
+
+        // Находим все активные запросы для этого ассистента, чтобы определить индекс
+        const allActiveConversations = await prisma.conversation.findMany({
+          where: {
+            assistantId: activeConversation.assistant.telegramId,
+            status: 'IN_PROGRESS',
+          },
+          orderBy: {
+            createdAt: 'asc', // Так же, как при выводе списка
+          },
+          include: {
+            assistantRequest: true,
+          },
+        });
+
+        // Находим индекс текущего разговора в списке
+        const currentIndex = allActiveConversations.findIndex(
+          (conv) => conv.id === activeConversation.id
+        );
+
+        // Формируем префикс: Запрос {номер}
+        const prefix = `Запрос ${currentIndex + 1}: `;
+
+        // Добавляем префикс к сообщению перед отправкой ассистенту
         await sendMessageToAssistant(
           ctx,
           activeConversation.assistant.telegramId.toString(),
-          userMessage
+          prefix + userMessage
         );
       } else {
         console.error(
@@ -1108,6 +1132,7 @@ bot.on('message:text', async (ctx: Context) => {
     await ctx.reply(getTranslation(languageCode, 'server_error'));
   }
 });
+
 
 
 
