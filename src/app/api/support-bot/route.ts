@@ -479,7 +479,7 @@ function calculateTimeRemaining(createdAt: Date): string {
   return `${minutes}м ${seconds}с`;
 }
 
-async function reassignRequest(requestId: bigint, blockedAssistantId: bigint, ctx: Context) {
+async function reassignRequest(requestId: bigint, blockedAssistantId: bigint) {
   try {
     const assistantRequest = await prisma.assistantRequest.findUnique({
       where: { id: requestId },
@@ -734,7 +734,7 @@ bot.callbackQuery('end_work_confirm', async (ctx) => {
       await userBot.api.sendMessage(Number(userId), 'Связь с ассистентом потеряна, подключаем другого ассистента...');
 
       // Переназначаем запрос другому ассистенту
-      await reassignRequest(completedConversation.requestId, telegramId, ctx);
+      await reassignRequest(completedConversation.requestId, telegramId);
     }
 
   } catch (error) {
