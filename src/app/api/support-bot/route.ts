@@ -410,6 +410,88 @@ bot.use(async (ctx, next) => {
 });
 
 
+bot.command('start', async (ctx) => {
+  const lang = detectUserLanguage(ctx);
+  const args = ctx.match?.split(' ') ?? [];
+
+  if (args.length > 0 && args[0].startsWith('invite_')) {
+    const inviteToken = args[0].replace('invite_', '');
+
+    try {
+      const invitation = await prisma.invitation.findUnique({ where: { token: inviteToken } });
+
+      if (!invitation || invitation.used) {
+        await ctx.reply(getTranslation(lang, 'start_invalid_link'));
+        return;
+      }
+
+      if (ctx.from?.id) {
+        const telegramId = BigInt(ctx.from.id);
+        const username = ctx.from.username || null;
+
+
+        const userProfilePhotos = await ctx.api.getUserProfilePhotos(ctx.from.id);
+
+        let avatarFileId: string | null = null;
+
+        if (userProfilePhotos.total_count > 0) {
+
+          const photos = userProfilePhotos.photos[0];
+
+          const largestPhoto = photos[photos.length - 1];
+
+          avatarFileId = largestPhoto.file_id;
+        } else {
+          console.log('У ассистента нет аватарки.');
+        }
+
+
+        const lastAssistant = await prisma.assistant.findFirst({
+          orderBy: { orderNumber: 'desc' },
+          select: { orderNumber: true },
+        });
+
+        const nextOrderNumber = lastAssistant?.orderNumber ? lastAssistant.orderNumber + 1 : 1;
+
+
+        await prisma.assistant.create({
+          data: {
+            telegramId: telegramId,
+            username: username,
+            role: invitation.role,
+            orderNumber: nextOrderNumber,
+            avatarFileId: avatarFileId,
+          },
+        });
+
+
+        await prisma.invitation.update({
+          where: { id: invitation.id },
+          data: { used: true },
+        });
+
+
+        await ctx.reply(getTranslation(lang, 'assistant_congrats'));
+
+
+        await prisma.assistant.update({
+          where: { telegramId: telegramId },
+          data: { lastActiveAt: new Date() },
+        });
+      } else {
+        await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+      }
+    } catch (error) {
+      console.error('Error assigning assistant role:', error);
+      await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+    }
+  } else {
+    await ctx.reply(getTranslation(lang, 'start_message'));
+  }
+});
+
+
+
 bot.command('requests', async (ctx) => {
   const lang = detectUserLanguage(ctx);
 
