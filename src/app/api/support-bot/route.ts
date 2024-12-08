@@ -477,7 +477,91 @@ function calculateTimeRemaining(createdAt: Date): string {
   return `${minutes}м ${seconds}с`;
 }
 
+// Функция для переназначения запроса другому ассистенту
+async function reassignRequest(requestId: bigint, blockedAssistantId: bigint, ctx: Context) {
+  try {
+    const assistantRequest = await prisma.assistantRequest.findUnique({
+      where: { id: BigInt(requestId) },
+      include: { conversation: true },
+    });
 
+    const ignoredAssistants = assistantRequest?.ignoredAssistants || [];
+    if (!ignoredAssistants.includes(blockedAssistantId)) {
+      ignoredAssistants.push(blockedAssistantId);
+    }
+
+    // Обновляем статус разговора на ABORTED, так как связь потеряна
+    if (assistantRequest?.conversation) {
+      await prisma.conversation.update({
+        where: { id: assistantRequest.conversation.id },
+        data: { status: 'ABORTED' },
+      });
+    }
+
+    // Переводим запрос в режим ожидания другого ассистента
+    await prisma.assistantRequest.update({
+      where: { id: BigInt(requestId) },
+      data: {
+        status: 'PENDING',
+        isActive: true,
+        assistantId: null,
+        ignoredAssistants,
+      },
+    });
+
+    // Находим нового ассистента
+    const newAssistant = await findNewAssistant(BigInt(requestId), ignoredAssistants);
+
+    if (newAssistant) {
+      // Обновляем запрос с новым ассистентом
+      await prisma.assistantRequest.update({
+        where: { id: BigInt(requestId) },
+        data: {
+          assistantId: newAssistant.telegramId,
+        },
+      });
+
+      // Отправляем тему запроса или медиа новому ассистенту (если есть)
+      if (assistantRequest?.subject) {
+        const caption = 'Тема запроса от пользователя';
+        if (assistantRequest.subject.startsWith('http')) {
+          // Отправляем медиа
+          await sendTelegramMediaToAssistant(
+            newAssistant.telegramId.toString(),
+            assistantRequest.subject,
+            caption
+          );
+        } else {
+          // Отправляем текст без кнопок
+          await sendTelegramMessageWithButtons(
+            newAssistant.telegramId.toString(),
+            `Тема запроса: ${assistantRequest.subject}`,
+            []
+          );
+        }
+      }
+
+      // Отправляем основное сообщение с кнопками (accept/reject)
+      await sendTelegramMessageWithButtons(
+        newAssistant.telegramId.toString(),
+        assistantRequest?.message || 'Новое сообщение от пользователя',
+        [
+          { text: getTranslation('en', 'accept'), callback_data: `accept_${requestId}` },
+          { text: getTranslation('en', 'reject'), callback_data: `reject_${requestId}` },
+        ]
+      );
+
+      // Сообщаем пользователю (конечному) о попытке подключить другого ассистента
+      await ctx.reply('Связь с ассистентом потеряна, подключаем другого ассистента...');
+    } else {
+      await ctx.reply('Связь с ассистентом потеряна, но доступных ассистентов больше нет.');
+    }
+
+  } catch (error) {
+    console.error('Ошибка при переназначении запроса:', error);
+    await ctx.reply('❌ Произошла ошибка при переназначении запроса.');
+  }
+}
 
 bot.command('end_work', async (ctx) => {
   try {
@@ -527,14 +611,33 @@ bot.command('end_work', async (ctx) => {
       return;
     }
 
+    // Завершаем активную сессию, если есть
+    const activeSession = await prisma.assistantSession.findFirst({
+      where: {
+        assistantId: telegramId,
+        endedAt: null,
+      },
+      orderBy: {
+        startedAt: 'desc',
+      },
+    });
 
+    if (activeSession) {
+      await prisma.assistantSession.update({
+        where: { id: activeSession.id },
+        data: { endedAt: new Date() },
+      });
+    } else {
+      console.warn(`No active session found for assistant ${telegramId}`);
+    }
+
+    // Ранее мы устанавливали isWorking=false здесь, теперь это делается в колбэке
     await ctx.reply(getTranslation(lang, 'end_work'));
   } catch (error) {
     console.error('Error ending work:', error);
     await ctx.reply(getTranslation(detectUserLanguage(ctx), 'end_dialog_error'));
   }
 });
-
 
 bot.callbackQuery('end_work_confirm', async (ctx) => {
   try {
@@ -553,14 +656,26 @@ bot.callbackQuery('end_work_confirm', async (ctx) => {
       return;
     }
 
-    // Обновляем статус isWorking на false
-    await prisma.assistant.update({
-      where: { telegramId: telegramId },
-      data: { isWorking: false },
+    // Завершаем активную сессию, если есть
+    const activeSession = await prisma.assistantSession.findFirst({
+      where: {
+        assistantId: telegramId,
+        endedAt: null,
+      },
+      orderBy: {
+        startedAt: 'desc',
+      },
     });
 
+    if (activeSession) {
+      await prisma.assistantSession.update({
+        where: { id: activeSession.id },
+        data: { endedAt: new Date() },
+      });
+    }
+
     // Завершаем все активные диалоги (меняем статус на COMPLETED)
-    await prisma.conversation.updateMany({
+    const updatedConversations = await prisma.conversation.updateMany({
       where: {
         assistantId: telegramId,
         status: 'IN_PROGRESS',
@@ -576,12 +691,31 @@ bot.callbackQuery('end_work_confirm', async (ctx) => {
       data: {
         isWorking: false,
         isBlocked: true,
-        unblockDate: null // или задать конкретную дату, если нужно
+        unblockDate: null
       },
     });
 
     await ctx.answerCallbackQuery();
     await ctx.editMessageText('Работа завершена. Вы не получите вознаграждение и ваш аккаунт заблокирован до рассмотрения администрацией.');
+
+    // После блокировки ассистента и завершения диалогов направляем запрос к другому ассистенту
+    // Найдём любой завершённый сейчас разговор, чтобы получить requestId
+    const completedConversation = await prisma.conversation.findFirst({
+      where: {
+        assistantId: telegramId,
+        status: 'COMPLETED',
+      },
+      orderBy: { updatedAt: 'desc' } // Берём последний обновлённый
+    });
+
+    if (completedConversation) {
+      // Посылаем пользователю сообщение о потере связи
+      await ctx.reply('Связь с ассистентом потеряна, подключаем другого ассистента...');
+
+      // Переназначаем запрос другому ассистенту
+      await reassignRequest(completedConversation.requestId, telegramId, ctx);
+    }
+
   } catch (error) {
     console.error('Error confirming end work:', error);
     await ctx.answerCallbackQuery();
@@ -596,86 +730,6 @@ bot.callbackQuery('end_work_cancel', async (ctx) => {
     await ctx.deleteMessage();
   } catch (error) {
     console.error('Error canceling end work:', error);
-  }
-});
-
-bot.command('start', async (ctx) => {
-  const lang = detectUserLanguage(ctx);
-  const args = ctx.match?.split(' ') ?? [];
-
-  if (args.length > 0 && args[0].startsWith('invite_')) {
-    const inviteToken = args[0].replace('invite_', '');
-
-    try {
-      const invitation = await prisma.invitation.findUnique({ where: { token: inviteToken } });
-
-      if (!invitation || invitation.used) {
-        await ctx.reply(getTranslation(lang, 'start_invalid_link'));
-        return;
-      }
-
-      if (ctx.from?.id) {
-        const telegramId = BigInt(ctx.from.id);
-        const username = ctx.from.username || null;
-
-
-        const userProfilePhotos = await ctx.api.getUserProfilePhotos(ctx.from.id);
-
-        let avatarFileId: string | null = null;
-
-        if (userProfilePhotos.total_count > 0) {
-
-          const photos = userProfilePhotos.photos[0];
-
-          const largestPhoto = photos[photos.length - 1];
-
-          avatarFileId = largestPhoto.file_id;
-        } else {
-          console.log('У ассистента нет аватарки.');
-        }
-
-
-        const lastAssistant = await prisma.assistant.findFirst({
-          orderBy: { orderNumber: 'desc' },
-          select: { orderNumber: true },
-        });
-
-        const nextOrderNumber = lastAssistant?.orderNumber ? lastAssistant.orderNumber + 1 : 1;
-
-
-        await prisma.assistant.create({
-          data: {
-            telegramId: telegramId,
-            username: username,
-            role: invitation.role,
-            orderNumber: nextOrderNumber,
-            avatarFileId: avatarFileId,
-          },
-        });
-
-
-        await prisma.invitation.update({
-          where: { id: invitation.id },
-          data: { used: true },
-        });
-
-
-        await ctx.reply(getTranslation(lang, 'assistant_congrats'));
-
-
-        await prisma.assistant.update({
-          where: { telegramId: telegramId },
-          data: { lastActiveAt: new Date() },
-        });
-      } else {
-        await ctx.reply(getTranslation(lang, 'end_dialog_error'));
-      }
-    } catch (error) {
-      console.error('Error assigning assistant role:', error);
-      await ctx.reply(getTranslation(lang, 'end_dialog_error'));
-    }
-  } else {
-    await ctx.reply(getTranslation(lang, 'start_message'));
   }
 });
 
