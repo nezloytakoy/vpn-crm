@@ -675,7 +675,7 @@ bot.callbackQuery('end_work_confirm', async (ctx) => {
     }
 
     // Завершаем все активные диалоги (меняем статус на COMPLETED)
-    const updatedConversations = await prisma.conversation.updateMany({
+    await prisma.conversation.updateMany({
       where: {
         assistantId: telegramId,
         status: 'IN_PROGRESS',
