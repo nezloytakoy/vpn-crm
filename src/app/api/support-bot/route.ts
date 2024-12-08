@@ -13,6 +13,8 @@ const prisma = new PrismaClient();
 
 const assistantBot = new Bot(process.env.TELEGRAM_SUPPORT_BOT_TOKEN || "");
 
+const userBot = new Bot(process.env.TELEGRAM_USER_BOT_TOKEN!);
+
 
 type TelegramButton = {
   text: string;
@@ -698,19 +700,20 @@ bot.callbackQuery('end_work_confirm', async (ctx) => {
     await ctx.answerCallbackQuery();
     await ctx.editMessageText('Работа завершена. Вы не получите вознаграждение и ваш аккаунт заблокирован до рассмотрения администрацией.');
 
-    // После блокировки ассистента и завершения диалогов направляем запрос к другому ассистенту
     // Найдём любой завершённый сейчас разговор, чтобы получить requestId
     const completedConversation = await prisma.conversation.findFirst({
       where: {
         assistantId: telegramId,
         status: 'COMPLETED',
       },
-      orderBy: { updatedAt: 'desc' } // Берём последний обновлённый
+      orderBy: { updatedAt: 'desc' }
     });
 
     if (completedConversation) {
-      // Посылаем пользователю сообщение о потере связи
-      await ctx.reply('Связь с ассистентом потеряна, подключаем другого ассистента...');
+      const userId = completedConversation.userId;
+
+      // Отправляем сообщение пользователю через userBot
+      await userBot.api.sendMessage(Number(userId), 'Связь с ассистентом потеряна, подключаем другого ассистента...');
 
       // Переназначаем запрос другому ассистенту
       await reassignRequest(completedConversation.requestId, telegramId, ctx);
