@@ -1,4 +1,4 @@
-import { Bot, webhookCallback, Context } from 'grammy';
+import { Bot, webhookCallback, Context, InlineKeyboard } from 'grammy';
 import { PrismaClient } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import axios from 'axios';
@@ -489,7 +489,7 @@ bot.command('end_work', async (ctx) => {
     const telegramId = BigInt(ctx.from.id);
     const lang = detectUserLanguage(ctx);
 
-    // Проверяем, есть ли активный диалог
+    // Проверяем наличие активного диалога
     const activeConversation = await prisma.conversation.findFirst({
       where: {
         assistantId: telegramId,
@@ -497,8 +497,17 @@ bot.command('end_work', async (ctx) => {
       },
     });
 
+    // Если есть активные диалоги - предлагаем инлайн-кнопки
     if (activeConversation) {
-      await ctx.reply(getTranslation(lang, 'active_dialog_exists'));
+      const keyboard = new InlineKeyboard()
+        .text('Завершить работу', 'end_work_confirm')
+        .row()
+        .text('Вернуться к работе', 'end_work_cancel');
+
+      await ctx.reply(
+        'У вас есть активные диалоги. Если вы завершите работу, вы не получите коинов и будете заблокированы до рассмотрения ситуацией администрацией. Завершить работу?',
+        { reply_markup: keyboard }
+      );
       return;
     }
 
@@ -508,7 +517,7 @@ bot.command('end_work', async (ctx) => {
     });
 
     if (!assistant) {
-      console.error(`Assistent not found with telegramId: ${telegramId}`);
+      console.error(`Assistant not found with telegramId: ${telegramId}`);
       await ctx.reply(getTranslation(lang, 'no_assistant_found'));
       return;
     }
@@ -518,31 +527,6 @@ bot.command('end_work', async (ctx) => {
       return;
     }
 
-    // Завершаем активную сессию, если есть
-    const activeSession = await prisma.assistantSession.findFirst({
-      where: {
-        assistantId: telegramId,
-        endedAt: null,
-      },
-      orderBy: {
-        startedAt: 'desc',
-      },
-    });
-
-    if (activeSession) {
-      await prisma.assistantSession.update({
-        where: { id: activeSession.id },
-        data: { endedAt: new Date() },
-      });
-    } else {
-      console.warn(`No active session found for assistant ${telegramId}`);
-    }
-
-    // Обновляем статус isWorking на false
-    await prisma.assistant.update({
-      where: { telegramId: telegramId },
-      data: { isWorking: false },
-    });
 
     await ctx.reply(getTranslation(lang, 'end_work'));
   } catch (error) {
@@ -552,8 +536,68 @@ bot.command('end_work', async (ctx) => {
 });
 
 
+bot.callbackQuery('end_work_confirm', async (ctx) => {
+  try {
+    const telegramId = BigInt(ctx.from.id);
+    const lang = detectUserLanguage(ctx);
 
+    // Получаем ассистента
+    const assistant = await prisma.assistant.findUnique({
+      where: { telegramId: telegramId },
+    });
 
+    if (!assistant) {
+      console.error(`Assistant not found with telegramId: ${telegramId}`);
+      await ctx.answerCallbackQuery();
+      await ctx.reply(getTranslation(lang, 'no_assistant_found'));
+      return;
+    }
+
+    // Обновляем статус isWorking на false
+    await prisma.assistant.update({
+      where: { telegramId: telegramId },
+      data: { isWorking: false },
+    });
+
+    // Завершаем все активные диалоги (меняем статус на COMPLETED)
+    await prisma.conversation.updateMany({
+      where: {
+        assistantId: telegramId,
+        status: 'IN_PROGRESS',
+      },
+      data: {
+        status: 'COMPLETED',
+      },
+    });
+
+    // Блокируем ассистента
+    await prisma.assistant.update({
+      where: { telegramId: telegramId },
+      data: {
+        isWorking: false,
+        isBlocked: true,
+        unblockDate: null // или задать конкретную дату, если нужно
+      },
+    });
+
+    await ctx.answerCallbackQuery();
+    await ctx.editMessageText('Работа завершена. Вы не получите вознаграждение и ваш аккаунт заблокирован до рассмотрения администрацией.');
+  } catch (error) {
+    console.error('Error confirming end work:', error);
+    await ctx.answerCallbackQuery();
+    await ctx.reply(getTranslation(detectUserLanguage(ctx), 'end_dialog_error'));
+  }
+});
+
+bot.callbackQuery('end_work_cancel', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    // Просто удаляем сообщение с кнопками
+    await ctx.deleteMessage();
+  } catch (error) {
+    console.error('Error canceling end work:', error);
+  }
+});
 
 bot.command('start', async (ctx) => {
   const lang = detectUserLanguage(ctx);
