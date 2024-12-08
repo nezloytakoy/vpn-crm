@@ -198,6 +198,8 @@ const translations = {
     withdrawal_request_created: "Your withdrawal request has been created successfully.",
     limits_info: "If skipped requests exceed 3 or rejections exceed 10 in a day, your activity will decrease, and your balance will be frozen for 24 hours. Complaints also pause withdrawals until resolved.",
     unknown_action: "Unknown action.",
+    topic: "Topic",
+    no_subject: "No subject"
   },
   ru: {
     end_dialog_error: "Ошибка: не удалось получить ваш идентификатор Telegram.",
@@ -245,6 +247,8 @@ const translations = {
     withdrawal_request_created: "Ваш запрос на вывод успешно создан.",
     limits_info: "Если за сутки вы пропустите более 3 запросов или отклоните более 10, ваша активность снизится, и баланс заморозится на 24 часа. Жалобы также временно блокируют вывод до их решения.",
     unknown_action: "Неизвестное действие.",
+    topic: "Тема",
+    no_subject: "отсутствует"
   },
 };
 
@@ -443,13 +447,13 @@ bot.command('requests', async (ctx) => {
       return;
     }
 
-    // Формируем кнопки для каждого активного запроса
-    const inlineKeyboard = activeConversations.map((conversation) => {
+    // Формируем кнопки для каждого активного запроса с нумерацией
+    const inlineKeyboard = activeConversations.map((conversation, index) => {
       const subject = conversation.assistantRequest.subject || getTranslation(lang, 'no_message');
       const timeRemaining = calculateTimeRemaining(conversation.createdAt);
       return [
         {
-          text: `Запрос: ${subject} | Осталось: ${timeRemaining}`,
+          text: `Запрос ${index + 1}: ${subject} | Осталось: ${timeRemaining}`,
           callback_data: `activate_${conversation.id}`,
         },
       ];
@@ -463,6 +467,7 @@ bot.command('requests', async (ctx) => {
     await ctx.reply(getTranslation(lang, 'server_error'));
   }
 });
+
 
 function calculateTimeRemaining(createdAt: Date): string {
   const maxDuration = 60 * 60 * 1000; // 60 минут
@@ -560,8 +565,7 @@ async function reassignRequest(requestId: bigint, blockedAssistantId: bigint) {
         ]
       );
 
-      // Сообщаем пользователю через userBot
-      await userBot.api.sendMessage(Number(userId), 'Связь с ассистентом потеряна, подключаем другого ассистента...');
+
     } else {
       // Нет доступных ассистентов
       await userBot.api.sendMessage(Number(userId), 'Связь с ассистентом потеряна, но доступных ассистентов больше нет.');
@@ -888,19 +892,47 @@ bot.on('callback_query:data', async (ctx) => {
     });
 
     if (pendingRequest) {
-      await prisma.assistantRequest.update({
+      // Переводим запрос в статус IN_PROGRESS и назначаем ассистента
+      const updatedRequest = await prisma.assistantRequest.update({
         where: { id: pendingRequest.id },
         data: { assistantId: telegramId, status: 'IN_PROGRESS' },
       });
 
-      await sendTelegramMessageWithButtons(
-        telegramId.toString(),
-        getTranslation(lang, 'assistantRequestMessage'),
-        [
-          { text: getTranslation(lang, 'accept'), callback_data: `accept_${pendingRequest.id}` },
-          { text: getTranslation(lang, 'reject'), callback_data: `reject_${pendingRequest.id}` },
-        ]
-      );
+      // Формируем текст сообщения в зависимости от наличия и типа темы
+      const messageText = updatedRequest?.subject
+        ? updatedRequest.subject.startsWith('http')
+          ? `${getTranslation(lang, 'assistantRequestMessage')}`
+          : `${getTranslation(lang, 'assistantRequestMessage')}\n\n${getTranslation(lang, 'topic')}: ${updatedRequest.subject}`
+        : `${getTranslation(lang, 'assistantRequestMessage')}\n\n${getTranslation(lang, 'topic')}: ${getTranslation(lang, 'no_subject')}`;
+
+      if (updatedRequest?.subject?.startsWith('http')) {
+        // Если subject является ссылкой (например, на картинку или другое медиа)
+        await sendTelegramMediaToAssistant(
+          telegramId.toString(),
+          updatedRequest.subject,
+          ''
+        );
+
+        // После отправки медиа отправляем сообщение с кнопками принятия/отклонения
+        await sendTelegramMessageWithButtons(
+          telegramId.toString(),
+          getTranslation(lang, 'assistantRequestMessage'),
+          [
+            { text: getTranslation(lang, 'accept'), callback_data: `accept_${updatedRequest.id.toString()}` },
+            { text: getTranslation(lang, 'reject'), callback_data: `reject_${updatedRequest.id.toString()}` },
+          ]
+        );
+      } else {
+        // Если subject обычный текст или отсутствует
+        await sendTelegramMessageWithButtons(
+          telegramId.toString(),
+          messageText,
+          [
+            { text: getTranslation(lang, 'accept'), callback_data: `accept_${updatedRequest.id.toString()}` },
+            { text: getTranslation(lang, 'reject'), callback_data: `reject_${updatedRequest.id.toString()}` },
+          ]
+        );
+      }
 
       return;
     }
