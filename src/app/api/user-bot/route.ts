@@ -214,44 +214,44 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
     },
     en: {
       start_message:
-      '👋 This is the user bot! To continue, click the button below and log into the Telegram Web App.',
-    webapp_button: '🚪 Log into Web App',
-    no_user_id: 'Failed to retrieve your user ID.',
-    no_text_message: 'Please send a text message.',
-    error_processing_message:
-      'An error occurred while processing your message. Please try again later.',
-    dialog_closed: 'The dialog with the assistant has ended. Thank you for using our service!',
-    error_end_dialog: 'An error occurred while ending the dialog. Please try again later.',
-    no_active_dialog: 'You have no active dialog with an assistant.',
-    user_ended_dialog: 'The user has ended the dialog.',
-    user_ended_dialog_no_reward: 'The user has ended the dialog. No reward was granted.',
-    ai_no_response: 'Sorry, could not get a response from the AI.',
-    ai_chat_deactivated: 'AI chat mode has been deactivated. Thank you for using our service!',
-    ai_chat_not_active: 'You have no active AI dialog.',
-    coin_awarded: 'You have been awarded 1 coin for completing the dialog.',
-    no_user_found: 'User not found.',
-    no_active_dialogs: 'You have no active dialogs.',
-    complaint_submitted: 'Your complaint has been submitted.',
-    enterSubject: 'Please enter the subject of your request.',
-    subjectReceived: 'Subject received. Connecting you to an assistant.',
-    no_active_request: 'No active request found.',
-    server_error: 'An error occurred. Please try again later.',
-    assistantRequestMessage: 'User request for conversation',
-    noAssistantsAvailable: 'No assistants available',
-    requestSent: 'The request has been sent to the assistant.',
-    accept: 'Accept',
-    reject: 'Reject',
-    unexpected_photo: 'Your photo has been received but was not expected. Please try again.',
-    no_photo_detected: 'Please send an image.',
-    unexpected_voice: 'Your voice message has been received but was not expected. Please try again.',
-    unexpected_file: 'Your file has been received but was not expected. Please try again.',
-    no_active_subscription: 'You do not have an active subscription.',
-    no_permission_to_send_photos: 'Your subscription does not allow sending photos to assistants.',
-    no_permission_to_send_voice: 'Your subscription does not allow sending voice messages to assistants.',
-    no_permission_to_send_files: 'Your subscription does not allow sending files to assistants.',
-    no_permission_to_send_videos: 'Your subscription does not allow sending video notes to assistants.',
-    subjectExpected: 'We are waiting for you to provide the subject of your request. Please specify it.', // New translation
-      
+        '👋 This is the user bot! To continue, click the button below and log into the Telegram Web App.',
+      webapp_button: '🚪 Log into Web App',
+      no_user_id: 'Failed to retrieve your user ID.',
+      no_text_message: 'Please send a text message.',
+      error_processing_message:
+        'An error occurred while processing your message. Please try again later.',
+      dialog_closed: 'The dialog with the assistant has ended. Thank you for using our service!',
+      error_end_dialog: 'An error occurred while ending the dialog. Please try again later.',
+      no_active_dialog: 'You have no active dialog with an assistant.',
+      user_ended_dialog: 'The user has ended the dialog.',
+      user_ended_dialog_no_reward: 'The user has ended the dialog. No reward was granted.',
+      ai_no_response: 'Sorry, could not get a response from the AI.',
+      ai_chat_deactivated: 'AI chat mode has been deactivated. Thank you for using our service!',
+      ai_chat_not_active: 'You have no active AI dialog.',
+      coin_awarded: 'You have been awarded 1 coin for completing the dialog.',
+      no_user_found: 'User not found.',
+      no_active_dialogs: 'You have no active dialogs.',
+      complaint_submitted: 'Your complaint has been submitted.',
+      enterSubject: 'Please enter the subject of your request.',
+      subjectReceived: 'Subject received. Connecting you to an assistant.',
+      no_active_request: 'No active request found.',
+      server_error: 'An error occurred. Please try again later.',
+      assistantRequestMessage: 'User request for conversation',
+      noAssistantsAvailable: 'No assistants available',
+      requestSent: 'The request has been sent to the assistant.',
+      accept: 'Accept',
+      reject: 'Reject',
+      unexpected_photo: 'Your photo has been received but was not expected. Please try again.',
+      no_photo_detected: 'Please send an image.',
+      unexpected_voice: 'Your voice message has been received but was not expected. Please try again.',
+      unexpected_file: 'Your file has been received but was not expected. Please try again.',
+      no_active_subscription: 'You do not have an active subscription.',
+      no_permission_to_send_photos: 'Your subscription does not allow sending photos to assistants.',
+      no_permission_to_send_voice: 'Your subscription does not allow sending voice messages to assistants.',
+      no_permission_to_send_files: 'Your subscription does not allow sending files to assistants.',
+      no_permission_to_send_videos: 'Your subscription does not allow sending video notes to assistants.',
+      subjectExpected: 'We are waiting for you to provide the subject of your request. Please specify it.', // New translation
+
     },
   };
 
@@ -1104,7 +1104,7 @@ bot.on('message:text', async (ctx: Context) => {
         );
 
         // Формируем префикс: Запрос {номер}
-        const prefix = `Запрос ${currentIndex + 1}: `;
+        const prefix = `Запрос ${currentIndex + 1}:\n\n`;
 
         // Добавляем префикс к сообщению перед отправкой ассистенту
         await sendMessageToAssistant(

@@ -1204,16 +1204,14 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
       include: { user: true },
     });
 
-
-
-    const existingConversation = await prisma.conversation.findFirst({
+    let conversation = await prisma.conversation.findFirst({
       where: { requestId: assistantRequest.id, status: 'ABORTED' },
     });
 
-    if (existingConversation) {
-
-      await prisma.conversation.update({
-        where: { id: existingConversation.id },
+    if (conversation) {
+      // Обновляем существующий разговор
+      conversation = await prisma.conversation.update({
+        where: { id: conversation.id },
         data: {
           assistantId: assistantTelegramId,
           messages: [],
@@ -1233,8 +1231,8 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
         'Ассистент присоединился к чату. Сформулируйте свой вопрос.'
       );
     } else {
-
-      await prisma.conversation.create({
+      // Создаем новый разговор
+      conversation = await prisma.conversation.create({
         data: {
           userId: assistantRequest.userId,
           assistantId: assistantTelegramId,
@@ -1252,6 +1250,12 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
         'Ассистент присоединился к чату. Сформулируйте свой вопрос.'
       );
     }
+
+    // Устанавливаем активный разговор для ассистента
+    await prisma.assistant.update({
+      where: { telegramId: assistantTelegramId },
+      data: { activeConversationId: conversation.id },
+    });
   } catch (error) {
     console.error('Ошибка при принятии запроса:', error);
     await ctx.reply('❌ Другой ассистент уже принял запрос.');
