@@ -11,6 +11,8 @@ function bigIntToString<T>(obj: T): T {
     ) as T;
 }
 
+export const revalidate = 1;
+
 export async function GET() {
     try {
         const blockedUsers = await prisma.assistant.findMany({

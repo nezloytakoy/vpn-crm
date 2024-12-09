@@ -687,7 +687,7 @@ bot.command('end_work', async (ctx) => {
       },
     });
 
-    // Если есть активные диалоги - предлагаем инлайн-кнопки
+    // Если есть активные диалоги - предлагаем инлайн-кнопки и выходим без изменения isWorking
     if (activeConversation) {
       const keyboard = new InlineKeyboard()
         .text('Завершить работу', 'end_work_confirm')
@@ -695,10 +695,10 @@ bot.command('end_work', async (ctx) => {
         .text('Вернуться к работе', 'end_work_cancel');
 
       await ctx.reply(
-        'У вас есть активные диалоги. Если вы завершите работу, вы не получите коинов и будете заблокированы до рассмотрения ситуацией администрацией. Завершить работу?',
+        'У вас есть активные диалоги. Если вы завершите работу, вы не получите коинов и будете заблокированы до рассмотрения администратором. Завершить работу?',
         { reply_markup: keyboard }
       );
-      return;
+      return; // Выход без изменений isWorking
     }
 
     // Получаем ассистента
@@ -737,7 +737,13 @@ bot.command('end_work', async (ctx) => {
       console.warn(`No active session found for assistant ${telegramId}`);
     }
 
-    // Ранее мы устанавливали isWorking=false здесь, теперь это делается в колбэке
+    // Если мы дошли до этого места кода, активных диалогов нет
+    // Можно установить isWorking в false
+    await prisma.assistant.update({
+      where: { telegramId: telegramId },
+      data: { isWorking: false },
+    });
+
     await ctx.reply(getTranslation(lang, 'end_work'));
   } catch (error) {
     console.error('Error ending work:', error);
