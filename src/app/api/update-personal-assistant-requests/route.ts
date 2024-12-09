@@ -10,34 +10,46 @@ export async function POST(request: Request) {
         console.log('Received body:', body);
         const { userId, assistantRequests } = body;
 
-        // Validate only the required fields
+        // Проверяем корректность входных данных
         if (!userId || typeof assistantRequests !== 'number' || assistantRequests < 0) {
             console.log('Validation failed: Invalid input data');
             return NextResponse.json({ error: 'Invalid input data' }, { status: 400 });
         }
 
-        console.log('Validation passed, updating user assistant requests...');
+        console.log('Validation passed, creating UserTariff entry...');
 
-        // Update user assistant requests in the database
-        const updatedUser = await prisma.user.update({
-            where: { telegramId: BigInt(userId) },
-            data: { assistantRequests },
+        // Дата "никогда" - очень дальний срок
+        const neverDate = new Date('9999-12-31T23:59:59.999Z');
+
+        // Создаём запись в UserTariff
+        const userTariff = await prisma.userTariff.create({
+            data: {
+                userId: BigInt(userId),
+                tariffId: null, // без тарифа, просто добавочные запросы
+                totalAssistantRequests: assistantRequests,
+                totalAIRequests: 0,
+                remainingAssistantRequests: assistantRequests,
+                remainingAIRequests: 0,
+                expirationDate: neverDate,
+            },
         });
 
-        console.log('User updated successfully:', updatedUser);
+        console.log('UserTariff created successfully:', userTariff);
 
-        // Convert all BigInt fields to strings
-        const responseUser = {
-            ...updatedUser,
-            telegramId: updatedUser.telegramId.toString(), // Ensure BigInt is converted to string
-            lastPaidSubscriptionId: updatedUser.lastPaidSubscriptionId?.toString() || null, // Convert if exists
+        // Конвертируем BigInt поля в строки для ответа
+        const responseUserTariff = {
+            ...userTariff,
+            id: userTariff.id.toString(),
+            userId: userTariff.userId.toString(),
+            tariffId: userTariff.tariffId ? userTariff.tariffId.toString() : null,
+            expirationDate: userTariff.expirationDate.toISOString(),
         };
 
-        console.log('Prepared response user object:', responseUser);
+        console.log('Prepared response userTariff object:', responseUserTariff);
 
         return NextResponse.json({
             message: 'Assistant requests updated successfully',
-            updatedUser: responseUser,
+            userTariff: responseUserTariff,
         });
     } catch (error) {
         console.error('Error updating assistant requests:', error);

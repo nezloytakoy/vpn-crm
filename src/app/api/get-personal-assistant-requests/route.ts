@@ -5,44 +5,53 @@ export const revalidate = 1;
 
 const prisma = new PrismaClient();
 
-export async function POST(request: Request) {
+export async function GET(request: Request) {
     try {
-        console.log('Starting POST request for assistant requests update...');
-        const body = await request.json();
-        console.log('Received body:', body);
-        const { userId, assistantRequests } = body;
+        console.log('Starting GET request for user requests...');
+        const { searchParams } = new URL(request.url);
+        const userId = searchParams.get('userId');
 
-        // Validate only the required fields
-        if (!userId || typeof assistantRequests !== 'number' || assistantRequests < 0) {
-            console.log('Validation failed: Invalid input data');
-            return NextResponse.json({ error: 'Invalid input data' }, { status: 400 });
+        if (!userId) {
+            console.log('Validation failed: userId not provided');
+            return NextResponse.json({ error: 'userId not provided' }, { status: 400 });
         }
 
-        console.log('Validation passed, updating user assistant requests...');
+        const userIdBigInt = BigInt(userId);
+        console.log(`Fetching userTariffs for userId: ${userId}`);
 
-        // Update user assistant requests in the database
-        const updatedUser = await prisma.user.update({
-            where: { telegramId: BigInt(userId) },
-            data: { assistantRequests },
+        // Получаем все тарифы пользователя
+        const userTariffs = await prisma.userTariff.findMany({
+            where: {
+                userId: userIdBigInt,
+            },
         });
 
-        console.log('User updated successfully:', updatedUser);
+        if (userTariffs.length === 0) {
+            console.log('No tariffs found for user');
+            return NextResponse.json({ error: 'No tariffs found for user' }, { status: 404 });
+        }
 
-        // Convert all BigInt fields to strings
-        const responseUser = {
-            ...updatedUser,
-            telegramId: updatedUser.telegramId.toString(), // Ensure BigInt is converted to string
-            lastPaidSubscriptionId: updatedUser.lastPaidSubscriptionId?.toString() || null, // Convert if exists
-        };
+        const now = new Date();
+        // Фильтруем только активные тарифы
+        const activeTariffs = userTariffs.filter(tariff => new Date(tariff.expirationDate) > now);
 
-        console.log('Prepared response user object:', responseUser);
+        if (activeTariffs.length === 0) {
+            console.log('No active tariffs found for user');
+            return NextResponse.json({ error: 'No active tariffs found for user' }, { status: 404 });
+        }
+
+        // Суммируем оставшиеся запросы ассистента и ИИ
+        const totalAssistantRequests = activeTariffs.reduce((sum, t) => sum + t.remainingAssistantRequests, 0);
+        const totalAIRequests = activeTariffs.reduce((sum, t) => sum + t.remainingAIRequests, 0);
+
+        console.log(`Assistant requests: ${totalAssistantRequests}, AI requests: ${totalAIRequests}`);
 
         return NextResponse.json({
-            message: 'Assistant requests updated successfully',
-            updatedUser: responseUser,
+            assistantRequests: totalAssistantRequests,
+            aiRequests: totalAIRequests,
         });
     } catch (error) {
-        console.error('Error updating assistant requests:', error);
-        return NextResponse.json({ error: 'Failed to update assistant requests' }, { status: 500 });
+        console.error('Error fetching requests:', error);
+        return NextResponse.json({ error: 'Failed to fetch requests' }, { status: 500 });
     }
 }

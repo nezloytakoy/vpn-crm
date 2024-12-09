@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
     try {
-        console.log('Starting POST request...');
+        console.log('Starting POST request for AI requests update...');
         const body = await request.json();
         console.log('Received body:', body);
         const { userId, aiRequests } = body;
@@ -16,28 +16,39 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid input data' }, { status: 400 });
         }
 
-        console.log('Validation passed, updating user AI requests...');
+        console.log('Validation passed, creating UserTariff entry for AI requests...');
 
-        // Update user AI requests in the database
-        const updatedUser = await prisma.user.update({
-            where: { telegramId: BigInt(userId) },
-            data: { aiRequests },
+        // Дата "никогда" - очень дальний срок
+        const neverDate = new Date('9999-12-31T23:59:59.999Z');
+
+        // Создаем новую запись в UserTariff для дополнительных ИИ-запросов
+        const userTariff = await prisma.userTariff.create({
+            data: {
+                userId: BigInt(userId),
+                tariffId: null, // без тарифа (дополнительные запросы)
+                totalAssistantRequests: 0,
+                totalAIRequests: aiRequests,
+                remainingAssistantRequests: 0,
+                remainingAIRequests: aiRequests,
+                expirationDate: neverDate,
+            },
         });
 
-        console.log('User updated successfully:', updatedUser);
+        console.log('UserTariff created successfully:', userTariff);
 
-        // Convert all BigInt fields to strings
-        const responseUser = {
-            ...updatedUser,
-            telegramId: updatedUser.telegramId.toString(), // Ensure BigInt is converted to string
-            lastPaidSubscriptionId: updatedUser.lastPaidSubscriptionId?.toString() || null, // Convert if exists
+        const responseUserTariff = {
+            ...userTariff,
+            id: userTariff.id.toString(),
+            userId: userTariff.userId.toString(),
+            tariffId: userTariff.tariffId ? userTariff.tariffId.toString() : null,
+            expirationDate: userTariff.expirationDate.toISOString(),
         };
 
-        console.log('Prepared response user object:', responseUser);
+        console.log('Prepared response userTariff object:', responseUserTariff);
 
         return NextResponse.json({
             message: 'AI requests updated successfully',
-            updatedUser: responseUser,
+            userTariff: responseUserTariff,
         });
     } catch (error) {
         console.error('Error updating AI requests:', error);
