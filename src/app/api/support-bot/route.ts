@@ -737,8 +737,7 @@ bot.command('end_work', async (ctx) => {
       console.warn(`No active session found for assistant ${telegramId}`);
     }
 
-    // Если мы дошли до этого места кода, активных диалогов нет
-    // Можно установить isWorking в false
+
     await prisma.assistant.update({
       where: { telegramId: telegramId },
       data: { isWorking: false },
