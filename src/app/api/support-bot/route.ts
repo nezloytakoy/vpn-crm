@@ -669,7 +669,7 @@ async function reassignRequest(requestId: bigint, blockedAssistantId: bigint) {
 }
 
 
-bot.command('end_work', async (ctx) => {
+bot.command('offline', async (ctx) => {
   try {
     if (!ctx.from?.id) {
       await ctx.reply(getTranslation(detectUserLanguage(ctx), 'end_dialog_error'));
