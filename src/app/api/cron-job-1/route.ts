@@ -17,7 +17,7 @@ export async function GET() {
 export async function POST() {
   try {
     console.log('--- Начало выполнения POST ---');
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const oneHourAgo = new Date(Date.now() - 2 * 60 * 1000);
     console.log(`Время для сравнения: ${oneHourAgo.toISOString()}`);
 
     await closeOldAIChats(oneHourAgo);
