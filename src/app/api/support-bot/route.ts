@@ -353,41 +353,49 @@ async function checkAssistantBlockStatus(ctx: Context) {
     `Данные ассистента: isBlocked=${assistant.isBlocked}, unblockDate=${assistant.unblockDate}`
   );
 
-  if (assistant.isBlocked && assistant.unblockDate) {
-    const currentTime = new Date();
-    console.log(`Текущее время: ${currentTime.toISOString()}`);
-    console.log(`Дата разблокировки: ${assistant.unblockDate.toISOString()}`);
+  if (assistant.isBlocked) {
+    // Если ассистент заблокирован
+    if (assistant.unblockDate) {
+      // Ассистент заблокирован до определённого времени
+      const currentTime = new Date();
+      console.log(`Текущее время: ${currentTime.toISOString()}`);
+      console.log(`Дата разблокировки: ${assistant.unblockDate.toISOString()}`);
 
-    const remainingTime = Math.ceil(
-      (assistant.unblockDate.getTime() - currentTime.getTime()) / (1000 * 60 * 60)
-    );
-
-    console.log(`Оставшееся время блокировки: ${remainingTime}ч`);
-
-    if (remainingTime > 0) {
-      console.log(`Пользователь ${telegramId.toString()} ещё заблокирован. Оставшееся время: ${remainingTime}ч`);
-
-      await ctx.reply(
-        `Вы заблокированы администратором, до разблокировки осталось ${remainingTime}ч.`
+      const remainingTime = Math.ceil(
+        (assistant.unblockDate.getTime() - currentTime.getTime()) / (1000 * 60 * 60)
       );
-      return true;
+
+      console.log(`Оставшееся время блокировки: ${remainingTime}ч`);
+
+      if (remainingTime > 0) {
+        console.log(`Пользователь ${telegramId.toString()} ещё заблокирован. Оставшееся время: ${remainingTime}ч`);
+        await ctx.reply(
+          `Вы заблокированы администратором, до разблокировки осталось ${remainingTime}ч.`
+        );
+        return true;
+      } else {
+        console.log(
+          `Время блокировки для пользователя ${telegramId.toString()} истекло. Снимаем блокировку.`
+        );
+
+        await prisma.assistant.update({
+          where: { telegramId },
+          data: { isBlocked: false, unblockDate: null },
+        });
+
+        console.log(
+          `Блокировка пользователя ${telegramId.toString()} успешно снята в базе данных.`
+        );
+
+        await ctx.reply(
+          "Время блокировки вышло, вы можете продолжать пользоваться ботом."
+        );
+      }
     } else {
-      console.log(
-        `Время блокировки для пользователя ${telegramId.toString()} истекло. Снимаем блокировку.`
-      );
-
-      await prisma.assistant.update({
-        where: { telegramId },
-        data: { isBlocked: false, unblockDate: null },
-      });
-
-      console.log(
-        `Блокировка пользователя ${telegramId.toString()} успешно снята в базе данных.`
-      );
-
-      await ctx.reply(
-        "Время блокировки вышло, вы можете продолжать пользоваться ботом."
-      );
+      // Ассистент заблокирован навсегда (unblockDate = null)
+      console.log(`Пользователь ${telegramId.toString()} заблокирован без срока разблокировки.`);
+      await ctx.reply("Вы заблокированы администратором без срока разблокировки.");
+      return true;
     }
   } else {
     console.log(`Пользователь ${telegramId.toString()} не заблокирован.`);

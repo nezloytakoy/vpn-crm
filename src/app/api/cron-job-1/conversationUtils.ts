@@ -182,12 +182,12 @@ async function handleIgnoredConversation(conversation: Conversation & { assistan
 
   console.log(`Пользователю ${userTelegramId} отправлено сообщение о переключении ассистента.`);
 
-  // Обновляем разговор: помечаем как ABORTED и устанавливаем userId = 0 (режим ожидания)
+  // Обновляем разговор: помечаем как PENDING (ожидает нового ассистента) и устанавливаем userId = 0
   await prisma.conversation.update({
     where: { id: conversation.id },
     data: {
-      status: 'ABORTED',
-      userId: BigInt(0), // Устанавливаем специальный "пустой" userId
+      status: 'PENDING',
+      userId: BigInt(0),
     },
   });
 
