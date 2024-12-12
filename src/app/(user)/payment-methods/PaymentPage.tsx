@@ -29,7 +29,7 @@ function PaymentPage() {
   const [aiRequests, setAiRequests] = useState<number>(0);
 
   // Prices per request
-  const ASSISTANT_REQUEST_PRICE = 0.1; // $0.10 per assistant request
+  const ASSISTANT_REQUEST_PRICE = 0.1;
   const AI_REQUEST_PRICE = 0.2; // $0.20 per AI request
 
   // Calculate total price for new logic
