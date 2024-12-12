@@ -15,13 +15,18 @@ const prisma = new PrismaClient();
 export async function handleAssistantRequest(userIdBigInt: bigint) {
     try {
         const lang = detectLanguage();
-
         await sendLogToTelegram(`[Start] Checking user with ID: ${userIdBigInt.toString()}`);
+
+        // EXTRA LOG: Начало проверки пользователя
+        await sendLogToTelegram(`[Debug] Starting user existence check...`);
 
         // Проверяем, существует ли пользователь
         const userExists = await prisma.user.findUnique({
             where: { telegramId: userIdBigInt },
         });
+
+        // EXTRA LOG: Результат поиска пользователя
+        await sendLogToTelegram(`[Debug] userExists result: ${JSON.stringify(userExists)}`);
 
         if (!userExists) {
             await sendLogToTelegram(`[Error] User with ID ${userIdBigInt.toString()} not found`);
@@ -32,10 +37,16 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
         }
         await sendLogToTelegram(`[Success] User found: ${JSON.stringify(serializeBigInt(userExists))}`);
 
+        // EXTRA LOG: Проверка на активные запросы
+        await sendLogToTelegram(`[Debug] Checking for existing active requests...`);
+
         // Проверяем, есть ли активные запросы у пользователя
         const existingActiveRequest = await prisma.assistantRequest.findFirst({
             where: { userId: userIdBigInt, isActive: true },
         });
+
+        // EXTRA LOG: Результат поиска активного запроса
+        await sendLogToTelegram(`[Debug] existingActiveRequest result: ${JSON.stringify(existingActiveRequest)}`);
 
         if (existingActiveRequest) {
             await sendLogToTelegram(
@@ -56,6 +67,9 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
         const now = new Date();
         await sendLogToTelegram(`[Info] Current date and time: ${now.toISOString()}`);
 
+        // EXTRA LOG: Подсчет оставшихся запросов
+        await sendLogToTelegram(`[Debug] Counting remaining assistant requests...`);
+
         // Считаем оставшиеся запросы
         const totalRemainingAssistantRequestsResult = await prisma.userTariff.aggregate({
             _sum: {
@@ -68,6 +82,9 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
                 },
             },
         });
+
+        // EXTRA LOG: Результат агрегации
+        await sendLogToTelegram(`[Debug] totalRemainingAssistantRequestsResult: ${JSON.stringify(totalRemainingAssistantRequestsResult)}`);
 
         const totalRemainingAssistantRequests =
             totalRemainingAssistantRequestsResult._sum.remainingAssistantRequests || 0;
@@ -84,6 +101,9 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
             };
         }
 
+        // EXTRA LOG: Поиск действующего тарифа
+        await sendLogToTelegram(`[Debug] Searching for a valid userTariff with available requests...`);
+
         // Ищем действующий тариф с оставшимися запросами
         const userTariff = await prisma.userTariff.findFirst({
             where: {
@@ -99,6 +119,9 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
                 expirationDate: 'asc',
             },
         });
+
+        // EXTRA LOG: Результат поиска тарифа
+        await sendLogToTelegram(`[Debug] userTariff result: ${JSON.stringify(userTariff)}`);
 
         if (!userTariff) {
             await sendLogToTelegram(
@@ -129,6 +152,9 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
             `[Info] Decremented requests in tariff ID ${userTariff.id.toString()} for user ${userIdBigInt.toString()} by 1`
         );
 
+        // EXTRA LOG: Создание нового запроса
+        await sendLogToTelegram(`[Debug] Creating new assistant request...`);
+
         // Создаём новый запрос ассистента с пустой темой
         const newRequest = await prisma.assistantRequest.create({
             data: {
@@ -142,15 +168,24 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
             },
         });
 
+        // EXTRA LOG: Результат создания запроса
+        await sendLogToTelegram(`[Debug] newRequest created: ${JSON.stringify(serializeBigInt(newRequest))}`);
+
         await sendLogToTelegram(
             `[Success] New assistant request created: ${JSON.stringify(serializeBigInt(newRequest))}`
         );
+
+        // EXTRA LOG: Обновление статуса пользователя (ожидание темы)
+        await sendLogToTelegram(`[Debug] Updating user status to waiting for subject...`);
 
         // Обновляем статус пользователя, чтобы ждать ввода темы
         await prisma.user.update({
             where: { telegramId: userIdBigInt },
             data: { isWaitingForSubject: true },
         });
+
+        // EXTRA LOG: Отправка сообщения пользователю
+        await sendLogToTelegram(`[Debug] Asking user to provide subject...`);
 
         // Запрашиваем у пользователя тему
         await sendTelegramMessageToUser(
@@ -161,6 +196,9 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
         await sendLogToTelegram(
             `[Info] Prompted user ${userIdBigInt.toString()} to enter the subject of the request`
         );
+
+        // EXTRA LOG: Возврат результата
+        await sendLogToTelegram(`[End] Successfully initiated request flow for user ${userIdBigInt.toString()}`);
 
         return {
             message: 'Waiting for user to enter the subject.',
@@ -183,16 +221,15 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
 
 function serializeBigInt(obj: unknown): unknown {
     if (typeof obj === 'bigint') {
-      return obj.toString();
+        return obj.toString();
     }
     if (Array.isArray(obj)) {
-      return obj.map(serializeBigInt);
+        return obj.map(serializeBigInt);
     }
     if (typeof obj === 'object' && obj !== null) {
-      return Object.fromEntries(
-        Object.entries(obj).map(([key, value]) => [key, serializeBigInt(value)])
-      );
+        return Object.fromEntries(
+            Object.entries(obj).map(([key, value]) => [key, serializeBigInt(value)])
+        );
     }
     return obj;
-  }
-  
+}
