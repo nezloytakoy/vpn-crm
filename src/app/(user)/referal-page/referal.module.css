@@ -128,6 +128,7 @@
   margin-top: 10px;
   border: 1px solid #ccc;
   border-radius: 5px;
+  color: black;
 }
 
 .copyButton {
@@ -267,6 +268,7 @@
   font-size: 16px;
   border: 1px solid #ccc;
   border-radius: 5px;
+  color: black;
 }
 
 .copyInstruction {
@@ -290,7 +292,6 @@
 .title {
   font-size: 24px;
   margin-top: 50px;
-  color: black;
 }
 
 @keyframes slide-up {
