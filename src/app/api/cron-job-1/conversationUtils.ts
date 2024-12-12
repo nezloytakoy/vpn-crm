@@ -158,11 +158,11 @@ async function remindAssistant(conversation: Conversation & { assistantRequest: 
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 }
-
 async function handleIgnoredConversation(conversation: Conversation & { assistantRequest: AssistantRequest }) {
   const assistantTelegramId = conversation.assistantId;
   const requestId = conversation.assistantRequest.id.toString();
 
+  // Блокируем ассистента навсегда
   await prisma.assistant.update({
     where: { telegramId: assistantTelegramId },
     data: {
@@ -173,6 +173,7 @@ async function handleIgnoredConversation(conversation: Conversation & { assistan
 
   console.log(`Ассистент ${assistantTelegramId.toString()} был заблокирован навсегда.`);
 
+  // Сообщаем пользователю о потере связи
   const userTelegramId = conversation.userId.toString();
   await sendTelegramMessageToUser(
     userTelegramId,
@@ -181,13 +182,16 @@ async function handleIgnoredConversation(conversation: Conversation & { assistan
 
   console.log(`Пользователю ${userTelegramId} отправлено сообщение о переключении ассистента.`);
 
+  // Обновляем разговор: помечаем как ABORTED и устанавливаем userId = 0 (режим ожидания)
   await prisma.conversation.update({
     where: { id: conversation.id },
     data: {
       status: 'ABORTED',
+      userId: BigInt(0), // Устанавливаем специальный "пустой" userId
     },
   });
 
+  // Перенаправляем запрос следующему ассистенту
   await handleIgnoredRequest(requestId, assistantTelegramId);
 
   console.log(`Запрос ${requestId} перенаправлен следующему ассистенту.`);
