@@ -847,49 +847,49 @@ bot.callbackQuery('end_work_cancel', async (ctx) => {
 
 
 
-bot.command('menu', async (ctx) => {
-  const lang = detectUserLanguage(ctx);
+// bot.command('menu', async (ctx) => {
+//   const lang = detectUserLanguage(ctx);
 
-  try {
+//   try {
 
-    if (!ctx.from?.id) {
-      await ctx.reply(getTranslation(lang, 'end_dialog_error'));
-      return;
-    }
+//     if (!ctx.from?.id) {
+//       await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+//       return;
+//     }
 
-    const telegramId = BigInt(ctx.from.id);
-
-
-    const assistant = await prisma.assistant.findUnique({
-      where: { telegramId: telegramId },
-    });
-
-    if (!assistant) {
-      await ctx.reply(getTranslation(lang, 'end_dialog_error'));
-      return;
-    }
+//     const telegramId = BigInt(ctx.from.id);
 
 
-    await prisma.assistant.update({
-      where: { telegramId: telegramId },
-      data: { lastActiveAt: new Date() },
-    });
+//     const assistant = await prisma.assistant.findUnique({
+//       where: { telegramId: telegramId },
+//     });
+
+//     if (!assistant) {
+//       await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+//       return;
+//     }
 
 
-    await ctx.reply(getTranslation(lang, 'menu_message'), {
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: getTranslation(lang, 'start_work'), callback_data: 'start_work' }],
-          [{ text: getTranslation(lang, 'my_coins'), callback_data: 'my_coins' }],
-          [{ text: getTranslation(lang, 'my_activity'), callback_data: 'my_activity' }],
-        ],
-      },
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-    console.error('Error showing menu:', errorMessage);
-  }
-});
+//     await prisma.assistant.update({
+//       where: { telegramId: telegramId },
+//       data: { lastActiveAt: new Date() },
+//     });
+
+
+//     await ctx.reply(getTranslation(lang, 'menu_message'), {
+//       reply_markup: {
+//         inline_keyboard: [
+//           [{ text: getTranslation(lang, 'start_work'), callback_data: 'start_work' }],
+//           [{ text: getTranslation(lang, 'my_coins'), callback_data: 'my_coins' }],
+//           [{ text: getTranslation(lang, 'my_activity'), callback_data: 'my_activity' }],
+//         ],
+//       },
+//     });
+//   } catch (error) {
+//     const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+//     console.error('Error showing menu:', errorMessage);
+//   }
+// });
 
 
 bot.command('online', async (ctx) => {
