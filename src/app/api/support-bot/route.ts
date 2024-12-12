@@ -1555,7 +1555,7 @@ async function sendFileToAssistant(assistantChatId: string, fileBuffer: Buffer, 
 const SESSION_DURATION = 60; // Длительность сессии в минутах
 
 bot.on('message', async (ctx) => {
-  const lang = detectUserLanguage(ctx); // Перенесли объявление 'lang' выше
+  const lang = detectUserLanguage(ctx); // Определение языка пользователя
 
   try {
     if (!ctx.from?.id) {
@@ -1565,7 +1565,7 @@ bot.on('message', async (ctx) => {
 
     const assistantTelegramId = BigInt(ctx.from.id);
 
-    // Получаем ассистента и включаем активную беседу
+    // Получаем ассистента и активную беседу
     const assistant = await prisma.assistant.findUnique({
       where: { telegramId: assistantTelegramId },
       include: { activeConversation: true },
@@ -1592,8 +1592,13 @@ bot.on('message', async (ctx) => {
       return;
     }
 
-    const assistantMessage = ctx.message?.text;
+    // Проверяем статус беседы
+    if (activeConversation.status !== 'IN_PROGRESS') {
+      await ctx.reply(getTranslation(lang, 'no_active_requests'));
+      return;
+    }
 
+    const assistantMessage = ctx.message?.text;
     if (!assistantMessage) {
       await ctx.reply(getTranslation(lang, 'send_message_error'));
       return;
@@ -1612,16 +1617,18 @@ ${assistantMessage}
 До конца сеанса осталось ${remainingMinutes} минут
     `;
 
-    // Отправляем сообщение пользователю
+    // Отправляем сообщение пользователю только если статус беседы IN_PROGRESS
     await sendTelegramMessageToUser(
       activeConversation.userId.toString(),
       responseMessage
     );
+
   } catch (error) {
     console.error('Ошибка при обработке сообщения от ассистента:', error);
     await ctx.reply(getTranslation(lang, 'error_processing_message'));
   }
 });
+
 
 
 
