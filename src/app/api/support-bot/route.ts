@@ -891,70 +891,26 @@ bot.command('menu', async (ctx) => {
   }
 });
 
-bot.on('callback_query:data', async (ctx) => {
-  const data = ctx.callbackQuery?.data;
+
+bot.command('online', async (ctx) => {
   const lang = detectUserLanguage(ctx);
 
-  if (!ctx.from?.id) {
-    await ctx.reply(getTranslation(lang, 'end_dialog_error'));
-    return;
-  }
+  try {
+    if (!ctx.from?.id) {
+      await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+      return;
+    }
 
-  const telegramId = BigInt(ctx.from.id);
+    const telegramId = BigInt(ctx.from.id);
 
-  if (data?.startsWith('activate_')) {
-    // Handle activation of a conversation
-    const conversationId = BigInt(data.split('_')[1]);
-    const assistantId = telegramId;
-
-    const assistant = await prisma.assistant.findUnique({
-      where: { telegramId: assistantId },
-    });
-
+    // Проверяем, является ли отправитель ассистентом
+    const assistant = await prisma.assistant.findUnique({ where: { telegramId } });
     if (!assistant) {
-      await ctx.answerCallbackQuery({ text: getTranslation(lang, 'no_assistant_found'), show_alert: true });
+      await ctx.reply(getTranslation(lang, 'no_assistant_found'));
       return;
     }
 
-    const conversation = await prisma.conversation.findUnique({
-      where: { id: conversationId },
-      include: { assistantRequest: true, user: true },
-    });
-
-    if (!conversation || conversation.assistantId !== assistantId) {
-      await ctx.answerCallbackQuery({
-        text: getTranslation(lang, 'request_not_found_or_not_assigned'),
-        show_alert: true,
-      });
-      return;
-    }
-
-    // Activate the selected conversation for the assistant
-    await prisma.assistant.update({
-      where: { telegramId: assistantId },
-      data: { activeConversationId: conversationId },
-    });
-
-    await ctx.answerCallbackQuery({
-      text: `${getTranslation(lang, 'activated_request_with_subject')}: ${conversation.assistantRequest.subject}`,
-    });
-    await ctx.reply(
-      `${getTranslation(lang, 'now_chatting_with_user')}: ${conversation.user.username || conversation.userId}`
-    );
-  } else if (data.startsWith('accept_') || data.startsWith('reject_')) {
-    // Handle accept or reject actions
-    const [action, requestIdString] = data.split('_');
-    const requestId = BigInt(requestIdString);
-
-    if (action === 'accept') {
-      await handleAcceptRequest(requestId.toString(), telegramId, ctx);
-    } else if (action === 'reject') {
-      await handleRejectRequest(requestId.toString(), telegramId, ctx);
-    }
-  } else if (data === 'start_work') {
-    const assistant = await prisma.assistant.findUnique({ where: { telegramId: telegramId } });
-
-    if (assistant?.isWorking) {
+    if (assistant.isWorking) {
       await ctx.reply(getTranslation(lang, 'already_working'));
       return;
     }
@@ -1020,13 +976,27 @@ bot.on('callback_query:data', async (ctx) => {
           ]
         );
       }
-
       return;
     }
 
     await ctx.reply(getTranslation(lang, 'work_started'));
-  } else if (data === 'my_coins') {
-    // Handle displaying coins
+  } catch (error) {
+    console.error('Error in /online command:', error);
+    await ctx.reply(getTranslation(detectUserLanguage(ctx), 'server_error'));
+  }
+});
+
+bot.command('coins', async (ctx) => {
+  const lang = detectUserLanguage(ctx);
+
+  try {
+    if (!ctx.from?.id) {
+      await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+      return;
+    }
+
+    const telegramId = BigInt(ctx.from.id);
+
     const assistant = await prisma.assistant.findUnique({
       where: { telegramId: telegramId },
     });
@@ -1043,6 +1013,110 @@ bot.on('callback_query:data', async (ctx) => {
       });
     } else {
       await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+    }
+  } catch (error) {
+    console.error('Error in /my_coins command:', error);
+    await ctx.reply(getTranslation(lang, 'server_error'));
+  }
+});
+
+bot.command('my_activity', async (ctx) => {
+  const lang = detectUserLanguage(ctx);
+
+  try {
+    if (!ctx.from?.id) {
+      await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+      return;
+    }
+
+    const telegramId = BigInt(ctx.from.id);
+
+    const stats = await getAssistantActivity(telegramId);
+
+    const activityMessage = `
+📊 ${getTranslation(lang, 'my_activity')}:
+- ${getTranslation(lang, 'total_conversations')}: ${stats.totalConversations}
+- ${getTranslation(lang, 'conversations_last_24_hours')}: ${stats.conversationsLast24Hours}
+- ${getTranslation(lang, 'ignored_requests')}: ${stats.ignoredRequests}
+- ${getTranslation(lang, 'rejected_requests')}: ${stats.rejectedRequests}
+- ${getTranslation(lang, 'complaints_last_24_hours')}: ${stats.complaintsLast24Hours}
+`;
+
+    await ctx.reply(activityMessage, {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: getTranslation(lang, 'view_limits'), callback_data: 'view_limits' }],
+        ],
+      },
+    });
+
+  } catch (error) {
+    console.error('Error in /my_activity command:', error);
+    await ctx.reply(getTranslation(lang, 'server_error'));
+  }
+});
+
+
+
+bot.on('callback_query:data', async (ctx) => {
+  const data = ctx.callbackQuery?.data;
+  const lang = detectUserLanguage(ctx);
+
+  if (!ctx.from?.id) {
+    await ctx.reply(getTranslation(lang, 'end_dialog_error'));
+    return;
+  }
+
+  const telegramId = BigInt(ctx.from.id);
+
+  if (data?.startsWith('activate_')) {
+    // Handle activation of a conversation
+    const conversationId = BigInt(data.split('_')[1]);
+    const assistantId = telegramId;
+
+    const assistant = await prisma.assistant.findUnique({
+      where: { telegramId: assistantId },
+    });
+
+    if (!assistant) {
+      await ctx.answerCallbackQuery({ text: getTranslation(lang, 'no_assistant_found'), show_alert: true });
+      return;
+    }
+
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+      include: { assistantRequest: true, user: true },
+    });
+
+    if (!conversation || conversation.assistantId !== assistantId) {
+      await ctx.answerCallbackQuery({
+        text: getTranslation(lang, 'request_not_found_or_not_assigned'),
+        show_alert: true,
+      });
+      return;
+    }
+
+    // Activate the selected conversation for the assistant
+    await prisma.assistant.update({
+      where: { telegramId: assistantId },
+      data: { activeConversationId: conversationId },
+    });
+
+    await ctx.answerCallbackQuery({
+      text: `${getTranslation(lang, 'activated_request_with_subject')}: ${conversation.assistantRequest.subject}`,
+    });
+    await ctx.reply(
+      `${getTranslation(lang, 'now_chatting_with_user')}: ${conversation.user.username || conversation.userId}`
+    );
+  } else if (data.startsWith('accept_') || data.startsWith('reject_')) {
+    // Handle accept or reject actions
+    const [action, requestIdString] = data.split('_');
+    const requestId = BigInt(requestIdString);
+
+    if (action === 'accept') {
+      await handleAcceptRequest(requestId.toString(), telegramId, ctx);
+    } else if (action === 'reject') {
+      await handleRejectRequest(requestId.toString(), telegramId, ctx);
     }
   } else if (data === 'my_activity') {
     // Handle displaying activity
