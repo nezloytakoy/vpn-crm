@@ -25,8 +25,8 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
             where: { telegramId: userIdBigInt },
         });
 
-        // EXTRA LOG: Результат поиска пользователя
-        await sendLogToTelegram(`[Debug] userExists result: ${JSON.stringify(userExists)}`);
+        // EXTRA LOG: Результат поиска пользователя (применяем serializeBigInt)
+        await sendLogToTelegram(`[Debug] userExists result: ${JSON.stringify(serializeBigInt(userExists))}`);
 
         if (!userExists) {
             await sendLogToTelegram(`[Error] User with ID ${userIdBigInt.toString()} not found`);
@@ -46,13 +46,11 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
         });
 
         // EXTRA LOG: Результат поиска активного запроса
-        await sendLogToTelegram(`[Debug] existingActiveRequest result: ${JSON.stringify(existingActiveRequest)}`);
+        await sendLogToTelegram(`[Debug] existingActiveRequest result: ${JSON.stringify(serializeBigInt(existingActiveRequest))}`);
 
         if (existingActiveRequest) {
             await sendLogToTelegram(
-                `[Info] User ${userIdBigInt.toString()} already has an active request: ${JSON.stringify(
-                    serializeBigInt(existingActiveRequest)
-                )}`
+                `[Info] User ${userIdBigInt.toString()} already has an active request: ${JSON.stringify(serializeBigInt(existingActiveRequest))}`
             );
             await sendTelegramMessageToUser(
                 userIdBigInt.toString(),
@@ -84,7 +82,7 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
         });
 
         // EXTRA LOG: Результат агрегации
-        await sendLogToTelegram(`[Debug] totalRemainingAssistantRequestsResult: ${JSON.stringify(totalRemainingAssistantRequestsResult)}`);
+        await sendLogToTelegram(`[Debug] totalRemainingAssistantRequestsResult: ${JSON.stringify(serializeBigInt(totalRemainingAssistantRequestsResult))}`);
 
         const totalRemainingAssistantRequests =
             totalRemainingAssistantRequestsResult._sum.remainingAssistantRequests || 0;
@@ -121,7 +119,7 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
         });
 
         // EXTRA LOG: Результат поиска тарифа
-        await sendLogToTelegram(`[Debug] userTariff result: ${JSON.stringify(userTariff)}`);
+        await sendLogToTelegram(`[Debug] userTariff result: ${JSON.stringify(serializeBigInt(userTariff))}`);
 
         if (!userTariff) {
             await sendLogToTelegram(
@@ -164,7 +162,7 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
                 status: 'PENDING',
                 isActive: true,
                 ignoredAssistants: [],
-                subject: null, // Тема будет обновлена после ввода пользователем
+                subject: null,
             },
         });
 
@@ -216,7 +214,6 @@ export async function handleAssistantRequest(userIdBigInt: bigint) {
         };
     }
 }
-
 
 
 function serializeBigInt(obj: unknown): unknown {
