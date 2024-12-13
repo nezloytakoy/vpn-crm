@@ -1338,7 +1338,13 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
       );
     }
 
-    // Устанавливаем активный разговор для ассистента
+    // Перед тем как установить активный разговор, сбрасываем его у других ассистентов, если они есть
+    await prisma.assistant.updateMany({
+      where: { activeConversationId: conversation.id },
+      data: { activeConversationId: null },
+    });
+
+    // Теперь устанавливаем активный разговор для текущего ассистента
     await prisma.assistant.update({
       where: { telegramId: assistantTelegramId },
       data: { activeConversationId: conversation.id },
