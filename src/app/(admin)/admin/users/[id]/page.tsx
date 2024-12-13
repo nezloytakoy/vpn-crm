@@ -385,6 +385,7 @@ function Page() {
 
 
   const handleDownload = (messages: Message[], filename: string) => {
+    console.log(messages)
     const content = messages
       .map(msg => `[${msg.timestamp}] ${msg.sender}: ${msg.content}`)
       .join('\n');
