@@ -148,16 +148,18 @@ async function remindAssistant(conversation: Conversation & { assistantRequest: 
     `Напоминание отправлено ассистенту ${assistantTelegramId.toString()} для диалога ${conversation.id.toString()}`
   );
 
-  const userTelegramId = conversation.userId.toString();
+  // Отправляем еще несколько напоминаний ассистенту (а не пользователю)
   for (let i = 1; i <= 5; i++) {
     await sendTelegramMessageToAssistant(
-      userTelegramId,
+      assistantTelegramId.toString(),
       `Пожалуйста, дайте ответ пользователю, запрос - ${requestId}`
     );
-    console.log(`Пользователю ${userTelegramId} отправлено сообщение номер ${i}`);
+    console.log(`Ассистенту ${assistantTelegramId.toString()} отправлено сообщение-напоминание номер ${i}`);
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 }
+
+
 async function handleIgnoredConversation(conversation: Conversation & { assistantRequest: AssistantRequest }) {
   const assistantTelegramId = conversation.assistantId;
   const requestId = conversation.assistantRequest.id.toString();
