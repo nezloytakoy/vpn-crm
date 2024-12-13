@@ -34,7 +34,7 @@ interface UserInfo {
 
 interface Message {
   sender: 'USER' | 'ASSISTANT';
-  content: string;
+  message: string; // вместо content
   timestamp: string;
 }
 
@@ -330,7 +330,7 @@ function Page() {
 
 
   useEffect(() => {
-    
+
     const fetchUserRole = async () => {
       try {
         const response = await fetch('/api/get-user-role', {
@@ -343,7 +343,7 @@ function Page() {
 
         if (response.ok) {
           const result = await response.json();
-          setUserRole(result.role); 
+          setUserRole(result.role);
           console.log("Роль", result.role)
         } else {
           console.error('Не удалось получить роль пользователя');
@@ -385,10 +385,21 @@ function Page() {
 
 
   const handleDownload = (messages: Message[], filename: string) => {
-    console.log(messages)
     const content = messages
-      .map(msg => `[${msg.timestamp}] ${msg.sender}: ${msg.content}`)
+      .map(msg => {
+        let text = msg.message;
+
+        // Удаляем "Запрос X:" где X — число
+        text = text.replace(/Запрос\s+\d+:/g, '');
+
+        // Удаляем блок с минутами:
+        // "\n--------------------------------\nДо конца сеанса осталось X минут\n"
+        text = text.replace(/\n--------------------------------\nДо конца сеанса осталось \d+ минут\n/g, '');
+
+        return `[${msg.timestamp}] ${msg.sender}: ${text.trim()}`;
+      })
       .join('\n');
+
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
 
