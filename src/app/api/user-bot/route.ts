@@ -164,7 +164,8 @@ type TranslationKey =
   | 'no_permission_to_send_files'
   | 'no_permission_to_send_videos'
   | 'unexpected_file'
-  | 'subjectExpected'; // Added new key
+  | 'subjectExpected'
+  | 'webapp_prompt'; // Добавлен новый ключ
 
 
 type Language = 'en' | 'ru';
@@ -210,7 +211,8 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       no_permission_to_send_voice: 'Ваша подписка не позволяет отправлять голосовые сообщения ассистентам.',
       no_permission_to_send_files: 'Ваша подписка не позволяет отправлять файлы ассистентам.',
       no_permission_to_send_videos: 'Ваша подписка не позволяет отправлять видео-кружки ассистентам.',
-      subjectExpected: 'Мы ожидаем от вас тему вашего запроса. Пожалуйста, укажите её.', // New translation
+      subjectExpected: 'Мы ожидаем от вас тему вашего запроса. Пожалуйста, укажите её.',
+      webapp_prompt: 'Нажмите на кнопку ниже, чтобы открыть профиль в Web App.' // Новая строка
     },
     en: {
       start_message:
@@ -250,8 +252,8 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       no_permission_to_send_voice: 'Your subscription does not allow sending voice messages to assistants.',
       no_permission_to_send_files: 'Your subscription does not allow sending files to assistants.',
       no_permission_to_send_videos: 'Your subscription does not allow sending video notes to assistants.',
-      subjectExpected: 'We are waiting for you to provide the subject of your request. Please specify it.', // New translation
-
+      subjectExpected: 'We are waiting for you to provide the subject of your request. Please specify it.',
+      webapp_prompt: 'Click the button below to open your profile in the Web App.' // Новая строка
     },
   };
 
@@ -561,7 +563,23 @@ bot.command('start', async (ctx) => {
       await ctx.reply(`🎉Вы успешно зарегистрировались, используя реферальную ссылку от пользователя @${referrerUsername}.🎉`);
     }
 
-    await ctx.reply(getTranslation(languageCode, 'start_message'), {
+    // Просто приветственное сообщение без кнопки веб-приложения
+    await ctx.reply(getTranslation(languageCode, 'start_message'));
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Ошибка при обработке команды /start:', err.message);
+    const languageCode = ctx.from?.language_code || 'en';
+    await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
+  }
+});
+
+// Новый обработчик для /my_profile
+bot.command('my_profile', async (ctx) => {
+  try {
+    const languageCode = ctx.from?.language_code || 'en';
+
+    // Отправляем сообщение с кнопкой, открывающей WebApp
+    await ctx.reply(getTranslation(languageCode, 'webapp_prompt'), {
       reply_markup: {
         inline_keyboard: [
           [
@@ -575,12 +593,11 @@ bot.command('start', async (ctx) => {
     });
   } catch (error: unknown) {
     const err = error as Error;
-    console.error('Ошибка при обработке команды /start:', err.message);
+    console.error('Ошибка при обработке команды /my_profile:', err.message);
     const languageCode = ctx.from?.language_code || 'en';
     await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
   }
 });
-
 
 
 
