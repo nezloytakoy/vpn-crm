@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { sendTelegramMessageWithButtons } from './telegram'; // Предполагается, что эти функции определены в telegram.ts
+import { sendTelegramMessageWithButtons } from './telegram';
 import axios from 'axios';
 
 const prisma = new PrismaClient();
@@ -116,37 +116,59 @@ export async function handleRejectRequest(requestId: string, assistantTelegramId
 }
 
 async function findNewAssistant(requestId: bigint, ignoredAssistants: bigint[]) {
+  // Находим всех доступных ассистентов
   const availableAssistants = await prisma.assistant.findMany({
     where: {
       isWorking: true,
+      isBlocked: false,
       telegramId: {
         notIn: ignoredAssistants,
       },
     },
   });
 
-  const assistantsWithPenalty = await Promise.all(
+  if (availableAssistants.length === 0) {
+    // Нет вообще ассистентов
+    await prisma.assistantRequest.update({
+      where: { id: requestId },
+      data: { ignoredAssistants: [] },
+    });
+    return null;
+  }
+
+  // Считаем штрафные баллы и количество активных запросов для каждого ассистента
+  const assistantsData = await Promise.all(
     availableAssistants.map(async (assistant) => {
       const penaltyPoints = await getAssistantPenaltyPoints(assistant.telegramId);
-      return { ...assistant, penaltyPoints };
+
+      const activeRequestsCount = await prisma.assistantRequest.count({
+        where: {
+          assistantId: assistant.telegramId,
+          isActive: true,
+        },
+      });
+
+      return { ...assistant, penaltyPoints, activeRequestsCount };
     })
   );
 
-  assistantsWithPenalty.sort((a, b) => {
+  // Сортируем сначала по penaltyPoints (по возрастанию),
+  // Если penaltyPoints равны — сортируем по activeRequestsCount (по возрастанию)
+  assistantsData.sort((a, b) => {
     if (a.penaltyPoints === b.penaltyPoints) {
-      return (b.lastActiveAt?.getTime() || 0) - (a.lastActiveAt?.getTime() || 0);
+      return a.activeRequestsCount - b.activeRequestsCount;
     }
     return a.penaltyPoints - b.penaltyPoints;
   });
 
-  const selectedAssistant = assistantsWithPenalty[0];
+  const selectedAssistant = assistantsData[0];
 
   if (!selectedAssistant) {
     await prisma.assistantRequest.update({
       where: { id: requestId },
       data: { ignoredAssistants: [] },
     });
-    return findNewAssistant(requestId, []);
+    return null;
   }
 
   return selectedAssistant;
@@ -178,7 +200,7 @@ async function getAssistantPenaltyPoints(assistantId: bigint) {
 }
 
 async function sendTelegramMessage(chatId: string, text: string): Promise<void> {
-  const telegramBotToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN; // Убедитесь, что токен сохранен в переменной окружения
+  const telegramBotToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
   const telegramApiUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`;
 
   try {
@@ -191,7 +213,7 @@ async function sendTelegramMessage(chatId: string, text: string): Promise<void> 
     if (response.data.ok) {
       console.log(`Message successfully sent to chat ID: ${chatId}`);
     } else {
-      console.error(`Failed to send message: ${response.data}`);
+      console.error(`Failed to send message: ${JSON.stringify(response.data)}`);
     }
   } catch (error) {
     console.error(`Error sending message to chat ID: ${chatId}`, error);
