@@ -537,13 +537,13 @@ bot.command('requests', async (ctx) => {
       return;
     }
 
-    // Формируем кнопки для каждого активного запроса с нумерацией
-    const inlineKeyboard = activeConversations.map((conversation, index) => {
+    // Формируем кнопки для каждого активного запроса, используя реальный ID запроса
+    const inlineKeyboard = activeConversations.map((conversation) => {
       const subject = conversation.assistantRequest.subject || getTranslation(lang, 'no_message');
       const timeRemaining = calculateTimeRemaining(conversation.createdAt);
       return [
         {
-          text: `Запрос ${index + 1}: ${subject} | Осталось: ${timeRemaining}`,
+          text: `Запрос ${conversation.assistantRequest.id.toString()}: ${subject} | Осталось: ${timeRemaining}`,
           callback_data: `activate_${conversation.id}`,
         },
       ];
