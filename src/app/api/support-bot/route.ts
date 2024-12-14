@@ -1291,34 +1291,42 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
       include: { user: true },
     });
 
+    // Пытаемся найти существующий разговор для этого запроса
     let conversation = await prisma.conversation.findFirst({
-      where: { requestId: assistantRequest.id, status: 'ABORTED' },
+      where: { requestId: assistantRequest.id },
     });
 
     if (conversation) {
-      // Обновляем существующий разговор
-      conversation = await prisma.conversation.update({
-        where: { id: conversation.id },
-        data: {
-          assistantId: assistantTelegramId,
-          messages: [],
-          status: 'IN_PROGRESS',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          lastMessageFrom: '',
-          assistantResponseTimes: [],
-          lastUserMessageAt: null,
-        },
-      });
+      // Разговор уже существует. Проверяем его статус.
+      if (conversation.status === 'ABORTED') {
+        // Если разговор был в статусе ABORTED, обновляем его
+        conversation = await prisma.conversation.update({
+          where: { id: conversation.id },
+          data: {
+            assistantId: assistantTelegramId,
+            messages: [],
+            status: 'IN_PROGRESS',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            lastMessageFrom: '',
+            assistantResponseTimes: [],
+            lastUserMessageAt: null,
+          },
+        });
 
-      await ctx.reply('✅ Вы приняли запрос.');
+        await ctx.reply('✅ Вы приняли запрос.');
 
-      await sendTelegramMessageToUser(
-        assistantRequest.user.telegramId.toString(),
-        'Ассистент присоединился к чату. Сформулируйте свой вопрос.'
-      );
+        await sendTelegramMessageToUser(
+          assistantRequest.user.telegramId.toString(),
+          'Ассистент присоединился к чату. Сформулируйте свой вопрос.'
+        );
+      } else {
+        // Если статус разговора не ABORTED, значит запрос уже в процессе или завершён
+        await ctx.reply('❌ Этот запрос уже в работе или завершен.');
+        return;
+      }
     } else {
-      // Создаем новый разговор
+      // Разговора ещё нет, создаём новый
       conversation = await prisma.conversation.create({
         data: {
           userId: assistantRequest.userId,
