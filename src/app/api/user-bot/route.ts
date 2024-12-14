@@ -48,6 +48,8 @@ interface MessageOptions {
 }
 
 
+const SESSION_DURATION = 60; // Длительность сеанса в минутах
+
 async function sendMessageToAssistant(
   ctx: Context | null,
   assistantChatId: string,
@@ -63,13 +65,36 @@ async function sendMessageToAssistant(
   const assistantBot = new Bot(botToken);
 
   try {
-    if (message) {
-      console.log(`[sendMessageToAssistant] Отправка текстового сообщения ассистенту. Chat ID: ${assistantChatId}, Message: ${message}`);
-      await assistantBot.api.sendMessage(assistantChatId, message, options);
+    const assistantTelegramId = BigInt(assistantChatId);
+    console.log(`[sendMessageToAssistant] Идентификатор ассистента: ${assistantTelegramId}`);
+
+    // Находим активный разговор для ассистента
+    const activeConversation = await prisma.conversation.findFirst({
+      where: {
+        assistantId: assistantTelegramId,
+        status: 'IN_PROGRESS',
+      },
+    });
+
+    let finalMessage = message;
+    if (message && activeConversation) {
+      // Если есть активный разговор и мы отправляем текст, добавляем информацию о времени до конца сеанса
+      const currentTime = new Date();
+      const elapsedMinutes = Math.floor((currentTime.getTime() - activeConversation.createdAt.getTime()) / 60000);
+      const remainingMinutes = Math.max(SESSION_DURATION - elapsedMinutes, 0);
+
+      finalMessage = `
+${message}
+--------------------------------
+До конца сеанса осталось ${remainingMinutes} минут
+      `.trim();
+    }
+
+    if (finalMessage) {
+      console.log(`[sendMessageToAssistant] Отправка текстового сообщения ассистенту. Chat ID: ${assistantChatId}, Message: ${finalMessage}`);
+      await assistantBot.api.sendMessage(assistantChatId, finalMessage, options);
     } else if (ctx && ctx.chat && ctx.message) {
       console.log(`[sendMessageToAssistant] Копирование сообщения пользователя. Chat ID: ${assistantChatId}, Source Chat ID: ${ctx.chat.id}, Message ID: ${ctx.message.message_id}`);
-      // При копировании сообщения нет параметра options для копирования,
-      // но при необходимости можно добавить отдельную логику здесь
       await assistantBot.api.copyMessage(
         assistantChatId,
         ctx.chat.id,
@@ -79,16 +104,6 @@ async function sendMessageToAssistant(
       console.error('[sendMessageToAssistant] Ошибка: ни message, ни ctx не определены или ctx.chat/ctx.message отсутствуют');
       return;
     }
-
-    const assistantTelegramId = BigInt(assistantChatId);
-    console.log(`[sendMessageToAssistant] Идентификатор ассистента: ${assistantTelegramId}`);
-
-    const activeConversation = await prisma.conversation.findFirst({
-      where: {
-        assistantId: assistantTelegramId,
-        status: 'IN_PROGRESS',
-      },
-    });
 
     if (activeConversation) {
       console.log(`[sendMessageToAssistant] Найден активный разговор. ID: ${activeConversation.id}`);
