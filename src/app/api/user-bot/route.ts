@@ -1276,7 +1276,7 @@ bot.on('message:photo', async (ctx: Context) => {
 });
 
 bot.on('message:voice', async (ctx) => {
-  let languageCode: string = 'en'; // Установка значения по умолчанию
+  let languageCode: string = 'en'; // Значение по умолчанию
 
   try {
     languageCode = ctx.from?.language_code || 'en'; // Определяем язык пользователя
@@ -1368,9 +1368,7 @@ bot.on('message:voice', async (ctx) => {
         await ctx.reply(getTranslation(languageCode, 'subjectReceived'));
         return;
       } else {
-        console.error(
-          `No active request found for user ID: ${telegramId.toString()} while expecting a subject.`
-        );
+        console.error(`No active request found for user ID: ${telegramId.toString()} while expecting a subject.`);
         await ctx.reply(getTranslation(languageCode, 'no_active_request'));
         return;
       }
@@ -1395,13 +1393,24 @@ bot.on('message:voice', async (ctx) => {
       await sendFileToAssistant(activeRequest.assistant.telegramId.toString(), voiceBuffer, fileName);
       await ctx.reply('Голосовое сообщение успешно отправлено ассистенту.');
 
+      // Находим разговор, связанный с этим запросом
+      const conversationRecord = await prisma.conversation.findFirst({
+        where: { requestId: activeRequest.id, status: 'IN_PROGRESS' },
+      });
+
+      if (!conversationRecord) {
+        console.error('Не удалось найти разговор для обновления времени последнего сообщения.');
+        return;
+      }
+
       await prisma.conversation.update({
-        where: { id: activeRequest.id },
+        where: { id: conversationRecord.id },
         data: {
           lastMessageFrom: 'USER',
           lastUserMessageAt: currentTime,
         },
       });
+
       return;
     }
 
@@ -1409,6 +1418,7 @@ bot.on('message:voice', async (ctx) => {
     await ctx.reply(getTranslation(languageCode, 'unexpected_voice'));
   } catch (error) {
     console.error('Ошибка при обработке голосового сообщения:', error);
+    const languageCode = ctx.from?.language_code || 'en';
     await ctx.reply(getTranslation(languageCode, 'server_error'));
   }
 });
