@@ -1126,7 +1126,7 @@ bot.on('message:text', async (ctx: Context) => {
 
         // Используем реальный ID запроса вместо индекса
         const requestId = activeConversation.assistantRequest.id;
-        const prefix = `Запрос ${requestId}:\n\n`;
+        const prefix = `Запрос #N${requestId}:\n\n`;
 
         // Добавляем кнопку для переключения на этот запрос
         const inlineKeyboard = [[
