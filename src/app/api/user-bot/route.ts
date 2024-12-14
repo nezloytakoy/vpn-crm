@@ -41,11 +41,18 @@ async function sendFileToAssistant(assistantChatId: string, fileBuffer: Buffer, 
   }
 }
 
+interface MessageOptions {
+  reply_markup?: {
+    inline_keyboard: { text: string; callback_data: string }[][];
+  };
+}
+
 
 async function sendMessageToAssistant(
   ctx: Context | null,
   assistantChatId: string,
-  message?: string
+  message?: string,
+  options?: MessageOptions
 ) {
   const botToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
   if (!botToken) {
@@ -58,9 +65,11 @@ async function sendMessageToAssistant(
   try {
     if (message) {
       console.log(`[sendMessageToAssistant] Отправка текстового сообщения ассистенту. Chat ID: ${assistantChatId}, Message: ${message}`);
-      await assistantBot.api.sendMessage(assistantChatId, message);
+      await assistantBot.api.sendMessage(assistantChatId, message, options);
     } else if (ctx && ctx.chat && ctx.message) {
-      console.log(`[sendMessageToAssistant] Копирование сообщения пользователю. Chat ID: ${assistantChatId}, Source Chat ID: ${ctx.chat.id}, Message ID: ${ctx.message.message_id}`);
+      console.log(`[sendMessageToAssistant] Копирование сообщения пользователя. Chat ID: ${assistantChatId}, Source Chat ID: ${ctx.chat.id}, Message ID: ${ctx.message.message_id}`);
+      // При копировании сообщения нет параметра options для копирования,
+      // но при необходимости можно добавить отдельную логику здесь
       await assistantBot.api.copyMessage(
         assistantChatId,
         ctx.chat.id,
@@ -123,7 +132,6 @@ async function sendMessageToAssistant(
     console.error('[sendMessageToAssistant] Ошибка при отправке сообщения ассистенту:', error);
   }
 }
-
 
 
 
@@ -1086,7 +1094,7 @@ bot.on('message:text', async (ctx: Context) => {
         userId: telegramId,
         status: 'IN_PROGRESS',
       },
-      include: { assistant: true },
+      include: { assistant: true, assistantRequest: true },
     });
 
     if (activeConversation) {
@@ -1098,40 +1106,32 @@ bot.on('message:text', async (ctx: Context) => {
         )}`
       );
 
-      if (activeConversation.assistant) {
+      if (activeConversation.assistant && activeConversation.assistantRequest) {
         console.log(`Sending message to assistant ID: ${activeConversation.assistant.telegramId}`);
 
-        // Находим все активные запросы для этого ассистента, чтобы определить индекс
-        const allActiveConversations = await prisma.conversation.findMany({
-          where: {
-            assistantId: activeConversation.assistant.telegramId,
-            status: 'IN_PROGRESS',
-          },
-          orderBy: {
-            createdAt: 'asc', // Так же, как при выводе списка
-          },
-          include: {
-            assistantRequest: true,
-          },
-        });
+        // Используем реальный ID запроса вместо индекса
+        const requestId = activeConversation.assistantRequest.id;
+        const prefix = `Запрос ${requestId}:\n\n`;
 
-        // Находим индекс текущего разговора в списке
-        const currentIndex = allActiveConversations.findIndex(
-          (conv) => conv.id === activeConversation.id
-        );
+        // Добавляем кнопку для переключения на этот запрос
+        const inlineKeyboard = [[
+          { text: `Переключиться на запрос ${requestId}`, callback_data: `activate_${activeConversation.id}` }
+        ]];
 
-        // Формируем префикс: Запрос {номер}
-        const prefix = `Запрос ${currentIndex + 1}:\n\n`;
-
-        // Добавляем префикс к сообщению перед отправкой ассистенту
+        // Отправляем сообщение ассистенту с кнопкой
         await sendMessageToAssistant(
           ctx,
           activeConversation.assistant.telegramId.toString(),
-          prefix + userMessage
+          prefix + userMessage,
+          {
+            reply_markup: {
+              inline_keyboard: inlineKeyboard
+            }
+          }
         );
       } else {
         console.error(
-          `No assistant assigned to the active conversation with ID: ${activeConversation.id}`
+          `No assistant assigned or no assistantRequest found for the active conversation with ID: ${activeConversation.id}`
         );
         await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
       }
@@ -1149,7 +1149,6 @@ bot.on('message:text', async (ctx: Context) => {
     await ctx.reply(getTranslation(languageCode, 'server_error'));
   }
 });
-
 
 
 
