@@ -46,15 +46,17 @@ const translations = {
   },
 };
 
-
-
 function getTranslation(lang: 'ru' | 'en', key: keyof typeof translations['en']): string {
-  return translations[lang][key] || translations['en'][key];
+  const result = translations[lang][key] || translations['en'][key];
+  console.log(`getTranslation: lang=${lang}, key=${key}, result=${result}`); // Лог переводов
+  return result;
 }
 
 function detectUserLanguage(ctx: Context): 'ru' | 'en' {
   const langCode = ctx.from?.language_code;
-  return langCode === 'ru' ? 'ru' : 'en';
+  const detectedLang = (langCode === 'ru' ? 'ru' : 'en') as 'ru' | 'en';
+  console.log(`detectUserLanguage: from.language_code=${langCode}, detectedLang=${detectedLang}`); // Лог языка
+  return detectedLang;
 }
 
 // Обновление lastActiveAt при каждом взаимодействии с ботом
@@ -63,13 +65,11 @@ adminBot.use(async (ctx, next) => {
     const moderatorId = BigInt(ctx.from.id);
     const newUsername = ctx.from.username || "Отсутствует"; 
 
-    
     const moderator = await prisma.moderator.findUnique({
       where: { id: moderatorId },
     });
 
     if (moderator) {
-      
       if (moderator.username !== newUsername) {
         await prisma.moderator.update({
           where: { id: moderatorId },
@@ -80,7 +80,6 @@ adminBot.use(async (ctx, next) => {
         });
         console.log(`Username модератора с ID ${moderatorId} обновлен на ${newUsername}`);
       } else {
-        
         await prisma.moderator.update({
           where: { id: moderatorId },
           data: { lastActiveAt: new Date() },
@@ -95,31 +94,30 @@ adminBot.use(async (ctx, next) => {
 });
 
 
-
-
 adminBot.command('menu', async (ctx) => {
   const lang = detectUserLanguage(ctx);
+  console.log('command /menu called, lang =', lang); // Лог внутри команды
 
   if (ctx.from?.id) {
-    
     const moderator = await prisma.moderator.findFirst({
       where: { id: BigInt(ctx.from.id) },
     });
 
     if (moderator) {
-      
       await showModeratorMenu(ctx, lang);
     } else {
-      
+      console.log('command /menu: moderator not found');
       await ctx.reply(getTranslation(lang, 'command_error'));
     }
   } else {
+    console.log('command /menu: ctx.from.id not found');
     await ctx.reply(getTranslation(lang, 'command_error'));
   }
 });
 
 adminBot.command('start', async (ctx) => {
   const lang = detectUserLanguage(ctx);
+  console.log('command /start called, lang =', lang); // Лог внутри команды
 
   try {
     if (ctx.from?.id) {
@@ -130,9 +128,10 @@ adminBot.command('start', async (ctx) => {
 
       if (ctx.message?.text) {
         const args = ctx.message.text.split(' ');
+        console.log('command /start: args =', args);
         if (args.length > 1) {
           const inviteToken = args[1].replace('invite_', '');
-
+          console.log('command /start: inviteToken =', inviteToken);
           const invitation = await prisma.invitation.findFirst({
             where: {
               token: inviteToken,
@@ -154,7 +153,7 @@ adminBot.command('start', async (ctx) => {
             });
 
             if (existingModerator) {
-              
+              console.log('command /start: existingModerator found');
               await prisma.moderator.update({
                 where: { id: moderatorId },
                 data: { username: ctx.from.username },
@@ -163,6 +162,7 @@ adminBot.command('start', async (ctx) => {
               await ctx.reply('Вы уже являетесь модератором.');
               await showModeratorMenu(ctx, lang); 
             } else {
+              console.log('command /start: creating new moderator');
               await prisma.moderator.create({
                 data: {
                   login: invitation.login,
@@ -181,15 +181,19 @@ adminBot.command('start', async (ctx) => {
               await showModeratorMenu(ctx, lang);
             }
           } else {
+            console.log('command /start: no valid invitation found');
             await ctx.reply(getTranslation(lang, 'invalid_link'));
           }
         } else {
+          console.log('command /start: no invite token provided, just greeting');
           await ctx.reply(getTranslation(lang, 'moderator_bot'));
         }
       } else {
+        console.log('command /start: no message text');
         await ctx.reply(getTranslation(lang, 'command_error'));
       }
     } else {
+      console.log('command /start: no ctx.from.id');
       await ctx.reply(getTranslation(lang, 'command_error'));
     }
   } catch (error) {
@@ -199,21 +203,20 @@ adminBot.command('start', async (ctx) => {
 });
 
 
-
-
 async function showModeratorMenu(ctx: Context, lang: 'ru' | 'en') {
+  console.log('showModeratorMenu called, lang =', lang); // Лог для отображения меню
   const keyboard = new InlineKeyboard()
     .text('💬 ' + getTranslation(lang, 'message_user'), 'message_user')
     .row()
-    .text('👨‍💻 ' + getTranslation(lang, 'message_assistant'), 'message_assistant')
+    .text('👨‍💻 ' + getTranslation(lang, 'message_assistant'), 'message_assistant');
 
   await ctx.reply(getTranslation(lang, 'menu'), { reply_markup: keyboard });
 }
 
 
-
 adminBot.callbackQuery('message_user', async (ctx) => {
   const lang = detectUserLanguage(ctx);
+  console.log('callbackQuery: message_user, lang =', lang);
   await ctx.answerCallbackQuery();
   moderatorState[ctx.from.id] = { state: 'awaiting_user_id' };
   await ctx.reply(getTranslation(lang, 'user_id_prompt'));
@@ -221,20 +224,23 @@ adminBot.callbackQuery('message_user', async (ctx) => {
 
 adminBot.callbackQuery('message_assistant', async (ctx) => {
   const lang = detectUserLanguage(ctx);
+  console.log('callbackQuery: message_assistant, lang =', lang);
   await ctx.answerCallbackQuery();
   moderatorState[ctx.from.id] = { state: 'awaiting_assistant_id' };
   await ctx.reply(getTranslation(lang, 'assistant_id_prompt'));
 });
 
 
-
 adminBot.on('message', async (ctx) => {
   const modId = ctx.from?.id;
   if (!modId) {
+    console.log('on message: no modId');
     await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
     return;
   }
 
+  const lang = detectUserLanguage(ctx);
+  console.log('on message: received message, lang =', lang);
   const messageText = ctx.message?.text;
   if (!messageText) {
     await ctx.reply('Пожалуйста, отправьте текстовое сообщение.');
@@ -243,17 +249,14 @@ adminBot.on('message', async (ctx) => {
 
   const moderatorId = BigInt(modId);
 
-
-
-  
   const currentState = moderatorState[modId]?.state;
+  console.log(`on message: currentState = ${currentState}, modId=${modId}`);
 
   if (!currentState) {
     await ctx.reply('У вас нет активных арбитражей или текущих запросов.');
     return;
   }
 
-  
   if (currentState === 'awaiting_user_id' || currentState === 'awaiting_assistant_id') {
     const id = messageText;
 
@@ -278,17 +281,13 @@ adminBot.on('message', async (ctx) => {
       const targetMessage = `Сообщение от модератора:\n\n${messageText}`;
       try {
         if (currentState === 'awaiting_message_user') {
-          
           await userBot.api.sendMessage(Number(targetId), targetMessage);
-          
           await prisma.moderator.update({
             where: { id: moderatorId },
             data: { userMessagesCount: { increment: 1 } },
           });
         } else {
-          
           await supportBot.api.sendMessage(Number(targetId), targetMessage);
-          
           await prisma.moderator.update({
             where: { id: moderatorId },
             data: { assistantMessagesCount: { increment: 1 } },
@@ -297,7 +296,7 @@ adminBot.on('message', async (ctx) => {
 
         await ctx.reply('Сообщение отправлено.');
       } catch (error) {
-        console.log(error);
+        console.log('on message: error sending message', error);
         await ctx.reply('Ошибка при отправке сообщения.');
       }
     }
@@ -305,10 +304,6 @@ adminBot.on('message', async (ctx) => {
     delete moderatorState[modId];
   }
 });
-
-
-
-
 
 
 export const POST = webhookCallback(adminBot, 'std/http');
