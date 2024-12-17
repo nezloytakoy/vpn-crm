@@ -8,6 +8,7 @@ import Link from 'next/link';
 import Popup from './../../../components/Popup/Popup';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
+import { TFunction } from 'i18next';
 
 const TELEGRAM_LOG_USER_ID = 5829159515;
 
@@ -41,7 +42,7 @@ interface TariffInfo {
     aiRequests: number;
 }
 
-const mapTariffName = (t: Function, tariffName: string, assistantRequests: number): string => {
+const mapTariffName = (t: TFunction, tariffName: string, assistantRequests: number): string => {
     switch (tariffName) {
         case 'FIRST':
         case 'SECOND':
