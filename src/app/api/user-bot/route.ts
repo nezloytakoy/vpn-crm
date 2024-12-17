@@ -50,7 +50,215 @@ interface MessageOptions {
 
 const SESSION_DURATION = 60; // Длительность сеанса в минутах
 
-async function sendMessageToAssistant(
+
+
+
+
+
+type TranslationKey =
+  | 'start_message'
+  | 'webapp_button'
+  | 'no_user_id'
+  | 'no_text_message'
+  | 'error_processing_message'
+  | 'dialog_closed'
+  | 'error_end_dialog'
+  | 'no_active_dialog'
+  | 'user_ended_dialog'
+  | 'user_ended_dialog_no_reward'
+  | 'ai_no_response'
+  | 'ai_chat_deactivated'
+  | 'ai_chat_not_active'
+  | 'coin_awarded'
+  | 'no_user_found'
+  | 'no_active_dialogs'
+  | 'complaint_submitted'
+  | 'enterSubject'
+  | 'subjectReceived'
+  | 'no_active_request'
+  | 'server_error'
+  | 'assistantRequestMessage'
+  | 'noAssistantsAvailable'
+  | 'requestSent'
+  | 'accept'
+  | 'reject'
+  | 'unexpected_photo'
+  | 'unexpected_voice'
+  | 'no_photo_detected'
+  | 'no_active_subscription'
+  | 'no_permission_to_send_photos'
+  | 'no_permission_to_send_voice'
+  | 'no_permission_to_send_files'
+  | 'no_permission_to_send_videos'
+  | 'unexpected_file'
+  | 'subjectExpected'
+  | 'webapp_prompt'
+  | 'session_time_remaining'
+  | 'blocked_until'
+  | 'block_time_expired'
+  | 'invalid_referral_code'
+  | 'referral_already_used'
+  | 'referral_registered'
+  | 'payment_success'
+  | 'payment_error'
+  | 'no_requests'
+  | 'complaint_already_submitted'
+  | 'complaint_prompt'
+  | 'thanks_for_using'
+  | 'not_enough_coins'
+  | 'assistant_not_found_for_last_dialog'
+  | 'extend_session_new_request'
+  | 'extend_session_request_sent'
+  | 'request_prefix'
+  | 'switch_to_request'
+  | 'voice_message_sent'
+  | 'file_sent_to_assistant'
+  | 'video_note_sent_to_assistant'
+  | 'complaint_not_found'
+  | 'ai_settings_load_error';
+
+
+type Language = 'en' | 'ru';
+
+const getTranslation = (languageCode: string | undefined, key: TranslationKey): string => {
+  const translations: Record<Language, Record<TranslationKey, string>> = {
+    ru: {
+      start_message: "👋 Это бот для пользователей! Для продолжения нажмите на кнопку ниже и войдите в Telegram Web App.",
+      webapp_button: "🚪 Войти в Web App",
+      no_user_id: "Не удалось получить ваш идентификатор пользователя.",
+      no_text_message: "Пожалуйста, отправьте текстовое сообщение.",
+      error_processing_message: "Произошла ошибка при обработке вашего сообщения. Пожалуйста, попробуйте еще раз позже.",
+      dialog_closed: "Диалог с ассистентом завершен. Спасибо за использование нашего сервиса! Написать жалобу вы можете вызвав команду /problem",
+      error_end_dialog: "Произошла ошибка при завершении диалога. Пожалуйста, попробуйте еще раз позже.",
+      no_active_dialog: "У вас нет активного диалога с ассистентом.",
+      user_ended_dialog: "Пользователь завершил диалог.",
+      user_ended_dialog_no_reward: "Пользователь завершил диалог. Награда не начислена.",
+      ai_no_response: "Извините, не удалось получить ответ от ИИ.",
+      ai_chat_deactivated: "Режим общения с ИИ деактивирован. Спасибо за использование нашего сервиса!",
+      ai_chat_not_active: "У вас нет активного диалога с ИИ.",
+      coin_awarded: "Вам начислен 1 коин за завершение диалога.",
+      no_user_found: "Пользователь не найден.",
+      no_active_dialogs: "У вас нет активных диалогов.",
+      complaint_submitted: "Ваша жалоба была отправлена.",
+      enterSubject: "Пожалуйста, введите тему вашего запроса.",
+      subjectReceived: "Тема получена. Соединяем вас с ассистентом.",
+      no_active_request: "Активный запрос не найден.",
+      server_error: "Произошла ошибка. Пожалуйста, попробуйте позже.",
+      assistantRequestMessage: "Запрос пользователя на разговор",
+      noAssistantsAvailable: "Нет доступных ассистентов",
+      requestSent: "Запрос отправлен ассистенту.",
+      accept: "Принять",
+      reject: "Отклонить",
+      unexpected_photo: "Ваше фото получено, но не ожидается. Попробуйте снова.",
+      no_photo_detected: "Пожалуйста, отправьте изображение.",
+      unexpected_voice: "Ваше голосовое сообщение получено, но не ожидается. Попробуйте снова.",
+      unexpected_file: "Ваш файл получен, но не ожидается. Попробуйте снова.",
+      no_active_subscription: "У вас нет активной подписки.",
+      no_permission_to_send_photos: "Ваша подписка не позволяет отправлять фотографии ассистентам.",
+      no_permission_to_send_voice: "Ваша подписка не позволяет отправлять голосовые сообщения ассистентам.",
+      no_permission_to_send_files: "Ваша подписка не позволяет отправлять файлы ассистентам.",
+      no_permission_to_send_videos: "Ваша подписка не позволяет отправлять видео-кружки ассистентам.",
+      subjectExpected: "Мы ожидаем от вас тему вашего запроса. Пожалуйста, укажите её.",
+      webapp_prompt: "Нажмите на кнопку ниже, чтобы открыть профиль в Web App.",
+      session_time_remaining: "--------------------------------\nДо конца сеанса осталось %minutes% минут",
+      blocked_until: "Вы заблокированы администратором, до разблокировки осталось %time%ч.",
+      block_time_expired: "Время блокировки вышло, вы можете продолжать пользоваться ботом.",
+      invalid_referral_code: "Неверный реферальный код.",
+      referral_already_used: "Эта реферальная ссылка уже использована.",
+      referral_registered: "🎉Вы успешно зарегистрировались, используя реферальную ссылку от пользователя @%username%.🎉",
+      payment_success: "Ваш платеж прошел успешно! Привилегии активированы.",
+      payment_error: "Произошла ошибка при обработке вашего платежа. Пожалуйста, свяжитесь с поддержкой.",
+      no_requests: "⚠️ У вас нет запросов.",
+      complaint_already_submitted: "⚠️ Вы уже подали жалобу по этому запросу.",
+      complaint_prompt: "Опишите свою жалобу. После этого вы сможете загрузить скриншоты.",
+      thanks_for_using: "Спасибо за использование нашего сервиса",
+      not_enough_coins: "У вас недостаточно коинов.",
+      assistant_not_found_for_last_dialog: "Ошибка: не удалось найти ассистента для последнего диалога.",
+      extend_session_new_request: "Новый запрос на продление сеанса.",
+      extend_session_request_sent: "Ваш запрос на продление сеанса отправлен ассистенту.",
+      request_prefix: "Запрос #N%id%:\n\n",
+      switch_to_request: "Переключиться на запрос %id%",
+      voice_message_sent: "Голосовое сообщение успешно отправлено ассистенту.",
+      file_sent_to_assistant: "Файл успешно отправлен ассистенту.",
+      video_note_sent_to_assistant: "Видео-кружок успешно отправлен ассистенту.",
+      complaint_not_found: "Жалоба не найдена",
+      ai_settings_load_error: "Не удалось загрузить настройки AI. Пожалуйста, попробуйте позже."
+    },
+    en: {
+      start_message: "👋 This is the user bot! To continue, click the button below and log into the Telegram Web App.",
+      webapp_button: "🚪 Log into Web App",
+      no_user_id: "Failed to retrieve your user ID.",
+      no_text_message: "Please send a text message.",
+      error_processing_message: "An error occurred while processing your message. Please try again later.",
+      dialog_closed: "The dialog with the assistant has ended. Thank you for using our service!",
+      error_end_dialog: "An error occurred while ending the dialog. Please try again later.",
+      no_active_dialog: "You have no active dialog with an assistant.",
+      user_ended_dialog: "The user has ended the dialog.",
+      user_ended_dialog_no_reward: "The user has ended the dialog. No reward was granted.",
+      ai_no_response: "Sorry, could not get a response from the AI.",
+      ai_chat_deactivated: "AI chat mode has been deactivated. Thank you for using our service!",
+      ai_chat_not_active: "You have no active AI dialog.",
+      coin_awarded: "You have been awarded 1 coin for completing the dialog.",
+      no_user_found: "User not found.",
+      no_active_dialogs: "You have no active dialogs.",
+      complaint_submitted: "Your complaint has been submitted.",
+      enterSubject: "Please enter the subject of your request.",
+      subjectReceived: "Subject received. Connecting you to an assistant.",
+      no_active_request: "No active request found.",
+      server_error: "An error occurred. Please try again later.",
+      assistantRequestMessage: "User request for conversation",
+      noAssistantsAvailable: "No assistants available",
+      requestSent: "The request has been sent to the assistant.",
+      accept: "Accept",
+      reject: "Reject",
+      unexpected_photo: "Your photo has been received but was not expected. Please try again.",
+      no_photo_detected: "Please send an image.",
+      unexpected_voice: "Your voice message has been received but was not expected. Please try again.",
+      unexpected_file: "Your file has been received but was not expected. Please try again.",
+      no_active_subscription: "You do not have an active subscription.",
+      no_permission_to_send_photos: "Your subscription does not allow sending photos to assistants.",
+      no_permission_to_send_voice: "Your subscription does not allow sending voice messages to assistants.",
+      no_permission_to_send_files: "Your subscription does not allow sending files to assistants.",
+      no_permission_to_send_videos: "Your subscription does not allow sending video notes to assistants.",
+      subjectExpected: "We are waiting for you to provide the subject of your request. Please specify it.",
+      webapp_prompt: "Click the button below to open your profile in the Web App.",
+      session_time_remaining: "--------------------------------\n%minutes% minutes remain until the end of the session",
+      blocked_until: "You are blocked by the administrator, you will be unblocked in %time%h.",
+      block_time_expired: "The block time has expired, you can continue using the bot.",
+      invalid_referral_code: "Invalid referral code.",
+      referral_already_used: "This referral link has already been used.",
+      referral_registered: "🎉You have successfully registered using the referral link from @%username%.🎉",
+      payment_success: "Your payment was successful! Privileges have been activated.",
+      payment_error: "An error occurred while processing your payment. Please contact support.",
+      no_requests: "⚠️ You have no requests.",
+      complaint_already_submitted: "⚠️ You have already submitted a complaint for this request.",
+      complaint_prompt: "Describe your complaint. After that, you can upload screenshots.",
+      thanks_for_using: "Thank you for using our service",
+      not_enough_coins: "You do not have enough coins.",
+      assistant_not_found_for_last_dialog: "Error: could not find an assistant for the last dialog.",
+      extend_session_new_request: "New request to extend the session.",
+      extend_session_request_sent: "Your request to extend the session has been sent to the assistant.",
+      request_prefix: "Request #N%id%:\n\n",
+      switch_to_request: "Switch to request %id%",
+      voice_message_sent: "Voice message successfully sent to the assistant.",
+      file_sent_to_assistant: "File successfully sent to the assistant.",
+      video_note_sent_to_assistant: "Video note successfully sent to the assistant.",
+      complaint_not_found: "Complaint not found",
+      ai_settings_load_error: "Could not load AI settings. Please try again later."
+    },
+  };
+
+  const selectedLanguage: Language = (languageCode as Language) || 'en';
+  return translations[selectedLanguage]?.[key] || translations['en'][key];
+};
+
+type JsonArray = Array<string | number | boolean | { [key: string]: string | number | boolean | JsonArray | JsonObject }>;
+
+interface JsonObject {
+  [key: string]: string | number | boolean | JsonArray | JsonObject;
+}
+
+export async function sendMessageToAssistant(
   ctx: Context | null,
   assistantChatId: string,
   message?: string,
@@ -65,6 +273,7 @@ async function sendMessageToAssistant(
   const assistantBot = new Bot(botToken);
 
   try {
+    const languageCode = ctx?.from?.language_code || 'en';
     const assistantTelegramId = BigInt(assistantChatId);
     console.log(`[sendMessageToAssistant] Идентификатор ассистента: ${assistantTelegramId}`);
 
@@ -83,11 +292,13 @@ async function sendMessageToAssistant(
       const elapsedMinutes = Math.floor((currentTime.getTime() - activeConversation.createdAt.getTime()) / 60000);
       const remainingMinutes = Math.max(SESSION_DURATION - elapsedMinutes, 0);
 
+      // Локализованная строка с временем до конца сеанса
+      const timeMessage = getTranslation(languageCode, 'session_time_remaining').replace('%minutes%', String(remainingMinutes));
+
       finalMessage = `
 ${message}
---------------------------------
-До конца сеанса осталось ${remainingMinutes} минут
-      `.trim();
+${timeMessage}
+`.trim();
     }
 
     if (finalMessage) {
@@ -149,148 +360,6 @@ ${message}
 }
 
 
-
-
-type TranslationKey =
-  | 'start_message'
-  | 'webapp_button'
-  | 'no_user_id'
-  | 'no_text_message'
-  | 'error_processing_message'
-  | 'dialog_closed'
-  | 'error_end_dialog'
-  | 'no_active_dialog'
-  | 'user_ended_dialog'
-  | 'user_ended_dialog_no_reward'
-  | 'ai_no_response'
-  | 'ai_chat_deactivated'
-  | 'ai_chat_not_active'
-  | 'coin_awarded'
-  | 'no_user_found'
-  | 'no_active_dialogs'
-  | 'complaint_submitted'
-  | 'enterSubject'
-  | 'subjectReceived'
-  | 'no_active_request'
-  | 'server_error'
-  | 'assistantRequestMessage'
-  | 'noAssistantsAvailable'
-  | 'requestSent'
-  | 'accept'
-  | 'reject'
-  | 'unexpected_photo'
-  | 'unexpected_voice'
-  | 'no_photo_detected'
-  | 'no_active_subscription'
-  | 'no_permission_to_send_photos'
-  | 'no_permission_to_send_voice'
-  | 'no_permission_to_send_files'
-  | 'no_permission_to_send_videos'
-  | 'unexpected_file'
-  | 'subjectExpected'
-  | 'webapp_prompt'; // Добавлен новый ключ
-
-
-type Language = 'en' | 'ru';
-
-const getTranslation = (languageCode: string | undefined, key: TranslationKey): string => {
-  const translations: Record<Language, Record<TranslationKey, string>> = {
-    ru: {
-      start_message:
-        '👋 Это бот для пользователей! Для продолжения нажмите на кнопку ниже и войдите в Telegram Web App.',
-      webapp_button: '🚪 Войти в Web App',
-      no_user_id: 'Не удалось получить ваш идентификатор пользователя.',
-      no_text_message: 'Пожалуйста, отправьте текстовое сообщение.',
-      error_processing_message:
-        'Произошла ошибка при обработке вашего сообщения. Пожалуйста, попробуйте еще раз позже.',
-      dialog_closed:
-        'Диалог с ассистентом завершен. Спасибо за использование нашего сервиса! Написать жалобу вы можете вызвав команду /problem',
-      error_end_dialog: 'Произошла ошибка при завершении диалога. Пожалуйста, попробуйте еще раз позже.',
-      no_active_dialog: 'У вас нет активного диалога с ассистентом.',
-      user_ended_dialog: 'Пользователь завершил диалог.',
-      user_ended_dialog_no_reward: 'Пользователь завершил диалог. Награда не начислена.',
-      ai_no_response: 'Извините, не удалось получить ответ от ИИ.',
-      ai_chat_deactivated: 'Режим общения с ИИ деактивирован. Спасибо за использование нашего сервиса!',
-      ai_chat_not_active: 'У вас нет активного диалога с ИИ.',
-      coin_awarded: 'Вам начислен 1 коин за завершение диалога.',
-      no_user_found: 'Пользователь не найден.',
-      no_active_dialogs: 'У вас нет активных диалогов.',
-      complaint_submitted: 'Ваша жалоба была отправлена.',
-      enterSubject: 'Пожалуйста, введите тему вашего запроса.',
-      subjectReceived: 'Тема получена. Соединяем вас с ассистентом.',
-      no_active_request: 'Активный запрос не найден.',
-      server_error: 'Произошла ошибка. Пожалуйста, попробуйте позже.',
-      assistantRequestMessage: 'Запрос пользователя на разговор',
-      noAssistantsAvailable: 'Нет доступных ассистентов',
-      requestSent: 'Запрос отправлен ассистенту.',
-      accept: 'Принять',
-      reject: 'Отклонить',
-      unexpected_photo: 'Ваше фото получено, но не ожидается. Попробуйте снова.',
-      no_photo_detected: 'Пожалуйста, отправьте изображение.',
-      unexpected_voice: 'Ваше голосовое сообщение получено, но не ожидается. Попробуйте снова.',
-      unexpected_file: 'Ваш файл получен, но не ожидается. Попробуйте снова.',
-      no_active_subscription: 'У вас нет активной подписки.',
-      no_permission_to_send_photos: 'Ваша подписка не позволяет отправлять фотографии ассистентам.',
-      no_permission_to_send_voice: 'Ваша подписка не позволяет отправлять голосовые сообщения ассистентам.',
-      no_permission_to_send_files: 'Ваша подписка не позволяет отправлять файлы ассистентам.',
-      no_permission_to_send_videos: 'Ваша подписка не позволяет отправлять видео-кружки ассистентам.',
-      subjectExpected: 'Мы ожидаем от вас тему вашего запроса. Пожалуйста, укажите её.',
-      webapp_prompt: 'Нажмите на кнопку ниже, чтобы открыть профиль в Web App.' // Новая строка
-    },
-    en: {
-      start_message:
-        '👋 This is the user bot! To continue, click the button below and log into the Telegram Web App.',
-      webapp_button: '🚪 Log into Web App',
-      no_user_id: 'Failed to retrieve your user ID.',
-      no_text_message: 'Please send a text message.',
-      error_processing_message:
-        'An error occurred while processing your message. Please try again later.',
-      dialog_closed: 'The dialog with the assistant has ended. Thank you for using our service!',
-      error_end_dialog: 'An error occurred while ending the dialog. Please try again later.',
-      no_active_dialog: 'You have no active dialog with an assistant.',
-      user_ended_dialog: 'The user has ended the dialog.',
-      user_ended_dialog_no_reward: 'The user has ended the dialog. No reward was granted.',
-      ai_no_response: 'Sorry, could not get a response from the AI.',
-      ai_chat_deactivated: 'AI chat mode has been deactivated. Thank you for using our service!',
-      ai_chat_not_active: 'You have no active AI dialog.',
-      coin_awarded: 'You have been awarded 1 coin for completing the dialog.',
-      no_user_found: 'User not found.',
-      no_active_dialogs: 'You have no active dialogs.',
-      complaint_submitted: 'Your complaint has been submitted.',
-      enterSubject: 'Please enter the subject of your request.',
-      subjectReceived: 'Subject received. Connecting you to an assistant.',
-      no_active_request: 'No active request found.',
-      server_error: 'An error occurred. Please try again later.',
-      assistantRequestMessage: 'User request for conversation',
-      noAssistantsAvailable: 'No assistants available',
-      requestSent: 'The request has been sent to the assistant.',
-      accept: 'Accept',
-      reject: 'Reject',
-      unexpected_photo: 'Your photo has been received but was not expected. Please try again.',
-      no_photo_detected: 'Please send an image.',
-      unexpected_voice: 'Your voice message has been received but was not expected. Please try again.',
-      unexpected_file: 'Your file has been received but was not expected. Please try again.',
-      no_active_subscription: 'You do not have an active subscription.',
-      no_permission_to_send_photos: 'Your subscription does not allow sending photos to assistants.',
-      no_permission_to_send_voice: 'Your subscription does not allow sending voice messages to assistants.',
-      no_permission_to_send_files: 'Your subscription does not allow sending files to assistants.',
-      no_permission_to_send_videos: 'Your subscription does not allow sending video notes to assistants.',
-      subjectExpected: 'We are waiting for you to provide the subject of your request. Please specify it.',
-      webapp_prompt: 'Click the button below to open your profile in the Web App.' // Новая строка
-    },
-  };
-
-  const selectedLanguage: Language = (languageCode as Language) || 'en';
-  return translations[selectedLanguage]?.[key] || translations['en'][key];
-};
-
-type JsonArray = Array<string | number | boolean | { [key: string]: string | number | boolean | JsonArray | JsonObject }>;
-
-interface JsonObject {
-  [key: string]: string | number | boolean | JsonArray | JsonObject;
-}
-
-
 // Проверка блокировки пользователя
 async function checkUserBlockStatus(ctx: Context) {
   if (!ctx.from?.id) return;
@@ -308,9 +377,10 @@ async function checkUserBlockStatus(ctx: Context) {
     const currentTime = new Date();
     const remainingTime = Math.ceil((user.unblockDate.getTime() - currentTime.getTime()) / (1000 * 60 * 60));
 
-
+    const languageCode = ctx?.from?.language_code || 'en';
     if (remainingTime > 0) {
-      await ctx.reply(`Вы заблокированы администратором, до разблокировки осталось ${remainingTime}ч.`);
+
+      await ctx.reply(getTranslation(languageCode, 'blocked_until').replace('%time%', String(remainingTime)));
       return true;
     } else {
 
@@ -318,7 +388,7 @@ async function checkUserBlockStatus(ctx: Context) {
         where: { telegramId },
         data: { isBlocked: false, unblockDate: null },
       });
-      await ctx.reply("Время блокировки вышло, вы можете продолжать пользоваться ботом.");
+      await ctx.reply(getTranslation(languageCode, 'block_time_expired'));
     }
   }
   return false;
@@ -525,12 +595,12 @@ bot.command('start', async (ctx) => {
       });
 
       if (!referral) {
-        await ctx.reply('Неверный реферальный код.');
+        await ctx.reply(getTranslation(languageCode, 'invalid_referral_code'));
         return;
       }
 
       if (referral.isUsed) {
-        await ctx.reply('Эта реферальная ссылка уже использована.');
+        await ctx.reply(getTranslation(languageCode, 'referral_already_used'));
         return;
       }
 
@@ -583,7 +653,9 @@ bot.command('start', async (ctx) => {
       });
       const referrerUsername = referrer?.username || 'неизвестный пользователь';
 
-      await ctx.reply(`🎉Вы успешно зарегистрировались, используя реферальную ссылку от пользователя @${referrerUsername}.🎉`);
+      await ctx.reply(
+        getTranslation(languageCode, 'referral_registered').replace('%username%', referrerUsername)
+      );
     }
 
     // Просто приветственное сообщение без кнопки веб-приложения
@@ -802,8 +874,8 @@ bot.on("message:successful_payment", async (ctx) => {
         await sendLogToTelegram(`Error handling referral bonus: ${errorMessage}`);
         throw referralError;
       }
-
-      await ctx.reply("Ваш платеж прошел успешно! Привилегии активированы.");
+      const languageCode = ctx.from?.language_code || 'en';
+      await ctx.reply(getTranslation(languageCode, 'payment_success'));
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -875,18 +947,20 @@ bot.command('problem', async (ctx: Context) => {
 
   } catch (error) {
     console.error('Ошибка при создании жалобы:', error);
-    await ctx.reply('Произошла ошибка при создании жалобы. Пожалуйста, попробуйте позже.');
+    const languageCode = ctx.from?.language_code || 'en';
+    await ctx.reply(getTranslation(languageCode, 'payment_error'));
   }
 });
 
 bot.on('callback_query', async (ctx) => {
   try {
+    const languageCode = ctx?.from?.language_code || 'en';
     const callbackData = ctx.callbackQuery?.data;
 
     if (callbackData === 'complain') {
       // Обработчик для жалобы
       if (!ctx.from?.id) {
-        await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
+        await ctx.reply(getTranslation(languageCode, 'no_user_id'));
         return;
       }
 
@@ -902,7 +976,7 @@ bot.on('callback_query', async (ctx) => {
       });
 
       if (!lastRequest) {
-        await ctx.reply('⚠️ У вас нет запросов.');
+        await ctx.reply(getTranslation(languageCode, 'no_requests'));
         return;
       }
 
@@ -911,7 +985,7 @@ bot.on('callback_query', async (ctx) => {
       });
 
       if (existingComplaint) {
-        await ctx.reply('⚠️ Вы уже подали жалобу по этому запросу.');
+        await ctx.reply(getTranslation(languageCode, 'complaint_already_submitted'));
         return;
       }
 
@@ -932,15 +1006,15 @@ bot.on('callback_query', async (ctx) => {
         data: { isWaitingForComplaint: true },
       });
 
-      await ctx.editMessageText('Опишите свою жалобу. После этого вы сможете загрузить скриншоты.');
+      await ctx.editMessageText(getTranslation(languageCode, 'complaint_prompt'));
     } else if (callbackData === 'satisfied') {
       // Обработчик для кнопки "Я доволен"
-      await ctx.reply('Спасибо за использование нашего сервиса');
+      await ctx.reply(getTranslation(languageCode, 'thanks_for_using'));
       await ctx.answerCallbackQuery(); // Закрываем уведомление о callback query
     } else if (callbackData === 'extend_session') {
       // Обработчик для продления сеанса
       if (!ctx.from?.id) {
-        await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
+        await ctx.reply(getTranslation(languageCode, 'no_user_id'));
         return;
       }
 
@@ -953,17 +1027,17 @@ bot.on('callback_query', async (ctx) => {
       });
 
       if (!user) {
-        await ctx.reply('Ошибка: пользователь не найден.');
+        await ctx.reply(getTranslation(languageCode, 'no_user_found'));
         return;
       }
 
       // Проверка коинов
       if (user.coins < 1) {
-        await ctx.reply('У вас недостаточно коинов.');
+        await ctx.reply(getTranslation(languageCode, 'not_enough_coins'));
         return;
       }
 
-      // Обновляем количество коинов пользователя
+      // Обновляем количество запросов (или коины) пользователя
       await prisma.user.update({
         where: { telegramId: userId },
         data: { assistantRequests: { decrement: 1 } },
@@ -973,28 +1047,28 @@ bot.on('callback_query', async (ctx) => {
 
       // Проверяем, есть ли последний диалог
       if (!lastConversation || !lastConversation.assistantId) {
-        await ctx.reply('Ошибка: не удалось найти ассистента для последнего диалога.');
+        await ctx.reply(getTranslation(languageCode, 'assistant_not_found_for_last_dialog'));
         return;
       }
 
       const assistantId = lastConversation.assistantId;
 
-      // Отправляем запрос на новый диалог ассистенту
       await sendTelegramMessageWithButtons(
         assistantId.toString(),
-        'Новый запрос на продление сеанса.',
+        getTranslation(languageCode, 'extend_session_new_request'),
         [
-          { text: 'Принять', callback_data: `accept_${lastConversation.id}` },
-          { text: 'Отклонить', callback_data: `reject_${lastConversation.id}` },
+          { text: getTranslation(languageCode, 'accept'), callback_data: `accept_${lastConversation.id}` },
+          { text: getTranslation(languageCode, 'reject'), callback_data: `reject_${lastConversation.id}` },
         ]
       );
 
-      await ctx.reply('Ваш запрос на продление сеанса отправлен ассистенту.');
+      await ctx.reply(getTranslation(languageCode, 'extend_session_request_sent'));
       await ctx.answerCallbackQuery(); // Закрываем уведомление о callback query
     }
   } catch (error) {
     console.error('Ошибка при обработке callback_query:', error);
-    await ctx.reply('Произошла ошибка. Пожалуйста, попробуйте позже.');
+    const languageCode = ctx?.from?.language_code || 'en';
+    await ctx.reply(getTranslation(languageCode, 'server_error'));
   }
 });
 
@@ -1126,12 +1200,15 @@ bot.on('message:text', async (ctx: Context) => {
 
         // Используем реальный ID запроса вместо индекса
         const requestId = activeConversation.assistantRequest.id;
-        const prefix = `Запрос #N${requestId}:\n\n`;
+        const prefix = getTranslation(languageCode, 'request_prefix').replace('%id%', requestId.toString());
 
         // Добавляем кнопку для переключения на этот запрос
+        const switchText = getTranslation(languageCode, 'switch_to_request').replace('%id%', requestId.toString());
+
         const inlineKeyboard = [[
-          { text: `Переключиться на запрос ${requestId}`, callback_data: `activate_${activeConversation.id}` }
+          { text: switchText, callback_data: `activate_${activeConversation.id}` }
         ]];
+
 
         // Отправляем сообщение ассистенту с кнопкой
         await sendMessageToAssistant(
@@ -1405,7 +1482,7 @@ bot.on('message:voice', async (ctx) => {
       const fileName = 'voice.ogg';
 
       await sendFileToAssistant(activeRequest.assistant.telegramId.toString(), voiceBuffer, fileName);
-      await ctx.reply('Голосовое сообщение успешно отправлено ассистенту.');
+      await ctx.reply(getTranslation(languageCode, 'voice_message_sent'));
 
       // Находим разговор, связанный с этим запросом
       const conversationRecord = await prisma.conversation.findFirst({
@@ -1558,7 +1635,7 @@ bot.on('message:document', async (ctx) => {
       const fileName = document.file_name || 'document';
 
       await sendFileToAssistant(activeRequest.assistant.telegramId.toString(), fileBuffer, fileName);
-      await ctx.reply('Файл успешно отправлен ассистенту.');
+      await ctx.reply(getTranslation(languageCode, 'file_sent_to_assistant'));
 
       await prisma.conversation.update({
         where: { id: activeRequest.id },
@@ -1698,7 +1775,7 @@ bot.on('message:video_note', async (ctx) => {
       const fileName = 'video_note.mp4';
 
       await sendFileToAssistant(activeRequest.assistant.telegramId.toString(), fileBuffer, fileName);
-      await ctx.reply('Видео-кружок успешно отправлен ассистенту.');
+      await ctx.reply(getTranslation(languageCode, 'video_note_sent_to_assistant'));
 
       await prisma.conversation.update({
         where: { id: activeRequest.id },
@@ -1760,7 +1837,7 @@ async function handleUserComplaint(telegramId: bigint, userMessage: string, lang
 
 
     if (!lastComplaint) {
-      await ctx.reply("Жалоба не найдена");
+      await ctx.reply(getTranslation(languageCode, 'complaint_not_found'));
       return;
     }
 
@@ -1786,10 +1863,12 @@ async function handleUserComplaint(telegramId: bigint, userMessage: string, lang
 
 async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Context) {
 
+  const languageCode = ctx?.from?.language_code || 'en';
+
 
   const modelData = await prisma.openAi.findFirst();
   if (!modelData) {
-    await ctx.reply('Не удалось загрузить настройки AI. Пожалуйста, попробуйте позже.');
+    await ctx.reply(getTranslation(languageCode, 'ai_settings_load_error'));
     return;
   }
 
@@ -1846,11 +1925,11 @@ async function handleAIChat(telegramId: bigint, userMessage: string, ctx: Contex
         },
       });
     } else {
-      await ctx.reply('AI не смог сгенерировать ответ.');
+      await ctx.reply(getTranslation(languageCode, 'ai_no_response'));
     }
   } catch (error) {
     console.error('Ошибка при работе с OpenAI API:', error);
-    await ctx.reply('Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже.');
+    await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
   }
 }
 

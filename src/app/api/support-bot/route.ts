@@ -199,7 +199,32 @@ const translations = {
     limits_info: "If skipped requests exceed 3 or rejections exceed 10 in a day, your activity will decrease, and your balance will be frozen for 24 hours. Complaints also pause withdrawals until resolved.",
     unknown_action: "Unknown action.",
     topic: "Topic",
-    no_subject: "No subject"
+    no_subject: "No subject",
+
+    blocked_until: "You are blocked by the administrator, you will be unblocked in %time%h.",
+    block_time_expired: "The block time has expired, you can continue using the bot.",
+    blocked_permanently: "You have been blocked by the administrator with no set unblock date.",
+    request_with_time: "Request %id%: %subject% | Remaining: %time%",
+    request_subject: "Request subject: %subject%",
+    new_user_message: "New message from the user",
+    no_more_assistants: "The connection with the assistant was lost, and there are no more assistants available.",
+    reassign_request_error: "❌ An error occurred while reassigning the request.",
+    end_work_confirm: "End work",
+    end_work_cancel: "Return to work",
+    active_dialogs_blocking_warning: "You have active dialogs. If you end work, you will not receive coins and will be blocked until reviewed by the administrator. End work?",
+    work_finished_blocked: "Work finished. You will not receive a reward and your account will be blocked until reviewed by the administration.",
+    assistant_lost_connecting_new: "Connection with the assistant lost, connecting another assistant...",
+    accept_request_confirm: "✅ You have accepted the request.",
+    assistant_joined_chat: "The assistant has joined the chat. Please formulate your question.",
+    request_already_in_progress: "❌ This request is already in progress or has been completed.",
+    another_assistant_accepted: "❌ Another assistant has already accepted the request.",
+    exceeded_reject_limit: "🚫 You have exceeded the rejection limit and have been blocked for 24 hours.",
+    request_subject_from_user: "User request subject",
+    request_subject_prefix: "Request subject: %subject%",
+    rejected_request_reassigned: "❌ You have rejected the request. A new assistant has been notified.",
+    rejected_request_no_assistants: "❌ You have rejected the request, but there are no more assistants available.",
+    rejected_request_error: "❌ An error occurred while rejecting the request.",
+    session_time_remaining: "--------------------------------\n%minutes% minutes remain until the end of the session"
   },
   ru: {
     end_dialog_error: "Ошибка: не удалось получить ваш идентификатор Telegram.",
@@ -248,8 +273,33 @@ const translations = {
     limits_info: "Если за сутки вы пропустите более 3 запросов или отклоните более 10, ваша активность снизится, и баланс заморозится на 24 часа. Жалобы также временно блокируют вывод до их решения.",
     unknown_action: "Неизвестное действие.",
     topic: "Тема",
-    no_subject: "отсутствует"
-  },
+    no_subject: "отсутствует",
+    
+    blocked_until: "Вы заблокированы администратором, до разблокировки осталось %time%ч.",
+    block_time_expired: "Время блокировки вышло, вы можете продолжать пользоваться ботом.",
+    blocked_permanently: "Вы заблокированы администратором без срока разблокировки.",
+    request_with_time: "Запрос %id%: %subject% | Осталось: %time%",
+    request_subject: "Тема запроса: %subject%",
+    new_user_message: "Новое сообщение от пользователя",
+    no_more_assistants: "Связь с ассистентом потеряна, но доступных ассистентов больше нет.",
+    reassign_request_error: "❌ Произошла ошибка при переназначении запроса.",
+    end_work_confirm: "Завершить работу",
+    end_work_cancel: "Вернуться к работе",
+    active_dialogs_blocking_warning: "У вас есть активные диалоги. Если вы завершите работу, вы не получите коинов и будете заблокированы до рассмотрения администратором. Завершить работу?",
+    work_finished_blocked: "Работа завершена. Вы не получите вознаграждение и ваш аккаунт заблокирован до рассмотрения администрацией.",
+    assistant_lost_connecting_new: "Связь с ассистентом потеряна, подключаем другого ассистента...",
+    accept_request_confirm: "✅ Вы приняли запрос.",
+    assistant_joined_chat: "Ассистент присоединился к чату. Сформулируйте свой вопрос.",
+    request_already_in_progress: "❌ Этот запрос уже в работе или завершен.",
+    another_assistant_accepted: "❌ Другой ассистент уже принял запрос.",
+    exceeded_reject_limit: "🚫 Вы превысили лимит отказов и были заблокированы на 24 часа.",
+    request_subject_from_user: "Тема запроса от пользователя",
+    request_subject_prefix: "Тема запроса: %subject%",
+    rejected_request_reassigned: "❌ Вы отклонили запрос. Новый ассистент уведомлен.",
+    rejected_request_no_assistants: "❌ Вы отклонили запрос, но доступных ассистентов больше нет.",
+    rejected_request_error: "❌ Произошла ошибка при отклонении запроса.",
+    session_time_remaining: "--------------------------------\nДо конца сеанса осталось %minutes% минут"
+  }
 };
 
 
@@ -353,6 +403,8 @@ async function checkAssistantBlockStatus(ctx: Context) {
     `Данные ассистента: isBlocked=${assistant.isBlocked}, unblockDate=${assistant.unblockDate}`
   );
 
+  const lang = detectUserLanguage(ctx);
+
   if (assistant.isBlocked) {
     // Если ассистент заблокирован
     if (assistant.unblockDate) {
@@ -367,11 +419,12 @@ async function checkAssistantBlockStatus(ctx: Context) {
 
       console.log(`Оставшееся время блокировки: ${remainingTime}ч`);
 
+
+
       if (remainingTime > 0) {
         console.log(`Пользователь ${telegramId.toString()} ещё заблокирован. Оставшееся время: ${remainingTime}ч`);
-        await ctx.reply(
-          `Вы заблокированы администратором, до разблокировки осталось ${remainingTime}ч.`
-        );
+        await ctx.reply(getTranslation(lang, 'blocked_until').replace('{{time}}', String(remainingTime)));
+
         return true;
       } else {
         console.log(
@@ -387,14 +440,12 @@ async function checkAssistantBlockStatus(ctx: Context) {
           `Блокировка пользователя ${telegramId.toString()} успешно снята в базе данных.`
         );
 
-        await ctx.reply(
-          "Время блокировки вышло, вы можете продолжать пользоваться ботом."
-        );
+        await ctx.reply(getTranslation(lang, 'block_time_expired'));
       }
     } else {
       // Ассистент заблокирован навсегда (unblockDate = null)
       console.log(`Пользователь ${telegramId.toString()} заблокирован без срока разблокировки.`);
-      await ctx.reply("Вы заблокированы администратором без срока разблокировки.");
+      await ctx.reply(getTranslation(lang, 'blocked_permanently'));
       return true;
     }
   } else {
@@ -541,9 +592,14 @@ bot.command('requests', async (ctx) => {
     const inlineKeyboard = activeConversations.map((conversation) => {
       const subject = conversation.assistantRequest.subject || getTranslation(lang, 'no_message');
       const timeRemaining = calculateTimeRemaining(conversation.createdAt);
+      const text = getTranslation(lang, 'request_with_time')
+        .replace('{{id}}', conversation.assistantRequest.id.toString())
+        .replace('{{subject}}', subject)
+        .replace('{{time}}', timeRemaining);
+
       return [
         {
-          text: `Запрос ${conversation.assistantRequest.id.toString()}: ${subject} | Осталось: ${timeRemaining}`,
+          text,
           callback_data: `activate_${conversation.id}`,
         },
       ];
@@ -574,7 +630,7 @@ function calculateTimeRemaining(createdAt: Date): string {
   return `${minutes}м ${seconds}с`;
 }
 
-async function reassignRequest(requestId: bigint, blockedAssistantId: bigint) {
+async function reassignRequest(requestId: bigint, blockedAssistantId: bigint, ctx: Context) {
   try {
     const assistantRequest = await prisma.assistantRequest.findUnique({
       where: { id: requestId },
@@ -625,6 +681,8 @@ async function reassignRequest(requestId: bigint, blockedAssistantId: bigint) {
         },
       });
 
+      const lang = detectUserLanguage(ctx);
+
       // Отправляем тему запроса или медиа новому ассистенту (если есть)
       if (assistantRequest?.subject) {
         const caption = 'Тема запроса от пользователя';
@@ -637,28 +695,36 @@ async function reassignRequest(requestId: bigint, blockedAssistantId: bigint) {
           );
         } else {
           // Отправляем текст без кнопок
+          const messageText = getTranslation(lang, 'request_subject').replace('{{subject}}', assistantRequest.subject || '');
+
           await sendTelegramMessageWithButtons(
             newAssistant.telegramId.toString(),
-            `Тема запроса: ${assistantRequest.subject}`,
+            messageText,
             []
           );
         }
       }
 
       // Отправляем основное сообщение с кнопками (accept/reject)
+      const messageText = assistantRequest?.message || getTranslation(lang, 'new_user_message');
+
       await sendTelegramMessageWithButtons(
         newAssistant.telegramId.toString(),
-        assistantRequest?.message || 'Новое сообщение от пользователя',
+        messageText,
         [
-          { text: getTranslation('en', 'accept'), callback_data: `accept_${requestId}` },
-          { text: getTranslation('en', 'reject'), callback_data: `reject_${requestId}` },
+          { text: getTranslation(lang, 'accept'), callback_data: `accept_${requestId}` },
+          { text: getTranslation(lang, 'reject'), callback_data: `reject_${requestId}` },
         ]
       );
 
 
     } else {
+      const lang = detectUserLanguage(ctx);
       // Нет доступных ассистентов
-      await userBot.api.sendMessage(Number(userId), 'Связь с ассистентом потеряна, но доступных ассистентов больше нет.');
+      await userBot.api.sendMessage(
+        Number(userId),
+        getTranslation(lang, 'no_more_assistants')
+      );
     }
 
   } catch (error) {
@@ -671,7 +737,11 @@ async function reassignRequest(requestId: bigint, blockedAssistantId: bigint) {
     });
     const userId = assistantRequest?.conversation?.userId;
     if (userId) {
-      await userBot.api.sendMessage(Number(userId), '❌ Произошла ошибка при переназначении запроса.');
+      const lang = detectUserLanguage(ctx);
+      await userBot.api.sendMessage(
+        Number(userId),
+        getTranslation(lang, 'reassign_request_error')
+      );
     }
   }
 }
@@ -698,15 +768,15 @@ bot.command('offline', async (ctx) => {
     // Если есть активные диалоги - предлагаем инлайн-кнопки и выходим без изменения isWorking
     if (activeConversation) {
       const keyboard = new InlineKeyboard()
-        .text('Завершить работу', 'end_work_confirm')
+        .text(getTranslation(lang, 'end_work_confirm'), 'end_work_confirm') // Если у вас есть ключ для "Завершить работу"
         .row()
-        .text('Вернуться к работе', 'end_work_cancel');
+        .text(getTranslation(lang, 'end_work_cancel'), 'end_work_cancel'); // Если есть ключ для "Вернуться к работе"
 
       await ctx.reply(
-        'У вас есть активные диалоги. Если вы завершите работу, вы не получите коинов и будете заблокированы до рассмотрения администратором. Завершить работу?',
+        getTranslation(lang, 'active_dialogs_blocking_warning'),
         { reply_markup: keyboard }
       );
-      return; // Выход без изменений isWorking
+      return;
     }
 
     // Получаем ассистента
@@ -815,7 +885,7 @@ bot.callbackQuery('end_work_confirm', async (ctx) => {
     });
 
     await ctx.answerCallbackQuery();
-    await ctx.editMessageText('Работа завершена. Вы не получите вознаграждение и ваш аккаунт заблокирован до рассмотрения администрацией.');
+    await ctx.editMessageText(getTranslation(lang, 'work_finished_blocked'));
 
     // Найдём любой завершённый сейчас разговор, чтобы получить requestId
     const completedConversation = await prisma.conversation.findFirst({
@@ -830,10 +900,12 @@ bot.callbackQuery('end_work_confirm', async (ctx) => {
       const userId = completedConversation.userId;
 
       // Отправляем сообщение пользователю через userBot
-      await userBot.api.sendMessage(Number(userId), 'Связь с ассистентом потеряна, подключаем другого ассистента...');
-
+      await userBot.api.sendMessage(
+        Number(userId),
+        getTranslation(lang, 'assistant_lost_connecting_new')
+      );
       // Переназначаем запрос другому ассистенту
-      await reassignRequest(completedConversation.requestId, telegramId);
+      await reassignRequest(completedConversation.requestId, telegramId, ctx);
     }
 
   } catch (error) {
@@ -1314,15 +1386,18 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
           },
         });
 
-        await ctx.reply('✅ Вы приняли запрос.');
+        const lang = detectUserLanguage(ctx);
+
+        await ctx.reply(getTranslation(lang, 'accept_request_confirm'));
 
         await sendTelegramMessageToUser(
           assistantRequest.user.telegramId.toString(),
-          'Ассистент присоединился к чату. Сформулируйте свой вопрос.'
+          getTranslation(lang, 'assistant_joined_chat')
         );
       } else {
+        const lang = detectUserLanguage(ctx);
         // Если статус разговора не ABORTED, значит запрос уже в процессе или завершён
-        await ctx.reply('❌ Этот запрос уже в работе или завершен.');
+        await ctx.reply(getTranslation(lang, 'request_already_in_progress'));
         return;
       }
     } else {
@@ -1338,11 +1413,13 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
         },
       });
 
-      await ctx.reply('✅ Вы приняли запрос. Ожидайте вопрос пользователя.');
+      const lang = detectUserLanguage(ctx);
+
+      await ctx.reply(getTranslation(lang, 'accept_request'));
 
       await sendTelegramMessageToUser(
         assistantRequest.user.telegramId.toString(),
-        'Ассистент присоединился к чату. Сформулируйте свой вопрос.'
+        getTranslation(lang, 'assistant_joined_chat')
       );
     }
 
@@ -1358,8 +1435,9 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
       data: { activeConversationId: conversation.id },
     });
   } catch (error) {
+    const lang = detectUserLanguage(ctx);
     console.error('Ошибка при принятии запроса:', error);
-    await ctx.reply('❌ Другой ассистент уже принял запрос.');
+    await ctx.reply(getTranslation(lang, 'another_assistant_accepted'));
   }
 }
 
@@ -1386,8 +1464,8 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
           unblockDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
         },
       });
-
-      await ctx.reply('🚫 Вы превысили лимит отказов и были заблокированы на 24 часа.');
+      const lang = detectUserLanguage(ctx);
+      await ctx.reply(getTranslation(lang, 'exceeded_reject_limit'));
       return;
     }
 
@@ -1427,6 +1505,7 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
     });
 
     // Находим нового ассистента
+    const lang = detectUserLanguage(ctx);
     const newAssistant = await findNewAssistant(BigInt(requestId), ignoredAssistants);
 
     if (newAssistant) {
@@ -1440,7 +1519,7 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
 
       // Обрабатываем поле subject и отправляем только одно сообщение
       if (assistantRequest?.subject) {
-        const caption = 'Тема запроса от пользователя';
+        const caption = getTranslation(lang, 'request_subject_from_user');
         if (assistantRequest.subject.startsWith('http')) {
           // Отправляем медиа (фото, видео, голосовое сообщение)
           await sendTelegramMediaToAssistant(
@@ -1450,34 +1529,38 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
           );
         } else {
           // Отправляем текст без кнопок
+          const subjectText = getTranslation(lang, 'request_subject_prefix')
+            .replace('{{subject}}', assistantRequest.subject);
           await sendTelegramMessageWithButtons(
             newAssistant.telegramId.toString(),
-            `Тема запроса: ${assistantRequest.subject}`,
+            subjectText,
             []
           );
         }
       }
 
       // Отправляем основное сообщение с кнопками
+      const mainMessage = assistantRequest?.message || getTranslation(lang, 'new_user_message');
       await sendTelegramMessageWithButtons(
         newAssistant.telegramId.toString(),
-        assistantRequest?.message || 'Новое сообщение от пользователя',
+        mainMessage,
         [
-          { text: getTranslation('en', 'accept'), callback_data: `accept_${requestId}` },
-          { text: getTranslation('en', 'reject'), callback_data: `reject_${requestId}` },
+          { text: getTranslation(lang, 'accept'), callback_data: `accept_${requestId}` },
+          { text: getTranslation(lang, 'reject'), callback_data: `reject_${requestId}` },
         ]
       );
 
-      await ctx.reply('❌ Вы отклонили запрос. Новый ассистент уведомлен.');
+      await ctx.reply(getTranslation(lang, 'rejected_request_reassigned'));
     } else {
-      await ctx.reply('❌ Вы отклонили запрос, но доступных ассистентов больше нет.');
+      await ctx.reply(getTranslation(lang, 'rejected_request_no_assistants'));
     }
 
   } catch (error) {
     console.error('Ошибка при отклонении запроса:', error);
-    await ctx.reply('❌ Произошла ошибка при отклонении запроса.');
+    const lang = detectUserLanguage(ctx);
+    await ctx.reply(getTranslation(lang, 'rejected_request_error'));
   }
-}
+} // <-- Закрываем функцию
 
 
 
@@ -1624,12 +1707,13 @@ bot.on('message', async (ctx) => {
     const elapsedMinutes = Math.floor((currentTime.getTime() - conversationStartTime.getTime()) / 60000);
     const remainingMinutes = Math.max(SESSION_DURATION - elapsedMinutes, 0);
 
-    // Формирование сообщения с информацией о времени
-    const responseMessage = `
+    const timeMessage = getTranslation(lang, 'session_time_remaining')
+  .replace('{{minutes}}', String(remainingMinutes));
+
+const responseMessage = `
 ${assistantMessage}
---------------------------------
-До конца сеанса осталось ${remainingMinutes} минут
-    `;
+${timeMessage}
+`.trim();
 
     // Отправляем сообщение пользователю только если статус беседы IN_PROGRESS
     await sendTelegramMessageToUser(
