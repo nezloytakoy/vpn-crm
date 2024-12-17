@@ -258,7 +258,7 @@ interface JsonObject {
   [key: string]: string | number | boolean | JsonArray | JsonObject;
 }
 
-export async function sendMessageToAssistant(
+async function sendMessageToAssistant(
   ctx: Context | null,
   assistantChatId: string,
   message?: string,
