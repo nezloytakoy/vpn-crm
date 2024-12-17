@@ -34,11 +34,24 @@ const sendLogToTelegram = async (message: string) => {
     }
 };
 
-const tariffMapping: { [key: string]: string } = {
-    'FIRST': 'AI + {count} запросов ассистенту',
-    'SECOND': 'AI + {count} запросов ассистенту',
-    'THIRD': 'AI + {count} запросов ассистенту',
-    'FOURTH': 'Только AI',
+interface TariffInfo {
+    displayName: string;
+    price: number;
+    assistantRequests: number;
+    aiRequests: number;
+}
+
+const mapTariffName = (t: Function, tariffName: string, assistantRequests: number): string => {
+    switch (tariffName) {
+        case 'FIRST':
+        case 'SECOND':
+        case 'THIRD':
+            return t('tariff_with_count', { count: assistantRequests });
+        case 'FOURTH':
+            return t('tariff_ai_only');
+        default:
+            return 'Unknown tariff';
+    }
 };
 
 const WaveComponent = () => {
@@ -54,7 +67,7 @@ const WaveComponent = () => {
 
     const [assistantRequests, setAssistantRequests] = useState<number | null>(null);
 
-    const [tariffs, setTariffs] = useState<{ [key: string]: { displayName: string; price: number } }>({});
+    const [tariffs, setTariffs] = useState<{ [key: string]: TariffInfo }>({});
 
     useEffect(() => {
         const userLang = window?.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
@@ -93,7 +106,6 @@ const WaveComponent = () => {
 
                 await sendLogToTelegram(`Fetching data for Telegram ID: ${telegramId}`);
 
-                // *** Добавляем вызов нового роута здесь ***
                 const checkSubscriptionsResponse = await fetch('/api/check-subscriptions', {
                     method: 'POST',
                     headers: {
@@ -110,7 +122,6 @@ const WaveComponent = () => {
                     const checkSubscriptionsData = await checkSubscriptionsResponse.json();
                     await sendLogToTelegram(`Subscriptions check result: ${JSON.stringify(checkSubscriptionsData)}`);
                 }
-                // *** Конец нового кода ***
 
                 const profileResponse = await fetch(`/api/get-profile-data?telegramId=${telegramId}`);
                 await sendLogToTelegram(`Profile data response status: ${profileResponse.status}`);
@@ -175,10 +186,8 @@ const WaveComponent = () => {
 
                 await sendLogToTelegram(`Tariffs data from API: ${JSON.stringify(data)}`);
 
-                const tariffsMap = data.reduce((acc: Record<string, { displayName: string; price: number; assistantRequests: number; aiRequests: number }>, tariff: { name: string; price: string; assistantRequestCount: number; aiRequestCount: number }) => {
-                    const displayName = tariff.name === 'FOURTH'
-                        ? 'Только AI'
-                        : (tariffMapping[tariff.name] || '').replace('{count}', String(tariff.assistantRequestCount || 0));
+                const tariffsMap = data.reduce((acc: Record<string, TariffInfo>, tariff: { name: string; price: string; assistantRequestCount: number; aiRequestCount: number }) => {
+                    const displayName = mapTariffName(t, tariff.name, tariff.assistantRequestCount || 0);
 
                     acc[tariff.name] = {
                         displayName,
@@ -198,7 +207,7 @@ const WaveComponent = () => {
         };
 
         fetchTariffs();
-    }, []);
+    }, [t]);
 
     const handleButtonClick = (tariffKey: string) => {
         const tariff = tariffs[tariffKey];
