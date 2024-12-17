@@ -43,6 +43,12 @@
   "your_referral_link": "Your referral link",
   "copy_link": "Copy link",
   "link_copied": "Link copied",
-  "long_press_to_copy": "Long press to copy the link"
+  "long_press_to_copy": "Long press to copy the link",
 
+  "tariff_with_count": "AI + {{count}} assistant requests",
+  "tariff_ai_only": "AI only",
+  "no_message": "No message",
+  "activated_request_with_subject": "Activated request with subject",
+  "now_chatting_with_user": "Now chatting with user",
+  "subjectExpected": "We are waiting for you to provide the subject of your request. Please specify it."
 }
