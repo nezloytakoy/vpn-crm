@@ -53,6 +53,8 @@ const SESSION_DURATION = 60; // Длительность сеанса в мин�
 
 
 
+
+
 type TranslationKey =
   | 'start_message'
   | 'webapp_button'
@@ -113,17 +115,12 @@ type TranslationKey =
   | 'file_sent_to_assistant'
   | 'video_note_sent_to_assistant'
   | 'complaint_not_found'
-  | 'ai_settings_load_error'
-  | 'tariff_purchased'
-  | 'assistant_and_ai_purchased'
-  | 'assistant_purchased'
-  | 'ai_purchased'
-  | 'unnamed_tariff';
+  | 'ai_settings_load_error';
 
 
 type Language = 'en' | 'ru';
 
-const getTranslation = (languageCode: string | undefined, key: TranslationKey, placeholders?: Record<string, string | number>): string => {
+const getTranslation = (languageCode: string | undefined, key: TranslationKey): string => {
   const translations: Record<Language, Record<TranslationKey, string>> = {
     ru: {
       start_message: "👋 Это бот для пользователей! Для продолжения нажмите на кнопку ниже и войдите в Telegram Web App.",
@@ -175,7 +172,7 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey, p
       complaint_already_submitted: "⚠️ Вы уже подали жалобу по этому запросу.",
       complaint_prompt: "Опишите свою жалобу. После этого вы сможете загрузить скриншоты.",
       thanks_for_using: "Спасибо за использование нашего сервиса",
-      not_enough_coins: "У вас недостаточно коинов.",
+      not_enough_coins: "У вас недостаточно запросов.",
       assistant_not_found_for_last_dialog: "Ошибка: не удалось найти ассистента для последнего диалога.",
       extend_session_new_request: "Новый запрос на продление сеанса.",
       extend_session_request_sent: "Ваш запрос на продление сеанса отправлен ассистенту.",
@@ -185,13 +182,7 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey, p
       file_sent_to_assistant: "Файл успешно отправлен ассистенту.",
       video_note_sent_to_assistant: "Видео-кружок успешно отправлен ассистенту.",
       complaint_not_found: "Жалоба не найдена",
-      ai_settings_load_error: "Не удалось загрузить настройки AI. Пожалуйста, попробуйте позже.",
-      // Новые ключи:
-      tariff_purchased: 'Вы приобрели тариф: "%tariffName%"',
-      assistant_and_ai_purchased: "Вы приобрели %assistantCount% запросов к ассистенту и %aiCount% запросов к ИИ.",
-      assistant_purchased: "Вы приобрели %assistantCount% запросов к ассистенту.",
-      ai_purchased: "Вы приобрели %aiCount% запросов к ИИ.",
-      unnamed_tariff: "Безымянный тариф"
+      ai_settings_load_error: "Не удалось загрузить настройки AI. Пожалуйста, попробуйте позже."
     },
     en: {
       start_message: "👋 This is the user bot! To continue, click the button below and log into the Telegram Web App.",
@@ -243,7 +234,7 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey, p
       complaint_already_submitted: "⚠️ You have already submitted a complaint for this request.",
       complaint_prompt: "Describe your complaint. After that, you can upload screenshots.",
       thanks_for_using: "Thank you for using our service",
-      not_enough_coins: "You do not have enough coins.",
+      not_enough_coins: "You do not have enough requests.",
       assistant_not_found_for_last_dialog: "Error: could not find an assistant for the last dialog.",
       extend_session_new_request: "New request to extend the session.",
       extend_session_request_sent: "Your request to extend the session has been sent to the assistant.",
@@ -253,28 +244,13 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey, p
       file_sent_to_assistant: "File successfully sent to the assistant.",
       video_note_sent_to_assistant: "Video note successfully sent to the assistant.",
       complaint_not_found: "Complaint not found",
-      ai_settings_load_error: "Could not load AI settings. Please try again later.",
-      // Новые ключи (английский перевод):
-      tariff_purchased: 'You have purchased the "%tariffName%" tariff.',
-      assistant_and_ai_purchased: "You have purchased %assistantCount% assistant requests and %aiCount% AI requests.",
-      assistant_purchased: "You have purchased %assistantCount% assistant requests.",
-      ai_purchased: "You have purchased %aiCount% AI requests.",
-      unnamed_tariff: "Unnamed tariff"
+      ai_settings_load_error: "Could not load AI settings. Please try again later."
     },
   };
 
   const selectedLanguage: Language = (languageCode as Language) || 'en';
-  let translated = translations[selectedLanguage]?.[key] || translations['en'][key];
-
-  if (placeholders) {
-    for (const [placeholderKey, placeholderValue] of Object.entries(placeholders)) {
-      translated = translated.replace(`%${placeholderKey}%`, String(placeholderValue));
-    }
-  }
-
-  return translated;
+  return translations[selectedLanguage]?.[key] || translations['en'][key];
 };
-
 
 type JsonArray = Array<string | number | boolean | { [key: string]: string | number | boolean | JsonArray | JsonObject }>;
 
@@ -779,6 +755,7 @@ bot.on("message:successful_payment", async (ctx) => {
         throw new Error(`Invalid decodedUserId format for BigInt conversion`);
       }
 
+      // Пытаемся найти подписку по цене totalStars
       let subscription;
       try {
         await sendLogToTelegram(`Before subscription query: totalStars = ${totalStars}`);
@@ -822,7 +799,7 @@ bot.on("message:successful_payment", async (ctx) => {
         } else {
           // Подписка не найдена — это покупка дополнительных запросов
           await sendLogToTelegram(`Subscription not found for price: ${totalStars} stars, treating as extra requests purchase`);
-          
+
           try {
             await prisma.userTariff.create({
               data: {
@@ -895,28 +872,7 @@ bot.on("message:successful_payment", async (ctx) => {
       }
 
       const languageCode = ctx.from?.language_code || 'en';
-
-      // Вывод сообщений с использованием ключей для перевода
-      if (subscription) {
-        // Пользователь приобрёл тариф
-        const tariffName = subscription.name || getTranslation(languageCode, 'unnamed_tariff');
-        await ctx.reply(getTranslation(languageCode, 'tariff_purchased', { tariffName }));
-      } else {
-        // Пользователь купил дополнительные запросы
-        const assistantCount = assistantRequests || 0;
-        const aiCount = aiRequests || 0;
-
-        if (assistantCount > 0 && aiCount > 0) {
-          await ctx.reply(getTranslation(languageCode, 'assistant_and_ai_purchased', { assistantCount, aiCount }));
-        } else if (assistantCount > 0) {
-          await ctx.reply(getTranslation(languageCode, 'assistant_purchased', { assistantCount }));
-        } else if (aiCount > 0) {
-          await ctx.reply(getTranslation(languageCode, 'ai_purchased', { aiCount }));
-        } else {
-          await ctx.reply(getTranslation(languageCode, 'payment_success'));
-        }
-      }
-
+      await ctx.reply(getTranslation(languageCode, 'payment_success'));
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -1074,13 +1030,14 @@ bot.on('callback_query', async (ctx) => {
         return;
       }
 
-      // Проверка коинов
-      if (user.coins < 1) {
-        await ctx.reply(getTranslation(languageCode, 'not_enough_coins'));
+      // Проверка доступных запросов к ассистенту
+      if (user.assistantRequests < 1) {
+        // Если запросов недостаточно, отправляем соответствующее сообщение
+        await ctx.reply(getTranslation(languageCode, 'no_requests'));
         return;
       }
 
-      // Обновляем количество запросов (или коины) пользователя
+      // Обновляем количество запросов у пользователя
       await prisma.user.update({
         where: { telegramId: userId },
         data: { assistantRequests: { decrement: 1 } },

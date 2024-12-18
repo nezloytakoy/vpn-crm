@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Column } from 'react-table';
 import Table from '@/components/Table/Table';
 import styles from './Coins.module.css';
@@ -29,34 +29,42 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedWithdraw, setSelectedWithdraw] = useState<SelectedWithdraw | null>(null);
-  const [amount, setAmount] = useState<string>(''); 
+  const [amount, setAmount] = useState<string>('');
   const [isRejecting, setIsRejecting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
 
-  
-  useEffect(() => {
-    const fetchWithdraws = async () => {
-      try {
-        const response = await fetch('/api/get-withdraw-requests');
+  const fetchWithdraws = useCallback(async () => {
+    try {
+      const response = await fetch('/api/get-withdraw-requests');
 
-        if (!response.ok) {
-          throw new Error('Ошибка получения данных');
-        }
-
-        const withdrawsData: WithdrawsData[] = await response.json();
-        setData(withdrawsData);
-      } catch (error) {
-        setError('Не удалось загрузить данные.');
-        console.error(error);
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error('Ошибка получения данных');
       }
-    };
 
-    fetchWithdraws();
+      const withdrawsData: WithdrawsData[] = await response.json();
+      setData(withdrawsData);
+      setError(null);
+    } catch (error) {
+      setError('Не удалось загрузить данные.');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  
+  useEffect(() => {
+    fetchWithdraws();
+
+    // Интервал для повторного запроса данных каждые 5 секунд
+    const intervalId = setInterval(() => {
+      fetchWithdraws();
+    }, 5000);
+
+    return () => {
+      clearInterval(intervalId); // очистка интервала при размонтировании
+    };
+  }, [fetchWithdraws]);
+
   const handleRowClick = async (withdrawId: string) => {
     try {
       const response = await fetch(`/api/get-withdraw-details?id=${withdrawId}`);
@@ -65,51 +73,47 @@ export default function Page() {
       }
       const withdrawDetails = await response.json();
       setSelectedWithdraw(withdrawDetails);
-      setAmount(withdrawDetails.amount); 
+      setAmount(withdrawDetails.amount);
     } catch (error) {
       console.error('Ошибка при загрузке данных запроса:', error);
     }
   };
 
-  
   const handleConfirm = async () => {
     if (!selectedWithdraw || !amount) return;
-  
+
     try {
-      setIsConfirming(true); 
+      setIsConfirming(true);
       const response = await fetch(`/api/confirm-withdraw-request?id=${selectedWithdraw.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount }), 
+        body: JSON.stringify({ amount }),
       });
-  
+
       if (!response.ok) {
         throw new Error('Ошибка при подтверждении запроса');
       }
-  
-      // Set a timeout to update state and reload the page after 5 seconds
-      setTimeout(() => {
-        setSelectedWithdraw(null);
-        setData(
-          data.map((item) =>
-            item.id === selectedWithdraw.id ? { ...item, status: 'Подтверждено' } : item
-          )
-        );
-        setIsConfirming(false); 
-        window.location.reload(); // Reload the page
-      }, 5000);
+
+      // Обновляем данные в состоянии сразу
+      setData((prevData) =>
+        prevData.map((item) =>
+          item.id === selectedWithdraw.id ? { ...item, status: 'Подтверждено' } : item
+        )
+      );
+
+      setSelectedWithdraw(null);
+      setIsConfirming(false);
     } catch (error) {
       console.error('Ошибка при подтверждении:', error);
-      setIsConfirming(false); 
+      setIsConfirming(false);
     }
   };
-  
-  
+
   const handleReject = async () => {
     if (!selectedWithdraw) return;
 
     try {
-      setIsRejecting(true); 
+      setIsRejecting(true);
       const response = await fetch(`/api/reject-withdraw-request?id=${selectedWithdraw.id}`, {
         method: 'POST',
       });
@@ -118,21 +122,18 @@ export default function Page() {
         throw new Error('Ошибка при отклонении запроса');
       }
 
-      
-      setTimeout(() => {
-        
-        setSelectedWithdraw(null);
-        setData(
-          data.map((item) =>
-            item.id === selectedWithdraw.id ? { ...item, status: 'Отклонено' } : item
-          )
-        );
-        setIsRejecting(false); 
-        window.location.reload(); 
-      }, 5000);
+      // Обновляем данные в состоянии сразу
+      setData((prevData) =>
+        prevData.map((item) =>
+          item.id === selectedWithdraw.id ? { ...item, status: 'Отклонено' } : item
+        )
+      );
+
+      setSelectedWithdraw(null);
+      setIsRejecting(false);
     } catch (error) {
       console.error('Ошибка при отклонении:', error);
-      setIsRejecting(false); 
+      setIsRejecting(false);
     }
   };
 
@@ -185,12 +186,11 @@ export default function Page() {
           <Table
             columns={columns}
             data={data}
-            onRowClick={(row) => handleRowClick(row.id)} 
+            onRowClick={(row) => handleRowClick(row.id)}
           />
         </div>
       </div>
 
-      
       {selectedWithdraw && (
         <div className={styles.popupOverlay}>
           <div className={styles.popup}>
@@ -218,7 +218,7 @@ export default function Page() {
             <label>
               <strong>Сумма для вывода:</strong>
               <input
-                type="number" 
+                type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className={styles.input}
