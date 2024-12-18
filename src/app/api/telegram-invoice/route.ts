@@ -1,9 +1,7 @@
 import { Bot } from "grammy";
-import { PrismaClient } from '@prisma/client';
-import { nanoid } from 'nanoid';
 
 const bot = new Bot(process.env.TELEGRAM_USER_BOT_TOKEN!);
-const prisma = new PrismaClient();
+
 
 const TELEGRAM_LOG_USER_ID = 5829159515;
 
