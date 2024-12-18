@@ -114,9 +114,6 @@ const Complaints: React.FC = () => {
           } жалобы:`,
           result
         );
-        setTimeout(() => {
-          window.location.reload();
-        }, 3000);
         setSelectedComplaint(null);
         setIsFormVisible(false);
       } catch (error) {
