@@ -178,7 +178,6 @@ const Complaints: React.FC = () => {
           handleReject={handleReject}
           handleFormSubmit={handleFormSubmit}
           openImageModal={openImageModal}
-          closePopup={closePopup}
         />
       )}
       {selectedImage && (

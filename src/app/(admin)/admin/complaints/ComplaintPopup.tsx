@@ -32,7 +32,6 @@ interface ComplaintPopupProps {
   handleReject: () => void;
   handleFormSubmit: () => void;
   openImageModal: (url: string) => void;
-  closePopup: () => void;
 }
 
 const ComplaintPopup: React.FC<ComplaintPopupProps> = ({
@@ -46,8 +45,7 @@ const ComplaintPopup: React.FC<ComplaintPopupProps> = ({
   handleApprove,
   handleReject,
   handleFormSubmit,
-  openImageModal,
-  closePopup,
+  openImageModal
 }) => {
   return (
     <div className={`${styles.popupOverlay} ${fadeOut ? styles.fadeOut : ""}`}>
