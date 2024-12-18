@@ -727,7 +727,6 @@ bot.on("pre_checkout_query", async (ctx) => {
   }
 });
 
-
 bot.on("message:successful_payment", async (ctx) => {
   try {
     const payment = ctx.message?.successful_payment;
@@ -756,79 +755,76 @@ bot.on("message:successful_payment", async (ctx) => {
         throw new Error(`Invalid decodedUserId format for BigInt conversion`);
       }
 
-      // Determine if this is a tariff purchase or extra requests purchase
-      if (assistantRequests || aiRequests) {
-        // Extra requests purchase
-        try {
-          await prisma.userTariff.create({
-            data: {
-              userId: decodedUserIdBigInt,
-              totalAssistantRequests: assistantRequests || 0,
-              totalAIRequests: aiRequests || 0,
-              remainingAssistantRequests: assistantRequests || 0,
-              remainingAIRequests: aiRequests || 0,
-              expirationDate: new Date("9999-12-31T23:59:59.999Z"), // Без срока действия
+      // Пытаемся найти подписку по цене totalStars
+      let subscription;
+      try {
+        await sendLogToTelegram(`Before subscription query: totalStars = ${totalStars}`);
+        subscription = await prisma.subscription.findFirst({
+          where: {
+            price: {
+              gte: Number(totalStars) - 0.01,
+              lte: Number(totalStars) + 0.01,
             },
-          });
+          },
+        });
 
-          await sendLogToTelegram(
-            `User ${decodedUserIdBigInt.toString()} successfully added extra requests: Assistant = ${assistantRequests}, AI = ${aiRequests}`
-          );
-        } catch (userTariffError) {
-          const errorMessage = userTariffError instanceof Error ? userTariffError.message : String(userTariffError);
-          await sendLogToTelegram(`Error creating UserTariff entry for extra requests: ${errorMessage}`);
-          throw userTariffError;
-        }
-      } else {
-        // Tariff purchase
-        let subscription;
-        try {
-          await sendLogToTelegram(`Before subscription query: totalStars = ${totalStars}`);
-          subscription = await prisma.subscription.findFirst({
-            where: {
-              price: {
-                gte: Number(totalStars) - 0.01,
-                lte: Number(totalStars) + 0.01,
-              },
-            },
-          });
-
-          if (!subscription) {
-            await sendLogToTelegram(`Subscription not found for price: ${totalStars} stars`);
-            throw new Error(`Subscription not found for price: ${totalStars} stars`);
-          }
-
+        if (subscription) {
+          // Подписка найдена — это тарифная покупка
           await sendLogToTelegram(`Subscription found: ${JSON.stringify(serializeBigInt(subscription))}`);
-        } catch (subscriptionError) {
-          const errorMessage = subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError);
-          await sendLogToTelegram(`Error finding subscription: ${errorMessage}`);
-          throw subscriptionError;
+
+          const expirationDate = new Date();
+          expirationDate.setMonth(expirationDate.getMonth() + 1); // Срок действия подписки: 1 месяц
+
+          try {
+            await prisma.userTariff.create({
+              data: {
+                userId: decodedUserIdBigInt,
+                tariffId: subscription.id,
+                totalAssistantRequests: subscription.assistantRequestCount || 0,
+                totalAIRequests: subscription.aiRequestCount || 0,
+                remainingAssistantRequests: subscription.assistantRequestCount || 0,
+                remainingAIRequests: subscription.aiRequestCount || 0,
+                expirationDate, // Дата истечения подписки
+              },
+            });
+
+            await sendLogToTelegram(
+              `User ${decodedUserIdBigInt.toString()} successfully added a tariff with subscription ID ${subscription.id}.`
+            );
+          } catch (userTariffError) {
+            const errorMessage = userTariffError instanceof Error ? userTariffError.message : String(userTariffError);
+            await sendLogToTelegram(`Error creating UserTariff entry: ${errorMessage}`);
+            throw userTariffError;
+          }
+        } else {
+          // Подписка не найдена — это покупка дополнительных запросов
+          await sendLogToTelegram(`Subscription not found for price: ${totalStars} stars, treating as extra requests purchase`);
+          
+          try {
+            await prisma.userTariff.create({
+              data: {
+                userId: decodedUserIdBigInt,
+                totalAssistantRequests: assistantRequests || 0,
+                totalAIRequests: aiRequests || 0,
+                remainingAssistantRequests: assistantRequests || 0,
+                remainingAIRequests: aiRequests || 0,
+                expirationDate: new Date("9999-12-31T23:59:59.999Z"), // Без срока действия
+              },
+            });
+
+            await sendLogToTelegram(
+              `User ${decodedUserIdBigInt.toString()} successfully added extra requests: Assistant = ${assistantRequests}, AI = ${aiRequests}`
+            );
+          } catch (userTariffError) {
+            const errorMessage = userTariffError instanceof Error ? userTariffError.message : String(userTariffError);
+            await sendLogToTelegram(`Error creating UserTariff entry for extra requests: ${errorMessage}`);
+            throw userTariffError;
+          }
         }
-
-        const expirationDate = new Date();
-        expirationDate.setMonth(expirationDate.getMonth() + 1); // Срок действия подписки: 1 месяц
-
-        try {
-          await prisma.userTariff.create({
-            data: {
-              userId: decodedUserIdBigInt,
-              tariffId: subscription.id,
-              totalAssistantRequests: subscription.assistantRequestCount || 0,
-              totalAIRequests: subscription.aiRequestCount || 0,
-              remainingAssistantRequests: subscription.assistantRequestCount || 0,
-              remainingAIRequests: subscription.aiRequestCount || 0,
-              expirationDate, // Дата истечения подписки
-            },
-          });
-
-          await sendLogToTelegram(
-            `User ${decodedUserIdBigInt.toString()} successfully added a tariff with subscription ID ${subscription.id}.`
-          );
-        } catch (userTariffError) {
-          const errorMessage = userTariffError instanceof Error ? userTariffError.message : String(userTariffError);
-          await sendLogToTelegram(`Error creating UserTariff entry: ${errorMessage}`);
-          throw userTariffError;
-        }
+      } catch (subscriptionError) {
+        const errorMessage = subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError);
+        await sendLogToTelegram(`Error finding subscription: ${errorMessage}`);
+        throw subscriptionError;
       }
 
       // Логика реферальных бонусов
@@ -874,6 +870,7 @@ bot.on("message:successful_payment", async (ctx) => {
         await sendLogToTelegram(`Error handling referral bonus: ${errorMessage}`);
         throw referralError;
       }
+
       const languageCode = ctx.from?.language_code || 'en';
       await ctx.reply(getTranslation(languageCode, 'payment_success'));
     }
