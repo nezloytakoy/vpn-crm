@@ -135,14 +135,6 @@ const Complaints: React.FC = () => {
   const closeImageModal = () => {
     setSelectedImage(null);
   };
-  const closePopup = () => {
-    setSelectedComplaint(null);
-    setIsFormVisible(false);
-    setFadeOut(false);
-    setExplanation("");
-    setAction(null);
-    setIsSubmitting(false);
-  };
   if (loading) {
     return (
       <div className={styles.loaderWrapper}>
