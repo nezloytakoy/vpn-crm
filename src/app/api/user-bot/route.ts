@@ -1003,6 +1003,8 @@ bot.on('callback_query', async (ctx) => {
         data: { isWaitingForComplaint: true },
       });
 
+      console.log('languageCode before editMessageText:', languageCode);
+
       await ctx.editMessageText(getTranslation(languageCode, 'complaint_prompt'));
     } else if (callbackData === 'satisfied') {
       // Обработчик для кнопки "Я доволен"
