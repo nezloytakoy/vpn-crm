@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'; 
-import { nanoid } from 'nanoid'; // Для генерации уникальных токенов
-import bcrypt from 'bcryptjs'; // Подключаем bcryptjs
+import { nanoid } from 'nanoid';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -22,39 +22,47 @@ export async function POST(req: Request) {
 
     console.log("Проверка существования логина:", login);
 
-    // Проверяем, не занят ли уже логин
+    // Проверяем, не занят ли уже логин в таблице invitation
     const existingInvitation = await prisma.invitation.findFirst({
-      where: { login }, // Используем findFirst для поиска по login
+      where: { login },
     });
 
     if (existingInvitation) {
-      console.log("Логин уже используется:", login);
-      return new Response(JSON.stringify({ message: 'Логин уже используется' }), {
+      console.log("Логин уже используется в invitation:", login);
+      return new Response(JSON.stringify({ message: 'Логин уже используется в приглашениях' }), {
         status: 400,
       });
     }
 
-    // Хешируем пароль перед сохранением
-    console.log("Хеширование пароля");
-    const hashedPassword = bcrypt.hashSync(password, 10); // Хешируем с использованием "соли" 10
+    // Проверяем, не существует ли уже модератор с таким логином
+    const existingModerator = await prisma.moderator.findFirst({
+      where: { login },
+    });
 
-    // Генерируем уникальный inviteToken
+    if (existingModerator) {
+      console.log("Логин уже используется модератором:", login);
+      return new Response(JSON.stringify({ message: 'Логин уже используется модератором' }), {
+        status: 400,
+      });
+    }
+
+    console.log("Хеширование пароля");
+    const hashedPassword = bcrypt.hashSync(password, 10);
+
     const inviteToken = nanoid(10);
     console.log("Сгенерирован токен приглашения:", inviteToken);
 
-    // Сохраняем данные в таблице приглашений с логином, хешированным паролем и токеном приглашения
     console.log("Сохранение данных в таблицу приглашений");
     await prisma.invitation.create({
       data: {
-        login,       // Логин для модератора
-        password: hashedPassword,    // Хешированный пароль для модератора
-        token: inviteToken,  // Уникальный токен приглашения
-        role: 'moderator',   // Роль явно задаём как "moderator"
-        link: `https://t.me/vpn_srm_adminbot?start=invite_${inviteToken}`,  // Ссылка для приглашения
+        login,
+        password: hashedPassword,
+        token: inviteToken,
+        role: 'moderator',
+        link: `https://t.me/vpn_srm_adminbot?start=invite_${inviteToken}`,
       },
     });
 
-    // Генерируем ссылку на бота для модераторов
     const inviteLink = `https://t.me/vpn_srm_adminbot?start=invite_${inviteToken}`;
     console.log("Создана ссылка на приглашение:", inviteLink);
 
