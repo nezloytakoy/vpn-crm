@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     await sendLogToTelegram(`Received tariffName: ${tariffName}, price: ${priceInDollars}`);
 
     // Преобразуем priceInDollars в целое число для amount
-    const starsAmount = Math.round(priceInDollars * 1);
+    const starsAmount = Math.ceil(priceInDollars * 1);
 
     if (starsAmount <= 0) {
       await sendLogToTelegram(`Некорректная цена: ${starsAmount}`);
