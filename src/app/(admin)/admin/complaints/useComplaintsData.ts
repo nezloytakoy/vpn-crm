@@ -61,22 +61,13 @@ export function useComplaintsData() {
     console.log("Начало загрузки жалоб...");
     fetchComplaints();
 
-    const eventSource = new EventSource("/api/complaints-stream");
-
-    eventSource.onmessage = (event) => {
-      console.log("Получено SSE событие:", event.data);
+    const intervalId = setInterval(() => {
       fetchComplaints();
-    };
-
-    eventSource.onerror = (error) => {
-      console.error("SSE ошибка:", error);
-      eventSource.close();
-    };
+    }, 5000); // Каждые 5 секунд вызываем fetchComplaints
 
     return () => {
-      eventSource.close();
+      clearInterval(intervalId); // Очищаем интервал при размонтировании компонента
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return { data, loading, error, fetchComplaints };
