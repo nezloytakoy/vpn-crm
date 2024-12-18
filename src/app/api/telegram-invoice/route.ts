@@ -21,6 +21,11 @@ export async function POST(request: Request) {
     // Преобразуем priceInDollars в целое число для amount
     const starsAmount = Math.round(priceInDollars * 1);
 
+    if (starsAmount <= 0) {
+      await sendLogToTelegram(`Некорректная цена: ${starsAmount}`);
+      return new Response(JSON.stringify({ message: "Некорректная цена" }), { status: 400 });
+    }
+
     const title = "Оплата через Звезды Telegram";
     const description = "Оплата за товар через звезды Telegram.";
     const payload = JSON.stringify({ userId, tariffName });
@@ -46,7 +51,7 @@ export async function POST(request: Request) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error("Ошибка создания инвойса:", errorMessage);
     await sendLogToTelegram(`Error creating invoice: ${errorMessage}`);
-    
+
     return new Response(JSON.stringify({ message: "Ошибка создания инвойса" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
