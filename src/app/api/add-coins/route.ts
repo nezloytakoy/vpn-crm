@@ -1,22 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
-function serializeBigIntFields(obj: any): any {
+function serializeBigIntFields(obj: unknown): unknown {
   if (obj === null || obj === undefined) return obj;
+
+  // Если не объект и не массив, возвращаем как есть
   if (typeof obj !== 'object') return obj;
 
+  // Если массив
   if (Array.isArray(obj)) {
     return obj.map(item => serializeBigIntFields(item));
   }
 
-  const result: any = {};
-  for (const key in obj) {
-    const value = obj[key];
+  // Теперь obj – это объект, приводим к Record<string, unknown>
+  const record = obj as Record<string, unknown>;
+  const result: Record<string, unknown> = {};
+
+  for (const key in record) {
+    const value = record[key];
     if (typeof value === 'bigint') {
       result[key] = value.toString();
-    } else if (typeof value === 'object') {
+    } else if (typeof value === 'object' && value !== null) {
       result[key] = serializeBigIntFields(value);
     } else {
       result[key] = value;
@@ -28,7 +34,7 @@ function serializeBigIntFields(obj: any): any {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { assistantId, coins } = body;
+    const { assistantId, coins } = body as { assistantId: string; coins: number };
 
     if (!assistantId || typeof coins !== 'number' || coins <= 0) {
       return NextResponse.json(
