@@ -1,7 +1,9 @@
 import { Bot } from "grammy";
-
+import { PrismaClient } from '@prisma/client';
+import { nanoid } from 'nanoid';
 
 const bot = new Bot(process.env.TELEGRAM_USER_BOT_TOKEN!);
+const prisma = new PrismaClient();
 
 const TELEGRAM_LOG_USER_ID = 5829159515;
 
@@ -13,33 +15,42 @@ const sendLogToTelegram = async (message: string) => {
   }
 };
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const { userId, priceInDollars, tariffName } = await request.json();
-
+    const { userId, priceInDollars, tariffName } = await req.json();
     await sendLogToTelegram(`Received tariffName: ${tariffName}, price: ${priceInDollars}`);
 
+    // Предположим, provider_token вы взяли из @BotFather после настройки платежей.
+    const providerToken = process.env.PROVIDER_TOKEN!; // нужно определить в .env
 
-    const starsAmount = priceInDollars * 1; // Цена в "звездах"
+    // Убедитесь, что priceInDollars — число. Допустим, priceInDollars = 1.23
+    // Для USD amount = цена в центах: 1.23 USD = 123 цента
+    const amountInCents = Math.round(priceInDollars * 100);
+
+    // Проверяем, что amountInCents - целое число
+    if (isNaN(amountInCents) || amountInCents <= 0) {
+      await sendLogToTelegram('Некорректная цена.');
+      return new Response(JSON.stringify({ message: 'Некорректная цена' }), { status: 400 });
+    }
 
     const title = "Оплата через Звезды Telegram";
     const description = "Оплата за товар через звезды Telegram.";
-    const payload = JSON.stringify({ userId, tariffName }); // Сохраняем информацию о пользователе и тарифе в payload
-    const currency = "XTR";
-    const prices = [{ amount: starsAmount, label: "Оплата через звезды" }];
+    const payload = JSON.stringify({ userId, tariffName });
+    const currency = "USD"; // валюта должна быть поддерживаемой, напр. USD
+    const prices = [{ amount: amountInCents, label: "Оплата через звезды" }];
 
+    // Создаем ссылку на инвойс
     const invoiceLink = await bot.api.createInvoiceLink(
       title,
       description,
       payload,
-      "", 
+      providerToken,
       currency,
       prices
     );
 
     await sendLogToTelegram(`Invoice created for user: ${userId} with tariff: ${tariffName}`);
 
-    // Возвращаем ссылку на инвойс, но не обновляем подписку до успешной оплаты
     return new Response(JSON.stringify({ invoiceLink }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
