@@ -4,7 +4,7 @@ import { getTranslation } from './localization';
 
 export const moderatorState: { [moderatorId: number]: { state: string, targetId?: string } } = {};
 
-export async function showModeratorMenu(ctx: Context, lang: 'ru' | 'en') {
+export async function showModeratorMenu(ctx: Context, lang: 'ru'|'en'): Promise<void> {
   const keyboard = new InlineKeyboard()
     .text('💬 ' + getTranslation(lang, 'message_user'), 'message_user')
     .row()

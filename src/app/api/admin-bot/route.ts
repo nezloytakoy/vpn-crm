@@ -53,7 +53,7 @@ adminBot.command('start', async (ctx) => {
           const { invitation, moderatorId } = await handleInvitation(ctx.from.id, inviteToken);
 
           if (invitation) {
-            await processModeratorInvitation(invitation, moderatorId, ctx.from.username, lang, getTranslation, showModeratorMenu, ctx);
+            await processModeratorInvitation(invitation, moderatorId, ctx.from.username, lang, showModeratorMenu, ctx);
           } else {
             await ctx.reply(getTranslation(lang, 'invalid_link'));
           }

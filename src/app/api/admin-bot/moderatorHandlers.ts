@@ -57,8 +57,7 @@ export async function processModeratorInvitation(
   moderatorId: bigint,
   username: string,
   lang: 'ru'|'en',
-  translate: (lang: 'ru'|'en', key: TranslationKey) => string,
-  showModeratorMenu: Function,
+  showModeratorMenu: (ctx: Context, lang: 'ru'|'en') => Promise<void>,
   ctx: Context
 ) {  const prisma = new PrismaClient();
 
