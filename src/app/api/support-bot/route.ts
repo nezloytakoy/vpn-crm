@@ -593,9 +593,9 @@ bot.command('requests', async (ctx) => {
       const subject = conversation.assistantRequest.subject || getTranslation(lang, 'no_message');
       const timeRemaining = calculateTimeRemaining(conversation.createdAt);
       const text = getTranslation(lang, 'request_with_time')
-        .replace('{{id}}', conversation.assistantRequest.id.toString())
-        .replace('{{subject}}', subject)
-        .replace('{{time}}', timeRemaining);
+        .replace('%id%', conversation.assistantRequest.id.toString())
+        .replace('%subject%', subject)
+        .replace('%time%', timeRemaining);
 
       return [
         {
@@ -695,7 +695,7 @@ async function reassignRequest(requestId: bigint, blockedAssistantId: bigint, ct
           );
         } else {
           // Отправляем текст без кнопок
-          const messageText = getTranslation(lang, 'request_subject').replace('{{subject}}', assistantRequest.subject || '');
+          const messageText = getTranslation(lang, 'request_subject').replace('%subject%', assistantRequest.subject || '');
 
           await sendTelegramMessageWithButtons(
             newAssistant.telegramId.toString(),
@@ -1530,7 +1530,7 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
         } else {
           // Отправляем текст без кнопок
           const subjectText = getTranslation(lang, 'request_subject_prefix')
-            .replace('{{subject}}', assistantRequest.subject);
+            .replace('%subject%', assistantRequest.subject);
           await sendTelegramMessageWithButtons(
             newAssistant.telegramId.toString(),
             subjectText,
@@ -1708,7 +1708,7 @@ bot.on('message', async (ctx) => {
     const remainingMinutes = Math.max(SESSION_DURATION - elapsedMinutes, 0);
 
     const timeMessage = getTranslation(lang, 'session_time_remaining')
-  .replace('{{minutes}}', String(remainingMinutes));
+    .replace('%minutes%', String(remainingMinutes));
 
 const responseMessage = `
 ${assistantMessage}
