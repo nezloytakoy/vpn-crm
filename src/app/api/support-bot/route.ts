@@ -824,7 +824,7 @@ async function handleAcceptConversation(
   }
 }
 
-export async function handleRejectConversation(
+async function handleRejectConversation(
   conversationId: bigint,
   assistantTelegramId: bigint,
   ctx: Context
