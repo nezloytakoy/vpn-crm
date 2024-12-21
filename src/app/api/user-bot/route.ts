@@ -1092,8 +1092,8 @@ bot.on('callback_query', async (ctx) => {
         assistantId.toString(),
         getTranslation(languageCode, 'extend_session_new_request'),
         [
-          { text: getTranslation(languageCode, 'accept'), callback_data: `accept_${lastConversation.id}` },
-          { text: getTranslation(languageCode, 'reject'), callback_data: `reject_${lastConversation.id}` },
+          { text: getTranslation(languageCode, 'accept'), callback_data: `acceptConv_${lastConversation.id}` },
+          { text: getTranslation(languageCode, 'reject'), callback_data: `rejectConv_${lastConversation.id}` },
         ]
       );
 

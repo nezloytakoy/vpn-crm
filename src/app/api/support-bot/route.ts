@@ -224,8 +224,12 @@ const translations = {
     rejected_request_reassigned: "❌ You have rejected the request. A new assistant has been notified.",
     rejected_request_no_assistants: "❌ You have rejected the request, but there are no more assistants available.",
     rejected_request_error: "❌ An error occurred while rejecting the request.",
-    session_time_remaining: "--------------------------------\n%minutes% minutes remain until the end of the session"
+    session_time_remaining: "--------------------------------\n%minutes% minutes remain until the end of the session",
+
+    // Добавленный новый ключ:
+    assistant_declined_extension: "The assistant declined the session extension."
   },
+
   ru: {
     end_dialog_error: "Ошибка: не удалось получить ваш идентификатор Telegram.",
     no_active_requests: "⚠️ Активные запросы отсутствуют.",
@@ -274,7 +278,7 @@ const translations = {
     unknown_action: "Неизвестное действие.",
     topic: "Тема",
     no_subject: "отсутствует",
-    
+
     blocked_until: "Вы заблокированы администратором, до разблокировки осталось %time%ч.",
     block_time_expired: "Время блокировки вышло, вы можете продолжать пользоваться ботом.",
     blocked_permanently: "Вы заблокированы администратором без срока разблокировки.",
@@ -298,7 +302,10 @@ const translations = {
     rejected_request_reassigned: "❌ Вы отклонили запрос. Новый ассистент уведомлен.",
     rejected_request_no_assistants: "❌ Вы отклонили запрос, но доступных ассистентов больше нет.",
     rejected_request_error: "❌ Произошла ошибка при отклонении запроса.",
-    session_time_remaining: "--------------------------------\nДо конца сеанса осталось %minutes% минут"
+    session_time_remaining: "--------------------------------\nДо конца сеанса осталось %minutes% минут",
+
+    // Добавленный новый ключ:
+    assistant_declined_extension: "Ассистент отклонил продление диалога."
   }
 };
 
@@ -743,6 +750,140 @@ async function reassignRequest(requestId: bigint, blockedAssistantId: bigint, ct
         getTranslation(lang, 'reassign_request_error')
       );
     }
+  }
+}
+
+async function handleAcceptConversation(
+  conversationId: bigint,
+  assistantTelegramId: bigint,
+  ctx: Context
+) {
+  try {
+    const lang = detectUserLanguage(ctx);
+
+    // Ищем разговор
+    let conversation = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
+
+    if (!conversation) {
+      await ctx.reply(getTranslation(lang, 'request_not_found_or_not_assigned'));
+      return;
+    }
+
+    // Проверяем, что этот разговор действительно принадлежит данному ассистенту
+    // или что он "бесхозный"? Зависит от вашей логики.
+    // Например, если conversation.assistantId === assistantTelegramId || conversation.assistantId === null ...
+    // Иначе можем бросить сообщение "другой ассистент" и return
+
+    // Можно проверить статус. Если уже "IN_PROGRESS", то либо выводим "запрос уже в процессе",
+    // либо разрешаем повторный accept
+    if (conversation.status === 'IN_PROGRESS') {
+      await ctx.reply(getTranslation(lang, 'request_already_in_progress'));
+      return;
+    }
+
+    // В зависимости от логики, если conversation.status === 'ABORTED' или 'COMPLETED',
+    // можем "реанимировать" этот диалог
+    conversation = await prisma.conversation.update({
+      where: { id: conversation.id },
+      data: {
+        assistantId: assistantTelegramId,
+        status: 'IN_PROGRESS',
+        // Можно не затирать messages, чтобы реально "продолжать"
+        // Можно обновить updatedAt
+      },
+    });
+
+    // Сбрасываем activeConversationId у других ассистентов (если такая логика нужна)
+    await prisma.assistant.updateMany({
+      where: { activeConversationId: conversation.id },
+      data: { activeConversationId: null },
+    });
+
+    // Ставим текущему ассистенту
+    await prisma.assistant.update({
+      where: { telegramId: assistantTelegramId },
+      data: { activeConversationId: conversation.id },
+    });
+
+    // Дальше отправляем сообщение ассистенту/пользователю
+    await ctx.reply(getTranslation(lang, 'accept_request_confirm'));
+
+    // При желании уведомляем пользователя, что ассистент продлил сеанс
+    if (conversation.userId) {
+      await sendTelegramMessageToUser(
+        conversation.userId.toString(),
+        getTranslation(lang, 'assistant_joined_chat')
+      );
+    }
+  } catch (error) {
+    console.error('Ошибка при принятии разговора:', error);
+    const lang = detectUserLanguage(ctx);
+    await ctx.reply(getTranslation(lang, 'another_assistant_accepted'));
+  }
+}
+
+export async function handleRejectConversation(
+  conversationId: bigint,
+  assistantTelegramId: bigint,
+  ctx: Context
+) {
+  try {
+    const lang = detectUserLanguage(ctx);
+
+    // Находим разговор, чтобы убедиться, что он существует
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
+
+    if (!conversation) {
+      // Разговор не найден
+      await ctx.reply(getTranslation(lang, 'request_not_found_or_not_assigned'));
+      return;
+    }
+
+    // Проверяем, действительно ли ассистент является владельцем этого разговора
+    // или имеет право его отклонить
+    if (conversation.assistantId !== assistantTelegramId) {
+      // Ассистент не совпадает
+      await ctx.reply(getTranslation(lang, 'another_assistant_accepted'));
+      return;
+    }
+
+    // Переводим разговор в статус ABORTED (или любой, нужный вам)
+    await prisma.conversation.update({
+      where: { id: conversationId },
+      data: {
+        status: 'ABORTED',
+      },
+    });
+
+    // Сбрасываем `activeConversationId` у ассистента, если он указывает на этот разговор
+    await prisma.assistant.updateMany({
+      where: {
+        telegramId: assistantTelegramId,
+        activeConversationId: conversationId,
+      },
+      data: { activeConversationId: null },
+    });
+
+    // Уведомляем ассистента, что отклонение успешно
+    await ctx.reply(getTranslation(lang, 'reject_request'));
+
+    // При желании уведомляем пользователя, что ассистент отказался
+    if (conversation.userId) {
+      await sendTelegramMessageToUser(
+        conversation.userId.toString(),
+        getTranslation(lang, 'assistant_declined_extension')
+        // Добавьте ключ перевода, например: "Ассистент отклонил продление диалога."
+      );
+    }
+  } catch (error) {
+    console.error('Ошибка при отклонении разговора:', error);
+    const lang = detectUserLanguage(ctx);
+    // Обобщённое сообщение об ошибке
+    await ctx.reply(getTranslation(lang, 'server_error'));
   }
 }
 
@@ -1197,6 +1338,16 @@ bot.on('callback_query:data', async (ctx) => {
       await handleAcceptRequest(requestId.toString(), telegramId, ctx);
     } else if (action === 'reject') {
       await handleRejectRequest(requestId.toString(), telegramId, ctx);
+    }
+  } else if (data.startsWith('acceptConv_') || data.startsWith('rejectConv_')) {
+    // "продолжить" или "отклонить" разговор
+    const [action, convIdString] = data.split('_');
+    const conversationId = BigInt(convIdString);
+
+    if (action === 'acceptConv') {
+      await handleAcceptConversation(conversationId, telegramId, ctx);
+    } else if (action === 'rejectConv') {
+      await handleRejectConversation(conversationId, telegramId, ctx);
     }
   } else if (data === 'my_activity') {
     // Handle displaying activity
@@ -1717,9 +1868,9 @@ bot.on('message', async (ctx) => {
     const remainingMinutes = Math.max(SESSION_DURATION - elapsedMinutes, 0);
 
     const timeMessage = getTranslation(lang, 'session_time_remaining')
-    .replace('%minutes%', String(remainingMinutes));
+      .replace('%minutes%', String(remainingMinutes));
 
-const responseMessage = `
+    const responseMessage = `
 ${assistantMessage}
 ${timeMessage}
 `.trim();
