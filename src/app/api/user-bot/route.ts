@@ -28,7 +28,7 @@ type ChatMessage = {
  * @param userId - Telegram ID пользователя (BigInt).
  * @returns число доступных запросов.
  */
-export async function getAvailableAssistantRequestsForUser(userId: bigint): Promise<number> {
+async function getAvailableAssistantRequestsForUser(userId: bigint): Promise<number> {
   // Предположим, что prisma уже импортирован выше
   // import { PrismaClient } from '@prisma/client';
   // const prisma = new PrismaClient();
