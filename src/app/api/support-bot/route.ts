@@ -761,9 +761,10 @@ async function handleAcceptConversation(
   try {
     const lang = detectUserLanguage(ctx);
 
-    // Ищем разговор
+    // Ищем разговор, включая связанную заявку
     let conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
+      include: { assistantRequest: true }, // чтобы видеть request
     });
 
     if (!conversation) {
@@ -771,58 +772,66 @@ async function handleAcceptConversation(
       return;
     }
 
-    // Проверяем, что этот разговор действительно принадлежит данному ассистенту
-    // или что он "бесхозный"? Зависит от вашей логики.
-    // Например, если conversation.assistantId === assistantTelegramId || conversation.assistantId === null ...
-    // Иначе можем бросить сообщение "другой ассистент" и return
-
-    // Можно проверить статус. Если уже "IN_PROGRESS", то либо выводим "запрос уже в процессе",
-    // либо разрешаем повторный accept
+    // Проверяем, что этот разговор действительно можно «принять».
+    // Если conversation.status уже 'IN_PROGRESS', значит диалог уже ведётся
     if (conversation.status === 'IN_PROGRESS') {
       await ctx.reply(getTranslation(lang, 'request_already_in_progress'));
       return;
     }
 
-    // В зависимости от логики, если conversation.status === 'ABORTED' или 'COMPLETED',
-    // можем "реанимировать" этот диалог
     conversation = await prisma.conversation.update({
       where: { id: conversation.id },
       data: {
-        assistantId: assistantTelegramId,
         status: 'IN_PROGRESS',
-        // Можно не затирать messages, чтобы реально "продолжать"
-        // Можно обновить updatedAt
+        assistantId: assistantTelegramId,
+      },
+      include: {
+        assistantRequest: true, // <-- Важный момент
       },
     });
 
-    // Сбрасываем activeConversationId у других ассистентов (если такая логика нужна)
+    // Одновременно обновляем заявку (AssistantRequest), если она есть
+    if (conversation.assistantRequest) {
+      // Переводим её в 'IN_PROGRESS' и делаем isActive = true
+      await prisma.assistantRequest.update({
+        where: { id: conversation.assistantRequest.id },
+        data: {
+          status: 'IN_PROGRESS',
+          isActive: true,
+        },
+      });
+    }
+
+    // Освобождаем диалог от других ассистентов (если ранее кто-то другой им занимался)
     await prisma.assistant.updateMany({
       where: { activeConversationId: conversation.id },
       data: { activeConversationId: null },
     });
 
-    // Ставим текущему ассистенту
+    // Теперь текущий ассистент — «хозяин» этого разговора
     await prisma.assistant.update({
       where: { telegramId: assistantTelegramId },
       data: { activeConversationId: conversation.id },
     });
 
-    // Дальше отправляем сообщение ассистенту/пользователю
+    // Сообщаем ассистенту об успехе
     await ctx.reply(getTranslation(lang, 'accept_request_confirm'));
 
-    // При желании уведомляем пользователя, что ассистент продлил сеанс
+    // При желании уведомляем пользователя
     if (conversation.userId) {
       await sendTelegramMessageToUser(
         conversation.userId.toString(),
         getTranslation(lang, 'assistant_joined_chat')
       );
     }
+
   } catch (error) {
-    console.error('Ошибка при принятии разговора:', error);
     const lang = detectUserLanguage(ctx);
+    console.error('Ошибка при принятии разговора:', error);
     await ctx.reply(getTranslation(lang, 'another_assistant_accepted'));
   }
 }
+
 
 async function handleRejectConversation(
   conversationId: bigint,
