@@ -21,42 +21,6 @@ type ChatMessage = {
   content: string;
 };
 
-/**
- * Возвращает текущее количество доступных запросов к ассистенту у пользователя,
- * исходя из таблицы UserTariff и срока действия тарифов.
- *
- * @param userId - Telegram ID пользователя (BigInt).
- * @returns число доступных запросов.
- */
-async function getAvailableAssistantRequestsForUser(userId: bigint): Promise<number> {
-  // Предположим, что prisma уже импортирован выше
-  // import { PrismaClient } from '@prisma/client';
-  // const prisma = new PrismaClient();
-
-  // Текущее время
-  const now = new Date();
-
-  // Получаем все тарифы пользователя, у которых:
-  // 1) userId соответствует нашему пользователю
-  // 2) expirationDate ещё не наступила (или она "9999-12-31T23:59:59.999Z" для "никогда")
-  const userTariffs = await prisma.userTariff.findMany({
-    where: {
-      userId,
-      expirationDate: {
-        gte: now, // Тариф действует, если expirationDate >= сейчас
-      },
-    },
-  });
-
-  // Суммируем оставшиеся запросы к ассистенту по всем найденным тарифам
-  const totalRemaining = userTariffs.reduce(
-    (acc, tariff) => acc + tariff.remainingAssistantRequests,
-    0
-  );
-
-  return totalRemaining;
-}
-
 
 const userConversations = new Map<bigint, ChatMessage[]>();
 
