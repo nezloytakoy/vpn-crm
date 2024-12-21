@@ -1355,81 +1355,88 @@ async function getAssistantActivity(assistantId: bigint) {
 }
 
 
-async function handleAcceptRequest(requestId: string, assistantTelegramId: bigint, ctx: Context) {
+async function handleAcceptRequest(
+  requestId: string,
+  assistantTelegramId: bigint,
+  ctx: Context
+) {
   try {
+    const lang = detectUserLanguage(ctx);
+
+    // 1. Меняем статус запроса
     const assistantRequest = await prisma.assistantRequest.update({
       where: { id: BigInt(requestId) },
       data: { status: 'IN_PROGRESS', isActive: true },
       include: { user: true },
     });
 
-    // Пытаемся найти существующий разговор для этого запроса
+    // 2. Пытаемся найти разговор по этому `requestId`
     let conversation = await prisma.conversation.findFirst({
       where: { requestId: assistantRequest.id },
     });
 
-    if (conversation) {
-      // Разговор уже существует. Проверяем его статус.
-      if (conversation.status === 'ABORTED') {
-        // Если разговор был в статусе ABORTED, обновляем его
-        conversation = await prisma.conversation.update({
-          where: { id: conversation.id },
-          data: {
-            assistantId: assistantTelegramId,
-            messages: [],
-            status: 'IN_PROGRESS',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            lastMessageFrom: '',
-            assistantResponseTimes: [],
-            lastUserMessageAt: null,
-          },
-        });
-
-        const lang = detectUserLanguage(ctx);
-
-        await ctx.reply(getTranslation(lang, 'accept_request_confirm'));
-
-        await sendTelegramMessageToUser(
-          assistantRequest.user.telegramId.toString(),
-          getTranslation(lang, 'assistant_joined_chat')
-        );
-      } else {
-        const lang = detectUserLanguage(ctx);
-        // Если статус разговора не ABORTED, значит запрос уже в процессе или завершён
-        await ctx.reply(getTranslation(lang, 'request_already_in_progress'));
-        return;
-      }
-    } else {
-      // Разговора ещё нет, создаём новый
+    // Если разговора в принципе нет - может быть ситуация,
+    // когда старый диалог никогда не создавался; тогда создаём.
+    if (!conversation) {
       conversation = await prisma.conversation.create({
         data: {
           userId: assistantRequest.userId,
           assistantId: assistantTelegramId,
           requestId: assistantRequest.id,
-          messages: [],
+          messages: [],         // Или можно оставить пустым
           status: 'IN_PROGRESS',
           lastMessageFrom: 'USER',
         },
       });
 
-      const lang = detectUserLanguage(ctx);
-
       await ctx.reply(getTranslation(lang, 'accept_request'));
-
       await sendTelegramMessageToUser(
         assistantRequest.user.telegramId.toString(),
         getTranslation(lang, 'assistant_joined_chat')
       );
+    } else {
+      // Разговор уже существует. Смотрим на его статус.
+      if (conversation.status === 'IN_PROGRESS') {
+        // Если уже в процессе – значит «кто-то уже принял этот запрос»
+        await ctx.reply(getTranslation(lang, 'request_already_in_progress'));
+        return;
+      } else if (
+        conversation.status === 'ABORTED' ||
+        conversation.status === 'COMPLETED'
+      ) {
+        // «реанимируем» разговор
+        conversation = await prisma.conversation.update({
+          where: { id: conversation.id },
+          data: {
+            assistantId: assistantTelegramId,
+            // Если вы хотите сохранить историю сообщений – не затирайте их.
+            // Если нет – можно messages: [],
+            status: 'IN_PROGRESS',
+            updatedAt: new Date(),
+            // При желании можно обнулить lastMessageFrom, responseTimes и т. д.
+            // Для логики продления, можно оставить как есть.
+          },
+        });
+
+        await ctx.reply(getTranslation(lang, 'accept_request_confirm'));
+        await sendTelegramMessageToUser(
+          assistantRequest.user.telegramId.toString(),
+          getTranslation(lang, 'assistant_joined_chat')
+        );
+      } else {
+        // На всякий случай, если будут другие статусы
+        await ctx.reply(getTranslation(lang, 'request_already_in_progress'));
+        return;
+      }
     }
 
-    // Перед тем как установить активный разговор, сбрасываем его у других ассистентов, если они есть
+    // 3. Сбрасываем `activeConversationId` у других ассистентов (чтобы только текущий был активным).
     await prisma.assistant.updateMany({
       where: { activeConversationId: conversation.id },
       data: { activeConversationId: null },
     });
 
-    // Теперь устанавливаем активный разговор для текущего ассистента
+    // 4. Устанавливаем активный разговор для данного ассистента
     await prisma.assistant.update({
       where: { telegramId: assistantTelegramId },
       data: { activeConversationId: conversation.id },
@@ -1437,6 +1444,8 @@ async function handleAcceptRequest(requestId: string, assistantTelegramId: bigin
   } catch (error) {
     const lang = detectUserLanguage(ctx);
     console.error('Ошибка при принятии запроса:', error);
+    // Ловим любую ошибку и шлём «другой ассистент...», 
+    // лучше логировать `error.code`, `error.message`, чтобы понять в чём дело.
     await ctx.reply(getTranslation(lang, 'another_assistant_accepted'));
   }
 }
