@@ -21,6 +21,42 @@ type ChatMessage = {
   content: string;
 };
 
+/**
+ * Возвращает текущее количество доступных запросов к ассистенту у пользователя,
+ * исходя из таблицы UserTariff и срока действия тарифов.
+ *
+ * @param userId - Telegram ID пользователя (BigInt).
+ * @returns число доступных запросов.
+ */
+export async function getAvailableAssistantRequestsForUser(userId: bigint): Promise<number> {
+  // Предположим, что prisma уже импортирован выше
+  // import { PrismaClient } from '@prisma/client';
+  // const prisma = new PrismaClient();
+
+  // Текущее время
+  const now = new Date();
+
+  // Получаем все тарифы пользователя, у которых:
+  // 1) userId соответствует нашему пользователю
+  // 2) expirationDate ещё не наступила (или она "9999-12-31T23:59:59.999Z" для "никогда")
+  const userTariffs = await prisma.userTariff.findMany({
+    where: {
+      userId,
+      expirationDate: {
+        gte: now, // Тариф действует, если expirationDate >= сейчас
+      },
+    },
+  });
+
+  // Суммируем оставшиеся запросы к ассистенту по всем найденным тарифам
+  const totalRemaining = userTariffs.reduce(
+    (acc, tariff) => acc + tariff.remainingAssistantRequests,
+    0
+  );
+
+  return totalRemaining;
+}
+
 
 const userConversations = new Map<bigint, ChatMessage[]>();
 
@@ -1019,10 +1055,15 @@ bot.on('callback_query', async (ctx) => {
 
       const userId = BigInt(ctx.from.id);
 
-      // Получаем пользователя
+      // Получаем пользователя (для получения последнего диалога)
       const user = await prisma.user.findUnique({
         where: { telegramId: userId },
-        include: { conversations: { orderBy: { createdAt: 'desc' }, take: 1 } }, // Берем последний диалог
+        include: {
+          conversations: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+        },
       });
 
       if (!user) {
@@ -1030,22 +1071,51 @@ bot.on('callback_query', async (ctx) => {
         return;
       }
 
-      // Проверка доступных запросов к ассистенту
-      if (user.assistantRequests < 1) {
-        // Если запросов недостаточно, отправляем соответствующее сообщение
+      // Считаем, сколько у пользователя всего доступных запросов к ассистенту
+      const now = new Date();
+      const userTariffs = await prisma.userTariff.findMany({
+        where: {
+          userId: userId,
+          expirationDate: { gte: now }, // тариф действует, если не истек
+          remainingAssistantRequests: { gt: 0 },
+        },
+        orderBy: {
+          expirationDate: 'asc', // сортируем, чтобы можно было списать из самого "старого" тарифа
+        },
+      });
+
+      // Суммируем все remainingAssistantRequests
+      const totalAvailable = userTariffs.reduce(
+        (acc, t) => acc + t.remainingAssistantRequests,
+        0
+      );
+
+      // Если запросов недостаточно, отправляем сообщение
+      if (totalAvailable < 1) {
         await ctx.reply(getTranslation(languageCode, 'no_requests'));
         return;
       }
 
-      // Обновляем количество запросов у пользователя
-      await prisma.user.update({
-        where: { telegramId: userId },
-        data: { assistantRequests: { decrement: 1 } },
+      // Выбираем первый тариф, у которого remainingAssistantRequests > 0
+      const firstTariff = userTariffs.find((t) => t.remainingAssistantRequests > 0);
+      if (!firstTariff) {
+        // Теоретически не должно случиться, так как totalAvailable > 0
+        await ctx.reply(getTranslation(languageCode, 'no_requests'));
+        return;
+      }
+
+      // Списываем 1 запрос у найденного тарифа
+      await prisma.userTariff.update({
+        where: { id: firstTariff.id },
+        data: {
+          remainingAssistantRequests: {
+            decrement: 1,
+          },
+        },
       });
 
-      const lastConversation = user.conversations[0];
-
       // Проверяем, есть ли последний диалог
+      const lastConversation = user.conversations[0];
       if (!lastConversation || !lastConversation.assistantId) {
         await ctx.reply(getTranslation(languageCode, 'assistant_not_found_for_last_dialog'));
         return;
@@ -1053,6 +1123,7 @@ bot.on('callback_query', async (ctx) => {
 
       const assistantId = lastConversation.assistantId;
 
+      // Отправляем ассистенту запрос на продление
       await sendTelegramMessageWithButtons(
         assistantId.toString(),
         getTranslation(languageCode, 'extend_session_new_request'),
@@ -1062,6 +1133,7 @@ bot.on('callback_query', async (ctx) => {
         ]
       );
 
+      // Сообщаем пользователю, что запрос на продление отправлен ассистенту
       await ctx.reply(getTranslation(languageCode, 'extend_session_request_sent'));
       await ctx.answerCallbackQuery(); // Закрываем уведомление о callback query
     }
