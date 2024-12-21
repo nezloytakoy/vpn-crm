@@ -779,20 +779,22 @@ async function handleAcceptConversation(
       return;
     }
 
+    // "Реанимируем" разговор. Устанавливаем новый createdAt, статус и назначаем ассистента.
     conversation = await prisma.conversation.update({
       where: { id: conversation.id },
       data: {
         status: 'IN_PROGRESS',
         assistantId: assistantTelegramId,
+        createdAt: new Date(),   // Обнуляем время начала диалога
+        updatedAt: new Date(),   // хотя с @updatedAt это может произойти автоматически
       },
       include: {
-        assistantRequest: true, // <-- Важный момент
+        assistantRequest: true,
       },
     });
 
-    // Одновременно обновляем заявку (AssistantRequest), если она есть
+    // Одновременно обновляем связанную заявку (AssistantRequest), если есть
     if (conversation.assistantRequest) {
-      // Переводим её в 'IN_PROGRESS' и делаем isActive = true
       await prisma.assistantRequest.update({
         where: { id: conversation.assistantRequest.id },
         data: {
@@ -808,7 +810,7 @@ async function handleAcceptConversation(
       data: { activeConversationId: null },
     });
 
-    // Теперь текущий ассистент — «хозяин» этого разговора
+    // Назначаем текущему ассистенту активный разговор
     await prisma.assistant.update({
       where: { telegramId: assistantTelegramId },
       data: { activeConversationId: conversation.id },
@@ -831,6 +833,7 @@ async function handleAcceptConversation(
     await ctx.reply(getTranslation(lang, 'another_assistant_accepted'));
   }
 }
+
 
 
 async function handleRejectConversation(
