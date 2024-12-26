@@ -805,23 +805,26 @@
     height: 100vh;
     background-color: rgba(0, 0, 0, 0.5);
     z-index: 1000;
-}
+  }
 
 
-.popup {
+  .popup {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+  
+    width: 400px; /* или подходящую ширину */
     background-color: white;
     padding: 20px;
     border-radius: 10px;
     z-index: 1001;
-    width: 300px;
     text-align: center;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  
+    /* Можно добавить небольшую анимацию появления */
     animation: popupShow 0.3s ease-out;
-}
+  }
 
 
 .popupTitle {
@@ -1896,4 +1899,492 @@
         margin-bottom: 40px;
     }
 
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.loaderWrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.loader {
+    border: 8px solid rgba(0, 0, 0, 0.1);
+    width: 70px;
+    height: 70px;
+    border-radius: 100%;
+    border-left-color: #365CF5;
+    animation: spin 1s ease infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+
+
+
+.popupContent {
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.popup h3 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.popup p {
+  margin: 15px 0;
+}
+
+.popup a {
+  display: block;
+  margin: 5px 0;
+  color: #365CF5;
+  text-decoration: underline;
+  font-size: 14px;
+}
+
+.popup button {
+  background-color: #365CF5;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.popup button:hover {
+  background-color: #2b4ac8;
+}
+
+@keyframes fadeIn {
+  from {
+      opacity: 0;
+      transform: scale(0.95);
+  }
+  to {
+      opacity: 1;
+      transform: scale(1);
+  }
+}
+
+.popup h4 {
+  font-size: 16px;
+  margin-top: 10px;
+}
+
+.popup pre {
+  background-color: #F5F5F5;
+  padding: 10px;
+  border-radius: 5px;
+  text-align: left;
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+
+.popupContent a:hover {
+  color: darkblue;
+}
+
+
+.buttonGroup {
+  display: flex;
+  justify-content: space-between; 
+  gap: 10px; 
+  margin-top: 20px;
+}
+
+.buttonGroup button {
+  flex: 1;
+  padding: 10px;
+}
+
+
+
+.popupOverlay {
+position: fixed;
+top: 0;
+left: 0;
+width: 100vw;
+height: 100vh;
+background-color: rgba(0, 0, 0, 0.5);
+display: flex;
+justify-content: center;
+align-items: center;
+z-index: 1000;
+opacity: 0;
+animation: fadeIn 0.3s forwards;
+}
+
+
+
+.closeButton {
+background-color: #ff5c5c;
+color: white;
+border: none;
+padding: 10px 20px;
+border-radius: 5px;
+cursor: pointer;
+transition: background-color 0.3s ease;
+}
+
+.closeButton:hover {
+background-color: #e04848;
+}
+
+@keyframes fadeIn {
+to {
+  opacity: 1;
+}
+}
+
+@keyframes slideIn {
+to {
+  transform: translateY(0);
+  opacity: 1;
+}
+}
+
+.loaderWrapper {
+display: flex;
+justify-content: center;
+align-items: center;
+height: 100vh;
+}
+
+.loader {
+border: 8px solid rgba(0, 0, 0, 0.1);
+width: 70px;
+height: 70px;
+border-radius: 100%;
+border-left-color: #365cf5;
+animation: spin 1s ease infinite;
+}
+
+@keyframes spin {
+0% {
+  transform: rotate(0deg);
+}
+100% {
+  transform: rotate(360deg);
+}
+}
+
+
+.imagesContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.image {
+  max-width: 100px;
+  max-height: 100px;
+  object-fit: cover;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: transform 0.3s ease-in-out;
+}
+
+.image:hover {
+  transform: scale(1.1); 
+  animation: pulse 1.5s infinite; 
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1.1);
+  }
+  50% {
+    transform: scale(1.2); 
+  }
+  100% {
+    transform: scale(1.1);
+  }
+}
+
+.imageModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.imageModal {
+  max-width: 90%;
+  max-height: 90%;
+  border-radius: 10px;
+  object-fit: contain;
+}
+
+
+.imageModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  opacity: 0; 
+  animation: fadeIn 0.3s ease forwards; 
+}
+
+.imageModal {
+  max-width: 90%;
+  max-height: 90%;
+  border-radius: 10px;
+  object-fit: contain;
+  transform: scale(0.7); 
+  animation: zoomIn 0.3s ease forwards; 
+}
+
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+
+@keyframes zoomIn {
+  from {
+    transform: scale(0.7);
+  }
+  to {
+    transform: scale(1); 
+  }
+}
+
+
+.imageModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  opacity: 1; 
+  animation: fadeIn 0.3s ease forwards; 
+}
+
+.imageModal {
+  max-width: 90%;
+  max-height: 90%;
+  border-radius: 10px;
+  object-fit: contain;
+  transform: scale(1); 
+  animation: zoomIn 0.3s ease forwards; 
+}
+
+
+.fadeOut {
+  animation: fadeOut 0.3s ease forwards;
+}
+
+.zoomOut {
+  animation: zoomOut 0.3s ease forwards;
+}
+
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+
+@keyframes zoomIn {
+  from {
+    transform: scale(0.7);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+
+@keyframes zoomOut {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(0.7);
+  }
+}
+
+.popup {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.explanationInput {
+  width: 100%;
+  height: 80px;
+  padding: 10px;
+  margin-top: 15px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.submitButton {
+  background-color: #365cf5;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.submitButton:hover {
+  background-color: #2b4ac8;
+}
+
+
+
+.fadeOut {
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+
+.popup {
+  opacity: 1;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.formContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.textArea {
+  width: 100%;
+  min-height: 100px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.submitButton {
+  background-color: #365CF5;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.submitButton:hover {
+  background-color: #2b4ac8;
+}
+
+
+.indicators {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.circle {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #ccc;
+  margin: 0 5px;
+}
+
+.circleActive {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #365CF5; 
+  margin: 0 5px;
+}
+
+
+
+.buttonLoader {
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

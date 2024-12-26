@@ -41,7 +41,13 @@ const Table = <T extends object>({ columns, data, onRowClick }: TableProps<T>) =
   const pathname = usePathname();
 
   const isComplaintsOrCoinsRoute =
-    isMounted && (pathname === '/admin/complaints' || pathname === '/admin/coins' || pathname === '/admin/users' || pathname === '/admin/moderators');
+    isMounted &&
+    (
+      pathname === "/admin/complaints" ||
+      pathname === "/admin/coins" ||
+      pathname.startsWith("/admin/users") ||
+      pathname === "/admin/moderators"
+    );
 
   const instance = useTable<T>(
     {

@@ -87,6 +87,17 @@ const updateReferralPercentage = async (telegramId: bigint, newPercentage: numbe
 
 
 function Page() {
+  // Состояния для жалобы
+  const [selectedComplaint, setSelectedComplaint] = useState<ComplaintData | null>(null);
+  // Детальные данные (текст, скриншоты и т.д.)
+  const [complaintDetails, setComplaintDetails] = useState<any | null>(null);
+
+  const [showComplaintPopup, setShowComplaintPopup] = useState(false); // показывает попап
+  const [isFormVisible, setIsFormVisible] = useState(false); // показывает форму объяснения
+  const [fadeOut, setFadeOut] = useState(false);             // анимация скрытия
+  const [explanation, setExplanation] = useState('');        // текст, который заполняет модератор
+  const [action, setAction] = useState<'approve' | 'reject' | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [userRole, setUserRole] = useState<string>('');
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -130,7 +141,31 @@ function Page() {
     }, 3000);
   };
 
+  // Функция для клика по строке жалобы
+  const handleComplaintRowClick = async (row: ComplaintData) => {
+    try {
+      // 1. Запоминаем «короткие» данные жалобы
+      setSelectedComplaint(row);
 
+      // 2. Делаем запрос детальной информации:
+      //    допустим, /api/get-complaint-details?id=complaintId
+      const resp = await fetch(`/api/get-complaint-details?id=${row.complaintId}`);
+      if (!resp.ok) {
+        throw new Error('Ошибка при получении деталей жалобы');
+      }
+      const full = await resp.json();
+      setComplaintDetails(full);
+
+      // 3. Показываем попап
+      setShowComplaintPopup(true);
+      setIsFormVisible(false);
+      setExplanation('');
+      setAction(null);
+      setFadeOut(false);
+    } catch (error) {
+      console.error('Ошибка при получении жалобы:', error);
+    }
+  };
 
 
   const handleAssistantRequestSubmit = async () => {
@@ -411,6 +446,64 @@ function Page() {
 
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const handleApproveComplaint = () => {
+    setAction('approve');
+    setFadeOut(true);
+    // Подождём анимацию 300ms, потом показываем форму
+    setTimeout(() => {
+      setIsFormVisible(true);
+      setFadeOut(false);
+    }, 300);
+  };
+
+  const handleRejectComplaint = () => {
+    setAction('reject');
+    setFadeOut(true);
+    setTimeout(() => {
+      setIsFormVisible(true);
+      setFadeOut(false);
+    }, 300);
+  };
+
+  const handleComplaintFormSubmit = async () => {
+    if (!selectedComplaint) return;
+    setIsSubmitting(true);
+    try {
+      // 1. Узнаём moderatorId (если нужно)
+      const modResp = await fetch('/api/get-moder-id');
+      if (!modResp.ok) throw new Error('Не удалось получить moderatorId');
+      const { userId: moderatorId } = await modResp.json();
+
+      // 2. Шлём запрос
+      const resp = await fetch(
+        `/api/${action === 'approve' ? 'approve-complaint' : 'reject-complaint'}?id=${selectedComplaint.complaintId}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            complaintId: selectedComplaint.complaintId,
+            explanation,   // ваше объяснение
+            moderatorId,   // кто это сделал
+          }),
+        }
+      );
+      if (!resp.ok) {
+        throw new Error(`Ошибка при ${action === 'approve' ? 'одобрении' : 'отклонении'} жалобы: ${resp.status}`);
+      }
+
+      // успех
+      setShowComplaintPopup(false);
+      setSelectedComplaint(null);
+      setComplaintDetails(null);
+      setIsFormVisible(false);
+      setExplanation('');
+      setAction(null);
+    } catch (err) {
+      console.error('Ошибка при FormSubmit:', err);
+      setIsSubmitting(false);
+    }
   };
 
   const requestColumns: Column<UserRequest>[] = [
@@ -851,7 +944,11 @@ function Page() {
               Жалобы <span>({userData?.complaints.length || 0})</span>
             </h3>
           </div>
-          <Table columns={complaintColumns} data={userData?.complaints || []} />
+          <Table
+            columns={complaintColumns}
+            data={userData?.complaints || []}
+            onRowClick={handleComplaintRowClick}
+          />
         </div>
       </div>
       {userRole !== 'Модератор' && (
@@ -863,6 +960,66 @@ function Page() {
             <Table columns={referralColumns} data={userData?.referrals || []} />
           </div>
         </div>
+      )}
+      {showComplaintPopup && complaintDetails && (
+        <>
+          <div className={styles.overlay} />
+          <div className={`${styles.popup} ${fadeOut ? styles.fadeOut : ''}`}>
+            {!isFormVisible ? (
+              <>
+                {/* Заголовок / текст жалобы */}
+                <p><strong>Сообщение:</strong> {complaintDetails.text}</p>
+
+                {/* Фото, если есть */}
+                {complaintDetails.photoUrls?.length > 0 && (
+                  <div>
+                    <strong>Скриншоты:</strong>
+                    <div className={styles.imagesContainer}>
+                      {complaintDetails.photoUrls.map((url: string, index: number) => (
+                        <Image
+                          key={index}
+                          src={`/api/get-image-proxy?url=${encodeURIComponent(url)}`}
+                          alt={`Скриншот ${index + 1}`}
+                          className={styles.image}
+                          width={200}
+                          height={120}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Кнопки "Одобрить" / "Отклонить" */}
+                <div className={styles.buttonGroup}>
+                  <button onClick={handleApproveComplaint} className={styles.approveButton}>
+                    Одобрить
+                  </button>
+                  <button onClick={handleRejectComplaint} className={styles.rejectButton}>
+                    Отклонить
+                  </button>
+                </div>
+              </>
+            ) : (
+              // Если нажали "Одобрить"/"Отклонить" — показываем форму ввода объяснения
+              <div className={styles.formContainer}>
+                <h3>{action === 'approve' ? 'Одобрение жалобы' : 'Отклонение жалобы'}</h3>
+                <textarea
+                  placeholder="Введите ваше объяснение"
+                  value={explanation}
+                  onChange={(e) => setExplanation(e.target.value)}
+                  className={styles.textArea}
+                />
+                <button
+                  onClick={handleComplaintFormSubmit}
+                  className={styles.submitButton}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? <div className={styles.buttonLoader} /> : 'Отправить'}
+                </button>
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {showPopup && (
