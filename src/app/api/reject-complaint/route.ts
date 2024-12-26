@@ -24,7 +24,7 @@ async function sendMessageToTelegram(telegramId: bigint, message: string, token:
 
 export async function POST(req: NextRequest) {
   try {
-    console.log("Запрос получен, начало обработки");
+    console.log("Запрос получен, начало обработки (ОТКЛОНЕНИЕ жалобы в пользу ассистента)");
 
     const { complaintId, explanation, moderatorId } = await req.json();
     console.log("Тело запроса:", { complaintId, explanation, moderatorId });
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Отсутствуют необходимые данные' }, { status: 400 });
     }
 
-    console.log(`Пользователь с ID ${moderatorId} выполняет запрос`);
+    console.log(`Пользователь с ID ${moderatorId} выполняет запрос (ОТКЛОНЕНИЕ в пользу ассистента)`);
 
     // Проверяем наличие жалобы
     const complaint = await prisma.complaint.findUnique({
@@ -46,15 +46,19 @@ export async function POST(req: NextRequest) {
 
     console.log('Жалоба найдена:', complaint);
 
-    // Обновляем коины пользователя, подавшего жалобу
+    // === Начисляем 1 коин АССИСТЕНТУ, а НЕ пользователю ===
+    // complaint.assistantId — это TelegramID ассистента
     await prisma.user.update({
-      where: { telegramId: complaint.userId },
+      where: { telegramId: complaint.assistantId },
       data: { coins: { increment: 1 } },
     });
 
-    // Сообщения для пользователя и ассистента
-    const userMessage = `Ваша жалоба одобрена. Вам начислен 1 койн. ${explanation}`;
-    const assistantMessage = `Жалоба пользователя показалась модератору убедительной. ${explanation}`;
+    // Меняем тексты сообщений:
+    // Пользователю: сообщаем, что жалоба отклонена, ассистент прав
+    // Ассистенту: сообщаем, что он в итоге «выиграл» (жалоба признана несостоятельной, и ему начислен 1 койн).
+    const userMessage = `Ваша жалоба отклонена. ${explanation}`;
+    const assistantMessage = `Жалоба пользователя оказалась несостоятельной. Вам начислен 1 койн. ${explanation}`;
+
     const supportBotToken = process.env.TELEGRAM_SUPPORT_BOT_TOKEN;
     const userBotToken = process.env.TELEGRAM_USER_BOT_TOKEN;
 
@@ -65,7 +69,7 @@ export async function POST(req: NextRequest) {
     // Отправляем сообщения в Telegram
     await sendMessageToTelegram(complaint.userId, userMessage, userBotToken);
     await sendMessageToTelegram(complaint.assistantId, assistantMessage, supportBotToken);
-    console.log('Сообщения успешно отправлены');
+    console.log('Сообщения (об отклонении в пользу ассистента) успешно отправлены');
 
     // Проверяем, является ли пользователь модератором
     const moderator = await prisma.moderator.findUnique({
@@ -82,11 +86,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Пользователь не найден в таблицах Moderator и Admin' }, { status: 404 });
     }
 
-    // Обновляем жалобу
+    // Обновляем жалобу: статус "REJECTED" или аналогичный
     await prisma.complaint.update({
       where: { id: complaint.id },
       data: {
-        status: 'REVIEWED',
+        status: 'REJECTED', // <-- статус, показывающий, что жалоба была отклонена
         decision: explanation,
         moderatorId: moderator ? BigInt(moderatorId) : null, // Привязываем ID модератора только если это модератор
       },
@@ -94,7 +98,7 @@ export async function POST(req: NextRequest) {
 
     // Если пользователь модератор, обновляем его данные
     if (moderator) {
-      console.log(`Обновление данных модератора с ID ${moderatorId}`);
+      console.log(`Обновление данных модератора с ID ${moderatorId} (ОТКЛОНЕНИЕ в пользу ассистента)`);
       await prisma.moderator.update({
         where: { id: BigInt(moderatorId) },
         data: {
@@ -102,14 +106,14 @@ export async function POST(req: NextRequest) {
           lastActiveAt: new Date(),
         },
       });
-      console.log('Данные модератора успешно обновлены');
+      console.log('Данные модератора успешно обновлены (отклонил жалобу в пользу ассистента)');
     } else if (admin) {
-      console.log(`Пользователь с ID ${moderatorId} является администратором. Логика обновления модератора пропущена.`);
+      console.log(`Пользователь с ID ${moderatorId} является администратором. (ОТКЛОНЕНИЕ в пользу ассистента)`);
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Ошибка при обработке жалобы:', error instanceof Error ? error.message : error);
+    console.error('Ошибка при отклонении жалобы:', error instanceof Error ? error.message : error);
     return NextResponse.json({ error: 'Произошла ошибка' }, { status: 500 });
   }
 }
