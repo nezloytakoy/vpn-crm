@@ -52,6 +52,17 @@ interface ComplaintData {
   messages: Message[];
 }
 
+interface ComplaintDetails {
+  text: string;
+  photoUrls: string[];
+  // Если у вас в детальном ответе есть и другие поля,
+  // например id, status, assistantId и т.п., добавьте их:
+  // complaintId: string;
+  // assistantId: string;
+  // status: string;
+  // messages: Message[];
+}
+
 interface ReferralData {
   telegramId: string;
   username: string;
@@ -90,7 +101,7 @@ function Page() {
   // Состояния для жалобы
   const [selectedComplaint, setSelectedComplaint] = useState<ComplaintData | null>(null);
   // Детальные данные (текст, скриншоты и т.д.)
-  const [complaintDetails, setComplaintDetails] = useState<any | null>(null);
+  const [complaintDetails, setComplaintDetails] = useState<ComplaintDetails | null>(null);
 
   const [showComplaintPopup, setShowComplaintPopup] = useState(false); // показывает попап
   const [isFormVisible, setIsFormVisible] = useState(false); // показывает форму объяснения
