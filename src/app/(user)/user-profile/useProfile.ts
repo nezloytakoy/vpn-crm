@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from 'react';
 import i18n from '../../../i18n';
-import { sendLogToTelegram } from './utils'; // Предположим, что utils.ts лежит рядом
+import { sendLogToTelegram } from './utils';
+import { useTranslation } from 'react-i18next';
 
-// Интерфейс для возвращаемых данных
+/** Интерфейс того, что возвращает наш хук */
 interface UseProfileResult {
     telegramUsername: string;
     fontSize: string;
@@ -12,17 +13,19 @@ interface UseProfileResult {
 }
 
 export function useProfile(): UseProfileResult {
+    const { t } = useTranslation();
 
     const [telegramUsername, setTelegramUsername] = useState('');
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [fontSize, setFontSize] = useState('24px');
     const [assistantRequests, setAssistantRequests] = useState<number | null>(null);
 
-    // Аватар по умолчанию
-    const defaultAvatarUrl = 'https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg';
+    // Ссылка на аватар по умолчанию
+    const defaultAvatarUrl =
+        'https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg';
 
     useEffect(() => {
-        // Определяем язык из Telegram WebApp (или по умолчанию)
+        // 1. Определяем язык из Telegram WebApp (или ставим 'en' по умолчанию)
         const userLang = window?.Telegram?.WebApp?.initDataUnsafe?.user?.language_code || 'en';
         if (userLang === 'ru') {
             i18n.changeLanguage('ru');
@@ -30,7 +33,7 @@ export function useProfile(): UseProfileResult {
             i18n.changeLanguage('en');
         }
 
-        // Берём данные из Telegram WebApp
+        // 2. Извлекаем базовые данные из Telegram WebApp
         const username = window?.Telegram?.WebApp?.initDataUnsafe?.user?.username;
         const firstName = window?.Telegram?.WebApp?.initDataUnsafe?.user?.first_name;
         const lastName = window?.Telegram?.WebApp?.initDataUnsafe?.user?.last_name;
@@ -42,7 +45,7 @@ export function useProfile(): UseProfileResult {
 
         setTelegramUsername(displayName || 'Guest');
 
-        // Настройка размера шрифта
+        // Автоматически подбираем размер шрифта для имени
         if (displayName.length > 12) {
             setFontSize('19px');
         } else if (displayName.length > 8) {
@@ -54,7 +57,11 @@ export function useProfile(): UseProfileResult {
         sendLogToTelegram(`Detected language: ${userLang}`);
         sendLogToTelegram(`Username: ${displayName}`);
 
-        // Функция загрузки данных о пользователе
+        /**
+         * Основная функция для загрузки данных о пользователе:
+         * - профиль (аватар)
+         * - кол-во запросов к ассистенту
+         */
         const fetchUserData = async () => {
             if (!telegramId) {
                 sendLogToTelegram('Telegram ID не найден');
@@ -62,21 +69,24 @@ export function useProfile(): UseProfileResult {
             }
 
             try {
-                // Пример: запрашиваем профиль
+                // Пример: запрашиваем данные профиля
                 const profileResponse = await fetch(`/api/get-profile-data?telegramId=${telegramId}`);
                 if (!profileResponse.ok) {
                     throw new Error('Ошибка при получении данных профиля');
                 }
                 const profileData = await profileResponse.json();
 
-                // Пример: запрашиваем кол-во запросов
+                // Пример: запрашиваем кол-во запросов к ассистенту
                 const requestsResponse = await fetch(`/api/get-requests?telegramId=${telegramId}`);
                 if (!requestsResponse.ok) {
                     throw new Error('Ошибка при получении данных запросов');
                 }
                 const requestsData = await requestsResponse.json();
 
-                // Устанавливаем аватар
+                // --- ВАЖНО: Логируем приходящие данные, чтобы видеть, что вернул сервер ---
+                console.log('requestsData from server =>', requestsData);
+
+                // Устанавливаем аватар (если он есть)
                 if (profileData.avatarUrl) {
                     setAvatarUrl(profileData.avatarUrl);
                 } else {
@@ -87,6 +97,7 @@ export function useProfile(): UseProfileResult {
                 if (typeof requestsData.assistantRequests === 'number') {
                     setAssistantRequests(requestsData.assistantRequests);
                 } else {
+                    // Если нет поля assistantRequests, или оно не число — ставим 0
                     setAssistantRequests(0);
                 }
             } catch (error) {
@@ -97,7 +108,6 @@ export function useProfile(): UseProfileResult {
 
         fetchUserData();
     }, []);
-
 
     return {
         telegramUsername,

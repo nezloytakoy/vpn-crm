@@ -13,7 +13,7 @@ import { useProfile } from './useProfile'; // <-- Импорт кастомно�
 const WaveComponent = () => {
     const { t } = useTranslation();
 
-    // Используем наш кастомный хук
+    // Достаём данные из кастомного хука useProfile
     const {
         telegramUsername,
         fontSize,
@@ -21,7 +21,7 @@ const WaveComponent = () => {
         assistantRequests
     } = useProfile();
 
-    // Тарифы
+    // Состояние для тарифов
     const [tariffs, setTariffs] = useState<Record<string, TariffInfo>>({});
 
     // Состояния для попапа и выбранного тарифа
@@ -29,7 +29,7 @@ const WaveComponent = () => {
     const [buttonText, setButtonText] = useState('');
     const [price, setPrice] = useState<number>(0);
 
-    // При монтировании загружаем тарифы
+    // При монтировании загружаем тарифы (функция fetchTariffs из utils.ts)
     useEffect(() => {
         async function loadTariffs() {
             try {
@@ -43,7 +43,7 @@ const WaveComponent = () => {
         loadTariffs();
     }, [t]);
 
-    // Обработка клика по кнопке тарифа
+    // Обработка нажатия на определённый тариф (кнопка)
     const handleButtonClick = (tariffKey: string) => {
         const tariff = tariffs[tariffKey];
         setButtonText(`${tariff.displayName} - ${tariff.price}$`);
@@ -52,12 +52,13 @@ const WaveComponent = () => {
         sendLogToTelegram(`Button clicked: ${tariff.displayName}`);
     };
 
+    // Закрытие попапа
     const handleClosePopup = () => {
         setPopupVisible(false);
         sendLogToTelegram('Popup closed');
     };
 
-    // Ссылка на аватар по умолчанию (применена в useProfile, но на случай fallback)
+    // Ссылка на аватар по умолчанию (используется, если avatarUrl === null)
     const defaultAvatarUrl =
         'https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg';
 
@@ -92,7 +93,7 @@ const WaveComponent = () => {
                                 width={130}
                                 height={130}
                                 className={styles.avatar}
-                            // onError уже обрабатывается в useProfile (или можете дублировать здесь)
+                            // При желании можно добавить onError здесь, но в useProfile уже обработка есть
                             />
                             <p className={styles.name} style={{ fontSize }}>
                                 {telegramUsername}
@@ -103,11 +104,13 @@ const WaveComponent = () => {
             </div>
 
             <div className={styles.backbotom}>
+                {/* Отображаем кол-во запросов (если null => "...", иначе число) */}
                 <p className={styles.time}>
                     {t('time')}: {assistantRequests === null ? '...' : assistantRequests} {t('requests')}
                 </p>
 
                 <div className={styles.parent}>
+                    {/* Первая строка тарифов */}
                     <div className={styles.buttons}>
                         <div className={styles.leftblock} onClick={() => handleButtonClick('FIRST')}>
                             <Image
@@ -121,6 +124,7 @@ const WaveComponent = () => {
                                 {tariffs['FIRST']?.displayName || 'Loading...'}
                             </p>
                         </div>
+
                         <div className={styles.centerblock} onClick={() => handleButtonClick('SECOND')}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/jE6SDe7l2dN1nP5r7s-leizKIGomi1dMjfHE1qavcrvcr53xa.gif"
@@ -133,6 +137,7 @@ const WaveComponent = () => {
                                 {tariffs['SECOND']?.displayName || 'Loading...'}
                             </p>
                         </div>
+
                         <div className={styles.rightblock} onClick={() => handleButtonClick('THIRD')}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/3Gp4U52HVs6Vc0Oa4L-VvFqf9YswsVh5d3QhBUu0Eqh6HJYKn.gif"
@@ -146,6 +151,8 @@ const WaveComponent = () => {
                             </p>
                         </div>
                     </div>
+
+                    {/* Вторая строка: четвёртый тариф + реферальная ссылка */}
                     <div className={styles.section}>
                         <div className={styles.block} onClick={() => handleButtonClick('FOURTH')}>
                             <Image
@@ -159,6 +166,7 @@ const WaveComponent = () => {
                                 {tariffs['FOURTH']?.displayName || 'Loading...'}
                             </p>
                         </div>
+
                         <Link href="/referal-page" className={styles.block}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/a140h5GWxHkA11HZi8-EPAX13JKlAygeA9jQ5MrqHdpb7mztu.gif"
@@ -170,6 +178,8 @@ const WaveComponent = () => {
                             <p className={styles.aitext}>{t('referral')}</p>
                         </Link>
                     </div>
+
+                    {/* Третья строка: кнопка "Купить запросы" (пример) */}
                     <div className={styles.section}>
                         <Link href="/buy-requests" className={styles.block}>
                             <Image
@@ -184,6 +194,7 @@ const WaveComponent = () => {
                     </div>
                 </div>
             </div>
+
             {isPopupVisible && (
                 <Popup
                     isVisible={isPopupVisible}
@@ -195,4 +206,5 @@ const WaveComponent = () => {
         </div>
     );
 };
+
 export default WaveComponent;
