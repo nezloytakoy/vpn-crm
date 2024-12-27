@@ -1408,7 +1408,7 @@ bot.on('message:photo', async (ctx: Context) => {
             userId: telegramId,
             // например, isActive: true, 
             // или status: 'DRAFT', в зависимости от вашей логики
-            status: 'DRAFT',
+            status: 'PENDING',
           },
           orderBy: { createdAt: 'desc' }, // последняя созданная жалоба
         });
