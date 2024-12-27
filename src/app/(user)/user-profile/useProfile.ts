@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import i18n from '../../../i18n';
 import { sendLogToTelegram } from './utils'; // Предположим, что utils.ts лежит рядом
-import { useTranslation } from 'react-i18next';
 
 // Интерфейс для возвращаемых данных
 interface UseProfileResult {
@@ -13,7 +12,6 @@ interface UseProfileResult {
 }
 
 export function useProfile(): UseProfileResult {
-    const { t } = useTranslation();
 
     const [telegramUsername, setTelegramUsername] = useState('');
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -100,10 +98,6 @@ export function useProfile(): UseProfileResult {
         fetchUserData();
     }, []);
 
-    // Обработчик, если аватар не загрузился
-    // const onErrorAvatar = () => {
-    //     setAvatarUrl(defaultAvatarUrl);
-    // };
 
     return {
         telegramUsername,
