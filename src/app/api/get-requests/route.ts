@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
 export const revalidate = 1;
-
 export const dynamic = 'force-dynamic';
 
 const prisma = new PrismaClient();
@@ -30,12 +29,14 @@ export async function GET(request: Request) {
       },
     });
 
+    // Если вообще нет тарифов
     if (!userTariffs || userTariffs.length === 0) {
       console.log(`No tariffs found for user with Telegram ID ${telegramId}`);
-      return NextResponse.json(
-        { error: 'Нет активных тарифов для пользователя.' },
-        { status: 404 }
-      );
+      // Возвращаем нулевые значения, а не 404
+      return NextResponse.json({
+        assistantRequests: 0,
+        aiRequests: 0,
+      });
     }
 
     // Фильтрация активных тарифов (с ненаступившей expirationDate)
@@ -45,10 +46,11 @@ export async function GET(request: Request) {
     // Если нет активных тарифов
     if (activeTariffs.length === 0) {
       console.log(`No active tariffs found for user with Telegram ID ${telegramId}`);
-      return NextResponse.json(
-        { error: 'У пользователя нет активных тарифов.' },
-        { status: 404 }
-      );
+      // Также возвращаем нулевые значения
+      return NextResponse.json({
+        assistantRequests: 0,
+        aiRequests: 0,
+      });
     }
 
     // Суммирование оставшихся запросов
