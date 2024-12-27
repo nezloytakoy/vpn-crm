@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import i18n from '../../../i18n';
 import { sendLogToTelegram } from './utils';
-import { useTranslation } from 'react-i18next';
 
 /** Интерфейс того, что возвращает наш хук */
 interface UseProfileResult {
@@ -13,7 +12,7 @@ interface UseProfileResult {
 }
 
 export function useProfile(): UseProfileResult {
-    const { t } = useTranslation();
+
 
     const [telegramUsername, setTelegramUsername] = useState('');
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
