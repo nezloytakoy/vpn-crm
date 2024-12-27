@@ -44,11 +44,16 @@
   "copy_link": "Copy link",
   "link_copied": "Link copied",
   "long_press_to_copy": "Long press to copy the link",
-
   "tariff_with_count": "AI + {{count}} assistant requests",
   "tariff_ai_only": "AI only",
   "no_message": "No message",
   "activated_request_with_subject": "Activated request with subject",
   "now_chatting_with_user": "Now chatting with user",
-  "subjectExpected": "We are waiting for you to provide the subject of your request. Please specify it."
+  "subjectExpected": "We are waiting for you to provide the subject of your request. Please specify it.",
+  "profile": "Profile",
+  "requests_store": "Requests Store",
+  "enter_number_assistant": "Enter the number of requests to assistant:",
+  "enter_number_ai": "Enter the number of requests to AI:",
+  "buy_button": "Buy",
+  "enter_requests_to_buy": "Please enter the number of requests to buy."
 }
