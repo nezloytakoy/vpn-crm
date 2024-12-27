@@ -297,7 +297,7 @@ function Page() {
             speed: 0.15,
             points: 3,
           }}
-          style={{ position: 'absolute', bottom: '-70px', width: '100%' }}
+          style={{ position: 'absolute', bottom: '-100px', width: '100%' }}
         />
         <div className={styles.topbotom}>
           <div className={styles.greetings}>
