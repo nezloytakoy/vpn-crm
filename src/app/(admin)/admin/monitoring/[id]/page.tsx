@@ -737,7 +737,14 @@ function Page() {
               История запросов <span>({requestData.length})</span>
             </h3>
           </div>
-          <Table columns={requestColumns} data={requestData} />
+          {/* <-- Изменения! Проверяем, идет ли загрузка данных ассистента */}
+          {isLoadingData ? (
+            <p>Загрузка запросов...</p>
+          ) : requestData.length > 0 ? (
+            <Table columns={requestColumns} data={requestData} />
+          ) : (
+            <p>Запросы не найдены.</p>
+          )}
         </div>
       </div>
       {userRole === 'Администратор' && (

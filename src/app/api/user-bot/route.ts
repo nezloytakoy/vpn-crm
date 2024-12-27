@@ -53,8 +53,6 @@ const SESSION_DURATION = 60; // Длительность сеанса в мин�
 
 
 
-
-
 type TranslationKey =
   | 'start_message'
   | 'webapp_button'
@@ -115,8 +113,10 @@ type TranslationKey =
   | 'file_sent_to_assistant'
   | 'video_note_sent_to_assistant'
   | 'complaint_not_found'
-  | 'ai_settings_load_error';
-
+  | 'ai_settings_load_error'
+  // Добавленные ключи:
+  | 'no_active_complaint'
+  | 'complaintPhotoReceived';
 
 type Language = 'en' | 'ru';
 
@@ -170,7 +170,7 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       payment_error: "Произошла ошибка при обработке вашего платежа. Пожалуйста, свяжитесь с поддержкой.",
       no_requests: "⚠️ У вас нет запросов.",
       complaint_already_submitted: "⚠️ Вы уже подали жалобу по этому запросу.",
-      complaint_prompt: "Опишите свою жалобу. После этого вы сможете загрузить скриншоты.",
+      complaint_prompt: "Опишите свою жалобу. Если у вас есть скриншоты, сначала отправте их.",
       thanks_for_using: "Спасибо за использование нашего сервиса",
       not_enough_coins: "У вас недостаточно запросов.",
       assistant_not_found_for_last_dialog: "Ошибка: не удалось найти ассистента для последнего диалога.",
@@ -182,7 +182,10 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       file_sent_to_assistant: "Файл успешно отправлен ассистенту.",
       video_note_sent_to_assistant: "Видео-кружок успешно отправлен ассистенту.",
       complaint_not_found: "Жалоба не найдена",
-      ai_settings_load_error: "Не удалось загрузить настройки AI. Пожалуйста, попробуйте позже."
+      ai_settings_load_error: "Не удалось загрузить настройки AI. Пожалуйста, попробуйте позже.",
+      // Новые ключи:
+      no_active_complaint: "У вас нет активной жалобы для добавления фотографий.",
+      complaintPhotoReceived: "Фотография успешно добавлена в жалобу."
     },
     en: {
       start_message: "👋 This is the user bot! To continue, click the button below and log into the Telegram Web App.",
@@ -232,7 +235,7 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       payment_error: "An error occurred while processing your payment. Please contact support.",
       no_requests: "⚠️ You have no requests.",
       complaint_already_submitted: "⚠️ You have already submitted a complaint for this request.",
-      complaint_prompt: "Describe your complaint. After that, you can upload screenshots.",
+      complaint_prompt: "Describe your complaint. If you have screenshots, please send them first.",
       thanks_for_using: "Thank you for using our service",
       not_enough_coins: "You do not have enough requests.",
       assistant_not_found_for_last_dialog: "Error: could not find an assistant for the last dialog.",
@@ -244,13 +247,17 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       file_sent_to_assistant: "File successfully sent to the assistant.",
       video_note_sent_to_assistant: "Video note successfully sent to the assistant.",
       complaint_not_found: "Complaint not found",
-      ai_settings_load_error: "Could not load AI settings. Please try again later."
-    },
+      ai_settings_load_error: "Could not load AI settings. Please try again later.",
+      // New keys:
+      no_active_complaint: "You have no active complaint to add photos to.",
+      complaintPhotoReceived: "Photo has been successfully added to the complaint."
+    }
   };
 
   const selectedLanguage: Language = (languageCode as Language) || 'en';
   return translations[selectedLanguage]?.[key] || translations['en'][key];
 };
+
 
 type JsonArray = Array<string | number | boolean | { [key: string]: string | number | boolean | JsonArray | JsonObject }>;
 
@@ -886,68 +893,68 @@ bot.on("message:successful_payment", async (ctx) => {
 
 
 
-bot.command('problem', async (ctx: Context) => {
-  try {
-    if (!ctx.from?.id) {
-      await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
-      return;
-    }
+// bot.command('problem', async (ctx: Context) => {
+//   try {
+//     if (!ctx.from?.id) {
+//       await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
+//       return;
+//     }
 
-    const telegramId = BigInt(ctx.from.id);
-
-
-    const lastRequest = await prisma.assistantRequest.findFirst({
-      where: {
-        userId: telegramId,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-
-    if (!lastRequest) {
-      await ctx.reply('⚠️ У вас нет запросов.');
-      return;
-    }
+//     const telegramId = BigInt(ctx.from.id);
 
 
-    const existingComplaint = await prisma.complaint.findUnique({
-      where: { id: lastRequest.id },
-    });
+//     const lastRequest = await prisma.assistantRequest.findFirst({
+//       where: {
+//         userId: telegramId,
+//       },
+//       orderBy: {
+//         createdAt: 'desc',
+//       },
+//     });
 
-    if (existingComplaint) {
-      await ctx.reply('⚠️ Вы уже подали жалобу по этому запросу.');
-      return;
-    }
-
-    const assistantId = lastRequest.assistantId ?? BigInt(0);
-
-
-    await prisma.complaint.create({
-      data: {
-        id: lastRequest.id,
-        userId: telegramId,
-        assistantId: assistantId,
-        text: '',
-        status: 'PENDING',
-      },
-    });
+//     if (!lastRequest) {
+//       await ctx.reply('⚠️ У вас нет запросов.');
+//       return;
+//     }
 
 
-    await prisma.user.update({
-      where: { telegramId },
-      data: { isWaitingForComplaint: true },
-    });
+//     const existingComplaint = await prisma.complaint.findUnique({
+//       where: { id: lastRequest.id },
+//     });
+
+//     if (existingComplaint) {
+//       await ctx.reply('⚠️ Вы уже подали жалобу по этому запросу.');
+//       return;
+//     }
+
+//     const assistantId = lastRequest.assistantId ?? BigInt(0);
 
 
-    await ctx.reply('Опишите свою жалобу. После этого вы сможете загрузить скриншоты.');
+//     await prisma.complaint.create({
+//       data: {
+//         id: lastRequest.id,
+//         userId: telegramId,
+//         assistantId: assistantId,
+//         text: '',
+//         status: 'PENDING',
+//       },
+//     });
 
-  } catch (error) {
-    console.error('Ошибка при создании жалобы:', error);
-    const languageCode = ctx.from?.language_code || 'en';
-    await ctx.reply(getTranslation(languageCode, 'payment_error'));
-  }
-});
+
+//     await prisma.user.update({
+//       where: { telegramId },
+//       data: { isWaitingForComplaint: true },
+//     });
+
+
+//     await ctx.reply('Опишите свою жалобу. После этого вы сможете загрузить скриншоты.');
+
+//   } catch (error) {
+//     console.error('Ошибка при создании жалобы:', error);
+//     const languageCode = ctx.from?.language_code || 'en';
+//     await ctx.reply(getTranslation(languageCode, 'payment_error'));
+//   }
+// });
 
 bot.on('callback_query', async (ctx) => {
   try {
@@ -1318,7 +1325,9 @@ bot.on('message:photo', async (ctx: Context) => {
     });
 
     // Фильтрация валидных тарифов (исключаем null)
-    const validTariffIds = activeTariffs.map((tariff) => tariff.tariffId).filter((id): id is bigint => id !== null);
+    const validTariffIds = activeTariffs
+      .map((tariff) => tariff.tariffId)
+      .filter((id): id is bigint => id !== null);
 
     if (validTariffIds.length === 0) {
       await ctx.reply(getTranslation(languageCode, 'no_active_subscription'));
@@ -1341,11 +1350,11 @@ bot.on('message:photo', async (ctx: Context) => {
     // Если разрешение есть, продолжаем обработку фотографии
     if (ctx.message?.photo) {
       const largestPhoto = ctx.message.photo[ctx.message.photo.length - 1];
-
       // Получаем ссылку на файл
       const file = await ctx.api.getFile(largestPhoto.file_id);
       const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${file.file_path}`;
 
+      // --- Блок 1: Проверяем, ожидается ли "subject" для AssistantRequest ---
       if (user.isWaitingForSubject) {
         console.log(`User ${telegramId.toString()} is providing a subject as a photo.`);
 
@@ -1370,7 +1379,7 @@ bot.on('message:photo', async (ctx: Context) => {
 
           console.log(`Subject updated for request ID: ${activeRequest.id} - Subject (photo URL): ${fileUrl}`);
 
-          // Обновляем состояние пользователя
+          // Обновляем состояние пользователя (больше не ждём subject)
           await prisma.user.update({
             where: { telegramId },
             data: { isWaitingForSubject: false },
@@ -1383,13 +1392,56 @@ bot.on('message:photo', async (ctx: Context) => {
 
           await ctx.reply(getTranslation(languageCode, 'subjectReceived'));
         } else {
-          console.error(
-            `No active request found for user ID: ${telegramId.toString()} while expecting a subject.`
-          );
+          console.error(`No active request found for user ID: ${telegramId.toString()} while expecting a subject.`);
           await ctx.reply(getTranslation(languageCode, 'no_active_request'));
         }
+
+        // --- Блок 2: Проверяем, ожидается ли "complaint" ---
+      } else if (user.isWaitingForComplaint) {
+        console.log(`User ${telegramId.toString()} is providing a complaint photo.`);
+
+        // Предположим, у вас в моделе Complaint есть поле: 
+        // photoUrls   String[]    @default([])
+        // и статус/флаг "isActive" или что-то похожее.
+        const activeComplaint = await prisma.complaint.findFirst({
+          where: {
+            userId: telegramId,
+            // например, isActive: true, 
+            // или status: 'DRAFT', в зависимости от вашей логики
+            status: 'DRAFT',
+          },
+          orderBy: { createdAt: 'desc' }, // последняя созданная жалоба
+        });
+
+        if (!activeComplaint) {
+          console.error(`No active complaint found for user ID: ${telegramId.toString()} while expecting a complaint.`);
+          await ctx.reply(getTranslation(languageCode, 'no_active_complaint'));
+          return;
+        }
+
+        // Добавляем новую фотографию в массив photoUrls
+        // Предположим, что в Complaint.photoUrls типа String[]
+        const updatedPhotoUrls = [...(activeComplaint.photoUrls || []), fileUrl];
+
+        await prisma.complaint.update({
+          where: { id: activeComplaint.id },
+          data: { photoUrls: updatedPhotoUrls },
+        });
+
+        console.log(`Photo added to complaint ID: ${activeComplaint.id} - Photo URL: ${fileUrl}`);
+
+        // Если вы хотите, чтобы пользователь мог продолжить добавлять фото,
+        // то не сбрасывайте isWaitingForComplaint. 
+        // Но если вам нужно одно фото — то отключайте:
+        // await prisma.user.update({
+        //   where: { telegramId },
+        //   data: { isWaitingForComplaint: false },
+        // });
+
+        await ctx.reply(getTranslation(languageCode, 'complaintPhotoReceived'));
+
       } else {
-        // Если пользователь не в режиме ожидания темы
+        // Если пользователь не в режиме ожидания ни subject, ни complaint
         await ctx.reply(getTranslation(languageCode, 'unexpected_photo'));
       }
     } else {
@@ -1401,6 +1453,7 @@ bot.on('message:photo', async (ctx: Context) => {
     await ctx.reply(getTranslation(languageCode, 'server_error'));
   }
 });
+
 
 bot.on('message:voice', async (ctx) => {
   let languageCode: string = 'en'; // Значение по умолчанию
