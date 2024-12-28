@@ -53,8 +53,9 @@ export function useProfile(): UseProfileResult {
             setFontSize('25px');
         }
 
-        sendLogToTelegram(`Detected language: ${userLang}`);
-        sendLogToTelegram(`Username: ${displayName}`);
+        // Логи
+        sendLogToTelegram(`(useProfile) Detected language: ${userLang}`);
+        sendLogToTelegram(`(useProfile) Username: ${displayName}`);
 
         /**
          * Функция для загрузки данных о пользователе:
@@ -63,7 +64,9 @@ export function useProfile(): UseProfileResult {
          */
         const fetchUserData = async () => {
             if (!telegramId) {
-                sendLogToTelegram('Telegram ID не найден');
+                const errorMsg = 'Telegram ID не найден';
+                console.error(errorMsg);
+                sendLogToTelegram(`(useProfile) ${errorMsg}`);
                 return;
             }
 
@@ -71,7 +74,7 @@ export function useProfile(): UseProfileResult {
                 // 1. Получаем аватар через /api/get-avatar
                 const avatarResponse = await fetch(`/api/get-avatar?telegramId=${telegramId}`);
                 if (!avatarResponse.ok) {
-                    throw new Error('Ошибка при получении аватара');
+                    throw new Error(`Ошибка при получении аватара. Статус: ${avatarResponse.status}`);
                 }
                 const avatarData = await avatarResponse.json();
                 // Проверяем, есть ли в ответе поле avatarUrl
@@ -83,13 +86,15 @@ export function useProfile(): UseProfileResult {
                 // 2. Получаем кол-во запросов к ассистенту
                 const requestsResponse = await fetch(`/api/get-requests?telegramId=${telegramId}`);
                 if (!requestsResponse.ok) {
-                    throw new Error('Ошибка при получении данных запросов');
+                    throw new Error(`Ошибка при получении запросов. Статус: ${requestsResponse.status}`);
                 }
                 const requestsData = await requestsResponse.json();
 
                 // --- Логируем, что пришло ---
-                console.log('avatarData =>', avatarData);
-                console.log('requestsData =>', requestsData);
+                console.log('(useProfile) avatarData =>', avatarData);
+                console.log('(useProfile) requestsData =>', requestsData);
+                sendLogToTelegram(`(useProfile) Got avatarData: ${JSON.stringify(avatarData)}`);
+                sendLogToTelegram(`(useProfile) Got requestsData: ${JSON.stringify(requestsData)}`);
 
                 // Устанавливаем аватар
                 setAvatarUrl(actualAvatar);
@@ -101,9 +106,12 @@ export function useProfile(): UseProfileResult {
                     // Если нет поля assistantRequests, или оно не число — ставим 0
                     setAssistantRequests(0);
                 }
-            } catch (error) {
-                console.error('Ошибка при загрузке данных пользователя:', error);
-                sendLogToTelegram(`Error fetching user data: ${String(error)}`);
+
+                sendLogToTelegram(`(useProfile) Success: avatarUrl=${actualAvatar}, assistantRequests=${requestsData.assistantRequests}`);
+            } catch (error: unknown) {
+                const errMsg = `Ошибка при загрузке данных пользователя: ${(error as Error).message}`;
+                console.error(errMsg);
+                sendLogToTelegram(`(useProfile) ${errMsg}`);
             }
         };
 
