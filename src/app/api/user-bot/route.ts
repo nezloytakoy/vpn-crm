@@ -681,7 +681,7 @@ bot.command('start', async (ctx) => {
       // Получаем file_path через ctx.api.getFile(...)
       const fileObj = await ctx.api.getFile(largestPhoto.file_id);
       // Формируем URL для скачивания
-      const fileUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${fileObj.file_path}`;
+      const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileObj.file_path}`;
 
       // Обновляем поле avatarUrl в таблице User
       await prisma.user.update({
