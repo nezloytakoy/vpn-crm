@@ -8,12 +8,12 @@ import Link from 'next/link';
 import Popup from '../../../components/Popup/Popup';
 import { useTranslation } from 'react-i18next';
 import { sendLogToTelegram, fetchTariffs, TariffInfo } from './utils';
-import { useProfile } from './useProfile'; // <-- Наш хук (без get-avatar)
+import { useProfile } from './useProfile'; // <-- Хук без get-avatar
 
 const WaveComponent = () => {
     const { t } = useTranslation();
 
-    // Достаём базовые данные из кастомного хука useProfile
+    // Достаём базовые данные из нашего хука useProfile
     const {
         telegramUsername,
         fontSize,
@@ -27,14 +27,16 @@ const WaveComponent = () => {
     const [buttonText, setButtonText] = useState('');
     const [price, setPrice] = useState<number>(0);
 
-    // Состояние для аватарки (если хотим отдельно загрузить /api/get-avatar)
+    // Состояние для аватарки
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
     // Ссылка на аватар по умолчанию
     const defaultAvatarUrl =
         'https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg';
 
-    // При монтировании загружаем тарифы (функция fetchTariffs из utils.ts)
+    // =====================================
+    //  1) Загружаем тарифы при монтировании
+    // =====================================
     useEffect(() => {
         async function loadTariffs() {
             try {
@@ -48,30 +50,45 @@ const WaveComponent = () => {
         loadTariffs();
     }, [t]);
 
-    // При монтировании (или при получении telegramId) загружаем аватарку
+    // =====================================
+    //  2) При появлении telegramId загружаем аватарку
+    // =====================================
     useEffect(() => {
-        if (!telegramId) return;
+        if (!telegramId) {
+            console.log('[avatarEffect] Нет telegramId, не грузим аватарку');
+            sendLogToTelegram('[avatarEffect] No telegramId -> skip avatar load');
+            return;
+        }
 
-        // Вариант 1: Просто получить JSON {avatarUrl}
+        // Вариант A: JSON-режим (/api/get-avatar?telegramId=...)
         // fetch(`/api/get-avatar?telegramId=${telegramId}`)
         //   .then(res => res.json())
         //   .then(data => {
-        //     setAvatarUrl(data.avatarUrl || defaultAvatarUrl);
+        //     const url = data.avatarUrl || null;
+        //     console.log('[avatarEffect] Получили JSON:', data, ' => url:', url);
+        //     sendLogToTelegram(`[avatarEffect] Received JSON avatarUrl=${url}`);
+        //     setAvatarUrl(url);
         //   })
         //   .catch(err => {
-        //     console.error('Ошибка при получении avatarUrl:', err);
-        //     setAvatarUrl(defaultAvatarUrl);
+        //     console.error('[avatarEffect] Ошибка при получении avatarUrl:', err);
+        //     sendLogToTelegram(`[avatarEffect] Error: ${String(err)}`);
+        //     setAvatarUrl(null);
         //   });
 
-        // Вариант 2: Проксируем картинку (raw=true). 
-        // В таком случае src будет "/api/get-avatar?telegramId=...&raw=true",
-        // и Image сам подтянет картинку. Но мы всё-таки хотим задать avatarUrl стейтом:
+        // Вариант B: Проксируем (raw=true):
         const rawUrl = `/api/get-avatar?telegramId=${telegramId}&raw=true`;
+        console.log('[avatarEffect] Use rawUrl:', rawUrl);
+        sendLogToTelegram(`[avatarEffect] Use rawUrl=${rawUrl}`);
         setAvatarUrl(rawUrl);
-
     }, [telegramId]);
 
-    // Обработка нажатия на определённый тариф (кнопка)
+    // =====================================
+    //  3) Отладка при рендере: смотрим avatarUrl, assistantRequests
+    // =====================================
+    console.log('[render] avatarUrl:', avatarUrl, 'assistantRequests:', assistantRequests);
+    sendLogToTelegram(`[render] avatarUrl=${avatarUrl} assistantRequests=${assistantRequests}`);
+
+    // Обработка нажатия на определённый тариф
     const handleButtonClick = (tariffKey: string) => {
         const tariff = tariffs[tariffKey];
         setButtonText(`${tariff.displayName} - ${tariff.price}$`);
@@ -113,7 +130,7 @@ const WaveComponent = () => {
                         {t('greeting')},{" "}
                         <div className={styles.avatarbox}>
                             <Image
-                                // Если avatarUrl == null => показываем заглушку
+                                // Если avatarUrl === null => подставим defaultAvatarUrl
                                 src={avatarUrl || defaultAvatarUrl}
                                 alt="avatar"
                                 width={130}
