@@ -8,26 +8,31 @@ import Link from 'next/link';
 import Popup from '../../../components/Popup/Popup';
 import { useTranslation } from 'react-i18next';
 import { sendLogToTelegram, fetchTariffs, TariffInfo } from './utils';
-import { useProfile } from './useProfile'; // <-- Импорт кастомного хука
+import { useProfile } from './useProfile'; // <-- Наш хук (без get-avatar)
 
 const WaveComponent = () => {
     const { t } = useTranslation();
 
-    // Достаём данные из кастомного хука useProfile
+    // Достаём базовые данные из кастомного хука useProfile
     const {
         telegramUsername,
         fontSize,
-        avatarUrl,
-        assistantRequests
+        assistantRequests,
+        telegramId
     } = useProfile();
 
-    // Состояние для тарифов (загружаем из /api/tarrifs)
+    // Состояние для тарифов
     const [tariffs, setTariffs] = useState<Record<string, TariffInfo>>({});
-
-    // Состояния для попапа (окна) и выбранного тарифа
     const [isPopupVisible, setPopupVisible] = useState(false);
     const [buttonText, setButtonText] = useState('');
     const [price, setPrice] = useState<number>(0);
+
+    // Состояние для аватарки (если хотим отдельно загрузить /api/get-avatar)
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+    // Ссылка на аватар по умолчанию
+    const defaultAvatarUrl =
+        'https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg';
 
     // При монтировании загружаем тарифы (функция fetchTariffs из utils.ts)
     useEffect(() => {
@@ -43,7 +48,30 @@ const WaveComponent = () => {
         loadTariffs();
     }, [t]);
 
-    // Обработка нажатия на определённый тариф
+    // При монтировании (или при получении telegramId) загружаем аватарку
+    useEffect(() => {
+        if (!telegramId) return;
+
+        // Вариант 1: Просто получить JSON {avatarUrl}
+        // fetch(`/api/get-avatar?telegramId=${telegramId}`)
+        //   .then(res => res.json())
+        //   .then(data => {
+        //     setAvatarUrl(data.avatarUrl || defaultAvatarUrl);
+        //   })
+        //   .catch(err => {
+        //     console.error('Ошибка при получении avatarUrl:', err);
+        //     setAvatarUrl(defaultAvatarUrl);
+        //   });
+
+        // Вариант 2: Проксируем картинку (raw=true). 
+        // В таком случае src будет "/api/get-avatar?telegramId=...&raw=true",
+        // и Image сам подтянет картинку. Но мы всё-таки хотим задать avatarUrl стейтом:
+        const rawUrl = `/api/get-avatar?telegramId=${telegramId}&raw=true`;
+        setAvatarUrl(rawUrl);
+
+    }, [telegramId]);
+
+    // Обработка нажатия на определённый тариф (кнопка)
     const handleButtonClick = (tariffKey: string) => {
         const tariff = tariffs[tariffKey];
         setButtonText(`${tariff.displayName} - ${tariff.price}$`);
@@ -57,10 +85,6 @@ const WaveComponent = () => {
         setPopupVisible(false);
         sendLogToTelegram('Popup closed');
     };
-
-    // Ссылка на аватар по умолчанию (используется, если avatarUrl === null)
-    const defaultAvatarUrl =
-        'https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg';
 
     return (
         <div>
@@ -89,6 +113,7 @@ const WaveComponent = () => {
                         {t('greeting')},{" "}
                         <div className={styles.avatarbox}>
                             <Image
+                                // Если avatarUrl == null => показываем заглушку
                                 src={avatarUrl || defaultAvatarUrl}
                                 alt="avatar"
                                 width={130}
