@@ -21,10 +21,10 @@ const WaveComponent = () => {
         assistantRequests
     } = useProfile();
 
-    // Состояние для тарифов
+    // Состояние для тарифов (загружаем из /api/tarrifs)
     const [tariffs, setTariffs] = useState<Record<string, TariffInfo>>({});
 
-    // Состояния для попапа и выбранного тарифа
+    // Состояния для попапа (окна) и выбранного тарифа
     const [isPopupVisible, setPopupVisible] = useState(false);
     const [buttonText, setButtonText] = useState('');
     const [price, setPrice] = useState<number>(0);
@@ -43,7 +43,7 @@ const WaveComponent = () => {
         loadTariffs();
     }, [t]);
 
-    // Обработка нажатия на определённый тариф (кнопка)
+    // Обработка нажатия на определённый тариф
     const handleButtonClick = (tariffKey: string) => {
         const tariff = tariffs[tariffKey];
         setButtonText(`${tariff.displayName} - ${tariff.price}$`);
@@ -64,6 +64,7 @@ const WaveComponent = () => {
 
     return (
         <div>
+            {/* Верхняя часть с волной и аватаркой */}
             <div
                 style={{
                     position: 'relative',
@@ -93,7 +94,6 @@ const WaveComponent = () => {
                                 width={130}
                                 height={130}
                                 className={styles.avatar}
-                            // При желании можно добавить onError здесь, но в useProfile уже обработка есть
                             />
                             <p className={styles.name} style={{ fontSize }}>
                                 {telegramUsername}

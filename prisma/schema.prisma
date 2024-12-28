@@ -108,7 +108,10 @@ model User {
   usedAIRequests         Int                @default(0)
   isBlocked              Boolean            @default(false)
   unblockDate            DateTime?
-  
+
+  // Новое поле для ссылки на лого/аватар
+  avatarUrl              String?            // <-- Добавлено
+
   // Связь с последней оплаченной подпиской
   lastPaidSubscriptionId BigInt?
   lastPaidSubscription   Subscription?      @relation("User_lastPaidSubscription", fields: [lastPaidSubscriptionId], references: [id])
@@ -128,8 +131,9 @@ model User {
   userTariffs            UserTariff[]
 
   lastAIChatOpenedAt     DateTime?
-  isWaitingForSubject  Boolean            @default(false)
+  isWaitingForSubject    Boolean            @default(false)
 }
+
 
 
 model Subscription {

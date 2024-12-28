@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from 'react';
 import i18n from '../../../i18n';
 import { sendLogToTelegram } from './utils';
@@ -12,8 +13,6 @@ interface UseProfileResult {
 }
 
 export function useProfile(): UseProfileResult {
-
-
     const [telegramUsername, setTelegramUsername] = useState('');
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [fontSize, setFontSize] = useState('24px');
@@ -38,6 +37,7 @@ export function useProfile(): UseProfileResult {
         const lastName = window?.Telegram?.WebApp?.initDataUnsafe?.user?.last_name;
         const telegramId = window?.Telegram?.WebApp?.initDataUnsafe?.user?.id;
 
+        // Формируем отображаемое имя
         const displayName = username
             ? `@${username}`
             : `${firstName || ''} ${lastName || ''}`.trim();
@@ -57,9 +57,9 @@ export function useProfile(): UseProfileResult {
         sendLogToTelegram(`Username: ${displayName}`);
 
         /**
-         * Основная функция для загрузки данных о пользователе:
-         * - профиль (аватар)
-         * - кол-во запросов к ассистенту
+         * Функция для загрузки данных о пользователе:
+         *  - профиль (аватар)
+         *  - число запросов к ассистенту
          */
         const fetchUserData = async () => {
             if (!telegramId) {
@@ -68,14 +68,14 @@ export function useProfile(): UseProfileResult {
             }
 
             try {
-                // Пример: запрашиваем данные профиля
+                // Пример: запрашиваем данные профиля (аватар и т.д.)
                 const profileResponse = await fetch(`/api/get-profile-data?telegramId=${telegramId}`);
                 if (!profileResponse.ok) {
                     throw new Error('Ошибка при получении данных профиля');
                 }
                 const profileData = await profileResponse.json();
 
-                // Пример: запрашиваем кол-во запросов к ассистенту
+                // Пример: запрашиваем кол-во запросов ассистенту
                 const requestsResponse = await fetch(`/api/get-requests?telegramId=${telegramId}`);
                 if (!requestsResponse.ok) {
                     throw new Error('Ошибка при получении данных запросов');

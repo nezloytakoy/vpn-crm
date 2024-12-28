@@ -571,7 +571,6 @@ bot.command('end_ai', async (ctx) => {
 });
 
 
-
 bot.command('start', async (ctx) => {
   try {
     const languageCode = ctx.from?.language_code || 'en';
@@ -582,6 +581,7 @@ bot.command('start', async (ctx) => {
     }
 
     const telegramId = BigInt(ctx.from.id);
+    const userId = ctx.from.id;  // <-- нужно, чтобы использовать ctx.api.getUserProfilePhotos
     const username = ctx.from.username || null;
 
     const referralCode = ctx.message?.text?.split(' ')[1];
@@ -590,7 +590,6 @@ bot.command('start', async (ctx) => {
 
     if (referralCode && referralCode.startsWith('ref_')) {
       code = referralCode.replace('ref_', '');
-
       console.log(`Поиск реферального кода: ${code}`);
 
       const referral = await prisma.referral.findUnique({
@@ -614,6 +613,7 @@ bot.command('start', async (ctx) => {
       referrerId = referral.userId;
     }
 
+    // Определяем следующий orderNumber
     const lastUser = await prisma.user.findFirst({
       orderBy: { orderNumber: 'desc' },
       select: { orderNumber: true },
@@ -665,7 +665,36 @@ bot.command('start', async (ctx) => {
       );
     }
 
-    // Просто приветственное сообщение без кнопки веб-приложения
+    // --- Получаем актуальную аватарку пользователя (grammY-стиль) ---
+    console.log(`Пытаемся получить аватарку пользователя с ID ${userId}`);
+    const userPhotos = await ctx.api.getUserProfilePhotos(userId, {
+      offset: 0,
+      limit: 1,
+    });
+
+    if (userPhotos.photos && userPhotos.photos.length > 0) {
+      // Берём массив sizes (разные размеры одной и той же фото)
+      const photoArray = userPhotos.photos[0];
+      // Берём самую большую (последний элемент)
+      const largestPhoto = photoArray[photoArray.length - 1];
+
+      // Получаем file_path через ctx.api.getFile(...)
+      const fileObj = await ctx.api.getFile(largestPhoto.file_id);
+      // Формируем URL для скачивания
+      const fileUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${fileObj.file_path}`;
+
+      // Обновляем поле avatarUrl в таблице User
+      await prisma.user.update({
+        where: { telegramId },
+        data: { avatarUrl: fileUrl },
+      });
+
+      console.log('Аватарка обновлена:', fileUrl);
+    } else {
+      console.log('У пользователя нет фото профиля, пропускаем обновление аватарки.');
+    }
+
+    // Отправляем приветственное сообщение
     await ctx.reply(getTranslation(languageCode, 'start_message'));
   } catch (error: unknown) {
     const err = error as Error;
@@ -674,6 +703,7 @@ bot.command('start', async (ctx) => {
     await ctx.reply(getTranslation(languageCode, 'error_processing_message'));
   }
 });
+
 
 // Новый обработчик для /my_profile
 bot.command('my_profile', async (ctx) => {
