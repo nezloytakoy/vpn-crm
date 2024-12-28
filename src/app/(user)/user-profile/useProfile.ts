@@ -58,8 +58,8 @@ export function useProfile(): UseProfileResult {
 
         /**
          * Функция для загрузки данных о пользователе:
-         *  - профиль (аватар)
-         *  - число запросов к ассистенту
+         *  - аватар (через /api/get-avatar)
+         *  - число запросов к ассистенту (через /api/get-requests)
          */
         const fetchUserData = async () => {
             if (!telegramId) {
@@ -68,29 +68,31 @@ export function useProfile(): UseProfileResult {
             }
 
             try {
-                // Пример: запрашиваем данные профиля (аватар и т.д.)
-                const profileResponse = await fetch(`/api/get-profile-data?telegramId=${telegramId}`);
-                if (!profileResponse.ok) {
-                    throw new Error('Ошибка при получении данных профиля');
+                // 1. Получаем аватар через /api/get-avatar
+                const avatarResponse = await fetch(`/api/get-avatar?telegramId=${telegramId}`);
+                if (!avatarResponse.ok) {
+                    throw new Error('Ошибка при получении аватара');
                 }
-                const profileData = await profileResponse.json();
+                const avatarData = await avatarResponse.json();
+                // Проверяем, есть ли в ответе поле avatarUrl
+                let actualAvatar = avatarData.avatarUrl || '';
+                if (!actualAvatar) {
+                    actualAvatar = defaultAvatarUrl;
+                }
 
-                // Пример: запрашиваем кол-во запросов ассистенту
+                // 2. Получаем кол-во запросов к ассистенту
                 const requestsResponse = await fetch(`/api/get-requests?telegramId=${telegramId}`);
                 if (!requestsResponse.ok) {
                     throw new Error('Ошибка при получении данных запросов');
                 }
                 const requestsData = await requestsResponse.json();
 
-                // --- ВАЖНО: Логируем приходящие данные, чтобы видеть, что вернул сервер ---
-                console.log('requestsData from server =>', requestsData);
+                // --- Логируем, что пришло ---
+                console.log('avatarData =>', avatarData);
+                console.log('requestsData =>', requestsData);
 
-                // Устанавливаем аватар (если он есть)
-                if (profileData.avatarUrl) {
-                    setAvatarUrl(profileData.avatarUrl);
-                } else {
-                    setAvatarUrl(defaultAvatarUrl);
-                }
+                // Устанавливаем аватар
+                setAvatarUrl(actualAvatar);
 
                 // Устанавливаем кол-во запросов ассистенту
                 if (typeof requestsData.assistantRequests === 'number') {
