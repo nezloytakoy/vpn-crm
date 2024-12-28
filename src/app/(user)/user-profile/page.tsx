@@ -8,12 +8,12 @@ import Link from 'next/link';
 import Popup from '../../../components/Popup/Popup';
 import { useTranslation } from 'react-i18next';
 import { sendLogToTelegram, fetchTariffs, TariffInfo } from './utils';
-import { useProfile } from './useProfile'; // <-- Наш хук
+import { useProfile } from './useProfile'; // <-- Наш хук (без get-avatar)
 
 const WaveComponent = () => {
     const { t } = useTranslation();
 
-    // Достаём базовые данные из хука
+    // Достаём базовые данные из кастомного хука useProfile
     const {
         telegramUsername,
         fontSize,
@@ -27,13 +27,14 @@ const WaveComponent = () => {
     const [buttonText, setButtonText] = useState('');
     const [price, setPrice] = useState<number>(0);
 
-    // Состояние для аватарки
+    // Состояние для аватарки (если хотим отдельно загрузить /api/get-avatar)
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
     // Ссылка на аватар по умолчанию
-    const defaultAvatarUrl = 'https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg';
+    const defaultAvatarUrl =
+        'https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg';
 
-    // Загружаем тарифы
+    // При монтировании загружаем тарифы (функция fetchTariffs из utils.ts)
     useEffect(() => {
         async function loadTariffs() {
             try {
@@ -47,30 +48,30 @@ const WaveComponent = () => {
         loadTariffs();
     }, [t]);
 
-    // Загружаем аватарку
+    // При монтировании (или при получении telegramId) загружаем аватарку
     useEffect(() => {
         if (!telegramId) return;
 
-        // Пример: получаем JSON { avatarUrl }
-        fetch(`/api/get-avatar?telegramId=${telegramId}`)
-            .then(res => res.json())
-            .then(data => {
-                // Если поле avatarUrl пустое — ставим null, чтобы потом подставить заглушку
-                const url = data.avatarUrl || null;
-                setAvatarUrl(url);
-            })
-            .catch(err => {
-                console.error('Ошибка при получении avatarUrl:', err);
-                setAvatarUrl(null);
-            });
+        // Вариант 1: Просто получить JSON {avatarUrl}
+        // fetch(`/api/get-avatar?telegramId=${telegramId}`)
+        //   .then(res => res.json())
+        //   .then(data => {
+        //     setAvatarUrl(data.avatarUrl || defaultAvatarUrl);
+        //   })
+        //   .catch(err => {
+        //     console.error('Ошибка при получении avatarUrl:', err);
+        //     setAvatarUrl(defaultAvatarUrl);
+        //   });
 
-        // Или, если хотите raw вариант:
-        // const rawUrl = `/api/get-avatar?telegramId=${telegramId}&raw=true`;
-        // setAvatarUrl(rawUrl);
+        // Вариант 2: Проксируем картинку (raw=true). 
+        // В таком случае src будет "/api/get-avatar?telegramId=...&raw=true",
+        // и Image сам подтянет картинку. Но мы всё-таки хотим задать avatarUrl стейтом:
+        const rawUrl = `/api/get-avatar?telegramId=${telegramId}&raw=true`;
+        setAvatarUrl(rawUrl);
 
     }, [telegramId]);
 
-    // Обработка нажатия на тариф
+    // Обработка нажатия на определённый тариф (кнопка)
     const handleButtonClick = (tariffKey: string) => {
         const tariff = tariffs[tariffKey];
         setButtonText(`${tariff.displayName} - ${tariff.price}$`);
@@ -79,7 +80,7 @@ const WaveComponent = () => {
         sendLogToTelegram(`Button clicked: ${tariff.displayName}`);
     };
 
-    // Закрыть попап
+    // Закрытие попапа
     const handleClosePopup = () => {
         setPopupVisible(false);
         sendLogToTelegram('Popup closed');
@@ -112,8 +113,7 @@ const WaveComponent = () => {
                         {t('greeting')},{" "}
                         <div className={styles.avatarbox}>
                             <Image
-                                // Если avatarUrl === null (либо ""), 
-                                // то используем заглушку defaultAvatarUrl
+                                // Если avatarUrl == null => показываем заглушку
                                 src={avatarUrl || defaultAvatarUrl}
                                 alt="avatar"
                                 width={130}
@@ -129,6 +129,7 @@ const WaveComponent = () => {
             </div>
 
             <div className={styles.backbotom}>
+                {/* Отображаем кол-во запросов (если null => "...", иначе число) */}
                 <p className={styles.time}>
                     {t('time')}: {assistantRequests === null ? '...' : assistantRequests} {t('requests')}
                 </p>
