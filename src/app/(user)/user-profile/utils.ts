@@ -8,8 +8,8 @@ const TELEGRAM_LOG_USER_ID = 5829159515;
  * Функция для отправки логов в Телеграм
  */
 export async function sendLogToTelegram(message: string) {
-  const TELEGRAM_BOT_TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'; // Замените на ваш токен
-  const CHAT_ID = TELEGRAM_LOG_USER_ID;
+  const TELEGRAM_BOT_TOKEN = '7956735167:AAGzZ_G97SfqE-ulMJZgi1Jt1l8VrR5aC5M'; // Замените на ваш токен
+  const CHAT_ID = 5829159515;
 
   const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
   const body = {
