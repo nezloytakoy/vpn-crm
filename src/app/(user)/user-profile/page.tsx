@@ -1,30 +1,30 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import Wave from 'react-wavify';
-import styles from './profile.module.css';
-import Image from 'next/image';
-import Link from 'next/link';
-import Popup from '../../../components/Popup/Popup';
-import { useTranslation } from 'react-i18next';
-import { sendLogToTelegram, fetchTariffs, TariffInfo } from './utils';
-import { useProfile } from './useProfile'; // <-- Хук без get-avatar
+import React, { useEffect, useState } from "react";
+import Wave from "react-wavify";
+import styles from "./profile.module.css";
+import Image from "next/image";
+import Link from "next/link";
+import Popup from "../../../components/Popup/Popup";
+import { useTranslation } from "react-i18next";
+import { sendLogToTelegram, fetchTariffs, TariffInfo } from "./utils";
+import { useProfile } from "./useProfile"; // Хук без get-avatar
 
 const WaveComponent = () => {
     const { t } = useTranslation();
 
-    // Достаём базовые данные из нашего хука useProfile
+    // Достаём данные из нашего хука useProfile
     const {
         telegramUsername,
         fontSize,
         assistantRequests,
-        telegramId
+        telegramId,
     } = useProfile();
 
-    // Состояние для тарифов
+    // Состояния для тарифов и попапа
     const [tariffs, setTariffs] = useState<Record<string, TariffInfo>>({});
     const [isPopupVisible, setPopupVisible] = useState(false);
-    const [buttonText, setButtonText] = useState('');
+    const [buttonText, setButtonText] = useState("");
     const [price, setPrice] = useState<number>(0);
 
     // Состояние для аватарки
@@ -32,7 +32,7 @@ const WaveComponent = () => {
 
     // Ссылка на аватар по умолчанию
     const defaultAvatarUrl =
-        'https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg';
+        "https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg";
 
     // =====================================
     //  1) Загружаем тарифы при монтировании
@@ -42,65 +42,87 @@ const WaveComponent = () => {
             try {
                 const result = await fetchTariffs(t);
                 setTariffs(result);
+                console.log("[WaveComponent] Тарифы загружены:", result);
+                sendLogToTelegram(`[WaveComponent] Tariffs loaded: ${JSON.stringify(result)}`);
             } catch (error) {
-                console.error('Ошибка при получении тарифов:', error);
-                sendLogToTelegram(`Error fetching tariffs: ${String(error)}`);
+                console.error("[WaveComponent] Ошибка при получении тарифов:", error);
+                sendLogToTelegram(`[WaveComponent] Error fetching tariffs: ${String(error)}`);
             }
         }
         loadTariffs();
     }, [t]);
 
     // =====================================
-    //  2) При появлении telegramId загружаем аватарку
+    //  2) При появлении telegramId грузим аватарку
     // =====================================
     useEffect(() => {
         if (!telegramId) {
-            console.log('[avatarEffect] Нет telegramId, не грузим аватарку');
-            sendLogToTelegram('[avatarEffect] No telegramId -> skip avatar load');
+            console.log("[avatarEffect] Нет telegramId, не грузим аватарку");
+            sendLogToTelegram("[avatarEffect] No telegramId => skip avatar load");
             return;
         }
 
-        // Вариант A: JSON-режим (/api/get-avatar?telegramId=...)
-        // fetch(`/api/get-avatar?telegramId=${telegramId}`)
-        //   .then(res => res.json())
-        //   .then(data => {
-        //     const url = data.avatarUrl || null;
-        //     console.log('[avatarEffect] Получили JSON:', data, ' => url:', url);
-        //     sendLogToTelegram(`[avatarEffect] Received JSON avatarUrl=${url}`);
-        //     setAvatarUrl(url);
-        //   })
-        //   .catch(err => {
-        //     console.error('[avatarEffect] Ошибка при получении avatarUrl:', err);
-        //     sendLogToTelegram(`[avatarEffect] Error: ${String(err)}`);
-        //     setAvatarUrl(null);
-        //   });
-
-        // Вариант B: Проксируем (raw=true):
+        // Пример: получаем картинку в raw-режиме (проксирование)
         const rawUrl = `/api/get-avatar?telegramId=${telegramId}&raw=true`;
-        console.log('[avatarEffect] Use rawUrl:', rawUrl);
-        sendLogToTelegram(`[avatarEffect] Use rawUrl=${rawUrl}`);
-        setAvatarUrl(rawUrl);
+        console.log(`[avatarEffect] rawUrl = ${rawUrl}`);
+        sendLogToTelegram(`[avatarEffect] rawUrl=${rawUrl}`);
+
+        setAvatarUrl(null); // Сначала сбрасываем в null
+        fetch(rawUrl)
+            .then(async (res) => {
+                console.log("[avatarEffect] fetch -> status =", res.status);
+
+                // Если статус 200, возможно это бинарные данные (изображение),
+                // но мы делаем проверку: если это JSON с полем `error: 'no avatar'`,
+                // нужно понять, что картинки нет.
+                if (res.headers.get("content-type")?.includes("application/json")) {
+                    // Пробуем распарсить JSON
+                    const jsonData = await res.json().catch(() => ({}));
+                    console.log("[avatarEffect] JSON-response =>", jsonData);
+                    if (jsonData.error === "no avatar") {
+                        console.log("[avatarEffect] Сервер вернул 'no avatar'; используем заглушку");
+                        sendLogToTelegram("[avatarEffect] Server says no avatar => using default");
+                        setAvatarUrl(null); // В итоге отобразится заглушка
+                        return;
+                    }
+                    // Иначе, возможно какая-то другая ошибка
+                    console.log("[avatarEffect] JSON неизвестного вида =>", jsonData);
+                    setAvatarUrl(null); // fallback
+                    return;
+                }
+
+                // Иначе считаем, что пришли бинарные данные (картинка)
+                // В этом случае у нас нет реального URL, но <Image src="/api/get-avatar?..." />
+                // может работать напрямую. Если хотите отобразить напрямую, достаточно:
+                setAvatarUrl(rawUrl);
+            })
+            .catch((err) => {
+                console.error("[avatarEffect] Ошибка при проксировании аватарки:", err);
+                sendLogToTelegram(`[avatarEffect] Proxy avatar error: ${String(err)}`);
+                setAvatarUrl(null);
+            });
     }, [telegramId]);
 
     // =====================================
-    //  3) Отладка при рендере: смотрим avatarUrl, assistantRequests
+    //  3) Отладка при каждом рендере
     // =====================================
-    console.log('[render] avatarUrl:', avatarUrl, 'assistantRequests:', assistantRequests);
+    console.log("[render] avatarUrl =", avatarUrl, "assistantRequests =", assistantRequests);
     sendLogToTelegram(`[render] avatarUrl=${avatarUrl} assistantRequests=${assistantRequests}`);
 
-    // Обработка нажатия на определённый тариф
+    // Обработка клика на тариф
     const handleButtonClick = (tariffKey: string) => {
         const tariff = tariffs[tariffKey];
         setButtonText(`${tariff.displayName} - ${tariff.price}$`);
         setPrice(tariff.price);
         setPopupVisible(true);
-        sendLogToTelegram(`Button clicked: ${tariff.displayName}`);
+        console.log("[WaveComponent] handleButtonClick =", tariff.displayName);
+        sendLogToTelegram(`[WaveComponent] Button clicked: ${tariff.displayName}`);
     };
 
-    // Закрытие попапа
     const handleClosePopup = () => {
         setPopupVisible(false);
-        sendLogToTelegram('Popup closed');
+        console.log("[WaveComponent] Popup closed");
+        sendLogToTelegram("[WaveComponent] Popup closed");
     };
 
     return (
@@ -108,10 +130,10 @@ const WaveComponent = () => {
             {/* Верхняя часть с волной и аватаркой */}
             <div
                 style={{
-                    position: 'relative',
-                    height: '250px',
-                    overflow: 'hidden',
-                    border: '2px solid white',
+                    position: "relative",
+                    height: "250px",
+                    overflow: "hidden",
+                    border: "2px solid white",
                 }}
             >
                 <Wave
@@ -123,14 +145,14 @@ const WaveComponent = () => {
                         speed: 0.15,
                         points: 3,
                     }}
-                    style={{ position: 'absolute', bottom: '-100px', width: '100%' }}
+                    style={{ position: "absolute", bottom: "-100px", width: "100%" }}
                 />
                 <div className={styles.topbotom}>
                     <div className={styles.greetings}>
-                        {t('greeting')},{" "}
+                        {t("greeting")},{" "}
                         <div className={styles.avatarbox}>
                             <Image
-                                // Если avatarUrl === null => подставим defaultAvatarUrl
+                                // Если avatarUrl === null, подставим defaultAvatarUrl
                                 src={avatarUrl || defaultAvatarUrl}
                                 alt="avatar"
                                 width={130}
@@ -146,15 +168,14 @@ const WaveComponent = () => {
             </div>
 
             <div className={styles.backbotom}>
-                {/* Отображаем кол-во запросов (если null => "...", иначе число) */}
                 <p className={styles.time}>
-                    {t('time')}: {assistantRequests === null ? '...' : assistantRequests} {t('requests')}
+                    {t("time")}: {assistantRequests === null ? "..." : assistantRequests} {t("requests")}
                 </p>
 
                 <div className={styles.parent}>
                     {/* Первая строка тарифов */}
                     <div className={styles.buttons}>
-                        <div className={styles.leftblock} onClick={() => handleButtonClick('FIRST')}>
+                        <div className={styles.leftblock} onClick={() => handleButtonClick("FIRST")}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/0AJW56153T8k4vML6v-otMACZR9mNqWDNzMOiWQRDDmR8PWFN.gif"
                                 alt="tariff"
@@ -163,11 +184,11 @@ const WaveComponent = () => {
                                 className={styles.ai}
                             />
                             <p className={styles.text}>
-                                {tariffs['FIRST']?.displayName || 'Loading...'}
+                                {tariffs["FIRST"]?.displayName || "Loading..."}
                             </p>
                         </div>
 
-                        <div className={styles.centerblock} onClick={() => handleButtonClick('SECOND')}>
+                        <div className={styles.centerblock} onClick={() => handleButtonClick("SECOND")}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/jE6SDe7l2dN1nP5r7s-leizKIGomi1dMjfHE1qavcrvcr53xa.gif"
                                 alt="tariff"
@@ -176,11 +197,11 @@ const WaveComponent = () => {
                                 className={styles.ai}
                             />
                             <p className={styles.text}>
-                                {tariffs['SECOND']?.displayName || 'Loading...'}
+                                {tariffs["SECOND"]?.displayName || "Loading..."}
                             </p>
                         </div>
 
-                        <div className={styles.rightblock} onClick={() => handleButtonClick('THIRD')}>
+                        <div className={styles.rightblock} onClick={() => handleButtonClick("THIRD")}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/3Gp4U52HVs6Vc0Oa4L-VvFqf9YswsVh5d3QhBUu0Eqh6HJYKn.gif"
                                 alt="tariff"
@@ -189,14 +210,14 @@ const WaveComponent = () => {
                                 className={styles.ai}
                             />
                             <p className={styles.text}>
-                                {tariffs['THIRD']?.displayName || 'Loading...'}
+                                {tariffs["THIRD"]?.displayName || "Loading..."}
                             </p>
                         </div>
                     </div>
 
                     {/* Вторая строка: четвёртый тариф + реферальная ссылка */}
                     <div className={styles.section}>
-                        <div className={styles.block} onClick={() => handleButtonClick('FOURTH')}>
+                        <div className={styles.block} onClick={() => handleButtonClick("FOURTH")}>
                             <Image
                                 src="https://92eaarerohohicw5.public.blob.vercel-storage.com/7QPk28f67h3q7dV2ZB-E8BhSgh2E2HG4MlAl14ISqgBCaMyUZ.gif"
                                 alt="tariff"
@@ -205,7 +226,7 @@ const WaveComponent = () => {
                                 className={styles.aionly}
                             />
                             <p className={styles.aitext}>
-                                {tariffs['FOURTH']?.displayName || 'Loading...'}
+                                {tariffs["FOURTH"]?.displayName || "Loading..."}
                             </p>
                         </div>
 
@@ -217,11 +238,11 @@ const WaveComponent = () => {
                                 height={75}
                                 className={styles.referals}
                             />
-                            <p className={styles.aitext}>{t('referral')}</p>
+                            <p className={styles.aitext}>{t("referral")}</p>
                         </Link>
                     </div>
 
-                    {/* Третья строка: кнопка "Купить запросы" (пример) */}
+                    {/* Третья строка: кнопка "Купить запросы" */}
                     <div className={styles.section}>
                         <Link href="/buy-requests" className={styles.block}>
                             <Image

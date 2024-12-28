@@ -25,9 +25,6 @@ interface Complaint {
   assistantNickname: string;
 }
 
-const DEFAULT_AVATAR_URL =
-  "https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg";
-
 const Complaints: React.FC = () => {
   console.log("Render Complaints component"); // Лог при каждом рендере
 
@@ -68,17 +65,7 @@ const Complaints: React.FC = () => {
       const complaintDetails: Complaint = await response.json();
       console.log("handleRowClick - Детали жалобы получены:", complaintDetails);
 
-      // Если фото == "no avatar" или пустая строка — подменяем на DEFAULT_AVATAR_URL
-      const fixedPhotoUrls = complaintDetails.photoUrls.map((url) =>
-        url === "no avatar" || url.trim() === "" ? DEFAULT_AVATAR_URL : url
-      );
-
-      const updatedComplaint = {
-        ...complaintDetails,
-        photoUrls: fixedPhotoUrls,
-      };
-
-      setSelectedComplaint(updatedComplaint);
+      setSelectedComplaint(complaintDetails);
     } catch (err) {
       console.error("handleRowClick - Ошибка при получении деталей жалобы:", err);
     }
@@ -118,8 +105,9 @@ const Complaints: React.FC = () => {
 
     setIsSubmitting(true);
     console.log(
-      `handleFormSubmit - ${action === "approve" ? "Одобрение" : "Отклонение"
-      } жалобы с ID: ${selectedComplaint.id}. Объяснение: ${explanation}`
+      `handleFormSubmit - ${action === "approve" ? "Одобрение" : "Отклонение"} жалобы с ID: ${
+        selectedComplaint.id
+      }. Объяснение: ${explanation}`
     );
 
     try {
@@ -137,8 +125,9 @@ const Complaints: React.FC = () => {
       const moderatorId = moderResult.userId;
       console.log("handleFormSubmit - получен moderatorId:", moderatorId);
 
-      const endpoint = `/api/${action === "approve" ? "approve-complaint" : "reject-complaint"
-        }?id=${selectedComplaint.id}`;
+      const endpoint = `/api/${
+        action === "approve" ? "approve-complaint" : "reject-complaint"
+      }?id=${selectedComplaint.id}`;
       console.log("handleFormSubmit - делаем запрос на:", endpoint);
 
       const response = await fetch(endpoint, {
@@ -154,14 +143,16 @@ const Complaints: React.FC = () => {
 
       if (!response.ok) {
         throw new Error(
-          `Ошибка при ${action === "approve" ? "одобрении" : "отклонении"
+          `Ошибка при ${
+            action === "approve" ? "одобрении" : "отклонении"
           } жалобы, статус = ${response.status}`
         );
       }
 
       const result = await response.json();
       console.log(
-        `handleFormSubmit - результат ${action === "approve" ? "одобрения" : "отклонения"
+        `handleFormSubmit - результат ${
+          action === "approve" ? "одобрения" : "отклонения"
         } жалобы:`,
         result
       );
@@ -176,7 +167,8 @@ const Complaints: React.FC = () => {
       console.log("handleFormSubmit - все состояния сброшены");
     } catch (err) {
       console.error(
-        `handleFormSubmit - Ошибка при ${action === "approve" ? "одобрении" : "отклонении"
+        `handleFormSubmit - Ошибка при ${
+          action === "approve" ? "одобрении" : "отклонении"
         } жалобы:`,
         err
       );
