@@ -107,6 +107,8 @@ function Page() {
   const [complaintsData, setComplaintsData] = useState<ComplaintData[]>([]);
   const [isLoadingComplaints, setIsLoadingComplaints] = useState(true);
 
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
   // Function to fetch complaints data
   useEffect(() => {
     const fetchComplaintsData = async () => {
@@ -129,6 +131,34 @@ function Page() {
       fetchComplaintsData();
     }
   }, [currentAssistantId]);
+
+  useEffect(() => {
+    if (!assistantData) return;
+
+    const tgId = assistantData.assistant.telegramId;
+    if (!tgId) return;
+
+    const rawUrl = `/api/get-avatar?telegramId=${tgId}&raw=true`;
+    console.log('[AssistantPage] fetch avatar =>', rawUrl);
+
+    setAvatarUrl(null);
+
+    fetch(rawUrl)
+      .then(async (res) => {
+        if (res.headers.get('content-type')?.includes('application/json')) {
+          const jsonData = await res.json().catch(() => ({}));
+          if (jsonData.error === 'no avatar') {
+            console.log('[AssistantPage] no avatar => null');
+            return;
+          }
+          return;
+        }
+        setAvatarUrl(rawUrl);
+      })
+      .catch(() => {
+        setAvatarUrl(null);
+      });
+  }, [assistantData]);
 
   const handleSubmit = async () => {
     // Проверка на пустой инпут
@@ -487,17 +517,24 @@ function Page() {
             <div className={styles.metricsblock}>
               <div className={styles.logoparent}>
                 <div className={styles.avatarblock}>
-                  {assistantData?.assistant.avatarUrl ? (
+                  {avatarUrl ? (
                     <Image
-                      src={assistantData.assistant.avatarUrl}
-                      alt={`Аватар ассистента ${assistantData.assistant.username}`}
+                      src={avatarUrl}
+                      alt={`Аватар ассистента ${assistantData?.assistant.username}`}
                       className={styles.avatarImage}
                       width={100}
                       height={100}
-                      objectFit="cover"
+                      style={{ objectFit: 'cover' }}
                     />
                   ) : (
-                    <p>Нет аватара</p>
+                    <Image
+                      src="https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg"
+                      alt="Заглушка аватара"
+                      width={100}
+                      height={100}
+                      className={styles.avatarImage}
+                      style={{ objectFit: 'cover' }}
+                    />
                   )}
                 </div>
                 <div className={styles.numbers}>
