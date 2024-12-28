@@ -140,31 +140,7 @@ function Page() {
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    // === NEW ===
-    if (!userData?.userInfo?.telegramId) return;
 
-    const tgId = userData.userInfo.telegramId;
-    const rawUrl = `/api/get-avatar?telegramId=${tgId}&raw=true`;
-
-    setAvatarUrl(null);
-
-    fetch(rawUrl)
-      .then(async (res) => {
-        if (res.headers.get('content-type')?.includes('application/json')) {
-          const jsonData = await res.json().catch(() => ({}));
-          if (jsonData.error === 'no avatar') {
-            return; // avatarUrl остаётся null => покажем заглушку
-          }
-          return;
-        }
-        // если дошли сюда => это картинка
-        setAvatarUrl(rawUrl);
-      })
-      .catch(() => {
-        setAvatarUrl(null);
-      });
-  }, [userData]);
 
   const handleButtonClick = (handler: () => Promise<void>, buttonKey: string) => {
     setLoadingButton(buttonKey);
@@ -314,11 +290,16 @@ function Page() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        console.log('[fetchData] about to call => /api/get-user-data?userId=', userId);
         const response = await fetch(`/api/get-user-data?userId=${userId}`);
+        console.log('[fetchData] response status =', response.status);
         const data = await response.json();
+        console.log('[fetchData] JSON =', data);
+
         setUserData(data);
+        console.log('[fetchData] setUserData complete =>', data);
       } catch (error) {
-        console.error('Ошибка при получении данных пользователя:', error);
+        console.error('[fetchData] Ошибка:', error);
       } finally {
         setIsLoadingData(false);
       }
@@ -401,6 +382,30 @@ function Page() {
 
 
   }, [userId]);
+
+  useEffect(() => {
+    console.log('[AvatarEffect] userData changed =>', userData);
+    if (!userData?.userId) return;   // <-- проверяем userId
+    const rawUrl = `/api/get-avatar?telegramId=${userData.userId}&raw=true`;
+
+    setAvatarUrl(null);
+
+    fetch(rawUrl)
+      .then(async (res) => {
+        if (res.headers.get('content-type')?.includes('application/json')) {
+          const jsonData = await res.json().catch(() => ({}));
+          if (jsonData.error === 'no avatar') {
+            return; // avatarUrl остаётся null => покажем заглушку
+          }
+          return;
+        }
+        // если дошли сюда => это картинка
+        setAvatarUrl(rawUrl);
+      })
+      .catch(() => {
+        setAvatarUrl(null);
+      });
+  }, [userData]);
 
 
   useEffect(() => {

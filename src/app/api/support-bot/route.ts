@@ -475,7 +475,6 @@ bot.use(async (ctx, next) => {
   await next();
 });
 
-
 bot.command('start', async (ctx) => {
   const lang = detectUserLanguage(ctx);
   const args = ctx.match?.split(' ') ?? [];
@@ -495,55 +494,68 @@ bot.command('start', async (ctx) => {
         const telegramId = BigInt(ctx.from.id);
         const username = ctx.from.username || null;
 
-
+        // Получаем фото профиля (если есть)
         const userProfilePhotos = await ctx.api.getUserProfilePhotos(ctx.from.id);
 
         let avatarFileId: string | null = null;
 
         if (userProfilePhotos.total_count > 0) {
-
+          // Берём первую "группу" фотографий
           const photos = userProfilePhotos.photos[0];
-
+          // Берём самое большое (последний элемент массива)
           const largestPhoto = photos[photos.length - 1];
 
-          avatarFileId = largestPhoto.file_id;
+          // Получаем file_path через ctx.api.getFile(...)
+          const fileObj = await ctx.api.getFile(largestPhoto.file_id);
+
+          // Формируем полный URL для скачивания
+          // Убедитесь, что process.env.TELEGRAM_USER_BOT_TOKEN 
+          // действительно содержит токен вашего ассистент-бота
+          const fullAvatarUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileObj.file_path}`;
+
+          // Сохраняем именно URL в avatarFileId (или можно переименовать поле в avatarUrl)
+          avatarFileId = fullAvatarUrl;
+
         } else {
           console.log('У ассистента нет аватарки.');
         }
 
-
+        // Определяем следующий orderNumber для ассистента
         const lastAssistant = await prisma.assistant.findFirst({
           orderBy: { orderNumber: 'desc' },
           select: { orderNumber: true },
         });
 
-        const nextOrderNumber = lastAssistant?.orderNumber ? lastAssistant.orderNumber + 1 : 1;
+        const nextOrderNumber = lastAssistant?.orderNumber
+          ? lastAssistant.orderNumber + 1
+          : 1;
 
-
+        // Создаём нового ассистента
         await prisma.assistant.create({
           data: {
-            telegramId: telegramId,
-            username: username,
+            telegramId,
+            username,
             role: invitation.role,
             orderNumber: nextOrderNumber,
-            avatarFileId: avatarFileId,
+            avatarFileId, // <-- тут сохраняем сформированный URL
           },
         });
 
-
+        // Отмечаем приглашение как использованное
         await prisma.invitation.update({
           where: { id: invitation.id },
           data: { used: true },
         });
 
-
+        // Отправляем приветственное сообщение ассистенту
         await ctx.reply(getTranslation(lang, 'assistant_congrats'));
 
-
+        // Обновляем lastActiveAt
         await prisma.assistant.update({
-          where: { telegramId: telegramId },
+          where: { telegramId },
           data: { lastActiveAt: new Date() },
         });
+
       } else {
         await ctx.reply(getTranslation(lang, 'end_dialog_error'));
       }
@@ -551,10 +563,13 @@ bot.command('start', async (ctx) => {
       console.error('Error assigning assistant role:', error);
       await ctx.reply(getTranslation(lang, 'end_dialog_error'));
     }
+
   } else {
+    // Если нет invite-токена, просто выводим стандартное сообщение
     await ctx.reply(getTranslation(lang, 'start_message'));
   }
 });
+
 
 
 

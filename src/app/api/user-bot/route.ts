@@ -565,7 +565,7 @@ bot.command('end_ai', async (ctx) => {
 });
 
 
-bot.command('start', async (ctx) => {
+bot.command('start', async (ctx) => { 
   try {
     const languageCode = ctx.from?.language_code || 'en';
 
@@ -575,9 +575,12 @@ bot.command('start', async (ctx) => {
     }
 
     const telegramId = BigInt(ctx.from.id);
-    const userId = ctx.from.id;  // <-- нужно, чтобы использовать ctx.api.getUserProfilePhotos
+    // userId (числовой) для методов ctx.api.* 
+    // (в grammY это обычный number, а в Prisma вы часто храните BigInt)
+    const userId = ctx.from.id;  
     const username = ctx.from.username || null;
 
+    // Проверяем, нет ли реферального кода "ref_..."
     const referralCode = ctx.message?.text?.split(' ')[1];
     let referrerId = null;
     let code = '';
@@ -607,7 +610,7 @@ bot.command('start', async (ctx) => {
       referrerId = referral.userId;
     }
 
-    // Определяем следующий orderNumber
+    // Определяем следующий orderNumber (например, если у вас есть поле orderNumber)
     const lastUser = await prisma.user.findFirst({
       orderBy: { orderNumber: 'desc' },
       select: { orderNumber: true },
@@ -616,6 +619,7 @@ bot.command('start', async (ctx) => {
 
     console.log(`Создаем или обновляем пользователя с Telegram ID: ${telegramId}`);
 
+    // upsert пользователя (создаём или обновляем)
     const newUser = await prisma.user.upsert({
       where: { telegramId },
       update: { username },
@@ -626,14 +630,13 @@ bot.command('start', async (ctx) => {
       },
     });
 
+    // Если был реферальный код, обновляем реферальную запись
     if (referrerId && code) {
       console.log(`Обновляем счетчик рефералов для пользователя с ID: ${referrerId}`);
 
       await prisma.user.update({
         where: { telegramId: referrerId },
-        data: {
-          referralCount: { increment: 1 },
-        },
+        data: { referralCount: { increment: 1 } },
       });
 
       console.log(`Обновляем реферальную запись с кодом: ${code}`);
@@ -655,26 +658,27 @@ bot.command('start', async (ctx) => {
       const referrerUsername = referrer?.username || 'неизвестный пользователь';
 
       await ctx.reply(
-        getTranslation(languageCode, 'referral_registered').replace('%username%', referrerUsername)
+        getTranslation(languageCode, 'referral_registered')
+          .replace('%username%', referrerUsername)
       );
     }
 
-    // --- Получаем актуальную аватарку пользователя (grammY-стиль) ---
+    // --- Получаем фото профиля пользователя (самое большое) ---
     console.log(`Пытаемся получить аватарку пользователя с ID ${userId}`);
-    const userPhotos = await ctx.api.getUserProfilePhotos(userId, {
-      offset: 0,
-      limit: 1,
-    });
+    const userPhotos = await ctx.api.getUserProfilePhotos(userId, { offset: 0, limit: 1 });
 
     if (userPhotos.photos && userPhotos.photos.length > 0) {
-      // Берём массив sizes (разные размеры одной и той же фото)
+      // userPhotos.photos[0] — это массив PhotoSize[] для первой "группы"
       const photoArray = userPhotos.photos[0];
-      // Берём самую большую (последний элемент)
+      // Берём самую большую (последний элемент массива)
       const largestPhoto = photoArray[photoArray.length - 1];
 
       // Получаем file_path через ctx.api.getFile(...)
       const fileObj = await ctx.api.getFile(largestPhoto.file_id);
+
       // Формируем URL для скачивания
+      // process.env.TELEGRAM_USER_BOT_TOKEN — ваш user-бот, 
+      // убедитесь, что это тот же токен, который вы используете
       const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileObj.file_path}`;
 
       // Обновляем поле avatarUrl в таблице User
