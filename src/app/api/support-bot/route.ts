@@ -509,9 +509,9 @@ bot.command('start', async (ctx) => {
           const fileObj = await ctx.api.getFile(largestPhoto.file_id);
 
           // Формируем полный URL для скачивания
-          // Убедитесь, что process.env.TELEGRAM_USER_BOT_TOKEN 
+          // Убедитесь, что process.env.TELEGRAM_SUPPORT_BOT_TOKEN 
           // действительно содержит токен вашего ассистент-бота
-          const fullAvatarUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileObj.file_path}`;
+          const fullAvatarUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_SUPPORT_BOT_TOKEN}/${fileObj.file_path}`;
 
           // Сохраняем именно URL в avatarFileId (или можно переименовать поле в avatarUrl)
           avatarFileId = fullAvatarUrl;

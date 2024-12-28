@@ -133,12 +133,11 @@ function Page() {
   }, [currentAssistantId]);
 
   useEffect(() => {
+
     if (!assistantData) return;
+    if (!currentAssistantId) return;
 
-    const tgId = assistantData.assistant.telegramId;
-    if (!tgId) return;
-
-    const rawUrl = `/api/get-avatar?telegramId=${tgId}&raw=true`;
+    const rawUrl = `/api/get-assistant-avatar?assistantId=${currentAssistantId}&raw=true`;
     console.log('[AssistantPage] fetch avatar =>', rawUrl);
 
     setAvatarUrl(null);
