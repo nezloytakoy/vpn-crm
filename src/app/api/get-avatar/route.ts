@@ -1,27 +1,49 @@
 import { NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
 
-// Если используете Node.js < 18 и у вас нет глобального fetch, 
-// можно раскомментировать следующую строку:
+// Если у вас Node.js < 18 и нужен node-fetch, импортируйте:
 // import fetch from 'node-fetch';
+
+const prisma = new PrismaClient();
 
 export const revalidate = 1;
 
 export async function GET(request: Request) {
-    // Разбираем query-параметры
+    // Парсим query-параметры
     const { searchParams } = new URL(request.url);
-    const url = searchParams.get('url');
+    const telegramId = searchParams.get('telegramId');
 
-    console.log('Proxying image from URL:', url);
+    console.log('Proxying image for user with telegramId:', telegramId);
 
-    // Проверяем, что нам передали "url"
-    if (!url) {
-        return NextResponse.json({ error: 'Invalid URL' }, { status: 400 });
+    // Проверяем, что нам передали "telegramId"
+    if (!telegramId) {
+        return NextResponse.json({ error: 'No telegramId provided' }, { status: 400 });
     }
 
     try {
-        // Делаем запрос к исходному URL
-        const response = await fetch(url);
+        // Ищем в базе пользователя, достаём avatarUrl
+        const user = await prisma.user.findUnique({
+            where: { telegramId: BigInt(telegramId) },
+            select: { avatarUrl: true },
+        });
 
+        if (!user) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        if (!user.avatarUrl) {
+            return NextResponse.json({ error: 'User has no avatarUrl' }, { status: 404 });
+        }
+
+        // Теперь user.avatarUrl содержит ссылку, по которой надо проксировать изображение.
+        // Например: "https://api.telegram.org/file/bot<Токен>/photos/file_141.jpg"
+        // Или любая другая публичная ссылка.
+
+        const avatarLink = user.avatarUrl;
+        console.log('Fetching avatar from:', avatarLink);
+
+        // Делаем запрос к avatarLink
+        const response = await fetch(avatarLink);
         if (!response.ok) {
             return NextResponse.json({ error: 'Ошибка загрузки изображения' }, { status: 500 });
         }
@@ -30,12 +52,10 @@ export async function GET(request: Request) {
         const imageBuffer = await response.arrayBuffer();
 
         // Возвращаем "сырое" изображение
+        // При желании возьмите MIME-тип из `response.headers.get('content-type')`
         return new Response(imageBuffer, {
             headers: {
-                // Подставляем заголовок content-type из исходного ответа, 
-                // если там есть что-то вроде "image/jpeg" или "image/png".
                 'Content-Type': response.headers.get('content-type') || 'image/jpeg',
-                // Можете добавить "Cache-Control" или другие заголовки по желанию
                 'Cache-Control': 'public, max-age=86400',
             },
         });
