@@ -138,6 +138,34 @@ function Page() {
 
   const [loadingButton, setLoadingButton] = useState<string | null>(null);
 
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    // === NEW ===
+    if (!userData?.userInfo?.telegramId) return;
+
+    const tgId = userData.userInfo.telegramId;
+    const rawUrl = `/api/get-avatar?telegramId=${tgId}&raw=true`;
+
+    setAvatarUrl(null);
+
+    fetch(rawUrl)
+      .then(async (res) => {
+        if (res.headers.get('content-type')?.includes('application/json')) {
+          const jsonData = await res.json().catch(() => ({}));
+          if (jsonData.error === 'no avatar') {
+            return; // avatarUrl остаётся null => покажем заглушку
+          }
+          return;
+        }
+        // если дошли сюда => это картинка
+        setAvatarUrl(rawUrl);
+      })
+      .catch(() => {
+        setAvatarUrl(null);
+      });
+  }, [userData]);
+
   const handleButtonClick = (handler: () => Promise<void>, buttonKey: string) => {
     setLoadingButton(buttonKey);
 
@@ -729,16 +757,22 @@ function Page() {
             <div className={styles.metricsblock}>
               <div className={styles.logoparent}>
                 <div className={styles.avatarblock}>
-                  {userData?.userInfo?.avatarUrl ? (
+                  {avatarUrl ? (
                     <Image
-                      src={userData.userInfo.avatarUrl || '/path/to/default/avatar.png'}
+                      src={avatarUrl}
                       alt="Avatar"
                       width={100}
                       height={100}
                       className={styles.avatarImage}
                     />
                   ) : (
-                    <p>Нет аватара</p>
+                    <Image
+                      src="https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg"
+                      alt="Заглушка"
+                      width={100}
+                      height={100}
+                      className={styles.avatarImage}
+                    />
                   )}
                 </div>
                 <div className={styles.numbers}>
