@@ -38,8 +38,8 @@
     z-index: 1000;
     width: 80px;
     margin-left: -3px;
-    border-radius: 50%;
-    object-fit: cover;
+    /* border-radius: 50%;
+    object-fit: cover; */
 }
 
 .avatarbox {
