@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
-// Если у вас Node.js < 18 и нужен node-fetch, импортируйте:
+// Если у вас Node.js < 18 и нужен node-fetch, раскомментируйте:
 // import fetch from 'node-fetch';
 
 const prisma = new PrismaClient();
-
-// Ваша заглушка (формат SVG)
-const DEFAULT_IMAGE_URL = 'https://92eaarerohohicw5.public.blob.vercel-storage.com/person-ECvEcQk1tVBid2aZBwvSwv4ogL7LmB.svg';
 
 export const revalidate = 1;
 
@@ -29,14 +26,15 @@ export async function GET(request: Request) {
         });
 
         if (!user) {
+            // Если пользователь не найден
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
-        // Если avatarUrl пустая/отсутствует => подставляем заглушку (SVG)
-        let avatarLink = user.avatarUrl || '';
+        // Если avatarUrl отсутствует или пустая строка => возвращаем "no avatar" cо статусом 200
+        const avatarLink = user.avatarUrl || '';
         if (!avatarLink) {
-            console.log(`User has no avatarUrl; using default image: ${DEFAULT_IMAGE_URL}`);
-            avatarLink = DEFAULT_IMAGE_URL;
+            console.log(`User has no avatarUrl => returning "no avatar" but 200 OK`);
+            return NextResponse.json({ error: 'no avatar' }, { status: 200 });
         }
 
         console.log('Fetching avatar from:', avatarLink);
@@ -45,7 +43,9 @@ export async function GET(request: Request) {
         const response = await fetch(avatarLink);
         if (!response.ok) {
             console.error('Ошибка загрузки изображения:', response.status, response.statusText);
-            return NextResponse.json({ error: 'Ошибка загрузки изображения' }, { status: 500 });
+            // Превращаем любую ошибку загрузки в JSON-ответ (код 200), 
+            // но с полем error, если вам так нужно:
+            return NextResponse.json({ error: 'Ошибка загрузки изображения' }, { status: 200 });
         }
 
         // Считываем бинарные данные
@@ -65,6 +65,7 @@ export async function GET(request: Request) {
         });
     } catch (error) {
         console.error('Ошибка при проксировании изображения:', error);
-        return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
+        // Аналогично, если хотите статус 200, но "error" поле:
+        return NextResponse.json({ error: 'Ошибка сервера' }, { status: 200 });
     }
 }

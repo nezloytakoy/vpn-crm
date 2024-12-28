@@ -521,12 +521,6 @@ bot.command('end_dialog', async (ctx) => {
 
 
 
-
-
-
-
-
-
 bot.command('end_ai', async (ctx) => {
   try {
     const languageCode = ctx.from?.language_code || 'en';
