@@ -5,6 +5,8 @@ const BOT_TOKEN = process.env.BOT_TOKEN || "";
 
 const prisma = new PrismaClient();
 
+export const revalidate = 1;
+
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
