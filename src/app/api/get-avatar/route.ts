@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
-// Допустим, если у нас "Telegram file path", то
-// нужно подтянуть токен для запросов к Telegram
 const BOT_TOKEN = process.env.BOT_TOKEN || "";
 
 const prisma = new PrismaClient();
@@ -11,13 +9,13 @@ export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const telegramId = searchParams.get('telegramId');
-        // Параметр raw говорит: "Вернуть raw-байты изображения"
         const raw = searchParams.get('raw') === 'true';
 
         if (!telegramId) {
             return NextResponse.json({ error: 'No telegramId' }, { status: 400 });
         }
 
+        // Ищем пользователя
         const user = await prisma.user.findUnique({
             where: { telegramId: BigInt(telegramId) },
             select: { avatarUrl: true },
@@ -27,80 +25,64 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
-        // Если avatarUrl пустое, вернём заглушку или пустую строку
+        // Ссылка, которая хранится в базе
         const storedUrl = user.avatarUrl || "";
         if (!storedUrl) {
+            // Нет никакой ссылки
             if (raw) {
-                // Возвращаем, к примеру, заглушку (или 404)
-                // Можете вернуть NextResponse.redirect(...) на какую-то картинку
-                // или вернуть "none"
+                // При raw=true хотим вернуть бинарник, но его нет => 404
                 return NextResponse.json({ error: 'No avatar found' }, { status: 404 });
             } else {
-                // В "JSON-режиме" просто возвращаем пустую строку
+                // При raw=false отдадим JSON с пустой строкой
                 return NextResponse.json({ avatarUrl: '' });
             }
         }
 
-        // --- Если raw=false (или не указан), отдаем JSON с avatarUrl ---
+        // Если raw=false => отдаём JSON
         if (!raw) {
-            return NextResponse.json({
-                avatarUrl: storedUrl,
-            });
+            return NextResponse.json({ avatarUrl: storedUrl });
         }
 
-        // --- Ниже логика ПРОКСИРОВАНИЯ ИЗОБРАЖЕНИЯ ---
-        // Сценарий 1: avatarUrl — это ссылка на Telegram file_path (например, 'photos/file_9.jpg')
-        // Сценарий 2: avatarUrl — это ссылка на локальный файл
-        // Сценарий 3: avatarUrl — публичный http/https (тогда можно просто fetch(...) и вернуть)
+        // =========== Режим "raw=true", проксируем изображение ===========
+        // Логика:
+        // 1) Если storedUrl начинается с "http", считаем, что это полная публичная ссылка 
+        //    (либо уже включает "api.telegram.org/file/bot<token>", либо вовсе другой CDN).
+        // 2) Иначе, если НЕ начинается с "http", 
+        //    значит это "file_path" от Telegram, типа "photos/file_123.jpg",
+        //    тогда формируем URL: "https://api.telegram.org/file/bot<BOT_TOKEN>/{storedUrl}"
 
-        // Для примера считаем, что если storedUrl НЕ начинается с http, это "Telegram file_path"
-        // Иначе, если это "http(s)://", то это уже публичный URL.
-
-        if (!storedUrl.startsWith('http')) {
-            // Предположим, это telegram file_path вида 'photos/file_9.jpg'
-            // Формируем URL
-            const tgUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${storedUrl}`;
-            try {
-                const tgResponse = await fetch(tgUrl);
-                if (!tgResponse.ok) {
-                    return NextResponse.json({ error: 'Telegram fetch error' }, { status: 404 });
-                }
-                const imageBuffer = await tgResponse.arrayBuffer();
-
-                return new NextResponse(imageBuffer, {
-                    status: 200,
-                    headers: {
-                        // Укажите правильный Content-Type, если знаете формат (image/png, image/jpeg и т.п.)
-                        'Content-Type': 'image/jpeg',
-                    },
-                });
-            } catch (err) {
-                console.error('Error proxying telegram file:', err);
-                return NextResponse.json({ error: 'Error proxying TG file' }, { status: 500 });
-            }
-
+        let fileUrl: string;
+        if (storedUrl.startsWith('http')) {
+            // Полная ссылка (публичная или уже содержит токен)
+            fileUrl = storedUrl;
         } else {
-            // Иначе считаем, что storedUrl — это публичный http(s)
-            // Просто fetch'им и пробрасываем контент
-            try {
-                const externalResp = await fetch(storedUrl);
-                if (!externalResp.ok) {
-                    return NextResponse.json({ error: 'External image fetch error' }, { status: 404 });
-                }
-                const imageBuffer = await externalResp.arrayBuffer();
+            // Только file_path
+            fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${storedUrl}`;
+        }
 
-                // Опять же, укажите правильный Content-Type. 
-                // Можно выяснить из externalResp.headers.get('content-type')
-                return new NextResponse(imageBuffer, {
-                    status: 200,
-                    headers: {
-                        'Content-Type': 'image/jpeg',
-                    },
-                });
-            } catch (err) {
-                console.error('Error fetching external file:', err);
-                return NextResponse.json({ error: 'Error fetching external file' }, { status: 500 });
+        // Пытаемся получить изображение
+        try {
+            const resp = await fetch(fileUrl);
+            if (!resp.ok) {
+                return NextResponse.json({ error: 'Image fetch error' }, { status: 404 });
             }
+
+            // Считываем бинарный контент
+            const imageBuffer = await resp.arrayBuffer();
+
+            // Можно определить content-type:
+            // const contentType = resp.headers.get('content-type') || 'image/jpeg';
+            // Но, если точно знаем, что jpg, можно жестко прописать 'image/jpeg'.
+
+            return new NextResponse(imageBuffer, {
+                status: 200,
+                headers: {
+                    'Content-Type': 'image/jpeg',
+                },
+            });
+        } catch (err) {
+            console.error('Error proxying image:', err);
+            return NextResponse.json({ error: 'Proxy error' }, { status: 500 });
         }
 
     } catch (err) {
