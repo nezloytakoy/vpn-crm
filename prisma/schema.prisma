@@ -29,6 +29,7 @@ model Moderator {
   userMessagesCount       Int         @default(0)
   username                String      @default("Отсутствует")
   complaints              Complaint[] @relation("ModeratorComplaints")
+  avatarUrl               String?
 }
 
 model Invitation {
