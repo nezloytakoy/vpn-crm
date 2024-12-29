@@ -1445,8 +1445,16 @@ bot.on('callback_query:data', async (ctx) => {
 
       const withdrawalAmount = assistant.coins;
 
+      // Если нужно запретить вывод при нулевом балансе, можно добавить проверку:
+      // if (withdrawalAmount <= 0) {
+      //   await ctx.reply('У вас 0 коинов, вывод невозможен');
+      //   return;
+      // }
+
+      // Сразу сообщаем, что запрос на вывод формируется
       await ctx.reply(getTranslation(lang, 'withdrawal_request_sent'));
 
+      // 1. Создаём запись в withdrawalRequest
       await prisma.withdrawalRequest.create({
         data: {
           userId: assistant.telegramId,
@@ -1456,11 +1464,23 @@ bot.on('callback_query:data', async (ctx) => {
         },
       });
 
+      // 2. Вычитаем эти коины из баланса ассистента (или просто обнуляем)
+      //    Например, полностью обнуляем:
+      await prisma.assistant.update({
+        where: { telegramId: assistant.telegramId },
+        data: {
+          coins: { decrement: withdrawalAmount },
+          // Либо coins: 0, если хотите без decrement. Но decrement надёжнее,
+          // чтобы не писать "coins: 0" в случае, если кто-то успел пополнить баланс
+        },
+      });
+
       await ctx.reply(getTranslation(lang, 'withdrawal_request_created'));
     } else {
       await ctx.reply(getTranslation(lang, 'end_dialog_error'));
     }
-  } else if (data === 'view_limits') {
+  }
+  else if (data === 'view_limits') {
     // Handle viewing limits
     await ctx.reply(getTranslation(lang, 'limits_info'));
   } else {
