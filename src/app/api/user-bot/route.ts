@@ -565,7 +565,7 @@ bot.command('end_ai', async (ctx) => {
 });
 
 
-bot.command('start', async (ctx) => { 
+bot.command('start', async (ctx) => {
   try {
     const languageCode = ctx.from?.language_code || 'en';
 
@@ -577,7 +577,7 @@ bot.command('start', async (ctx) => {
     const telegramId = BigInt(ctx.from.id);
     // userId (числовой) для методов ctx.api.* 
     // (в grammY это обычный number, а в Prisma вы часто храните BigInt)
-    const userId = ctx.from.id;  
+    const userId = ctx.from.id;
     const username = ctx.from.username || null;
 
     // Проверяем, нет ли реферального кода "ref_..."
@@ -1043,6 +1043,7 @@ bot.on('callback_query', async (ctx) => {
       await ctx.editMessageText(getTranslation(languageCode, 'complaint_prompt'));
     } else if (callbackData === 'satisfied') {
       // Обработчик для кнопки "Я доволен"
+      await ctx.deleteMessage();
       await ctx.reply(getTranslation(languageCode, 'thanks_for_using'));
       await ctx.answerCallbackQuery(); // Закрываем уведомление о callback query
     } else if (callbackData === 'extend_session') {
