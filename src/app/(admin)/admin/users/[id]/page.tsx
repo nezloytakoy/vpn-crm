@@ -286,156 +286,103 @@ function Page() {
 
 
 
-
   useEffect(() => {
-    const fetchData = async () => {
+    // Если userId не задан, ничего не делаем
+    if (!userId) return;
+
+    let isMounted = true;
+
+    const fetchAllData = async () => {
       try {
+        // 1) Получаем основные данные пользователя
         console.log('[fetchData] about to call => /api/get-user-data?userId=', userId);
-        const response = await fetch(`/api/get-user-data?userId=${userId}`);
-        console.log('[fetchData] response status =', response.status);
-        const data = await response.json();
-        console.log('[fetchData] JSON =', data);
-
-        setUserData(data);
-        console.log('[fetchData] setUserData complete =>', data);
-      } catch (error) {
-        console.error('[fetchData] Ошибка:', error);
-      } finally {
-        setIsLoadingData(false);
-      }
-    };
-    if (userId) {
-      fetchData();
-    }
-
-    const fetchPercentage = async () => {
-      try {
-        const response = await fetch(`/api/get-user-percentage?userId=${userId}`);
-        const data = await response.json();
-
-        console.log(data)
-        console.log(data.referralPercentage)
-
-        if (data.referralPercentage !== undefined) {
-          setPercentage(data.referralPercentage);
-          console.log("Процент:")
-          console.log(data.referralPercentage)
-        } else {
-          console.error('Реферальный процент не найден');
-        }
-      } catch (error) {
-        console.error('Ошибка при получении реферального процента:', error);
-      } finally {
-        setIsLoadingData(false);
-      }
-    };
-
-    const fetchRequests = async () => {
-      try {
-
-        const response = await fetch(`/api/get-personal-requests?userId=${userId}`)
-        const data = await response.json();
-
-        if (data.requests != undefined) {
-          setRequests(data.requests)
-          console.log(data.requests)
-        } else {
-          console.log('Не удалось получить актуальное количество запросов')
+        const respUserData = await fetch(`/api/get-user-data?userId=${userId}`);
+        const userDataJson = await respUserData.json();
+        console.log('[fetchData] JSON =', userDataJson);
+        if (isMounted) {
+          setUserData(userDataJson);
+          setIsLoadingData(false);
         }
 
-      } catch (error) {
-        console.log(error)
-      }
-    }
+        // 2) Если есть userData => подгружаем аватар
+        if (userDataJson?.userId) {
+          const rawUrl = `/api/get-avatar?telegramId=${userDataJson.userId}&raw=true`;
+          console.log('[AvatarEffect] fetch avatar =>', rawUrl);
 
-    if (userId) {
-      fetchPercentage();
-      fetchRequests();
-    }
-
-    const fetchSubscriptionOptions = async () => {
-      try {
-        const response = await fetch('/api/generate-tariff-names', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-        const data = await response.json();
-
-        if (response.ok) {
-          const options = data.updatedSubscriptions.map((sub: { id: number; name: string }) => ({
-            value: sub.id,
-            label: sub.name,
-          }));
-          setSubscriptionOptions(options);
-        } else {
-          console.error('Error fetching subscription options:', data.error);
-        }
-      } catch (error) {
-        console.error('Error fetching subscription options:', error);
-      }
-    };
-
-
-    fetchSubscriptionOptions();
-
-
-  }, [userId]);
-
-  useEffect(() => {
-    console.log('[AvatarEffect] userData changed =>', userData);
-    if (!userData?.userId) return;   // <-- проверяем userId
-    const rawUrl = `/api/get-avatar?telegramId=${userData.userId}&raw=true`;
-
-    setAvatarUrl(null);
-
-    fetch(rawUrl)
-      .then(async (res) => {
-        if (res.headers.get('content-type')?.includes('application/json')) {
-          const jsonData = await res.json().catch(() => ({}));
-          if (jsonData.error === 'no avatar') {
-            return; // avatarUrl остаётся null => покажем заглушку
+          const avatarResp = await fetch(rawUrl);
+          // Проверяем, не JSON ли там ответ. Если `jsonData.error === 'no avatar'`, то аватарки нет.
+          if (
+            avatarResp.headers.get('content-type')?.includes('application/json')
+          ) {
+            const jsonData = await avatarResp.json().catch(() => ({}));
+            if (jsonData.error === 'no avatar') {
+              // avatarUrl остаётся null => показываем заглушку
+              if (isMounted) setAvatarUrl(null);
+            }
+          } else {
+            // Если дошли сюда => контент точно картинка
+            if (isMounted) setAvatarUrl(rawUrl);
           }
-          return;
         }
-        // если дошли сюда => это картинка
-        setAvatarUrl(rawUrl);
-      })
-      .catch(() => {
-        setAvatarUrl(null);
-      });
-  }, [userData]);
 
+        // 3) Реферальный процент
+        const respPerc = await fetch(`/api/get-user-percentage?userId=${userId}`);
+        const dataPerc = await respPerc.json();
+        if (isMounted && dataPerc.referralPercentage !== undefined) {
+          setPercentage(dataPerc.referralPercentage);
+        }
 
-  useEffect(() => {
+        // 4) Количество запросов (ai/assistant)
+        const respRequests = await fetch(`/api/get-personal-requests?userId=${userId}`);
+        const dataRequests = await respRequests.json();
+        if (isMounted && dataRequests.requests) {
+          setRequests(dataRequests.requests);
+        }
 
-    const fetchUserRole = async () => {
-      try {
-        const response = await fetch('/api/get-user-role', {
+        // 5) Список доступных подписок
+        const respSubs = await fetch('/api/generate-tariff-names', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (respSubs.ok) {
+          const subData = await respSubs.json();
+          const options = subData.updatedSubscriptions.map(
+            (sub: { id: number; name: string }) => ({
+              value: sub.id,
+              label: sub.name,
+            })
+          );
+          if (isMounted) setSubscriptionOptions(options);
+        }
+
+        // 6) Получаем роль пользователя
+        const roleResp = await fetch('/api/get-user-role', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: userId }),
         });
-
-        if (response.ok) {
-          const result = await response.json();
-          setUserRole(result.role);
-          console.log("Роль", result.role)
-        } else {
-          console.error('Не удалось получить роль пользователя');
+        if (roleResp.ok) {
+          const roleResult = await roleResp.json();
+          if (isMounted) setUserRole(roleResult.role);
         }
       } catch (error) {
-        console.error('Ошибка при получении роли пользователя:', error);
+        console.error('[fetchAllData] Ошибка:', error);
       }
     };
 
-    if (userId) {
-      fetchUserRole();
-    }
+    // Первоначальный вызов
+    fetchAllData();
+
+    // Каждые 10 секунд будем заново вызывать fetchAllData
+    const intervalId = setInterval(fetchAllData, 10000);
+
+    // По размонтированию компонента отменяем интервал
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
   }, [userId]);
+
 
 
   const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
