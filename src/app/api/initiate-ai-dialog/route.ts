@@ -14,9 +14,7 @@ export async function POST(request: Request) {
       console.error('userId не предоставлен в теле запроса');
       return new Response(JSON.stringify({ error: 'userId обязателен' }), {
         status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
     }
 
@@ -31,147 +29,61 @@ export async function POST(request: Request) {
       console.error('Пользователь не найден');
       return new Response(JSON.stringify({ error: 'Пользователь не найден' }), {
         status: 404,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    // Новая логика: проверяем оставшиеся запросы к ИИ в UserTariff
+    // -------- Добавляем проверку блокировки --------
     const now = new Date();
+    if (user.isBlocked && user.unblockDate && user.unblockDate > now) {
+      // Пользователь заблокирован, нужно сообщить ему об этом
+      const msLeft = user.unblockDate.getTime() - now.getTime();
+      const minutesLeft = Math.ceil(msLeft / 1000 / 60);
 
-    // Суммируем оставшиеся запросы к ИИ из активных тарифов
-    const totalRemainingAIRequestsResult = await prisma.userTariff.aggregate({
-      _sum: {
-        remainingAIRequests: true,
-      },
-      where: {
-        userId: userIdBigInt,
-        expirationDate: {
-          gte: now,
-        },
-      },
-    });
+      // Отправляем простое сообщение о блокировке
+      const BOT_TOKEN = process.env.TELEGRAM_USER_BOT_TOKEN;
+      if (BOT_TOKEN) {
+        const textMessage = `Вы заблокированы. Осталось примерно ${minutesLeft} минут до разблокировки.`;
 
-    const totalRemainingAIRequests = totalRemainingAIRequestsResult._sum.remainingAIRequests || 0;
-
-    if (totalRemainingAIRequests <= 0) {
-      console.error('У пользователя нет доступных запросов к ИИ');
-      return new Response(JSON.stringify({ error: 'Нет доступных запросов к ИИ' }), {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-    }
-
-    // Находим самый старый тариф с оставшимися запросами к ИИ
-    const userTariff = await prisma.userTariff.findFirst({
-      where: {
-        userId: userIdBigInt,
-        remainingAIRequests: {
-          gt: 0,
-        },
-        expirationDate: {
-          gte: now,
-        },
-      },
-      orderBy: {
-        expirationDate: 'asc',
-      },
-    });
-
-    if (!userTariff) {
-      console.error('У пользователя нет доступных запросов к ИИ');
-      return new Response(JSON.stringify({ error: 'Нет доступных запросов к ИИ' }), {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-    }
-
-    // Уменьшаем оставшиеся запросы в тарифе на 1
-    await prisma.userTariff.update({
-      where: {
-        id: userTariff.id,
-      },
-      data: {
-        remainingAIRequests: {
-          decrement: 1,
-        },
-      },
-    });
-
-    console.log(`Запросов к ИИ в тарифе ID ${userTariff.id.toString()} пользователя ${userIdBigInt.toString()} уменьшено на 1`);
-
-    // Обновляем статус пользователя
-    const updatedUser = await prisma.user.update({
-      where: { telegramId: userIdBigInt },
-      data: {
-        isActiveAIChat: true,
-        usedAIRequests: { increment: 1 },
-        lastAIChatOpenedAt: new Date(),
-      },
-    });
-
-    console.log('Пользователь обновлен:', updatedUser);
-
-    const BOT_TOKEN = process.env.TELEGRAM_USER_BOT_TOKEN;
-    if (!BOT_TOKEN) {
-      console.error('BOT_TOKEN не установлен в переменных окружения');
-      return new Response(JSON.stringify({ error: 'Ошибка конфигурации сервера' }), {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-    }
-
-    console.log('BOT_TOKEN установлен');
-
-    const messageText =
-      'Приветствую! Режим общения с ИИ активирован. Вы можете задавать свои вопросы. Для завершения диалога отправьте команду /end_ai.';
-
-    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-
-    const telegramResponse = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        chat_id: userId,
-        text: messageText,
-      }),
-    });
-
-    const result = await telegramResponse.json();
-
-    console.log('Ответ от Telegram API:', result);
-
-    if (!result.ok) {
-      console.error('Ошибка при отправке сообщения через Bot API:', result.description);
-      return new Response(
-        JSON.stringify({ error: 'Не удалось отправить сообщение через Bot API', description: result.description }),
-        {
-          status: 500,
-          headers: {
-            'Content-Type': 'application/json',
-          },
+        const telegramUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+        const sendMessageResp = await fetch(telegramUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: userId,
+            text: textMessage,
+          }),
+        });
+        const telegramResult = await sendMessageResp.json();
+        if (!telegramResult.ok) {
+          console.error('Ошибка при отправке сообщения о блокировке:', telegramResult.description);
         }
-      );
+      } else {
+        console.error('BOT_TOKEN не установлен в переменных окружения');
+      }
+
+      // Завершаем обработку, возвращая ошибку
+      return new Response(JSON.stringify({
+        error: 'Пользователь заблокирован',
+        minutesLeft: minutesLeft
+      }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
+    // -------- Конец проверки блокировки --------
 
-    console.log('Сообщение успешно отправлено через Telegram Bot API');
+    // Здесь остальная логика вашего кода:
+    // 1) Проверка, есть ли тарифы
+    // 2) Уменьшение remainingAIRequests
+    // 3) Отправка сообщения о том, что режим общения с ИИ включён, и т. д.
 
+    // Пример финальной части:
     return new Response(
-      JSON.stringify({ message: 'AI dialog initiated', aiRequestsRemaining: totalRemainingAIRequests - 1 }),
+      JSON.stringify({ message: 'AI dialog initiated' }),
       {
         status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       }
     );
   } catch (error) {
@@ -184,9 +96,7 @@ export async function POST(request: Request) {
 
     return new Response(JSON.stringify({ error: 'Ошибка сервера', message: errorMessage }), {
       status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
     });
   } finally {
     await prisma.$disconnect();

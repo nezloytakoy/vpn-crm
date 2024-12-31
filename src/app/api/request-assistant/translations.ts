@@ -19,7 +19,7 @@ export const translations = {
         waitingForSubject: 'We are waiting for you to provide the subject of your request.',
 
         // Новый ключ:
-        userIsBlocked: 'You are blocked. Remaining time until unblocking: {{time}}'
+        userIsBlocked: 'You are blocked.'
     },
     ru: {
         userIdRequired: 'Требуется UserId',
@@ -39,7 +39,7 @@ export const translations = {
         waitingForSubject: 'Мы ожидаем от вас ввода темы запроса.',
 
         // Новый ключ:
-        userIsBlocked: 'Вы заблокированы. До разблокировки осталось: {{time}}'
+        userIsBlocked: 'Вы заблокированы.'
     },
 };
 
