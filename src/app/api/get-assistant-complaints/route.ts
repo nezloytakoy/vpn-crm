@@ -14,9 +14,12 @@ export async function GET(request: NextRequest) {
     try {
         const assistantBigInt = BigInt(assistantId);
 
-        // Получаем жалобы на ассистента
+        // Получаем жалобы на ассистента ТОЛЬКО со статусом PENDING
         const complaints = await prisma.complaint.findMany({
-            where: { assistantId: assistantBigInt },
+            where: {
+                assistantId: assistantBigInt,
+                status: "PENDING",
+            },
             select: {
                 id: true,
                 userId: true,
@@ -53,7 +56,7 @@ export async function GET(request: NextRequest) {
         // Возвращаем объединённый результат
         return NextResponse.json(complaintsWithUsernames);
     } catch (error) {
-        console.log(error);
+        console.error("Ошибка при получении жалоб:", error);
         return NextResponse.json({ error: "Не удалось получить жалобы на ассистента" }, { status: 500 });
     }
 }

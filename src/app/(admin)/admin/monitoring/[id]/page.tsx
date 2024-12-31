@@ -74,6 +74,80 @@ interface ComplaintData {
   moderatorId: string | null;
 }
 
+interface ComplaintDetails {
+  complaintId: string;
+  text: string;
+  photoUrls: string[];
+  userId: string;
+  userNickname: string;
+  assistantId: string;
+  assistantNickname: string;
+  conversationLogs: {
+    sender: 'USER' | 'ASSISTANT';
+    message: string;
+    timestamp: string;
+  }[];
+}
+
+function formatComplexDuration(totalSeconds: number): string {
+  if (totalSeconds <= 0) {
+    return '0с';
+  }
+
+  // Посчитаем величины в каждой единице
+  // (берём усреднённые значения, а не строгий календарный подсчёт:
+  //  1 месяц = 30 дней, 1 неделя = 7 дней, и т. п.)
+  const months = Math.floor(totalSeconds / (30 * 24 * 3600));
+  const remainderAfterMonths = totalSeconds % (30 * 24 * 3600);
+
+  const weeks = Math.floor(remainderAfterMonths / (7 * 24 * 3600));
+  const remainderAfterWeeks = remainderAfterMonths % (7 * 24 * 3600);
+
+  const days = Math.floor(remainderAfterWeeks / (24 * 3600));
+  const remainderAfterDays = remainderAfterWeeks % (24 * 3600);
+
+  const hours = Math.floor(remainderAfterDays / 3600);
+  const remainderAfterHours = remainderAfterDays % 3600;
+
+  const minutes = Math.floor(remainderAfterHours / 60);
+  const seconds = remainderAfterHours % 60;
+
+  // Определяем, какие единицы реально задействованы
+  // Составляем их в порядке убывания «приоритета»
+  const units = [
+    { label: 'мес', value: months },
+    { label: 'нед', value: weeks },
+    { label: 'дн', value: days },
+    { label: 'ч', value: hours },
+    { label: 'мин', value: minutes },
+    { label: 'с', value: seconds },
+  ];
+
+  // Теперь нам надо вывести ровно "три старших" ненулевых единицы
+  // Но если «более крупная» единица ноль, пропускаем и смотрим дальше
+
+  // Находим индекс первой ненулевой (если есть)
+  const firstNonZeroIndex = units.findIndex((u) => u.value !== 0);
+  if (firstNonZeroIndex === -1) {
+    // Значит всё было по нулям, вернём "0с"
+    return '0с';
+  }
+
+  // Возьмём срез из units, начиная с первой ненулевой, на 3 элемента
+  // (если там окажется меньше 3 ненулевых, возьмём сколько есть)
+  const sliced = units.slice(firstNonZeroIndex, firstNonZeroIndex + 3);
+
+  // Отфильтруем из этого среза те, у кого value=0 (когда, например, вторая по приоритету оказалась 0)
+  const finalUnits = sliced.filter((u) => u.value !== 0);
+
+  // Формируем строку типа "2мес 3нед 7дн"
+  const result = finalUnits.map((u) => `${u.value}${u.label}`).join(' ');
+
+  return result || '0с';
+}
+
+
+
 function Page() {
   const { id: currentAssistantId } = useParams();
   const router = useRouter();
@@ -108,6 +182,83 @@ function Page() {
   const [isLoadingComplaints, setIsLoadingComplaints] = useState(true);
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  const [showComplaintPopup, setShowComplaintPopup] = useState(false); // показывает попап
+  const [isFormVisible, setIsFormVisible] = useState(false);          // показывает форму объяснения
+  const [fadeOut, setFadeOut] = useState(false);                      // анимация скрытия
+  const [action, setAction] = useState<'approve' | 'reject' | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [explanation, setExplanation] = useState('');                 // введённый текст
+  const [selectedComplaint, setSelectedComplaint] = useState<ComplaintData | null>(null);
+  const [complaintDetails, setComplaintDetails] = useState<ComplaintDetails | null>(null);
+
+  const handleApproveComplaint = () => {
+    setAction('approve');
+    setFadeOut(true);
+    // Ждём окончание анимации 300ms (или сколько у вас в CSS)
+    setTimeout(() => {
+      setIsFormVisible(true);
+      setFadeOut(false);
+    }, 300);
+  };
+
+  const handleRejectComplaint = () => {
+    setAction('reject');
+    setFadeOut(true);
+    setTimeout(() => {
+      setIsFormVisible(true);
+      setFadeOut(false);
+    }, 300);
+  };
+
+  const handleComplaintFormSubmit = async () => {
+    if (!selectedComplaint) return;
+    setIsSubmitting(true);
+
+    try {
+      // Пример: получаем moderatorId (если нужно)
+      const modResp = await fetch('/api/get-moder-id');
+      if (!modResp.ok) throw new Error('Не удалось получить moderatorId');
+      const { userId: moderatorId } = await modResp.json();
+
+      const endpoint = action === 'approve'
+        ? `/api/approve-complaint?id=${selectedComplaint.id}`
+        : `/api/reject-complaint?id=${selectedComplaint.id}`;
+
+      const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          complaintId: selectedComplaint.id,
+          explanation,
+          moderatorId,
+        }),
+      });
+
+      if (!resp.ok) {
+        throw new Error(`Ошибка при ${action === 'approve' ? 'одобрении' : 'отклонении'} жалобы`);
+      }
+
+      // Если всё ок — закрываем попап и сбрасываем стейт
+      setShowComplaintPopup(false);
+      setIsFormVisible(false);
+      setSelectedComplaint(null);
+      setComplaintDetails(null);
+      setExplanation('');
+      setAction(null);
+
+      // Возможно, стоит обновить список жалоб, чтобы изменения отобразились
+      // refreshComplaints(); // <-- функция, чтобы заново сходить в /api/... и обновить complaints
+
+    } catch (err) {
+      console.error('Ошибка при обработке жалобы:', err);
+      alert('Произошла ошибка');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
 
   // Function to fetch complaints data
   useEffect(() => {
@@ -233,7 +384,6 @@ function Page() {
     { Header: 'ID Жалобы', accessor: 'id' },
     { Header: 'ID Пользователя', accessor: 'userId' },
     { Header: 'Username', accessor: 'username' },
-    { Header: 'Статус', accessor: 'status' },
   ];
 
   const handleAddPupil = async () => {
@@ -379,22 +529,16 @@ function Page() {
       accessor: 'messages',
       Cell: ({ row }: { row: { original: AssistantRequest } }) => {
         const { messages, status, id } = row.original;
-
-        // Проверяем статус запроса
         if (status === 'IGNORED' || status === 'REJECTED') {
-          return <span>-</span>; // Не отображаем кнопку "Скачать"
+          return <span>-</span>;
         }
-
-        // Проверяем наличие сообщений
-        return messages && messages.length > 0 ? (
+        return (
           <button
             onClick={() => handleDownload(messages, `request_${id}`)}
-            className={styles.downloadButton}
+            className={styles.downloadButton} // <-- важная строчка!
           >
             Скачать
           </button>
-        ) : (
-          <span>-</span>
         );
       },
     },
@@ -497,6 +641,34 @@ function Page() {
     );
   }
 
+  function handleComplaintRowClick(rowData: ComplaintData) {
+    console.log('[handleComplaintRowClick] invoked with =', rowData);
+    // 1) Сохраняем выбранную жалобу (чтобы знать её id)
+    setSelectedComplaint(rowData);
+
+    // 2) Делаем запрос за деталями: /api/get-complaint-details?id=...
+    fetch(`/api/get-complaint-details?id=${rowData.id}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Ошибка при получении деталей жалобы');
+        return res.json();
+      })
+      .then((details: ComplaintDetails) => {
+        // 3) Сохраняем детальные данные в стейт
+        setComplaintDetails(details);
+
+        // 4) Показываем попап
+        setShowComplaintPopup(true);
+        setIsFormVisible(false);
+        setExplanation('');
+        setAction(null);
+        setFadeOut(false);
+      })
+      .catch((err) => {
+        console.error('Ошибка при загрузке деталей жалобы:', err);
+        alert('Не удалось загрузить детали жалобы');
+      });
+  }
+
   return (
     <div className={styles.main}>
 
@@ -595,7 +767,11 @@ function Page() {
                     <p className={styles.smalltitle}>Рабочие сессии</p>
                   </div>
                   <div className={styles.metric}>
-                    <p className={styles.number}>{assistantData?.averageSessionTime ? assistantData.averageSessionTime.toFixed(2) : 0}</p>
+                    <p className={styles.number}>
+                      {assistantData?.averageSessionTime
+                        ? formatComplexDuration(assistantData.averageSessionTime)
+                        : '0с'}
+                    </p>
                     <p className={styles.smalltitle}>Время сессии</p>
                   </div>
                   <div className={styles.metric}>
@@ -805,7 +981,14 @@ function Page() {
           {isLoadingComplaints ? (
             <p>Загрузка жалоб...</p>
           ) : complaintsData.length > 0 ? (
-            <Table columns={complaintsColumns} data={complaintsData} />
+            <Table
+              columns={complaintsColumns}
+              data={complaintsData}
+              onRowClick={(rowData) => {
+                console.log('[AssistantPage] onRowClick called with rowData =', rowData);
+                handleComplaintRowClick(rowData);  // <-- Далее идёт ваша логика
+              }}
+            />
           ) : (
             <p>Жалобы не найдены.</p>
           )}
@@ -827,6 +1010,64 @@ function Page() {
               </button>
               <button className={styles.cancelButton} onClick={() => setShowPopup(false)}>Нет</button>
             </div>
+          </div>
+        </>
+      )}
+
+      {showComplaintPopup && complaintDetails && (
+        <>
+          <div className={styles.overlay} />
+          <div className={`${styles.popup} ${fadeOut ? styles.fadeOut : ''}`}>
+            {!isFormVisible ? (
+              <>
+                {/* Блок с краткой информацией о жалобе */}
+                <p><strong>Сообщение:</strong> {complaintDetails.text}</p>
+
+                {complaintDetails.photoUrls?.length > 0 && (
+                  <div>
+                    <strong>Скриншоты:</strong>
+                    <div className={styles.imagesContainer}>
+                      {complaintDetails.photoUrls.map((url: string, index: number) => (
+                        <Image
+                          key={index}
+                          src={`/api/get-image-proxy?url=${encodeURIComponent(url)}`}
+                          alt={`Скриншот ${index + 1}`}
+                          className={styles.image}
+                          width={200}
+                          height={120}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className={styles.buttonGroup}>
+                  <button onClick={handleApproveComplaint} className={styles.approveButton}>
+                    Одобрить
+                  </button>
+                  <button onClick={handleRejectComplaint} className={styles.rejectButton}>
+                    Отклонить
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className={styles.formContainer}>
+                <h3>{action === 'approve' ? 'Одобрение жалобы' : 'Отклонение жалобы'}</h3>
+                <textarea
+                  placeholder="Введите ваше объяснение"
+                  value={explanation}
+                  onChange={(e) => setExplanation(e.target.value)}
+                  className={styles.textArea}
+                />
+                <button
+                  onClick={handleComplaintFormSubmit}
+                  className={styles.submitButton}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? <div className={styles.buttonLoader} /> : 'Отправить'}
+                </button>
+              </div>
+            )}
           </div>
         </>
       )}

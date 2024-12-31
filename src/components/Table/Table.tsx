@@ -113,9 +113,11 @@ const Table = <T extends object>({ columns, data, onRowClick }: TableProps<T>) =
                 return (
                   <tr
                     {...row.getRowProps()}
-                    onClick={() => onRowClick?.(row.original)}
-                    className={isComplaintsOrCoinsRoute ? styles.clickableRow : ''}
-                  >
+                    onClick={() => {
+                      console.log('[Table] Row clicked, row.original =', row.original);
+                      onRowClick?.(row.original);
+                    }}
+                    className={isComplaintsOrCoinsRoute ? styles.clickableRow : ''}>
                     {row.cells.map((cell) => (
                       <td {...cell.getCellProps()} className={styles.td}>
                         {cell.render('Cell')}
