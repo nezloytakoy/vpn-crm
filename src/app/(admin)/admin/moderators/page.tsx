@@ -7,7 +7,7 @@ import styles from './Moderators.module.css';
 import Image from 'next/image';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { useRouter } from 'next/navigation'; 
+import { useRouter } from 'next/navigation';
 
 interface ModeratorData {
     id: string;
@@ -24,25 +24,25 @@ function formatLastActive(lastActiveAt: string): string {
     const diffInMinutes = (new Date().getTime() - lastActiveDate.getTime()) / (1000 * 60);
 
     if (diffInMinutes < 60) {
-        return "В сети"; 
+        return "В сети";
     }
 
     return `Был ${formatDistanceToNow(lastActiveDate, { addSuffix: true, locale: ru })}`;
 }
 
 export default function Page() {
-    const [data, setData] = useState<ModeratorData[]>([]); 
-    const [generatedLink, setGeneratedLink] = useState<string>(''); 
-    const [copySuccess, setCopySuccess] = useState<boolean>(false); 
-    const [login, setLogin] = useState<string>(''); 
-    const [password, setPassword] = useState<string>(''); 
-    const [step, setStep] = useState<number>(0); 
-    const [errorMessage, setErrorMessage] = useState<string>(''); 
-    const [loading, setLoading] = useState<boolean>(true); 
+    const [data, setData] = useState<ModeratorData[]>([]);
+    const [generatedLink, setGeneratedLink] = useState<string>('');
+    const [copySuccess, setCopySuccess] = useState<boolean>(false);
+    const [login, setLogin] = useState<string>('');
+    const [password, setPassword] = useState<string>('');
+    const [step, setStep] = useState<number>(0);
+    const [errorMessage, setErrorMessage] = useState<string>('');
+    const [loading, setLoading] = useState<boolean>(true);
 
-    const router = useRouter(); 
+    const router = useRouter();
 
-    
+
     const columns: Array<Column<ModeratorData>> = [
         {
             Header: 'Telegram ID',
@@ -70,7 +70,7 @@ export default function Page() {
         },
     ];
 
-    
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -91,15 +91,15 @@ export default function Page() {
         fetchData();
     }, []);
 
-    
+
     const handleRowClick = (id: string) => {
-        router.push(`/admin/moderators/${id}`); 
+        router.push(`/admin/moderators/${id}`);
     };
 
-    
+
     const handleGenerateLink = () => {
-        setStep(1); 
-        setGeneratedLink(''); 
+        setStep(1);
+        setGeneratedLink('');
     };
 
     const handleConfirmCredentials = async () => {
@@ -114,21 +114,28 @@ export default function Page() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ login, password }), 
+                body: JSON.stringify({ login, password }),
             });
 
+            // Проверяем статус
             if (!response.ok) {
-                throw new Error('Ошибка при генерации ссылки');
+                const errData = await response.json();
+                // «message» может быть "Логин уже используется модератором" и т.д.
+                throw new Error(errData.message || 'Ошибка при генерации ссылки');
             }
 
             const data = await response.json();
-            setGeneratedLink(data.link); 
+            setGeneratedLink(data.link);
             setCopySuccess(false);
-            setStep(2); 
-            setErrorMessage(''); 
+            setStep(2);
+            setErrorMessage('');
         } catch (error) {
-            console.error('Ошибка:', error); 
-            setErrorMessage('Ошибка генерации ссылки');
+            if (error instanceof Error) {
+                setErrorMessage(error.message);
+            } else {
+                // Можно задать что-то дефолтное или проигнорировать
+                setErrorMessage('Неизвестная ошибка');
+            }
         }
     };
 
@@ -139,7 +146,7 @@ export default function Page() {
                 setTimeout(() => setCopySuccess(false), 2000);
             })
             .catch((error) => {
-                console.error('Ошибка копирования:', error); 
+                console.error('Ошибка копирования:', error);
             });
     };
 
@@ -161,7 +168,7 @@ export default function Page() {
                             <Table
                                 columns={columns}
                                 data={data}
-                                onRowClick={(row) => handleRowClick(row.id)} 
+                                onRowClick={(row) => handleRowClick(row.id)}
                             />
                         ) : (
                             <div>Нет данных для отображения</div>

@@ -1,7 +1,7 @@
 
 export async function handleAssistantClick(assistantRequests, setLoading, t) {
   if (assistantRequests > 0) {
-    setLoading(true); 
+    setLoading(true);
     if (window.Telegram && window.Telegram.WebApp) {
       try {
         const currentUserId = window.Telegram.WebApp.initDataUnsafe.user?.id;
@@ -29,11 +29,11 @@ export async function handleAssistantClick(assistantRequests, setLoading, t) {
       } catch (error) {
         console.error('Ошибка:', error);
         if (error instanceof Error) {
-          alert(t('errorOccurred') + error.message);
+          alert(error.message);
         } else {
           alert(t('unknownError'));
         }
-        setLoading(false); 
+        setLoading(false);
       }
     } else {
       alert(t('onlyInApp'));
@@ -44,7 +44,7 @@ export async function handleAssistantClick(assistantRequests, setLoading, t) {
 
 export async function handleAIClick(aiRequests, setLoading, t) {
   if (aiRequests > 0) {
-    setLoading(true); 
+    setLoading(true);
     if (window.Telegram && window.Telegram.WebApp) {
       try {
         const currentUserId = window.Telegram.WebApp.initDataUnsafe.user?.id;
@@ -72,11 +72,11 @@ export async function handleAIClick(aiRequests, setLoading, t) {
       } catch (error) {
         console.error('Ошибка:', error);
         if (error instanceof Error) {
-          alert(t('errorOccurred') + error.message);
+          alert(error.message);
         } else {
           alert(t('unknownError'));
         }
-        setLoading(false); 
+        setLoading(false);
       }
     } else {
       alert(t('onlyInApp'));

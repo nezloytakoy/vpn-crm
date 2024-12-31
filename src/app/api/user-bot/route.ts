@@ -1281,8 +1281,7 @@ bot.on('message:text', async (ctx: Context) => {
           { text: switchText, callback_data: `activate_${activeConversation.id}` }
         ]];
 
-
-        // Отправляем сообщение ассистенту с кнопкой
+        // Отправляем сообщение ассистенту
         await sendMessageToAssistant(
           ctx,
           activeConversation.assistant.telegramId.toString(),
@@ -1300,11 +1299,29 @@ bot.on('message:text', async (ctx: Context) => {
         await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
       }
     } else {
-      // No active conversation or dialogs
+      // Нет активного разговора
       console.log(`No active conversation found for user ID: ${telegramId.toString()}`);
+
+      // Проверим, нет ли созданного AssistantRequest, но без Conversation
+      const openRequest = await prisma.assistantRequest.findFirst({
+        where: {
+          userId: telegramId,
+          isActive: true,
+          conversation: null, // нет привязки к Conversation
+        },
+      });
+
+      if (openRequest) {
+        // Значит запрос уже есть, но ассистент не присоединился (Conversation не создана)
+        await ctx.reply('Ассистент ещё не присоединился к диалогу.');
+        return;
+      }
+
+      // Если request нет, но isWaitingForSubject всё ещё true
       if (user.isWaitingForSubject) {
         await ctx.reply(getTranslation(languageCode, 'subjectExpected'));
       } else {
+        // Никаких активных разговоров, нет openRequest
         await ctx.reply(getTranslation(languageCode, 'no_active_dialogs'));
       }
     }
