@@ -234,7 +234,7 @@ function PaymentPage() {
               onClick={() => handleSelectMethod(0)}
             >
               <Image
-                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/russian-ruble-money-currency-golden%20(1)-r9QrBTSGjS10emeh0O5hBFcuZS38j3.png"
+                src="https://ohcz1gqu1abjdgrv.public.blob.vercel-storage.com/usd-svgrepo-com-JJ1ZCIzo5XQAgBaw4DcakuujNYIreb.svg"
                 alt="avatar"
                 width={45}
                 height={45}
