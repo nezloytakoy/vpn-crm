@@ -103,8 +103,7 @@ adminBot.command('start', async (ctx) => {
         });
       }
 
-      // Далее выполняем вашу существующую логику 
-      // processModeratorInvitation(...)
+
       await processModeratorInvitation(invitation, moderatorId, ctx.from.username, lang, showModeratorMenu, ctx);
 
     } else {

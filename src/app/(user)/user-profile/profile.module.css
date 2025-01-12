@@ -1,202 +1,164 @@
-.topbotom {
-    background-color: #4581E9;
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+
+.background {
+    /* Пусть фоновое изображение будет во всю ширину/высоту блока */
+    background-image: url("https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(3)-XNz1W2wKQ2BAlBI5PNqZTSHeA2xiFy.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: black;
+
+    /* При необходимости задать ширину/высоту или растянуть на весь экран */
     width: 100%;
     height: 100vh;
-    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    /* например, на всю высоту экрана */
+    font-family: "Plus Jakarta Sans", sans-serif;
 }
 
-.backbotom {
+.header {
     width: 100%;
-    min-height: 600px;
-    padding: 5px;
-    padding-top: 0;
-    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
-    background-color: white;
-    border: 5px solid white;
-    box-sizing: border-box;
+    height: 120px;
+
+    /* Полупрозрачный красный (50% прозрачности) */
+    background-color: rgba(197, 192, 192, 0.1);
+
+    /* Размытие фона «за» блоком */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    /* Для Safari */
+
+    /* Если нужно, чтобы элемент был над другими */
+    /* position: relative; или position: fixed; */
     display: flex;
-    flex-direction: column;
-    min-height: 700px;
+    justify-content: center;
+    align-items: center;
+}
+
+.userinfoblock {
+    width: 90%;
+    height: auto;
+    display: flex;
+}
+
+.avatar {
+    background-color: #2473FF;
+    border-radius: 50%;
+    width: 64px;
+    height: 64px;
+    margin-right: 15px;
 }
 
 .greetings {
-    width: 100%;
-    height: 80px;
-    padding: 35px;
+    height: auto;
+    width: auto;
     color: white;
-    font-size: 26px;
-    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
-    font-weight: 800;
+    font-size: 24px;
+    font-weight: 500;
+}
+
+.nickname {
+    color: #7D8695;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.requests {
+    height: 120px;
+    width: 100%;
     display: flex;
+    align-items: center;
+    justify-content: center;
     flex-direction: column;
-    z-index: 1000;
-}
-
-
-.avatar {
-    margin-top: 25px;
-    z-index: 1000;
-    width: 80px;
-    margin-left: -3px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-.avatarbox {
-    z-index: 10;
-    padding-left: 10px;
-    display: flex;
-    flex-direction: column;
- 
-}
-
-.name {
-    margin-left: 0px;
-    margin-top: 5px;
 }
 
 .time {
-    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
-    font-weight: 800;
-    font-size: 22px;
-    margin-bottom: 20px;
-}
-
-.parent {
-    margin-top: 40px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-direction: column;
-}
-
-.buttons {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-}
-
-@keyframes pulse-border {
-    0% {
-        box-shadow: 0 0 0 0 #99bcf6;
-    }
-    70% {
-        box-shadow: 0 0 10px 10px rgba(255, 0, 0, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
-    }
-}
-
-.leftblock, .centerblock, .rightblock {
-    animation: pulse-border 3s infinite;
-    border: 2px solid #4581E9;
-    cursor: pointer;
-}
-
-
-.leftblock {
-    width: 29%;
-    height: 200px;
-
-    border-radius: 25px;
-    border-top-left-radius: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-}
-
-.centerblock {
-    width: 32%;
-    height: 230px;
-
-    border-radius: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    margin-left: 10px;
-    margin-right: 10px;
-}
-
-.rightblock {
-    width: 29%;
-    height: 200px;
-
-    border-radius: 25px;
-    border-top-right-radius: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-}
-
-
-.text {
-    margin-top: 10px;
-    font-weight: 800;
-    color: black;
-    text-align: center;
     font-size: 14px;
-    width: 80px;
+    color: #7D8695;
 }
 
-.section {
+.number {
+    font-size: 22px;
+    color: white;
+    font-weight: 500;
+}
+
+.subscriptionsFather {
     width: 100%;
-    height: 100px;
-    margin-top: 30px;
+    height: auto;
     display: flex;
-    justify-content: space-between;
-}
-
-.block {
-    width: 48%;
-    height: 115px;
-    border-radius: 15px;
-    border: 2px solid #4581E9;
-    display: flex; 
-    align-items: center;
-    padding: 5px;
-    font-weight: bold;
-    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
     flex-direction: column;
-    cursor: pointer;
+    justify-content: center;
+    align-items: center;
 }
 
-
-.ai {
-    margin-right: 6px;
-    width: 70px;
+.subscriptions {
+    width: 90%;
+    border-radius: 16px;
+    /* Полупрозрачный красный (50% прозрачности) */
+    background-color: rgba(108, 106, 106, 0.2);
+    color: white;
+    /* Размытие фона «за» блоком */
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
 }
 
-.referals {
-    margin-top: 5px;
-    margin-bottom: -5px;
+.subblock {
+    width: 90%;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    position: relative;
+    border-bottom: 2px dotted rgb(53, 53, 53);
 }
 
-.aionly {
-    margin-right: 6px;
-    width: 85px; 
-    margin-top: -4px;
-    margin-bottom: -5px;
+.image {
+    width: 49px;
 }
 
-.aitext {
-    font-size: 13px;
+.subname {
+    font-size: 16px;
+    font-weight: 500;
+    margin-left: 15px;
+}
+
+.arrow {
+    position: absolute;
+    right: 0;
+}
+
+.buy {
+    width: 90%;
+    background-color: #2473FF;
+    height: 56px;
+    margin-top: 30px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     text-align: center;
-    width: 120px;
-    margin-top: 0px;
+    font-size: 16px;
+    font-weight: 500;
+    color: white;
 }
 
-.ainew {
-    margin-top: 6px;
-    margin-right: 6px;
-    width: 70px;
-}
-
-
-
+.avatarPlaceholder {
+    width: 49px;
+    height: 49px;
+    border-radius: 50%;
+    background-color: #ccc; /* или ваш цвет */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px; /* побольше, чтобы буква была крупной */
+    color: #fff; /* цвет текста */
+    /* Доп. стили, например тень, рамка и т.д. */
+    background-color: #2473FF;
+    border-radius: 50%;
+    width: 64px;
+    height: 64px;
+    margin-right: 15px;
+  }

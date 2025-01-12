@@ -4,9 +4,9 @@
   "time": "Time left",
   "requests": "requests",
   "only_ai": "Only AI",
-  "ai_5_hours": "AI + 5 assistant requests",
-  "ai_14_hours": "AI + 14 assistant requests",
-  "ai_30_hours": "AI + 30 requests",
+  "ai_5_hours": "Basic",
+  "ai_14_hours": "Advanced",
+  "ai_30_hours": "Expert",
   "referral": "Referrals",
   "chat_settings": "Chat settings",
   "assistant": "Assistant",
@@ -56,5 +56,6 @@
   "enter_number_ai": "Enter the number of AI requests:",
   "buy_button": "Buy",
   "enter_requests_to_buy": "Please enter the number of requests to purchase.",
-  "userIsBlocked": "You are blocked. The remaining time for unblocking is: {{time}}"
+  "userIsBlocked": "You are blocked. The remaining time for unblocking is: {{time}}",
+  "buyRequests": "Buy requests"
 }

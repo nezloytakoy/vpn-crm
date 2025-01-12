@@ -12,7 +12,7 @@ export default function RootLayout({
       <div className={`overflow-hidden`}>
         <div className="min-h-screen bg-gray-0 flex flex-col justify-between relative">
           <main>{children}</main>
-          <Navigation />
+          {/* <Navigation /> */}
         </div>
       </div>
 
