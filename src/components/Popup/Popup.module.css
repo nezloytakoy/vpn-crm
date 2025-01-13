@@ -73,7 +73,6 @@
 
 .popupContent {
   /* Фон из картинки */
-  background-image: url("https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966892%20(1)-gRpKs7XHDXukFuDqgROnhLd1cKrUe0.png");
   background-size: cover;
   /* растянуть с сохранением пропорций */
   background-position: center;
