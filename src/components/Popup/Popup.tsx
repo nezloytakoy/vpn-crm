@@ -57,11 +57,18 @@ const Popup: React.FC<PopupProps> = ({ isVisible, onClose, buttonText, price }) 
             <div className={`${styles.popupContent} ${isClosing ? styles.slideDown : styles.slideUp}`}>
                 <div className={styles.popupHeader}>
                     <div></div>
-                    <button onClick={handleClose} className={styles.closeButton}>✖</button>
+                    <button onClick={handleClose} className={styles.closeButton}>
+                        <Image
+                            src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Vector-lIv0NC8vTEVfzZtyOG0NVuGPkF0NIQ.svg"
+                            alt="Close icon"
+                            width={10}
+                            height={10}
+                        />
+                    </button>
                 </div>
                 <div className={styles.logobox}>
                     <Image
-                        src="https://92eaarerohohicw5.public.blob.vercel-storage.com/956159779865Working_with_Cobot-jZzjxI7Cpa193VZv046P7xCPZMqbHX.gif"
+                        src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966877%20(3)-laM1MsfiUoR9emGLPabsxU8Xd2mmHG.svg"
                         alt="avatar"
                         width={200}
                         height={200}
@@ -69,12 +76,12 @@ const Popup: React.FC<PopupProps> = ({ isVisible, onClose, buttonText, price }) 
                 </div>
                 <p className={styles.poptitle}>{`${buttonText}`}</p>
                 <p className={styles.poptext}>Lorem ipsum dolor sit amet, consectetur adipiscing elit...</p>
-                
+
                 {/* Условный рендеринг для отображения цены или многоточий */}
                 <button className={styles.confirmButton} onClick={handleClose}>
                     <Link href={`/payment-methods?price=${price !== undefined ? price : '...'}&tariff=${encodeURIComponent(buttonText)}`}>
                         {`Оплатить - ${price !== undefined ? `${price}$` : '...'}`}
-                    </Link> 
+                    </Link>
                 </button>
             </div>
         </div>
