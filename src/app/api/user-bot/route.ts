@@ -554,7 +554,7 @@ bot.command('my_profile', async (ctx) => {
           [
             {
               text: getTranslation(languageCode, 'webapp_button'),
-              web_app: { url: 'https://crm-vpn.vercel.app/user-profile' },
+              web_app: { url: 'https://crm-vpn-qq6j.vercel.app/user-profile' },
             },
           ],
         ],
