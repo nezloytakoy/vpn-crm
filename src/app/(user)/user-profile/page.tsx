@@ -142,7 +142,7 @@ function ProfilePage() {
                             {t("greeting") || "Greetings"},{" "}
                         </h1>
                         <h2 className={styles.nickname}>
-                            @{telegramUsername || "unknown"}
+                            {telegramUsername || "unknown"}
                         </h2>
                     </div>
                 </div>
