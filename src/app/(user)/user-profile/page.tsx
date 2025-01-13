@@ -13,7 +13,7 @@ import { useProfile } from "./useProfile";
 function ProfilePage() {
     const { t } = useTranslation();
 
-    // Берём данные о пользователе из вашего хука
+    // Данные о пользователе из вашего хука useProfile
     const {
         telegramUsername,
         assistantRequests,
@@ -29,12 +29,10 @@ function ProfilePage() {
         const trimmed = name.trim();
         if (trimmed.length === 0) return "?";
 
-        // Если первый символ '@', берём следующий (если он есть)
         let firstChar = trimmed[0];
         if (firstChar === '@' && trimmed.length > 1) {
             firstChar = trimmed[1];
         }
-
         return firstChar.toUpperCase();
     }
 
@@ -67,7 +65,6 @@ function ProfilePage() {
                         setAvatarUrl(null);
                         return;
                     }
-                    // Иначе какая-то другая ошибка
                     console.log("[avatarEffect] JSON неизвестного вида => fallback");
                     setAvatarUrl(null);
                     return;
@@ -88,6 +85,11 @@ function ProfilePage() {
     // ---------------------------
     const [tariffs, setTariffs] = useState<Record<string, TariffInfo>>({});
     const [isPopupVisible, setPopupVisible] = useState(false);
+
+    // Хранение «идентификатора» попапа:
+    const [popupId, setPopupId] = useState<string>("");
+
+    // Также храним, какую кнопку нажали (название тарифа, цену и т.д.)
     const [buttonText, setButtonText] = useState("");
     const [price, setPrice] = useState<number>(0);
 
@@ -107,19 +109,32 @@ function ProfilePage() {
         loadTariffs();
     }, [t]);
 
+    /**
+     * Функция, которую вызываем при клике на любую из кнопок.
+     * @param tariffKey ключ тарифа: "FIRST", "SECOND", "THIRD" (или какой-то другой).
+     */
     const handleButtonClick = (tariffKey: string) => {
+        // Сохраняем идентификатор (номер) в стейт:
+        setPopupId(tariffKey);
+
         const tariff = tariffs[tariffKey];
         if (!tariff) {
             console.warn("[ProfilePage] Тариф не найден:", tariffKey);
             return;
         }
+
+        // Сохраняем данные тарифа в стейтах
         setButtonText(`${tariff.displayName} - ${tariff.price}$`);
         setPrice(tariff.price);
+
+        // Показываем попап
         setPopupVisible(true);
+
         console.log("[ProfilePage] handleButtonClick =", tariff.displayName);
         sendLogToTelegram(`[ProfilePage] Button clicked: ${tariff.displayName}`);
     };
 
+    // Закрытие попапа
     const handleClosePopup = () => {
         setPopupVisible(false);
         console.log("[ProfilePage] Popup closed");
@@ -170,7 +185,7 @@ function ProfilePage() {
             {/* Блок подписок */}
             <div className={styles.subscriptionsFather}>
                 <div className={styles.subscriptions}>
-                    {/* Basic: ai_5_hours */}
+                    {/* Кнопка 1 (Basic) */}
                     <div className={styles.subblock} onClick={() => handleButtonClick("FIRST")}>
                         <Image
                             src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966877%20(2)-Y4tCCbTbCklpT2jlw16FoMNgDctxlE.svg"
@@ -189,7 +204,7 @@ function ProfilePage() {
                         />
                     </div>
 
-                    {/* Advanced: ai_14_hours */}
+                    {/* Кнопка 2 (Advanced) */}
                     <div className={styles.subblock} onClick={() => handleButtonClick("SECOND")}>
                         <Image
                             src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966878-RXUjkJgLVbrfmulFU8urm25oPEmQNI.svg"
@@ -208,7 +223,7 @@ function ProfilePage() {
                         />
                     </div>
 
-                    {/* Expert: ai_30_hours */}
+                    {/* Кнопка 3 (Expert) */}
                     <div
                         className={styles.subblock}
                         style={{ borderBottom: "none" }}
@@ -245,6 +260,7 @@ function ProfilePage() {
                     onClose={handleClosePopup}
                     buttonText={buttonText}
                     price={price}
+                    popupId={popupId} // <-- вот тут передаём «идентификатор» попапа
                 />
             )}
         </div>

@@ -6,8 +6,9 @@ import Link from 'next/link';
 interface PopupProps {
     isVisible: boolean;
     onClose: () => void;
-    buttonText: string;  // Название тарифа
-    price: number | undefined; // Цена может быть undefined
+    buttonText: string;            // Название тарифа
+    price: number | undefined;     // Цена может быть undefined
+    popupId?: string;              // <-- Новый проп: идентификатор (напр. 'FIRST', 'SECOND' и т.п.)
 }
 
 const sendLogToTelegram = async (message: string) => {
@@ -23,9 +24,7 @@ const sendLogToTelegram = async (message: string) => {
     try {
         await fetch(url, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
         });
     } catch (error) {
@@ -33,14 +32,29 @@ const sendLogToTelegram = async (message: string) => {
     }
 };
 
-const Popup: React.FC<PopupProps> = ({ isVisible, onClose, buttonText, price }) => {
+const Popup: React.FC<PopupProps> = ({ isVisible, onClose, buttonText, price, popupId }) => {
     const [isClosing, setIsClosing] = useState(false);
 
     // Логирование пропсов
     useEffect(() => {
-        console.log(`Popup opened with buttonText: ${buttonText}, price: ${price}`);
-        sendLogToTelegram(`Popup opened with buttonText: ${buttonText}, price: ${price}`);
-    }, [buttonText, price]);
+        console.log(`Popup opened with buttonText: ${buttonText}, price: ${price}, popupId: ${popupId}`);
+        sendLogToTelegram(`Popup opened with buttonText: ${buttonText}, price: ${price}, popupId: ${popupId}`);
+    }, [buttonText, price, popupId]);
+
+    // Сопоставляем popupId => картинка
+    // (Можно хранить эти URL где угодно, хоть в JSON)
+    const imageMap: Record<string, string> = {
+        FIRST: 'https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966877%20(4)-k6An5IyamLjV9qNxxE7P2h9CdTZVFU.svg',
+        SECOND: 'https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966877%20(5)-CBktgWUzR0jtleVrGKm8cPRQrZFP6P.svg',
+        THIRD: 'https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966877%20(6)-W4vFsOcpm4g4PQ1NLaMXIbZrAJOHVm.svg',
+        // Можете добавить ещё варианты
+    };
+
+    // Если popupId нет или не совпадает ни с одним из ключей,
+    // используем картинку «по умолчанию»
+    const chosenImageUrl = popupId && imageMap[popupId]
+        ? imageMap[popupId]
+        : 'https://example.com/defaultImage.jpg';
 
     const handleClose = () => {
         setIsClosing(true);
@@ -66,20 +80,25 @@ const Popup: React.FC<PopupProps> = ({ isVisible, onClose, buttonText, price }) 
                         />
                     </button>
                 </div>
+
+                {/* Контейнер для картинки */}
                 <div className={styles.logobox}>
                     <Image
-                        src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966877%20(3)-laM1MsfiUoR9emGLPabsxU8Xd2mmHG.svg"
-                        alt="avatar"
+                        src={chosenImageUrl}
+                        alt="popup illustration"
                         width={200}
                         height={200}
                     />
                 </div>
-                <p className={styles.poptitle}>{`${buttonText}`}</p>
+
+                <p className={styles.poptitle}>{buttonText}</p>
                 <p className={styles.poptext}>Lorem ipsum dolor sit amet, consectetur adipiscing elit...</p>
 
                 {/* Условный рендеринг для отображения цены или многоточий */}
                 <button className={styles.confirmButton} onClick={handleClose}>
-                    <Link href={`/payment-methods?price=${price !== undefined ? price : '...'}&tariff=${encodeURIComponent(buttonText)}`}>
+                    <Link
+                        href={`/payment-methods?price=${price !== undefined ? price : '...'}&tariff=${encodeURIComponent(buttonText)}`}
+                    >
                         {`Оплатить - ${price !== undefined ? `${price}$` : '...'}`}
                     </Link>
                 </button>
