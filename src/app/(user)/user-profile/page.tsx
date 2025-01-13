@@ -160,7 +160,7 @@ function ProfilePage() {
             {/* Блок c "25 hours / X requests" */}
             <div className={styles.requests}>
                 <h3 className={styles.time}>
-                    25 hours
+                    25 {t("hours")}
                 </h3>
                 <h2 className={styles.number}>
                     {(assistantRequests ?? 0)} {t("requests") || "requests"}
@@ -170,7 +170,7 @@ function ProfilePage() {
             {/* Блок подписок */}
             <div className={styles.subscriptionsFather}>
                 <div className={styles.subscriptions}>
-                    {/* Basic */}
+                    {/* Basic: ai_5_hours */}
                     <div className={styles.subblock} onClick={() => handleButtonClick("FIRST")}>
                         <Image
                             src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966877%20(2)-Y4tCCbTbCklpT2jlw16FoMNgDctxlE.svg"
@@ -179,7 +179,7 @@ function ProfilePage() {
                             height={49}
                             className={styles.image}
                         />
-                        <p className={styles.subname}>Basic</p>
+                        <p className={styles.subname}>{t("ai_5_hours")}</p>
                         <Image
                             src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Hero%20Button%20Icon%20(1)-fI1JQdwAOAvfII9IY4KXkvN4lUMfIS.svg"
                             alt="arrow"
@@ -189,7 +189,7 @@ function ProfilePage() {
                         />
                     </div>
 
-                    {/* Advanced */}
+                    {/* Advanced: ai_14_hours */}
                     <div className={styles.subblock} onClick={() => handleButtonClick("SECOND")}>
                         <Image
                             src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966878-RXUjkJgLVbrfmulFU8urm25oPEmQNI.svg"
@@ -198,7 +198,7 @@ function ProfilePage() {
                             height={49}
                             className={styles.image}
                         />
-                        <p className={styles.subname}>Advanced</p>
+                        <p className={styles.subname}>{t("ai_14_hours")}</p>
                         <Image
                             src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Hero%20Button%20Icon%20(1)-fI1JQdwAOAvfII9IY4KXkvN4lUMfIS.svg"
                             alt="arrow"
@@ -208,7 +208,7 @@ function ProfilePage() {
                         />
                     </div>
 
-                    {/* Expert */}
+                    {/* Expert: ai_30_hours */}
                     <div
                         className={styles.subblock}
                         style={{ borderBottom: "none" }}
@@ -221,7 +221,7 @@ function ProfilePage() {
                             height={49}
                             className={styles.image}
                         />
-                        <p className={styles.subname}>Expert</p>
+                        <p className={styles.subname}>{t("ai_30_hours")}</p>
                         <Image
                             src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Hero%20Button%20Icon%20(1)-fI1JQdwAOAvfII9IY4KXkvN4lUMfIS.svg"
                             alt="arrow"
