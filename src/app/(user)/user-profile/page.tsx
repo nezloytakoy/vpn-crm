@@ -25,8 +25,17 @@ function ProfilePage() {
 
     // Функция, которая вернёт первую букву ника (или «?» при отсутствии)
     function getInitialLetter(name: string | null): string {
-        if (!name || name.trim().length === 0) return "?";
-        return name.trim().charAt(0).toUpperCase();
+        if (!name) return "?";
+        const trimmed = name.trim();
+        if (trimmed.length === 0) return "?";
+
+        // Если первый символ '@', берём следующий (если он есть)
+        let firstChar = trimmed[0];
+        if (firstChar === '@' && trimmed.length > 1) {
+            firstChar = trimmed[1];
+        }
+
+        return firstChar.toUpperCase();
     }
 
     // Загружаем потенциальную аватарку
