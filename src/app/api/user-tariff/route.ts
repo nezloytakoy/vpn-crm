@@ -1,11 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
-// Vercel может кэшировать, если нужно:
 export const revalidate = 1;
 
 const prisma = new PrismaClient();
-
 
 export async function GET(request: NextRequest) {
     try {
@@ -16,33 +14,37 @@ export async function GET(request: NextRequest) {
                 { error: "Missing 'userId' query parameter" },
                 {
                     status: 400,
-                    headers: {
-                        "Access-Control-Allow-Origin": "*",
-                    },
+                    headers: { "Access-Control-Allow-Origin": "*" },
                 }
             );
         }
 
-        // Преобразуем userId в BigInt или Number (зависит от того, как вы храните)
-        const userId = BigInt(userIdStr);
+        // Если userId в базе 100% умещается в 53-битный диапазон, можно parseInt:
+        const userIdNum = parseInt(userIdStr, 10);
+        if (Number.isNaN(userIdNum)) {
+            return NextResponse.json(
+                { error: "Invalid userId (not a number)" },
+                { status: 400 }
+            );
+        }
 
-        // Находим последнюю запись (ORDER BY createdAt DESC)
-        // где expirationDate > now() => тариф ещё не истёк
         const now = new Date();
-        const activeTariff = await prisma.userTariff.findFirst({
+
+        // Ищем ВСЕ активные тарифы, у которых expirationDate > now
+        const allActiveTariffs = await prisma.userTariff.findMany({
             where: {
-                userId: userId,
+                userId: BigInt(userIdNum), // или userId: userIdNum, если в модели userId = Int
                 expirationDate: {
-                    gt: now, // время не вышло => тариф ещё активен
+                    gt: now,
                 },
             },
+            // Можно сразу отсортировать, чтобы первый был с наибольшим expirationDate
             orderBy: {
-                createdAt: "desc", // «самая свежая» запись
+                expirationDate: "desc",
             },
         });
 
-        if (!activeTariff) {
-            // Нет активных тарифов
+        if (allActiveTariffs.length === 0) {
             return NextResponse.json(
                 {
                     error: "No active tariff found for this user",
@@ -50,29 +52,40 @@ export async function GET(request: NextRequest) {
                 },
                 {
                     status: 404,
-                    headers: {
-                        "Access-Control-Allow-Origin": "*",
-                    }
+                    headers: { "Access-Control-Allow-Origin": "*" },
                 }
             );
         }
 
-        // Вычисляем, сколько осталось до конца тарифа (в часах)
-        const msLeft = activeTariff.expirationDate.getTime() - now.getTime();
+        // Первый элемент массива — тот, у которого expirationDate самая поздняя,
+        // значит осталось больше всего часов.
+        const bestTariff = allActiveTariffs[0];
+
+        // Считаем, сколько осталось
+        const msLeft = bestTariff.expirationDate.getTime() - now.getTime();
         const hoursLeft = Math.max(0, Math.floor(msLeft / (1000 * 60 * 60)));
+
+        // Преобразуем поля BigInt в строку (или число), чтобы избежать ошибки сериализации
+        const userIdString = typeof bestTariff.userId === "bigint"
+            ? bestTariff.userId.toString()
+            : String(bestTariff.userId);
+
+        const tariffIdString = bestTariff.tariffId
+            ? (typeof bestTariff.tariffId === "bigint"
+                ? bestTariff.tariffId.toString()
+                : String(bestTariff.tariffId))
+            : null;
 
         return NextResponse.json(
             {
-                userId: userIdStr,
-                tariffId: activeTariff.tariffId,
+                userId: userIdString,
+                tariffId: tariffIdString,
                 remainingHours: hoursLeft,
-                expirationDate: activeTariff.expirationDate,
+                expirationDate: bestTariff.expirationDate, // Date можно сериализовать (ISO)
             },
             {
                 status: 200,
-                headers: {
-                    "Access-Control-Allow-Origin": "*",
-                },
+                headers: { "Access-Control-Allow-Origin": "*" },
             }
         );
     } catch (error) {
@@ -81,9 +94,7 @@ export async function GET(request: NextRequest) {
             { error: String(error) },
             {
                 status: 500,
-                headers: {
-                    "Access-Control-Allow-Origin": "*",
-                },
+                headers: { "Access-Control-Allow-Origin": "*" },
             }
         );
     }
