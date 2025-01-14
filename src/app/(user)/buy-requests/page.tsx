@@ -187,7 +187,6 @@ function Page() {
 
   // Состояния для данных пользователя и аватара
   const [telegramId, setTelegramId] = useState<string | null>(null);
-  const [telegramUsername, setTelegramUsername] = useState<string>("Guest");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   // --- Получаем first letter из ника / имени ---
@@ -228,7 +227,7 @@ function Page() {
           const full = (firstName + " " + lastName).trim();
           displayName = full || "Guest";
         }
-        setTelegramUsername(displayName);
+
 
         // Ставим первую букву (если не будет аватара)
         setDisplayLetter(getFirstLetter(displayName));
