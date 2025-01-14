@@ -13,22 +13,20 @@ import { useProfile } from "./useProfile";
 function ProfilePage() {
     const { t } = useTranslation();
 
-    // Данные о пользователе из вашего хука useProfile
+    // Данные о пользователе
     const {
         telegramUsername,
         assistantRequests,
         telegramId,
     } = useProfile();
 
-    // Состояние для URL загруженного аватара (если есть)
+    // ---------- Состояние для АВАТАРА ----------
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-    // Функция, которая вернёт первую букву ника (или «?» при отсутствии)
     function getInitialLetter(name: string | null): string {
         if (!name) return "?";
         const trimmed = name.trim();
         if (trimmed.length === 0) return "?";
-
         let firstChar = trimmed[0];
         if (firstChar === '@' && trimmed.length > 1) {
             firstChar = trimmed[1];
@@ -36,7 +34,7 @@ function ProfilePage() {
         return firstChar.toUpperCase();
     }
 
-    // Загружаем потенциальную аватарку
+    // Загружаем аватар
     useEffect(() => {
         if (!telegramId) {
             console.log("[avatarEffect] Нет telegramId => пропускаем загрузку");
@@ -49,7 +47,7 @@ function ProfilePage() {
         console.log(`[avatarEffect] rawUrl = ${rawUrl}`);
         sendLogToTelegram(`[avatarEffect] rawUrl=${rawUrl}`);
 
-        setAvatarUrl(null); // сбрасываем на время загрузки
+        setAvatarUrl(null);
 
         fetch(rawUrl)
             .then(async (res) => {
@@ -57,7 +55,6 @@ function ProfilePage() {
                 const contentType = res.headers.get("content-type") || "";
 
                 if (contentType.includes("application/json")) {
-                    // Возможно, это JSON { error: 'no avatar' }
                     const jsonData = await res.json().catch(() => ({}));
                     if (jsonData.error === "no avatar") {
                         console.log("[avatarEffect] Сервер вернул 'no avatar' => используем букву");
@@ -70,7 +67,7 @@ function ProfilePage() {
                     return;
                 }
 
-                // Не JSON => считаем, что это бинарные данные (картинка)
+                // Иначе бинарные данные (картинка)
                 setAvatarUrl(rawUrl);
             })
             .catch((err) => {
@@ -80,20 +77,13 @@ function ProfilePage() {
             });
     }, [telegramId]);
 
-    // ---------------------------
-    // ЛОГИКА ТАРИФОВ / ПОПАПОВ
-    // ---------------------------
+    // ---------- ЛОГИКА ДЛЯ ТАРИФОВ / ПОПАПОВ ----------
     const [tariffs, setTariffs] = useState<Record<string, TariffInfo>>({});
     const [isPopupVisible, setPopupVisible] = useState(false);
-
-    // Хранение «идентификатора» попапа:
     const [popupId, setPopupId] = useState<string>("");
-
-    // Также храним, какую кнопку нажали (название тарифа, цену и т.д.)
     const [buttonText, setButtonText] = useState("");
     const [price, setPrice] = useState<number>(0);
 
-    // Загружаем тарифы
     useEffect(() => {
         async function loadTariffs() {
             try {
@@ -109,12 +99,7 @@ function ProfilePage() {
         loadTariffs();
     }, [t]);
 
-    /**
-     * Функция, которую вызываем при клике на любую из кнопок.
-     * @param tariffKey ключ тарифа: "FIRST", "SECOND", "THIRD" (или какой-то другой).
-     */
     const handleButtonClick = (tariffKey: string) => {
-        // Сохраняем идентификатор (номер) в стейт:
         setPopupId(tariffKey);
 
         const tariff = tariffs[tariffKey];
@@ -122,31 +107,56 @@ function ProfilePage() {
             console.warn("[ProfilePage] Тариф не найден:", tariffKey);
             return;
         }
-
-        // Сохраняем данные тарифа в стейтах
-        setButtonText(`${tariff.displayName} - ${tariff.price}$`);
+        setButtonText(`${tariff.displayName}`);
         setPrice(tariff.price);
-
-        // Показываем попап
         setPopupVisible(true);
 
         console.log("[ProfilePage] handleButtonClick =", tariff.displayName);
         sendLogToTelegram(`[ProfilePage] Button clicked: ${tariff.displayName}`);
     };
 
-    // Закрытие попапа
     const handleClosePopup = () => {
         setPopupVisible(false);
         console.log("[ProfilePage] Popup closed");
         sendLogToTelegram("[ProfilePage] Popup closed");
     };
 
+    // ---------- НОВАЯ ЛОГИКА: ЗАПРОС ЧАСОВ С /api/user-tariff -----------
+    const [remainingHours, setRemainingHours] = useState<number>(0);
+
+    useEffect(() => {
+        // Если telegramId — это же userId? 
+        // Если у вас логика другая, замените на нужный идентификатор
+        if (!telegramId) return;
+
+        // Допустим, userId = telegramId (если они совпадают)
+        const userId = telegramId;
+
+        const url = `/api/user-tariff?userId=${userId}`;
+        console.log(`[user-tariff] url = ${url}`);
+
+        fetch(url)
+            .then(async (res) => {
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    console.warn("[user-tariff] Нет активного тарифа или ошибка:", data.error);
+                    setRemainingHours(0);
+                    return;
+                }
+                // data.remainingHours
+                setRemainingHours(data.remainingHours ?? 0);
+            })
+            .catch((err) => {
+                console.error("[user-tariff] Ошибка при получении тарифа:", err);
+                setRemainingHours(0);
+            });
+    }, [telegramId]);
+
     return (
         <div className={styles.background}>
             {/* Шапка */}
             <div className={styles.header}>
                 <div className={styles.userinfoblock}>
-                    {/* Если есть avatarUrl => показываем картинку. Иначе — буква в кружке */}
                     {avatarUrl ? (
                         <Image
                             src={avatarUrl}
@@ -172,20 +182,19 @@ function ProfilePage() {
                 </div>
             </div>
 
-            {/* Блок c "25 hours / X requests" */}
+            {/* Блок: "X hours / Y requests" */}
             <div className={styles.requests}>
                 <h3 className={styles.time}>
-                    25 {t("hours")}
+                    {remainingHours} {t("hours")}
                 </h3>
                 <h2 className={styles.number}>
-                    {(assistantRequests ?? 0)} {t("requests") || "requests"}
+                    {(assistantRequests ?? 0)} {t("requests")}
                 </h2>
             </div>
 
             {/* Блок подписок */}
             <div className={styles.subscriptionsFather}>
                 <div className={styles.subscriptions}>
-                    {/* Кнопка 1 (Basic) */}
                     <div className={styles.subblock} onClick={() => handleButtonClick("FIRST")}>
                         <Image
                             src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966877%20(2)-Y4tCCbTbCklpT2jlw16FoMNgDctxlE.svg"
@@ -204,7 +213,6 @@ function ProfilePage() {
                         />
                     </div>
 
-                    {/* Кнопка 2 (Advanced) */}
                     <div className={styles.subblock} onClick={() => handleButtonClick("SECOND")}>
                         <Image
                             src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966878-RXUjkJgLVbrfmulFU8urm25oPEmQNI.svg"
@@ -223,7 +231,6 @@ function ProfilePage() {
                         />
                     </div>
 
-                    {/* Кнопка 3 (Expert) */}
                     <div
                         className={styles.subblock}
                         style={{ borderBottom: "none" }}
@@ -247,20 +254,18 @@ function ProfilePage() {
                     </div>
                 </div>
 
-                {/* Кнопка "Buy requests" */}
                 <Link href="/buy-requests" className={styles.buy}>
                     {t("buyRequests") || "Buy requests"}
                 </Link>
             </div>
 
-            {/* Попап, если открыт */}
             {isPopupVisible && (
                 <Popup
                     isVisible={isPopupVisible}
                     onClose={handleClosePopup}
                     buttonText={buttonText}
                     price={price}
-                    popupId={popupId} // <-- вот тут передаём «идентификатор» попапа
+                    popupId={popupId}
                 />
             )}
         </div>

@@ -33,16 +33,21 @@ export async function sendLogToTelegram(message: string) {
 /**
  * Функция маппинга тарифов по их названиям
  */
-export function mapTariffName(t: TFunction, tariffName: string, assistantRequests: number): string {
+export function mapTariffName(
+  t: TFunction, 
+  tariffName: string
+): string {
   switch (tariffName) {
-    case 'FIRST':
-    case 'SECOND':
-    case 'THIRD':
-      return t('tariff_with_count', { count: assistantRequests });
-    case 'FOURTH':
-      return t('tariff_ai_only');
+    case "FIRST":
+      return t("ai_5_hours");  // Basic
+    case "SECOND":
+      return t("ai_14_hours"); // Advanced
+    case "THIRD":
+      return t("ai_30_hours"); // Expert
+    case "FOURTH":
+      return t("tariff_ai_only");
     default:
-      return 'Unknown tariff';
+      return "Unknown tariff";
   }
 }
 
@@ -78,7 +83,7 @@ export async function fetchTariffs(t: TFunction): Promise<Record<string, TariffI
   const data: TariffResponse[] = await response.json();
 
   for (const tariff of data) {
-    const displayName = mapTariffName(t, tariff.name, tariff.assistantRequestCount || 0);
+    const displayName = mapTariffName(t, tariff.name);
     result[tariff.name] = {
       displayName,
       price: Number(tariff.price),

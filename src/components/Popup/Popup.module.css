@@ -1,3 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+
+
 .popupOverlay {
   position: fixed;
   top: 0;
@@ -11,6 +14,7 @@
   z-index: 10000;
   opacity: 0;
   animation: fade-in 0.4s ease-out forwards;
+  font-family: "Plus Jakarta Sans", sans-serif;
 }
 
 
@@ -163,13 +167,16 @@
 }
 
 .confirmButton {
-  margin-top: 20px;
+  margin-top: 50px;
   padding: 10px 20px;
-  background-color: #5e71e4;
+  background-color: #2473FF;
   border: none;
-  border-radius: 10px;
+  border-radius: 16px;
   color: white;
   cursor: pointer;
+  width: 330px;
+  height: 56px;
+  font-size: 16px;
 }
 
 
@@ -183,12 +190,40 @@
 }
 
 .poptitle {
-  font-size: 22px;
+  font-size: 24px;
   margin-bottom: 20px;
 }
 
 .poptext {
+  width: 100%;
+  text-align: center;
   text-align: justify;
   margin-left: 10px;
   margin-right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: grey;
+  margin-top: 10px;
+}
+
+.priceblock {
+  width: 100%;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  margin-top: 30px;
+}
+
+.text {
+  color: grey;
+  margin-bottom: 15px;
+}
+
+.number {
+  font-size: 40px;
+  color: white;
 }

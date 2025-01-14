@@ -58,5 +58,18 @@
   "enter_requests_to_buy": "Please enter the number of requests to purchase.",
   "userIsBlocked": "You are blocked. The remaining time for unblocking is: {{time}}",
   "buyRequests": "Buy requests",
-  "hours": "hours"
+  "hours": "hours",
+  "popup_first_1": "Text messages only",
+  "popup_first_2": "Basic assistant qualification",
+  "popup_second_1": "Text messages",
+  "popup_second_2": "Voice messages",
+  "popup_second_3": "Requests requiring qualification",
+  "popup_third_1": "Text messages",
+  "popup_third_2": "Voice messages",
+  "popup_third_3": "Video messages",
+  "popup_third_4": "Professional assistants",
+  "popup_pay": "Pay",
+  "popup_no_text": "No text for this tariff",
+  "popup_close_icon": "Close",
+  "popup_main_image_alt": "Popup illustration"
 }
