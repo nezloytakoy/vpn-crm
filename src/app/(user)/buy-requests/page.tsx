@@ -178,12 +178,16 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./requests.module.css";
 import Script from "next/script";
+import Image from 'next/image';
+import Link from "next/link";
+import { useTranslation } from 'react-i18next';
 
 function Page() {
   const router = useRouter();
 
   // Состояние для ввода количества запросов
   const [assistantRequests, setAssistantRequests] = useState("");
+  
 
   // Состояния для данных пользователя и аватара
   const [telegramId, setTelegramId] = useState<string | null>(null);
@@ -202,6 +206,7 @@ function Page() {
   }
 
   const [displayLetter, setDisplayLetter] = useState("G");
+  const { t } = useTranslation();
 
   // --- useEffect: инициализация Telegram WebApp, получаем username и telegramId ---
   useEffect(() => {
@@ -292,7 +297,18 @@ function Page() {
       <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
       <div className={styles.background}>
         <div className={styles.header}>
-          <h1 className={styles.title}>Requests store</h1>
+          <Link href="/user-profile">
+            
+
+            <Image
+              src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Hero%20Button%20Icon%20(2)-EQlN4E30eeP0ZBNXzfFY0HAoGDxK8p.svg"
+              alt="avatar"
+              width={24}
+              height={24}
+              className={styles.avatar}
+            />
+          </Link>
+          <h1 className={styles.title}>{t('requests_store')}</h1>
 
           {/* Если avatarUrl есть, показываем картинку, иначе первую букву */}
           {avatarUrl ? (
@@ -305,7 +321,7 @@ function Page() {
         </div>
         <div className={styles.content}>
           <div className={styles.assistant}>
-            <div className={styles.label}>Enter the number of assistant requests:</div>
+            <div className={styles.label}>{t('enter_number_assistant')}</div>
             <input
               className={styles.input}
               placeholder="0"
@@ -319,7 +335,7 @@ function Page() {
             />
             {/* Вместо ссылки — div-кнопка, чтобы проверить значение */}
             <div className={styles.buy} onClick={handleBuy}>
-              Buy
+            {t('buy_button')}
             </div>
           </div>
         </div>
