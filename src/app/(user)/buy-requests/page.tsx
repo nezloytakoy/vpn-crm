@@ -305,14 +305,14 @@ function Page() {
               alt="avatar"
               width={24}
               height={24}
-              className={styles.avatar}
+             
             />
           </Link>
           <h1 className={styles.title}>{t('requests_store')}</h1>
 
           {/* Если avatarUrl есть, показываем картинку, иначе первую букву */}
           {avatarUrl ? (
-            <img src={avatarUrl} alt="User avatar" className={styles.avatarImage} />
+            <img src={avatarUrl} alt="User avatar" className={styles.avatar} />
           ) : (
             <div className={styles.avatarPlaceholder}>
               {displayLetter}
