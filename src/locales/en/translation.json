@@ -30,7 +30,7 @@
   "return_profile": "Return to profile",
   "payment_methods": "Payment methods",
   "to_pay": "To pay",
-  "rubles": "Dollars",
+  "rubles": "Rubles",
   "telegram_stars": "Telegram Stars",
   "ton_coin": "TON coin",
   "usdt": "USDT",
@@ -71,5 +71,6 @@
   "popup_pay": "Pay",
   "popup_no_text": "No text for this tariff",
   "popup_close_icon": "Close",
-  "popup_main_image_alt": "Popup illustration"
+  "popup_main_image_alt": "Popup illustration",
+  "amount_to_pay": "Amount to pay"
 }

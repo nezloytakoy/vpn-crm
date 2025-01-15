@@ -30,7 +30,7 @@
   "return_profile": "Вернуться к профилю",
   "payment_methods": "Способы оплаты",
   "to_pay": "К оплате",
-  "rubles": "Доллари",
+  "rubles": "Рубли",
   "telegram_stars": "Звезды Telegram",
   "ton_coin": "TON coin",
   "usdt": "USDT",
@@ -71,5 +71,6 @@
   "popup_pay": "Оплатить",
   "popup_no_text": "Нет текста для этого тарифа",
   "popup_close_icon": "Закрыть",
-  "popup_main_image_alt": "Иллюстрация"
+  "popup_main_image_alt": "Иллюстрация",
+  "amount_to_pay": "К оплате"
 }
