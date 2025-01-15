@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import styles from "./Payment.module.css";
 import Image from "next/image";
@@ -9,13 +9,13 @@ import { useTranslation } from "react-i18next";
 
 export const dynamic = "force-dynamic";
 
-
 interface PaymentRequestBody {
   paymentMethod: string;
   priceInDollars?: number;
   tariffName?: string;
   assistantRequests?: number;
   aiRequests?: number;
+  userId?: string;   // <-- добавим поле для userId
 }
 
 function PaymentPage() {
@@ -23,29 +23,23 @@ function PaymentPage() {
   const searchParams = useSearchParams();
 
   // ---- СТЕЙТЫ ДЛЯ СТАРОЙ/НОВОЙ ЛОГИКИ ----
-  // Старая логика:
   const [price, setPrice] = useState<number>(0);
   const [tariffName, setTariffName] = useState<string>("");
 
-
-
-
-  // Новая логика:
   const [assistantRequests, setAssistantRequests] = useState<number>(0);
   const [aiRequests, setAiRequests] = useState<number>(0);
 
-  // Цены на запросы
+  // Цены на запросы (пример)
   const ASSISTANT_REQUEST_PRICE = 0.1;
   const AI_REQUEST_PRICE = 0.2;
   const totalPrice =
     assistantRequests * ASSISTANT_REQUEST_PRICE +
     aiRequests * AI_REQUEST_PRICE;
 
-  // Выбранный метод оплаты (0=Rubles, 1=Telegram stars, 2=Ton coin, 3=USDT)
   const [selectedMethod, setSelectedMethod] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // ---- ЧТЕНИЕ query (price, tariff, assistantRequests, aiRequests) ----
+  // ---- СЧИТЫВАНИЕ QUERY ----
   useEffect(() => {
     if (typeof window !== "undefined") {
       const queryPrice = searchParams.get("price");
@@ -53,43 +47,47 @@ function PaymentPage() {
       const queryAssistantRequests = searchParams.get("assistantRequests");
       const queryAiRequests = searchParams.get("aiRequests");
 
-      if (queryPrice) {
-        setPrice(Number(queryPrice));
-      }
-      if (queryTariff) {
-        setTariffName(queryTariff);
-      }
-      if (queryAssistantRequests) {
-        setAssistantRequests(Number(queryAssistantRequests));
-      }
-      if (queryAiRequests) {
-        setAiRequests(Number(queryAiRequests));
-      }
+      if (queryPrice) setPrice(Number(queryPrice));
+      if (queryTariff) setTariffName(queryTariff);
+      if (queryAssistantRequests) setAssistantRequests(Number(queryAssistantRequests));
+      if (queryAiRequests) setAiRequests(Number(queryAiRequests));
     }
   }, [searchParams]);
+
+  // ---- ЧИТАЕМ userId ИЗ Telegram.WebApp ----
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.ready();
+      const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
+      if (tgUser?.id) {
+        setUserId(tgUser.id.toString());
+      } else {
+        console.warn("No user ID found in Telegram WebApp initDataUnsafe.user");
+      }
+    }
+  }, []);
 
   // ---- СЧИТАЕМ СУММУ К ОПЛАТЕ ----
   let amountDue = 0;
   if (price > 0) {
-    // Старая логика (тариф)
-    amountDue = price;
+    amountDue = price; // старая логика
   } else if (totalPrice > 0) {
-    // Новая логика (assistantRequests + aiRequests)
-    amountDue = totalPrice;
+    amountDue = totalPrice; // новая логика
   }
 
-  // Иконки для «пустой» и «галочки»
+  // Иконки для чекбокса
   const uncheckedIcon =
     "https://92eaarerohohicw5.public.blob.vercel-storage.com/Hero%20Button%20Icon%20(3)-dJJt0wTnDpeNg11nL7qwKKMk1ob1V6.svg";
   const checkedIcon =
     "https://92eaarerohohicw5.public.blob.vercel-storage.com/Hero%20Button%20Icon%20(4)-brMprHZpy9lF1iP8cn1DO03TH10pn5.svg";
 
-  // ---- handleSelectMethod: клик по валюте ----
   const handleSelectMethod = (index: number) => {
     setSelectedMethod(index);
   };
 
-  // ---- handleContinue: логика оплаты из старого кода ----
+  // ---- handleContinue: логика ----
   const handleContinue = async () => {
     if (selectedMethod === null) {
       alert("Please select a payment method.");
@@ -98,9 +96,15 @@ function PaymentPage() {
     setIsLoading(true);
 
     try {
+      // Собираем данные
       const requestBody: PaymentRequestBody = {
         paymentMethod: String(selectedMethod),
       };
+
+      // Если есть userId от Telegram, добавим его в requestBody
+      if (userId) {
+        requestBody.userId = userId;
+      }
 
       // Старая логика
       if (amountDue === price && price > 0) {
@@ -140,7 +144,7 @@ function PaymentPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            userId: 123, // при необходимости
+            userId: userId || "???",  // <-- используем userId из Telegram
             assistantRequests,
             aiRequests,
           }),
@@ -163,7 +167,7 @@ function PaymentPage() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <div className={styles.background}>
-        {/* Шапка */}
+        {/* Header */}
         <div className={styles.header}>
           <Link href="/user-profile" className={styles.backlink}>
             <Image
@@ -175,6 +179,7 @@ function PaymentPage() {
           </Link>
           <h1 className={styles.title}>{t("payment_methods")}</h1>
         </div>
+
         <div className={styles.main}>
           {/* Сумма к оплате */}
           <div className={styles.priceblock}>
@@ -182,9 +187,9 @@ function PaymentPage() {
             <div className={styles.price}>${amountDue.toFixed(2)}</div>
           </div>
 
-          {/* Список методов */}
+          {/* Методы оплаты */}
           <div className={styles.father}>
-            {/* 1) Rubles */}
+            {/* Rubles */}
             <div
               className={`${styles.casebutton} ${selectedMethod === 0 ? styles.selectedMethod : ""
                 }`}
@@ -208,7 +213,7 @@ function PaymentPage() {
               />
             </div>
 
-            {/* 2) Telegram stars */}
+            {/* Telegram stars */}
             <div
               className={`${styles.casebutton} ${selectedMethod === 1 ? styles.selectedMethod : ""
                 }`}
@@ -232,7 +237,7 @@ function PaymentPage() {
               />
             </div>
 
-            {/* 3) Ton coin */}
+            {/* Ton coin */}
             <div
               className={`${styles.casebutton} ${selectedMethod === 2 ? styles.selectedMethod : ""
                 }`}
@@ -256,7 +261,7 @@ function PaymentPage() {
               />
             </div>
 
-            {/* 4) USDT */}
+            {/* USDT */}
             <div
               className={`${styles.casebutton} ${selectedMethod === 3 ? styles.selectedMethod : ""
                 }`}
@@ -283,8 +288,8 @@ function PaymentPage() {
             {/* Кнопка Continue */}
             <div
               className={`${styles.continue} ${selectedMethod !== null && !isLoading
-                ? styles.activeContinue
-                : styles.disabledContinue
+                  ? styles.activeContinue
+                  : styles.disabledContinue
                 }`}
               onClick={handleContinue}
             >
@@ -298,4 +303,3 @@ function PaymentPage() {
 }
 
 export default PaymentPage;
-
