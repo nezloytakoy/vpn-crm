@@ -52,6 +52,7 @@ model OpenAi {
 
 model Assistant {
   telegramId             BigInt                     @id @unique
+  language               String?
   role                   String                     @default("assistant")
   isWorking              Boolean                    @default(false)
   startedAt              DateTime?
@@ -94,6 +95,7 @@ model AssistantSession {
 model User {
   username               String?
   referralCount          Int                @default(0)
+  language               String?
   hasUpdatedSubscription Boolean            @default(false)
   totalRequests          Int                @default(0)
   aiRequests             Int                @default(0)

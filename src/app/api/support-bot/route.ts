@@ -1093,53 +1093,6 @@ bot.callbackQuery('end_work_cancel', async (ctx) => {
   }
 });
 
-
-
-// bot.command('menu', async (ctx) => {
-//   const lang = detectUserLanguage(ctx);
-
-//   try {
-
-//     if (!ctx.from?.id) {
-//       await ctx.reply(getTranslation(lang, 'end_dialog_error'));
-//       return;
-//     }
-
-//     const telegramId = BigInt(ctx.from.id);
-
-
-//     const assistant = await prisma.assistant.findUnique({
-//       where: { telegramId: telegramId },
-//     });
-
-//     if (!assistant) {
-//       await ctx.reply(getTranslation(lang, 'end_dialog_error'));
-//       return;
-//     }
-
-
-//     await prisma.assistant.update({
-//       where: { telegramId: telegramId },
-//       data: { lastActiveAt: new Date() },
-//     });
-
-
-//     await ctx.reply(getTranslation(lang, 'menu_message'), {
-//       reply_markup: {
-//         inline_keyboard: [
-//           [{ text: getTranslation(lang, 'start_work'), callback_data: 'start_work' }],
-//           [{ text: getTranslation(lang, 'my_coins'), callback_data: 'my_coins' }],
-//           [{ text: getTranslation(lang, 'my_activity'), callback_data: 'my_activity' }],
-//         ],
-//       },
-//     });
-//   } catch (error) {
-//     const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-//     console.error('Error showing menu:', errorMessage);
-//   }
-// });
-
-
 bot.command('online', async (ctx) => {
   const lang = detectUserLanguage(ctx);
 
@@ -1163,10 +1116,13 @@ bot.command('online', async (ctx) => {
       return;
     }
 
-    // Установить статус ассистента как работающего
+    // Устанавливаем статус ассистента как работающего + сохраняем текущий язык
     await prisma.assistant.update({
-      where: { telegramId: telegramId },
-      data: { isWorking: true },
+      where: { telegramId },
+      data: {
+        isWorking: true,
+        language: lang,       // <-- Сохраняем текущий язык ассистента
+      },
     });
 
     // Создать сессию работы ассистента
@@ -1186,10 +1142,13 @@ bot.command('online', async (ctx) => {
       // Переводим запрос в статус IN_PROGRESS и назначаем ассистента
       const updatedRequest = await prisma.assistantRequest.update({
         where: { id: pendingRequest.id },
-        data: { assistantId: telegramId, status: 'IN_PROGRESS' },
+        data: {
+          assistantId: telegramId,
+          status: 'IN_PROGRESS',
+        },
       });
 
-      // Формируем текст сообщения в зависимости от наличия и типа темы
+      // Формируем текст сообщения, в зависимости от типа темы
       const messageText = updatedRequest?.subject
         ? updatedRequest.subject.startsWith('http')
           ? `${getTranslation(lang, 'assistantRequestMessage')}`
@@ -1197,14 +1156,14 @@ bot.command('online', async (ctx) => {
         : `${getTranslation(lang, 'assistantRequestMessage')}\n\n${getTranslation(lang, 'topic')}: ${getTranslation(lang, 'no_subject')}`;
 
       if (updatedRequest?.subject?.startsWith('http')) {
-        // Если subject является ссылкой (например, на картинку или другое медиа)
+        // Если subject — ссылка (например, на картинку)
         await sendTelegramMediaToAssistant(
           telegramId.toString(),
           updatedRequest.subject,
           ''
         );
 
-        // После отправки медиа отправляем сообщение с кнопками принятия/отклонения
+        // После отправки медиа отправляем сообщение с кнопками
         await sendTelegramMessageWithButtons(
           telegramId.toString(),
           getTranslation(lang, 'assistantRequestMessage'),
@@ -1227,12 +1186,14 @@ bot.command('online', async (ctx) => {
       return;
     }
 
+    // Если нет PENDING-запросов
     await ctx.reply(getTranslation(lang, 'work_started'));
   } catch (error) {
     console.error('Error in /online command:', error);
     await ctx.reply(getTranslation(detectUserLanguage(ctx), 'server_error'));
   }
 });
+
 
 bot.command('coins', async (ctx) => {
   const lang = detectUserLanguage(ctx);

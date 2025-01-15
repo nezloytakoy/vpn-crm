@@ -406,6 +406,7 @@ bot.use(async (ctx, next) => {
 
 bot.command('start', async (ctx) => {
   try {
+    // Определяем язык по language_code пользователя или ставим "en"
     const languageCode = ctx.from?.language_code || 'en';
 
     if (!ctx.from?.id) {
@@ -414,9 +415,7 @@ bot.command('start', async (ctx) => {
     }
 
     const telegramId = BigInt(ctx.from.id);
-    // userId (числовой) для методов ctx.api.* 
-    // (в grammY это обычный number, а в Prisma вы часто храните BigInt)
-    const userId = ctx.from.id;
+    const userId = ctx.from.id; // для getUserProfilePhotos
     const username = ctx.from.username || null;
 
     // Проверяем, нет ли реферального кода "ref_..."
@@ -449,7 +448,7 @@ bot.command('start', async (ctx) => {
       referrerId = referral.userId;
     }
 
-    // Определяем следующий orderNumber (например, если у вас есть поле orderNumber)
+    // Определяем следующий orderNumber (если используете подобную логику)
     const lastUser = await prisma.user.findFirst({
       orderBy: { orderNumber: 'desc' },
       select: { orderNumber: true },
@@ -458,14 +457,18 @@ bot.command('start', async (ctx) => {
 
     console.log(`Создаем или обновляем пользователя с Telegram ID: ${telegramId}`);
 
-    // upsert пользователя (создаём или обновляем)
+    // upsert пользователя: обновляем язык (language) и username
     const newUser = await prisma.user.upsert({
       where: { telegramId },
-      update: { username },
+      update: {
+        username,
+        language: languageCode, // <-- Сохраняем язык пользователя
+      },
       create: {
         telegramId,
         username,
         orderNumber: nextOrderNumber,
+        language: languageCode, // <-- При создании тоже указываем язык
       },
     });
 
@@ -507,7 +510,7 @@ bot.command('start', async (ctx) => {
     const userPhotos = await ctx.api.getUserProfilePhotos(userId, { offset: 0, limit: 1 });
 
     if (userPhotos.photos && userPhotos.photos.length > 0) {
-      // userPhotos.photos[0] — это массив PhotoSize[] для первой "группы"
+      // userPhotos.photos[0] — это массив PhotoSize[] для первой «группы»
       const photoArray = userPhotos.photos[0];
       // Берём самую большую (последний элемент массива)
       const largestPhoto = photoArray[photoArray.length - 1];
@@ -516,8 +519,6 @@ bot.command('start', async (ctx) => {
       const fileObj = await ctx.api.getFile(largestPhoto.file_id);
 
       // Формируем URL для скачивания
-      // process.env.TELEGRAM_USER_BOT_TOKEN — ваш user-бот, 
-      // убедитесь, что это тот же токен, который вы используете
       const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileObj.file_path}`;
 
       // Обновляем поле avatarUrl в таблице User
@@ -757,71 +758,6 @@ bot.on("message:successful_payment", async (ctx) => {
   }
 });
 
-
-
-
-// bot.command('problem', async (ctx: Context) => {
-//   try {
-//     if (!ctx.from?.id) {
-//       await ctx.reply('Ошибка: не удалось получить ваш идентификатор Telegram.');
-//       return;
-//     }
-
-//     const telegramId = BigInt(ctx.from.id);
-
-
-//     const lastRequest = await prisma.assistantRequest.findFirst({
-//       where: {
-//         userId: telegramId,
-//       },
-//       orderBy: {
-//         createdAt: 'desc',
-//       },
-//     });
-
-//     if (!lastRequest) {
-//       await ctx.reply('⚠️ У вас нет запросов.');
-//       return;
-//     }
-
-
-//     const existingComplaint = await prisma.complaint.findUnique({
-//       where: { id: lastRequest.id },
-//     });
-
-//     if (existingComplaint) {
-//       await ctx.reply('⚠️ Вы уже подали жалобу по этому запросу.');
-//       return;
-//     }
-
-//     const assistantId = lastRequest.assistantId ?? BigInt(0);
-
-
-//     await prisma.complaint.create({
-//       data: {
-//         id: lastRequest.id,
-//         userId: telegramId,
-//         assistantId: assistantId,
-//         text: '',
-//         status: 'PENDING',
-//       },
-//     });
-
-
-//     await prisma.user.update({
-//       where: { telegramId },
-//       data: { isWaitingForComplaint: true },
-//     });
-
-
-//     await ctx.reply('Опишите свою жалобу. После этого вы сможете загрузить скриншоты.');
-
-//   } catch (error) {
-//     console.error('Ошибка при создании жалобы:', error);
-//     const languageCode = ctx.from?.language_code || 'en';
-//     await ctx.reply(getTranslation(languageCode, 'payment_error'));
-//   }
-// });
 
 bot.on('callback_query', async (ctx) => {
   try {
