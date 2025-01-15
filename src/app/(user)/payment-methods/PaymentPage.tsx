@@ -6,6 +6,7 @@ import styles from "./Payment.module.css";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
+import { sendLogToTelegram } from "./utils";
 
 export const dynamic = "force-dynamic";
 
@@ -89,14 +90,21 @@ function PaymentPage() {
 
   // ---- handleContinue: логика ----
   const handleContinue = async () => {
+    // Лог: начало функции
+    await sendLogToTelegram("[handleContinue] called");
+
     if (selectedMethod === null) {
+      await sendLogToTelegram("[handleContinue] No payment method selected.");
       alert("Please select a payment method.");
       return;
     }
+
     setIsLoading(true);
 
     try {
-      // Собираем данные
+      // Лог: перед сбором requestBody
+      await sendLogToTelegram(`[handleContinue] Building requestBody...`);
+
       const requestBody: PaymentRequestBody = {
         paymentMethod: String(selectedMethod),
       };
@@ -104,25 +112,44 @@ function PaymentPage() {
       // Если есть userId от Telegram, добавим его в requestBody
       if (userId) {
         requestBody.userId = userId;
+        await sendLogToTelegram(`[handleContinue] userId from telegram = ${userId}`);
+      } else {
+        await sendLogToTelegram("[handleContinue] userId is missing!");
       }
+
+      // Лог: текущая сумма (amountDue)
+      await sendLogToTelegram(`[handleContinue] amountDue = ${amountDue}`);
 
       // Старая логика
       if (amountDue === price && price > 0) {
         requestBody.priceInDollars = price;
         requestBody.tariffName = tariffName;
+        await sendLogToTelegram(
+          `[handleContinue] Old logic => priceInDollars = ${price}, tariffName = ${tariffName}`
+        );
       }
       // Новая логика
       else if (amountDue === totalPrice && totalPrice > 0) {
         requestBody.priceInDollars = totalPrice;
         requestBody.assistantRequests = assistantRequests;
         requestBody.aiRequests = aiRequests;
+        await sendLogToTelegram(
+          `[handleContinue] New logic => priceInDollars = ${totalPrice}, assistantRequests = ${assistantRequests}, aiRequests = ${aiRequests}`
+        );
       } else {
+        await sendLogToTelegram("[handleContinue] No price or requests specified => aborting");
         alert("No price or requests specified.");
         setIsLoading(false);
         return;
       }
 
       // Создаём invoice
+      await sendLogToTelegram(
+        `[handleContinue] Sending invoice request to /api/telegram-invoice with body = ${JSON.stringify(
+          requestBody
+        )}`
+      );
+
       const response = await fetch("/api/telegram-invoice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -130,39 +157,69 @@ function PaymentPage() {
       });
 
       const data = await response.json();
+      await sendLogToTelegram(
+        `[handleContinue] /api/telegram-invoice response status = ${response.status}, data = ${JSON.stringify(
+          data
+        )}`
+      );
+
       if (!response.ok) {
+        await sendLogToTelegram(`[handleContinue] Invoice creation failed => ${data.message}`);
         alert(data.message || "Error creating invoice.");
         return;
       }
 
       // Открываем счёт
+      await sendLogToTelegram(`[handleContinue] Invoice link = ${data.invoiceLink}, opening in new tab...`);
       window.open(data.invoiceLink, "_blank");
 
       // Если есть extra requests
-      if (assistantRequests > 0) {
+      if (assistantRequests > 0 || aiRequests > 0) {
+        await sendLogToTelegram(
+          `[handleContinue] Need to add extra requests => assistant = ${assistantRequests}, ai = ${aiRequests}`
+        );
+
+        const extraBody = {
+          userId: userId || "???",
+          assistantRequests,
+          aiRequests,
+        };
+        await sendLogToTelegram(`[handleContinue] Sending /api/extra-requests with body = ${JSON.stringify(extraBody)}`);
+
         const extraRes = await fetch("/api/extra-requests", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: userId || "???",  // <-- используем userId из Telegram
-            assistantRequests,
-            aiRequests,
-          }),
+          body: JSON.stringify(extraBody),
         });
+
         const extraData = await extraRes.json();
+        await sendLogToTelegram(
+          `[handleContinue] /api/extra-requests response = status ${extraRes.status}, data = ${JSON.stringify(
+            extraData
+          )}`
+        );
+
         if (!extraRes.ok) {
+          await sendLogToTelegram(`[handleContinue] /api/extra-requests error => ${extraData.message}`);
           alert(extraData.message || "Error adding extra requests.");
         } else {
+          await sendLogToTelegram(`[handleContinue] extra requests added successfully!`);
           alert("Extra requests added successfully.");
         }
+      } else {
+        await sendLogToTelegram("[handleContinue] assistantRequests and aiRequests are 0 => no extra requests");
       }
     } catch (error) {
       console.error("Error during payment:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      await sendLogToTelegram(`[handleContinue] Payment error => ${errorMessage}`);
       alert(String(error));
     } finally {
       setIsLoading(false);
+      await sendLogToTelegram("[handleContinue] finished (finally)");
     }
   };
+
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
@@ -288,8 +345,8 @@ function PaymentPage() {
             {/* Кнопка Continue */}
             <div
               className={`${styles.continue} ${selectedMethod !== null && !isLoading
-                  ? styles.activeContinue
-                  : styles.disabledContinue
+                ? styles.activeContinue
+                : styles.disabledContinue
                 }`}
               onClick={handleContinue}
             >
