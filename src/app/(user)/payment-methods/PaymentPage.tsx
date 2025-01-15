@@ -139,7 +139,7 @@ function PaymentPage() {
       window.open(data.invoiceLink, "_blank");
 
       // Если есть extra requests
-      if (assistantRequests > 0 || aiRequests > 0) {
+      if (assistantRequests > 0) {
         const extraRes = await fetch("/api/extra-requests", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
