@@ -25,16 +25,17 @@ export async function POST(request: Request) {
     );
 
     const ASSISTANT_REQUEST_PRICE = 0.1; // Price per assistant request in dollars
-    const AI_REQUEST_PRICE = 0.2; // Price per AI request in dollars
+    const AI_REQUEST_PRICE = 0.2;        // Price per AI request in dollars
 
     const totalPriceInDollars =
       assistantRequests * ASSISTANT_REQUEST_PRICE + aiRequests * AI_REQUEST_PRICE;
 
-    const starsAmount = Math.round(totalPriceInDollars * 1); // Price in "stars"
+    // Округляем до большего целого
+    const starsAmount = Math.ceil(totalPriceInDollars * 1);
 
     const title = "Оплата дополнительных запросов";
     const description = "Оплата за дополнительные запросы к ассистенту и ИИ.";
-    const payload = JSON.stringify({ userId, assistantRequests, aiRequests }); // Save user and request info in payload
+    const payload = JSON.stringify({ userId, assistantRequests, aiRequests }); // Сохраняем данные пользователя
     const currency = "XTR";
     const prices = [{ amount: starsAmount, label: "Оплата запросов" }];
 
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
       `Invoice created for user: ${userId}, Assistant Requests: ${assistantRequests}, AI Requests: ${aiRequests}, Total Price: $${totalPriceInDollars}`
     );
 
-    // Return the invoice link, but don't update the requests until payment is confirmed
+    // Возвращаем ссылку на инвойс (не обновляем запросы в базе до подтверждения)
     return new Response(JSON.stringify({ invoiceLink }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
