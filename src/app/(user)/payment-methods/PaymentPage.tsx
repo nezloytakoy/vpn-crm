@@ -90,16 +90,15 @@ function PaymentPage() {
     setIsLoading(true);
 
     try {
-      // 2) Если tariffName **есть**, значит «основная логика» — создаём инвойс
       if (tariffName) {
+        // --- Основная логика (старый тариф) ---
         const requestBody = {
           paymentMethod: String(selectedMethod),
           userId: userId ?? "???",
           priceInDollars: price,
-          tariffName, // ключевое: мы передаём tariffName
+          tariffName,
         };
 
-        // Запрос /api/telegram-invoice
         const response = await fetch("/api/telegram-invoice", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -114,19 +113,15 @@ function PaymentPage() {
 
         // Открываем счёт (ссылка из data.invoiceLink)
         window.open(data.invoiceLink, "_blank");
-
-        // При необходимости, если в «основной логике» тоже бывает extra requests
-        // можно добавить код /api/extra-requests, если нужно
-
       } else {
-        // 3) Если tariffName нет => «логика /api/extra-requests»
-        // (Допустим, assistantRequests, aiRequests != 0 => пользователь покупает только Extra Requests)
+        // --- Логика при покупке дополнительных запросов (tariffName отсутствует) ---
         const extraBody = {
           userId: userId ?? "???",
           assistantRequests,
           aiRequests,
         };
 
+        // Шлём запрос на /api/extra-requests
         const extraRes = await fetch("/api/extra-requests", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -136,8 +131,16 @@ function PaymentPage() {
 
         if (!extraRes.ok) {
           alert(extraData.message || "Error adding extra requests.");
+          return;
+        }
+
+        // Если бэкенд тоже возвращает invoiceLink (как в /api/telegram-invoice),
+        // открываем ссылку. Предположим, extraData.invoiceLink есть.
+        if (extraData.invoiceLink) {
+          window.open(extraData.invoiceLink, "_blank");
         } else {
-          alert("Extra requests added successfully.");
+          // Если нет invoiceLink, выводим ошибку / либо ничего не делаем
+          alert("No invoice link returned. Please contact support.");
         }
       }
     } catch (error) {
@@ -147,7 +150,6 @@ function PaymentPage() {
       setIsLoading(false);
     }
   }
-
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
