@@ -88,13 +88,9 @@ function PaymentPage() {
     setSelectedMethod(index);
   };
 
-  // ---- handleContinue: логика ----
-  const handleContinue = async () => {
-    // Лог: начало функции
-    await sendLogToTelegram("[handleContinue] called");
-
+  async function handleContinue() {
+    // 1) Если метод оплаты не выбран
     if (selectedMethod === null) {
-      await sendLogToTelegram("[handleContinue] No payment method selected.");
       alert("Please select a payment method.");
       return;
     }
@@ -102,123 +98,63 @@ function PaymentPage() {
     setIsLoading(true);
 
     try {
-      // Лог: перед сбором requestBody
-      await sendLogToTelegram(`[handleContinue] Building requestBody...`);
+      // 2) Если tariffName **есть**, значит «основная логика» — создаём инвойс
+      if (tariffName) {
+        const requestBody = {
+          paymentMethod: String(selectedMethod),
+          userId: userId ?? "???",
+          priceInDollars: price,
+          tariffName, // ключевое: мы передаём tariffName
+        };
 
-      const requestBody: PaymentRequestBody = {
-        paymentMethod: String(selectedMethod),
-      };
+        // Запрос /api/telegram-invoice
+        const response = await fetch("/api/telegram-invoice", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
+        });
+        const data = await response.json();
 
-      // Если есть userId от Telegram, добавим его в requestBody
-      if (userId) {
-        requestBody.userId = userId;
-        await sendLogToTelegram(`[handleContinue] userId from telegram = ${userId}`);
+        if (!response.ok) {
+          alert(data.message || "Error creating invoice.");
+          return;
+        }
+
+        // Открываем счёт (ссылка из data.invoiceLink)
+        window.open(data.invoiceLink, "_blank");
+
+        // При необходимости, если в «основной логике» тоже бывает extra requests
+        // можно добавить код /api/extra-requests, если нужно
+
       } else {
-        await sendLogToTelegram("[handleContinue] userId is missing!");
-      }
-
-      // Лог: текущая сумма (amountDue)
-      await sendLogToTelegram(`[handleContinue] amountDue = ${amountDue}`);
-
-      // Старая логика
-      if (amountDue === price && price > 0) {
-        requestBody.priceInDollars = price;
-        requestBody.tariffName = tariffName;
-        await sendLogToTelegram(
-          `[handleContinue] Old logic => priceInDollars = ${price}, tariffName = ${tariffName}`
-        );
-      }
-      // Новая логика
-      else if (amountDue === totalPrice && totalPrice > 0) {
-        requestBody.priceInDollars = totalPrice;
-        requestBody.assistantRequests = assistantRequests;
-        requestBody.aiRequests = aiRequests;
-        await sendLogToTelegram(
-          `[handleContinue] New logic => priceInDollars = ${totalPrice}, assistantRequests = ${assistantRequests}, aiRequests = ${aiRequests}`
-        );
-      } else {
-        await sendLogToTelegram("[handleContinue] No price or requests specified => aborting");
-        alert("No price or requests specified.");
-        setIsLoading(false);
-        return;
-      }
-
-      // Создаём invoice
-      await sendLogToTelegram(
-        `[handleContinue] Sending invoice request to /api/telegram-invoice with body = ${JSON.stringify(
-          requestBody
-        )}`
-      );
-
-      const response = await fetch("/api/telegram-invoice", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      });
-
-      const data = await response.json();
-      await sendLogToTelegram(
-        `[handleContinue] /api/telegram-invoice response status = ${response.status}, data = ${JSON.stringify(
-          data
-        )}`
-      );
-
-      if (!response.ok) {
-        await sendLogToTelegram(`[handleContinue] Invoice creation failed => ${data.message}`);
-        alert(data.message || "Error creating invoice.");
-        return;
-      }
-
-      // Открываем счёт
-      await sendLogToTelegram(`[handleContinue] Invoice link = ${data.invoiceLink}, opening in new tab...`);
-      window.open(data.invoiceLink, "_blank");
-
-      // Если есть extra requests
-      if (assistantRequests > 0 || aiRequests > 0) {
-        await sendLogToTelegram(
-          `[handleContinue] Need to add extra requests => assistant = ${assistantRequests}, ai = ${aiRequests}`
-        );
-
+        // 3) Если tariffName нет => «логика /api/extra-requests»
+        // (Допустим, assistantRequests, aiRequests != 0 => пользователь покупает только Extra Requests)
         const extraBody = {
-          userId: userId || "???",
+          userId: userId ?? "???",
           assistantRequests,
           aiRequests,
         };
-        await sendLogToTelegram(`[handleContinue] Sending /api/extra-requests with body = ${JSON.stringify(extraBody)}`);
 
         const extraRes = await fetch("/api/extra-requests", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(extraBody),
         });
-
         const extraData = await extraRes.json();
-        await sendLogToTelegram(
-          `[handleContinue] /api/extra-requests response = status ${extraRes.status}, data = ${JSON.stringify(
-            extraData
-          )}`
-        );
 
         if (!extraRes.ok) {
-          await sendLogToTelegram(`[handleContinue] /api/extra-requests error => ${extraData.message}`);
           alert(extraData.message || "Error adding extra requests.");
         } else {
-          await sendLogToTelegram(`[handleContinue] extra requests added successfully!`);
           alert("Extra requests added successfully.");
         }
-      } else {
-        await sendLogToTelegram("[handleContinue] assistantRequests and aiRequests are 0 => no extra requests");
       }
     } catch (error) {
       console.error("Error during payment:", error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      await sendLogToTelegram(`[handleContinue] Payment error => ${errorMessage}`);
       alert(String(error));
     } finally {
       setIsLoading(false);
-      await sendLogToTelegram("[handleContinue] finished (finally)");
     }
-  };
+  }
 
 
   return (
