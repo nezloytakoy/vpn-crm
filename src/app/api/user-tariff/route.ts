@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Если userId в базе 100% умещается в 53-битный диапазон, можно parseInt:
+        // Если userId в базе точно умещается в число (53 бита), используем parseInt:
         const userIdNum = parseInt(userIdStr, 10);
         if (Number.isNaN(userIdNum)) {
             return NextResponse.json(
@@ -31,14 +31,16 @@ export async function GET(request: NextRequest) {
         const now = new Date();
 
         // Ищем ВСЕ активные тарифы, у которых expirationDate > now
+        // и tariffId != null (не учитываем тарифы без tariffId)
         const allActiveTariffs = await prisma.userTariff.findMany({
             where: {
                 userId: BigInt(userIdNum), // или userId: userIdNum, если в модели userId = Int
                 expirationDate: {
                     gt: now,
                 },
+                tariffId: { not: null },  // <-- Игнорируем tariffId = null
             },
-            // Можно сразу отсортировать, чтобы первый был с наибольшим expirationDate
+            // Сортируем, чтобы первым шёл тариф с максимальным expirationDate
             orderBy: {
                 expirationDate: "desc",
             },
@@ -47,7 +49,7 @@ export async function GET(request: NextRequest) {
         if (allActiveTariffs.length === 0) {
             return NextResponse.json(
                 {
-                    error: "No active tariff found for this user",
+                    error: "No active tariff (with tariffId) found for this user",
                     remainingHours: 0,
                 },
                 {
@@ -57,23 +59,23 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Первый элемент массива — тот, у которого expirationDate самая поздняя,
-        // значит осталось больше всего часов.
+        // Берём самый «лучший» тариф (у которого expirationDate самая поздняя)
         const bestTariff = allActiveTariffs[0];
 
-        // Считаем, сколько осталось
+        // Считаем, сколько осталось часов
         const msLeft = bestTariff.expirationDate.getTime() - now.getTime();
         const hoursLeft = Math.max(0, Math.floor(msLeft / (1000 * 60 * 60)));
 
-        // Преобразуем поля BigInt в строку (или число), чтобы избежать ошибки сериализации
-        const userIdString = typeof bestTariff.userId === "bigint"
-            ? bestTariff.userId.toString()
-            : String(bestTariff.userId);
+        // Преобразуем BigInt-поля в строку, чтобы избежать ошибки сериализации
+        const userIdString =
+            typeof bestTariff.userId === "bigint"
+                ? bestTariff.userId.toString()
+                : String(bestTariff.userId);
 
         const tariffIdString = bestTariff.tariffId
-            ? (typeof bestTariff.tariffId === "bigint"
+            ? typeof bestTariff.tariffId === "bigint"
                 ? bestTariff.tariffId.toString()
-                : String(bestTariff.tariffId))
+                : String(bestTariff.tariffId)
             : null;
 
         return NextResponse.json(
@@ -81,7 +83,7 @@ export async function GET(request: NextRequest) {
                 userId: userIdString,
                 tariffId: tariffIdString,
                 remainingHours: hoursLeft,
-                expirationDate: bestTariff.expirationDate, // Date можно сериализовать (ISO)
+                expirationDate: bestTariff.expirationDate, // Date можно сериализовать как ISO
             },
             {
                 status: 200,
