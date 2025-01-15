@@ -175,120 +175,121 @@ function PaymentPage() {
           </Link>
           <h1 className={styles.title}>{t("payment_methods")}</h1>
         </div>
-
-        {/* Сумма к оплате */}
-        <div className={styles.priceblock}>
-          <div className={styles.text}>{t("amount_to_pay")}</div>
-          <div className={styles.price}>${amountDue.toFixed(2)}</div>
-        </div>
-
-        {/* Список методов */}
-        <div className={styles.father}>
-          {/* 1) Rubles */}
-          <div
-            className={`${styles.casebutton} ${selectedMethod === 0 ? styles.selectedMethod : ""
-              }`}
-            onClick={() => handleSelectMethod(0)}
-          >
-            <div className={styles.imgbox}>
-              <Image
-                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ruble-svgrepo-com-hTrr8OxCtIM2rl0o3OS5BTNvY2od7v.svg"
-                alt="ruble icon"
-                width={49}
-                height={49}
-              />
-            </div>
-            <h2 className={styles.currency}>{t("rubles")}</h2>
-            <Image
-              src={selectedMethod === 0 ? checkedIcon : uncheckedIcon}
-              alt="checkbox"
-              width={24}
-              height={24}
-              className={styles.checkbox}
-            />
+        <div className={styles.main}>
+          {/* Сумма к оплате */}
+          <div className={styles.priceblock}>
+            <div className={styles.text}>{t("amount_to_pay")}</div>
+            <div className={styles.price}>${amountDue.toFixed(2)}</div>
           </div>
 
-          {/* 2) Telegram stars */}
-          <div
-            className={`${styles.casebutton} ${selectedMethod === 1 ? styles.selectedMethod : ""
-              }`}
-            onClick={() => handleSelectMethod(1)}
-          >
-            <div className={styles.imgbox}>
+          {/* Список методов */}
+          <div className={styles.father}>
+            {/* 1) Rubles */}
+            <div
+              className={`${styles.casebutton} ${selectedMethod === 0 ? styles.selectedMethod : ""
+                }`}
+              onClick={() => handleSelectMethod(0)}
+            >
+              <div className={styles.imgbox}>
+                <Image
+                  src="https://92eaarerohohicw5.public.blob.vercel-storage.com/ruble-svgrepo-com-hTrr8OxCtIM2rl0o3OS5BTNvY2od7v.svg"
+                  alt="ruble icon"
+                  width={49}
+                  height={49}
+                />
+              </div>
+              <h2 className={styles.currency}>{t("rubles")}</h2>
               <Image
-                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/124231423132%201-ImRzN3bn0L5g0gkpKKaPAqUqySqbp1.svg"
-                alt="telegram stars"
-                width={41}
-                height={41}
+                src={selectedMethod === 0 ? checkedIcon : uncheckedIcon}
+                alt="checkbox"
+                width={24}
+                height={24}
+                className={styles.checkbox}
               />
             </div>
-            <h2 className={styles.currency}>{t("telegram_stars")}</h2>
-            <Image
-              src={selectedMethod === 1 ? checkedIcon : uncheckedIcon}
-              alt="checkbox"
-              width={24}
-              height={24}
-              className={styles.checkbox}
-            />
-          </div>
 
-          {/* 3) Ton coin */}
-          <div
-            className={`${styles.casebutton} ${selectedMethod === 2 ? styles.selectedMethod : ""
-              }`}
-            onClick={() => handleSelectMethod(2)}
-          >
-            <div className={styles.imgbox}>
+            {/* 2) Telegram stars */}
+            <div
+              className={`${styles.casebutton} ${selectedMethod === 1 ? styles.selectedMethod : ""
+                }`}
+              onClick={() => handleSelectMethod(1)}
+            >
+              <div className={styles.imgbox}>
+                <Image
+                  src="https://92eaarerohohicw5.public.blob.vercel-storage.com/124231423132%201-ImRzN3bn0L5g0gkpKKaPAqUqySqbp1.svg"
+                  alt="telegram stars"
+                  width={41}
+                  height={41}
+                />
+              </div>
+              <h2 className={styles.currency}>{t("telegram_stars")}</h2>
               <Image
-                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966877%20(10)-t2Q9StK9AzjXcUJH0LzXqsRQkiUGeX.svg"
-                alt="ton coin"
-                width={49}
-                height={49}
+                src={selectedMethod === 1 ? checkedIcon : uncheckedIcon}
+                alt="checkbox"
+                width={24}
+                height={24}
+                className={styles.checkbox}
               />
             </div>
-            <h2 className={styles.currency}>Ton coin</h2>
-            <Image
-              src={selectedMethod === 2 ? checkedIcon : uncheckedIcon}
-              alt="checkbox"
-              width={24}
-              height={24}
-              className={styles.checkbox}
-            />
-          </div>
 
-          {/* 4) USDT */}
-          <div
-            className={`${styles.casebutton} ${selectedMethod === 3 ? styles.selectedMethod : ""
-              }`}
-            onClick={() => handleSelectMethod(3)}
-          >
-            <div className={styles.imgbox}>
+            {/* 3) Ton coin */}
+            <div
+              className={`${styles.casebutton} ${selectedMethod === 2 ? styles.selectedMethod : ""
+                }`}
+              onClick={() => handleSelectMethod(2)}
+            >
+              <div className={styles.imgbox}>
+                <Image
+                  src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966877%20(10)-t2Q9StK9AzjXcUJH0LzXqsRQkiUGeX.svg"
+                  alt="ton coin"
+                  width={49}
+                  height={49}
+                />
+              </div>
+              <h2 className={styles.currency}>Ton coin</h2>
               <Image
-                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966877%20(11)-JUPMJejslXWwTLQoO4ffCCq3n448bA.svg"
-                alt="usdt"
-                width={49}
-                height={49}
+                src={selectedMethod === 2 ? checkedIcon : uncheckedIcon}
+                alt="checkbox"
+                width={24}
+                height={24}
+                className={styles.checkbox}
               />
             </div>
-            <h2 className={styles.currency}>USDT</h2>
-            <Image
-              src={selectedMethod === 3 ? checkedIcon : uncheckedIcon}
-              alt="checkbox"
-              width={24}
-              height={24}
-              className={styles.checkbox}
-            />
-          </div>
 
-          {/* Кнопка Continue */}
-          <div
-            className={`${styles.continue} ${selectedMethod !== null && !isLoading
-              ? styles.activeContinue
-              : styles.disabledContinue
-              }`}
-            onClick={handleContinue}
-          >
-            {isLoading ? "Loading..." : "Continue"}
+            {/* 4) USDT */}
+            <div
+              className={`${styles.casebutton} ${selectedMethod === 3 ? styles.selectedMethod : ""
+                }`}
+              onClick={() => handleSelectMethod(3)}
+            >
+              <div className={styles.imgbox}>
+                <Image
+                  src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966877%20(11)-JUPMJejslXWwTLQoO4ffCCq3n448bA.svg"
+                  alt="usdt"
+                  width={49}
+                  height={49}
+                />
+              </div>
+              <h2 className={styles.currency}>USDT</h2>
+              <Image
+                src={selectedMethod === 3 ? checkedIcon : uncheckedIcon}
+                alt="checkbox"
+                width={24}
+                height={24}
+                className={styles.checkbox}
+              />
+            </div>
+
+            {/* Кнопка Continue */}
+            <div
+              className={`${styles.continue} ${selectedMethod !== null && !isLoading
+                ? styles.activeContinue
+                : styles.disabledContinue
+                }`}
+              onClick={handleContinue}
+            >
+              {isLoading ? "Loading..." : "Continue"}
+            </div>
           </div>
         </div>
       </div>
