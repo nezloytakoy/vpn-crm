@@ -6,18 +6,10 @@ import styles from "./Payment.module.css";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
-import { sendLogToTelegram } from "./utils";
 
 export const dynamic = "force-dynamic";
 
-interface PaymentRequestBody {
-  paymentMethod: string;
-  priceInDollars?: number;
-  tariffName?: string;
-  assistantRequests?: number;
-  aiRequests?: number;
-  userId?: string;   // <-- добавим поле для userId
-}
+
 
 function PaymentPage() {
   const { t } = useTranslation();
