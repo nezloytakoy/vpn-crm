@@ -1914,7 +1914,7 @@ function logWithBigInt<T>(obj: T): void {
  * @param assistantRequest Запрос (в том числе userId, subject, ignoredAssistants и т.д.).
  * @param languageCode Язык пользователя (для сообщений пользователю).
  */
-export async function assignAssistantToRequest(
+async function assignAssistantToRequest(
   assistantRequest: AssistantRequest,
   languageCode: string
 ) {
