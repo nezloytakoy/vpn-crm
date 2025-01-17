@@ -2,7 +2,11 @@
 
 import { cookies } from "next/headers";
 
-export default async function loginAction(email: string, password: string): Promise<string | null> {
+export default async function loginAction(
+  email: string,
+  password: string,
+  isChecked: boolean // <-- добавляем
+): Promise<string | null> {
   const res = await fetch(`${process.env.ROOT_URL}/api/login`, {
     method: "POST",
     headers: {
@@ -14,17 +18,23 @@ export default async function loginAction(email: string, password: string): Prom
   const json = await res.json();
 
   if (res.ok) {
-    // Устанавливаем токен в cookie
+    // Срок жизни токена:
+    //  - 7 дней, если isChecked = true,
+    //  - 3 часа, если false
+    const maxAge = isChecked ? 7 * 24 : 3;
+    // Конвертируем в миллисекунды
+    const expires = new Date(Date.now() + maxAge * 60 * 60 * 1000);
+
+    // Сохраняем токен в куки
     cookies().set("Authorization", json.token, {
       secure: true,
       httpOnly: true,
-      expires: new Date(Date.now() + 24 * 60 * 60 * 1000 * 3), // 3 дня
+      expires: expires,
       path: "/",
       sameSite: "strict",
     });
 
-    // Редирект на защищённую страницу
-    return null;
+    return null; // Значит всё ОК
   } else {
     return json.error || "Произошла ошибка авторизации";
   }

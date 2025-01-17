@@ -1,5 +1,3 @@
-// translations.ts
-
 export const translations = {
     en: {
         userIdRequired: 'UserId is required',
@@ -17,9 +15,17 @@ export const translations = {
         existingActiveRequest: 'You already have an active request to an assistant.',
         noActiveRequest: 'You have no active assistant requests.',
         waitingForSubject: 'We are waiting for you to provide the subject of your request.',
-
-        // Новый ключ:
-        userIsBlocked: 'You are blocked.'
+        userIsBlocked: 'You are blocked.',
+        topic: 'Topic',
+        no_subject: 'No subject',
+        assistant_declined_extension: 'The assistant declined the extension.',
+        assistant_joined_chat: 'The assistant joined the chat.',
+        extend_session_new_request: 'Extend session with a new request.',
+        request_subject: 'Request subject',
+        request_subject_from_user: 'Request subject from user',
+        // Новые ключи:
+        no_username: 'No username',
+        new_request_from_user: 'New request from user',
     },
     ru: {
         userIdRequired: 'Требуется UserId',
@@ -37,11 +43,21 @@ export const translations = {
         existingActiveRequest: 'У вас уже есть открытый запрос к ассистенту.',
         noActiveRequest: 'У вас нет активных запросов к ассистенту.',
         waitingForSubject: 'Мы ожидаем от вас ввода темы запроса.',
-
-        // Новый ключ:
-        userIsBlocked: 'Вы заблокированы.'
+        userIsBlocked: 'Вы заблокированы.',
+        topic: 'Тема',
+        no_subject: 'Нет темы',
+        assistant_declined_extension: 'Ассистент отклонил продление.',
+        assistant_joined_chat: 'Ассистент присоединился к чату.',
+        extend_session_new_request: 'Продлить сессию с новым запросом.',
+        request_subject: 'Тема запроса',
+        request_subject_from_user: 'Тема запроса от пользователя',
+        // Новые ключи:
+        no_username: 'без имени',
+        new_request_from_user: 'Новый запрос от пользователя',
     },
 };
+
+
 
 
 // Функция получения перевода

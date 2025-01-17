@@ -6,6 +6,8 @@ import { addIgnoreAction, countIgnoredActionsInLast24Hours } from './request'
 
 import { PrismaClient } from '@prisma/client';
 
+import { getTranslation } from './reminderHandlers';
+
 import axios from 'axios';
 
 const prisma = new PrismaClient();
@@ -118,14 +120,44 @@ export async function processPendingRequest(request: {
 
     console.log(`Отправка уведомления ассистенту ID: ${selectedAssistant.telegramId.toString()}`);
     try {
+        // 1) Найти ассистента по telegramId
+        const assistantRecord = await prisma.assistant.findUnique({
+            where: { telegramId: selectedAssistant.telegramId },
+            select: { language: true },
+        });
+
+        if (!assistantRecord) {
+            console.log(`Не найден ассистент с telegramId = ${selectedAssistant.telegramId}`);
+            return;
+        }
+
+        // 2) Определить язык ассистента с fallback
+        let assistantLang: "en" | "ru" = "en";
+        if (assistantRecord.language === "ru") {
+            assistantLang = "ru";
+        }
+
+        // 3) Берём перевод из translations
+        //    Предположим, у вас есть ключи:
+        //      "new_request_from_user" => "Новый запрос от пользователя" / "New request from user"
+        //      "accept" => "Принять" / "Accept"
+        //      "reject" => "Отклонить" / "Reject"
+
+        const messageText = getTranslation(assistantLang, "new_request_from_user");
+
+        const acceptText = getTranslation(assistantLang, "accept");
+        const rejectText = getTranslation(assistantLang, "reject");
+
+        // 4) Отправляем сообщение ассистенту с двумя кнопками
         await sendTelegramMessageWithButtons(
             selectedAssistant.telegramId.toString(),
-            `Новый запрос от пользователя`,
+            messageText,
             [
-                { text: 'Принять', callback_data: `accept_${request.id.toString()}` },
-                { text: 'Отклонить', callback_data: `reject_${request.id.toString()}` },
+                { text: acceptText, callback_data: `accept_${request.id.toString()}` },
+                { text: rejectText, callback_data: `reject_${request.id.toString()}` },
             ]
         );
+
         console.log(`Уведомление успешно отправлено ассистенту ID: ${selectedAssistant.telegramId.toString()}`);
     } catch (error) {
         console.error(`Ошибка при отправке уведомления ассистенту ID: ${selectedAssistant.telegramId.toString()}`, error);

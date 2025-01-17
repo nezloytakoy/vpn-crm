@@ -113,6 +113,7 @@ type TranslationKey =
   | 'ai_settings_load_error'
   // Добавленные ключи:
   | 'no_active_complaint'
+  | 'waiting_for_assistant'
   | 'complaintPhotoReceived';
 
 type Language = 'en' | 'ru';
@@ -179,6 +180,7 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       ai_settings_load_error: "Не удалось загрузить настройки AI. Пожалуйста, попробуйте позже.",
       // Новые ключи:
       no_active_complaint: "У вас нет активной жалобы для добавления фотографий.",
+      waiting_for_assistant: "Ассистент ещё не присоединился к диалогу.",
       complaintPhotoReceived: "Фотография успешно добавлена в жалобу."
     },
     en: {
@@ -241,6 +243,7 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       ai_settings_load_error: "Could not load AI settings. Please try again later.",
       // New keys:
       no_active_complaint: "You have no active complaint to add photos to.",
+      waiting_for_assistant: "The assistant has not yet joined the conversation.",
       complaintPhotoReceived: "Photo has been successfully added to the complaint."
     }
   };
@@ -898,15 +901,31 @@ bot.on('callback_query', async (ctx) => {
 
       const assistantId = lastConversation.assistantId;
 
-      // Отправляем ассистенту запрос на продление
+      // 1) Сначала получаем язык ассистента по его telegramId
+      const assistantRecord = await prisma.assistant.findUnique({
+        where: { telegramId: assistantId },
+        select: { language: true },
+      });
+
+      // 2) Если assistantRecord не найден или язык не указан – берём fallback "en"
+      const assistantLang = assistantRecord?.language ?? "en";
+
+      // 3) Отправляем ассистенту запрос на продление, используя assistantLang
       await sendTelegramMessageWithButtons(
         assistantId.toString(),
-        getTranslation(languageCode, 'extend_session_new_request'),
+        getTranslation(assistantLang, "extend_session_new_request"),  // <-- язык ассистента
         [
-          { text: getTranslation(languageCode, 'accept'), callback_data: `acceptConv_${lastConversation.id}` },
-          { text: getTranslation(languageCode, 'reject'), callback_data: `rejectConv_${lastConversation.id}` },
+          {
+            text: getTranslation(assistantLang, "accept"),            // <-- язык ассистента
+            callback_data: `acceptConv_${lastConversation.id}`
+          },
+          {
+            text: getTranslation(assistantLang, "reject"),            // <-- язык ассистента
+            callback_data: `rejectConv_${lastConversation.id}`
+          },
         ]
       );
+
 
       // Сообщаем пользователю, что запрос на продление отправлен ассистенту
       await ctx.reply(getTranslation(languageCode, 'extend_session_request_sent'));
@@ -1088,7 +1107,7 @@ bot.on('message:text', async (ctx: Context) => {
 
       if (openRequest) {
         // Значит запрос уже есть, но ассистент не присоединился (Conversation не создана)
-        await ctx.reply('Ассистент ещё не присоединился к диалогу.');
+        await ctx.reply(getTranslation(languageCode, 'waiting_for_assistant'));
         return;
       }
 
@@ -1890,24 +1909,34 @@ function logWithBigInt<T>(obj: T): void {
 }
 
 
-async function assignAssistantToRequest(assistantRequest: AssistantRequest, languageCode: string) {
+/**
+ * Назначает ассистента запросу AssistantRequest. 
+ * @param assistantRequest Запрос (в том числе userId, subject, ignoredAssistants и т.д.).
+ * @param languageCode Язык пользователя (для сообщений пользователю).
+ */
+export async function assignAssistantToRequest(
+  assistantRequest: AssistantRequest,
+  languageCode: string
+) {
   try {
     console.log(`Assigning assistant for request ID: ${assistantRequest.id}`);
     console.log(`Request details: ${JSON.stringify(assistantRequest, serializeBigInt, 2)}`);
 
     const userIdBigInt = assistantRequest.userId;
 
-    // Fetch only assistants who are working and not blocked
+    // 1) Получаем список ассистентов, которые работают, не заблокированы 
+    //    и не входят в ignoredAssistants
     const availableAssistants = await prisma.assistant.findMany({
       where: {
         isWorking: true,
-        isBlocked: false, // Exclude blocked assistants
+        isBlocked: false,
         telegramId: { notIn: assistantRequest.ignoredAssistants || [] },
       },
     });
 
     logWithBigInt({ availableAssistants });
 
+    // 2) Считаем penaltyPoints за последние 24 часа
     const assistantsWithPenalties = await Promise.all(
       availableAssistants.map(async (assistant) => {
         const penaltyPoints = await getPenaltyPointsForLast24Hours(assistant.telegramId);
@@ -1917,80 +1946,124 @@ async function assignAssistantToRequest(assistantRequest: AssistantRequest, lang
 
     logWithBigInt({ assistantsWithPenalties });
 
-    // Sort assistants based on penalties and activity
+    // 3) Сортируем по penaltyPoints (возрастающе), при равенстве - по последней активности (убывающе)
     assistantsWithPenalties.sort((a, b) => {
       if (a.penaltyPoints !== b.penaltyPoints) {
         return a.penaltyPoints - b.penaltyPoints;
       }
-      return (b.lastActiveAt ? b.lastActiveAt.getTime() : 0) - (a.lastActiveAt ? a.lastActiveAt.getTime() : 0);
+      return (b.lastActiveAt ? b.lastActiveAt.getTime() : 0) -
+        (a.lastActiveAt ? a.lastActiveAt.getTime() : 0);
     });
 
     console.log(`Sorted assistants: ${JSON.stringify(assistantsWithPenalties, serializeBigInt, 2)}`);
 
+    // 4) Если нет доступных ассистентов
     if (assistantsWithPenalties.length === 0) {
-      console.log('No available assistants after sorting.');
-      await sendTelegramMessageToUser(userIdBigInt.toString(), getTranslation(languageCode, 'noAssistantsAvailable'));
+      console.log("No available assistants after sorting.");
+      await sendTelegramMessageToUser(
+        userIdBigInt.toString(),
+        getTranslation(languageCode, "noAssistantsAvailable")
+      );
       return;
     }
 
+    // 5) Берём самого подходящего (первого) ассистента
     const selectedAssistant = assistantsWithPenalties[0];
-
     console.log(`Selected assistant: ${JSON.stringify(selectedAssistant, serializeBigInt, 2)}`);
 
-    // Assign the selected assistant to the request
+    // 6) Записываем в базу, что этот ассистент назначен запросу
     await prisma.assistantRequest.update({
       where: { id: assistantRequest.id },
       data: { assistantId: selectedAssistant.telegramId },
     });
 
-    const updatedRequest = await prisma.assistantRequest.findUnique({ where: { id: assistantRequest.id } });
+    const updatedRequest = await prisma.assistantRequest.findUnique({
+      where: { id: assistantRequest.id }
+    });
+    console.log(
+      `Updated request after assigning assistant: ${JSON.stringify(updatedRequest, serializeBigInt, 2)}`
+    );
 
-    console.log(`Updated request after assigning assistant: ${JSON.stringify(updatedRequest, serializeBigInt, 2)}`);
+    // 7) Получаем язык ассистента из таблицы
+    const assistantRecord = await prisma.assistant.findUnique({
+      where: { telegramId: selectedAssistant.telegramId },
+      select: { language: true },
+    });
+    // Если ничего не нашли или не указан - ставим "en"
+    const assistantLang = assistantRecord?.language ?? "en";
 
+    // 8) Формируем текст для ассистента (assistantLang)
     const messageText = updatedRequest?.subject
-      ? updatedRequest.subject.startsWith('http')
-        ? `${getTranslation(languageCode, 'assistantRequestMessage')}`
-        : `${getTranslation(languageCode, 'assistantRequestMessage')}\n\nТема: ${updatedRequest.subject}`
-      : `${getTranslation(languageCode, 'assistantRequestMessage')}\n\nТема: отсутствует`;
+      ? updatedRequest.subject.startsWith("http")
+        ? `${getTranslation(assistantLang, "assistantRequestMessage")}`
+        : `${getTranslation(assistantLang, "assistantRequestMessage")}\n\nТема: ${updatedRequest.subject}`
+      : `${getTranslation(assistantLang, "assistantRequestMessage")}\n\nТема: отсутствует`;
 
-    if (updatedRequest?.subject?.startsWith('http')) {
-      // If subject is a media link, send it to the assistant
+    // 9) Если subject - ссылка (http...), отсылаем её как медиа, 
+    //    затем отдельным сообщением с кнопками
+    if (updatedRequest?.subject?.startsWith("http")) {
       await sendTelegramMediaToAssistant(
         selectedAssistant.telegramId.toString(),
         updatedRequest.subject,
-        ''
+        "" // caption, если нужен
       );
 
-      // Follow up with message containing action buttons
+      // Далее кнопки (accept / reject)
       await sendTelegramMessageWithButtons(
         selectedAssistant.telegramId.toString(),
-        getTranslation(languageCode, 'assistantRequestMessage'),
+        getTranslation(assistantLang, "assistantRequestMessage"),
         [
-          { text: getTranslation(languageCode, 'accept'), callback_data: `accept_${assistantRequest.id.toString()}` },
-          { text: getTranslation(languageCode, 'reject'), callback_data: `reject_${assistantRequest.id.toString()}` },
+          {
+            text: getTranslation(assistantLang, "accept"),
+            callback_data: `accept_${assistantRequest.id.toString()}`,
+          },
+          {
+            text: getTranslation(assistantLang, "reject"),
+            callback_data: `reject_${assistantRequest.id.toString()}`,
+          },
         ]
       );
     } else {
-      // If subject is text, send message with action buttons
+      // 9b) Если subject - текст
       await sendTelegramMessageWithButtons(
         selectedAssistant.telegramId.toString(),
         messageText,
         [
-          { text: getTranslation(languageCode, 'accept'), callback_data: `accept_${assistantRequest.id.toString()}` },
-          { text: getTranslation(languageCode, 'reject'), callback_data: `reject_${assistantRequest.id.toString()}` },
+          {
+            text: getTranslation(assistantLang, "accept"),
+            callback_data: `accept_${assistantRequest.id.toString()}`,
+          },
+          {
+            text: getTranslation(assistantLang, "reject"),
+            callback_data: `reject_${assistantRequest.id.toString()}`,
+          },
         ]
       );
     }
 
     console.log(`Message sent to assistant ID: ${selectedAssistant.telegramId}`);
 
-    await sendTelegramMessageToUser(userIdBigInt.toString(), getTranslation(languageCode, 'requestSent'));
+    // 10) Сообщаем пользователю (на его языке, переданном как languageCode), 
+    //     что запрос отправлен ассистенту
+    await sendTelegramMessageToUser(
+      userIdBigInt.toString(),
+      getTranslation(languageCode, "requestSent")
+    );
+
   } catch (error) {
-    console.error('Error assigning assistant:', error);
-    await sendLogToTelegram(`Error assigning assistant: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    await sendTelegramMessageToUser(assistantRequest.userId.toString(), getTranslation(languageCode, 'server_error'));
+    console.error("Error assigning assistant:", error);
+    await sendLogToTelegram(
+      `Error assigning assistant: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
+
+    // При ошибке отправляем пользователю (на языке user)
+    await sendTelegramMessageToUser(
+      assistantRequest.userId.toString(),
+      getTranslation(languageCode, "server_error")
+    );
   }
 }
+
 
 
 

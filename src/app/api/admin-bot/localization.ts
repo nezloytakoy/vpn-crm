@@ -23,6 +23,12 @@ export const translations = {
     assistant_id_prompt: "Введите ID ассистента",
     error_processing_message: "Произошла ошибка при обработке вашего сообщения. Пожалуйста, попробуйте еще раз позже.",
     no_user_id: "Не удалось получить ваш идентификатор пользователя.",
+    missing_data: "Отсутствуют необходимые данные",
+    no_moderator_found: "Модератор или администратор не найден",
+    complaint_not_found: "Жалоба не найдена",
+    complaint_approved_user: "Ваша жалоба одобрена. Вам начислен 1 койн. %explanation%",
+    complaint_approved_assistant: "Жалоба пользователя показалась модератору убедительной. %explanation%",
+    bot_tokens_missing: "Токены Telegram ботов не найдены",
     no_text_message: "Пожалуйста, отправьте текстовое сообщение."
   },
   en: {
@@ -47,6 +53,12 @@ export const translations = {
     assistant_id_prompt: "Enter the assistant ID",
     error_processing_message: "An error occurred while processing your message. Please try again later.",
     no_user_id: "Failed to retrieve your user ID.",
+    missing_data: "Missing required data",
+    no_moderator_found: "Moderator or admin not found",
+    complaint_not_found: "Complaint not found",
+    complaint_approved_user: "Your complaint was approved. You have been awarded 1 coin. %explanation%",
+    complaint_approved_assistant: "The user's complaint was deemed valid by the moderator. %explanation%",
+    bot_tokens_missing: "No Telegram bot tokens found",
     no_text_message: "Please send a text message."
   }
 } as const;
@@ -54,11 +66,11 @@ export const translations = {
 type TranslationKeys = keyof typeof translations.en;
 export type TranslationKey = TranslationKeys;
 
-export function getTranslation(lang: 'ru'|'en', key: TranslationKey): string {
+export function getTranslation(lang: 'ru' | 'en', key: TranslationKey): string {
   return translations[lang][key] || translations['en'][key];
 }
 
-export function detectUserLanguage(ctx: Context): 'ru'|'en' {
+export function detectUserLanguage(ctx: Context): 'ru' | 'en' {
   const langCode = ctx.from?.language_code;
   return (langCode === 'ru' ? 'ru' : 'en');
 }

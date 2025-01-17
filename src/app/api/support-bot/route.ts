@@ -226,7 +226,6 @@ const translations = {
     rejected_request_error: "❌ An error occurred while rejecting the request.",
     session_time_remaining: "--------------------------------\n%minutes% minutes remain until the end of the session",
 
-    // Добавленный новый ключ:
     assistant_declined_extension: "The assistant declined the session extension."
   },
 
@@ -304,7 +303,7 @@ const translations = {
     rejected_request_error: "❌ Произошла ошибка при отклонении запроса.",
     session_time_remaining: "--------------------------------\nДо конца сеанса осталось %minutes% минут",
 
-    // Добавленный новый ключ:
+
     assistant_declined_extension: "Ассистент отклонил продление диалога."
   }
 };
@@ -703,41 +702,86 @@ async function reassignRequest(requestId: bigint, blockedAssistantId: bigint, ct
         },
       });
 
-      const lang = detectUserLanguage(ctx);
-
       // Отправляем тему запроса или медиа новому ассистенту (если есть)
       if (assistantRequest?.subject) {
-        const caption = 'Тема запроса от пользователя';
-        if (assistantRequest.subject.startsWith('http')) {
-          // Отправляем медиа
+        const assistantRecord = await prisma.assistant.findUnique({
+          where: { telegramId: newAssistant.telegramId },
+          select: { language: true },
+        });
+
+        // 2) Сужаем тип или делаем fallback на "en"
+        let assistantLang: "en" | "ru" = "en";
+        if (assistantRecord?.language === "ru") {
+          assistantLang = "ru";
+        }
+
+        // 3) Формируем caption на языке ассистента
+        const caption = getTranslation(assistantLang, "request_subject_from_user");
+
+        // 4) Если subject — это ссылка (http...), отправляем как медиа
+        if (assistantRequest.subject.startsWith("http")) {
           await sendTelegramMediaToAssistant(
             newAssistant.telegramId.toString(),
             assistantRequest.subject,
             caption
           );
         } else {
-          // Отправляем текст без кнопок
-          const messageText = getTranslation(lang, 'request_subject').replace('%subject%', assistantRequest.subject || '');
+          // 1) Сначала получаем язык ассистента из базы
+          const assistantRecord = await prisma.assistant.findUnique({
+            where: { telegramId: newAssistant.telegramId },
+            select: { language: true },
+          });
 
+          // 2) Определяем assistantLang с fallback
+          let assistantLang: "en" | "ru" = "en";
+          if (assistantRecord?.language === "ru") {
+            assistantLang = "ru";
+          }
+
+          // 3) Формируем текст, подставляя subject
+          const messageText = getTranslation(assistantLang, "request_subject").replace(
+            "%subject%",
+            assistantRequest.subject || ""
+          );
+
+          // 4) Отправляем текст ассистенту, без кнопок (передаём пустой массив)
           await sendTelegramMessageWithButtons(
             newAssistant.telegramId.toString(),
             messageText,
             []
           );
+
         }
       }
 
-      // Отправляем основное сообщение с кнопками (accept/reject)
-      const messageText = assistantRequest?.message || getTranslation(lang, 'new_user_message');
+      // 1) Получаем язык ассистента newAssistant из базы:
+      const assistantRecord = await prisma.assistant.findUnique({
+        where: { telegramId: newAssistant.telegramId },
+        select: { language: true },
+      });
 
+      // 2) Сужаем до "en" | "ru" (или используем другой fallback)
+      let assistantLang: "en" | "ru" = "en";
+      if (assistantRecord?.language === "ru") {
+        assistantLang = "ru";
+      }
+
+      // 3) Формируем основное сообщение: если есть assistantRequest?.message, то берём её,
+      //    иначе берём перевод ключа "new_user_message" на языке ассистента
+      const messageText = assistantRequest?.message
+        ? assistantRequest.message
+        : getTranslation(assistantLang, "new_user_message");
+
+      // 4) Отправляем сообщение ассистенту с кнопками accept/reject
       await sendTelegramMessageWithButtons(
         newAssistant.telegramId.toString(),
         messageText,
         [
-          { text: getTranslation(lang, 'accept'), callback_data: `accept_${requestId}` },
-          { text: getTranslation(lang, 'reject'), callback_data: `reject_${requestId}` },
+          { text: getTranslation(assistantLang, "accept"), callback_data: `accept_${requestId}` },
+          { text: getTranslation(assistantLang, "reject"), callback_data: `reject_${requestId}` },
         ]
       );
+
 
 
     } else {
@@ -836,9 +880,21 @@ async function handleAcceptConversation(
 
     // При желании уведомляем пользователя
     if (conversation.userId) {
+      const userRecord = await prisma.user.findUnique({
+        where: { telegramId: BigInt(conversation.userId) }, // или просто conversation.userId, если у вас Int
+        select: { language: true },
+      });
+
+      let userLanguage: "en" | "ru" = "en"; // fallback, если поддерживаете только 2 языка
+
+      if (userRecord && userRecord.language === "ru") {
+        userLanguage = "ru";
+      }
+
+      // Теперь вместо lang используем userLanguage
       await sendTelegramMessageToUser(
         conversation.userId.toString(),
-        getTranslation(lang, 'assistant_joined_chat')
+        getTranslation(userLanguage, "assistant_joined_chat")
       );
     }
 
@@ -900,10 +956,21 @@ async function handleRejectConversation(
 
     // При желании уведомляем пользователя, что ассистент отказался
     if (conversation.userId) {
+
+      const userRecord = await prisma.user.findUnique({
+        where: { telegramId: BigInt(conversation.userId) }, // или Int, если telegramId — Int
+        select: { language: true },
+      });
+
+      let userLanguage: "en" | "ru" = "en"; // fallback, если нужно только en/ru
+
+      if (userRecord && userRecord.language === "ru") {
+        userLanguage = "ru";
+      }
+
       await sendTelegramMessageToUser(
         conversation.userId.toString(),
-        getTranslation(lang, 'assistant_declined_extension')
-        // Добавьте ключ перевода, например: "Ассистент отклонил продление диалога."
+        getTranslation(userLanguage, "assistant_declined_extension")
       );
     }
   } catch (error) {
@@ -1549,9 +1616,17 @@ async function handleAcceptRequest(
       });
 
       await ctx.reply(getTranslation(lang, 'accept_request'));
+      let userLanguage: "en" | "ru" = "en"; // fallback
+
+      if (assistantRequest.user.language === "ru") {
+        userLanguage = "ru";
+      }
+      // Если появятся другие языки, добавьте проверки
+
+      // 2) Вместо `lang` подставляем `userLanguage`
       await sendTelegramMessageToUser(
         assistantRequest.user.telegramId.toString(),
-        getTranslation(lang, 'assistant_joined_chat')
+        getTranslation(userLanguage, 'assistant_joined_chat')
       );
     } else {
       // Разговор уже существует. Смотрим на его статус.
@@ -1578,10 +1653,14 @@ async function handleAcceptRequest(
         });
 
         await ctx.reply(getTranslation(lang, 'accept_request_confirm'));
+        const userLanguage = assistantRequest.user.language || "en";
+
+        // Явно приводим тип (если уверены, что там всегда "en" или "ru")
         await sendTelegramMessageToUser(
           assistantRequest.user.telegramId.toString(),
-          getTranslation(lang, 'assistant_joined_chat')
+          getTranslation(userLanguage as "en" | "ru", "assistant_joined_chat")
         );
+
       } else {
         // На всякий случай, если будут другие статусы
         await ctx.reply(getTranslation(lang, 'request_already_in_progress'));
@@ -1707,16 +1786,42 @@ async function handleRejectRequest(requestId: string, assistantTelegramId: bigin
         }
       }
 
-      // Отправляем основное сообщение с кнопками
-      const mainMessage = assistantRequest?.message || getTranslation(lang, 'new_user_message');
+      // 1) Получаем язык ассистента (newAssistant) из базы
+      const assistantRecord = await prisma.assistant.findUnique({
+        where: { telegramId: newAssistant.telegramId },
+        select: { language: true },
+      });
+
+      // 2) Сужаем тип до "en" | "ru", делаем fallback "en"
+      let assistantLang: "en" | "ru" = "en";
+      if (assistantRecord?.language === "ru") {
+        assistantLang = "ru";
+      }
+
+      // 3) Формируем основное сообщение
+      //    Если в assistantRequest есть поле message, используем его;
+      //    иначе перевод ключа "new_user_message" на языке ассистента.
+      const mainMessage = assistantRequest?.message
+        ? assistantRequest.message
+        : getTranslation(assistantLang, "new_user_message");
+
+      // 4) Отправляем сообщение ассистенту с кнопками accept/reject на assistantLang
       await sendTelegramMessageWithButtons(
         newAssistant.telegramId.toString(),
         mainMessage,
         [
-          { text: getTranslation(lang, 'accept'), callback_data: `accept_${requestId}` },
-          { text: getTranslation(lang, 'reject'), callback_data: `reject_${requestId}` },
+          {
+            text: getTranslation(assistantLang, "accept"),
+            callback_data: `accept_${requestId}`,
+          },
+          {
+            text: getTranslation(assistantLang, "reject"),
+            callback_data: `reject_${requestId}`,
+          },
         ]
       );
+
+
 
       await ctx.reply(getTranslation(lang, 'rejected_request_reassigned'));
     } else {

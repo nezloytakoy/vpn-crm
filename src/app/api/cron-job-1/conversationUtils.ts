@@ -3,6 +3,7 @@ import { processAssistantRewards } from './processAssistantRewards';
 import { sendTelegramMessageToUser, sendTelegramMessageToAssistant } from './telegramHelpers';
 import { handleRejectRequest } from './assistantHandlers';
 import { remindAssistant, handleIgnoredConversation } from './reminderHandlers';
+import { getTranslation } from './reminderHandlers';
 
 const prisma = new PrismaClient();
 
@@ -59,19 +60,40 @@ export async function handleAssistantLastMessage(conversation: Conversation) {
         console.error('Ошибка: ассистент не найден при начислении коинов');
       }
 
-      await sendTelegramMessageToUser(
-        conversation.userId.toString(),
-        'Ваш сеанс закончился! Если остались вопросы, то вы можете продлить сеанс.',
-        {
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: 'Продлить', callback_data: 'extend_session' }],
-              [{ text: 'Я доволен', callback_data: 'satisfied' }],
-              [{ text: 'Пожаловаться - Мне не помогло', callback_data: 'complain' }],
-            ],
-          },
+      await (async () => {
+        // 1) Считываем язык пользователя из базы
+        const userRecord = await prisma.user.findUnique({
+          where: { telegramId: conversation.userId },
+          select: { language: true },
+        });
+      
+        // 2) Определяем userLang (fallback — "en" если не задан или не "ru")
+        let userLang: "en" | "ru" = "en";
+        if (userRecord?.language === "ru") {
+          userLang = "ru";
         }
-      );
+      
+        // 3) Берём переводы для текста и кнопок
+        const sessionEndedText = getTranslation(userLang, "session_ended");
+        const extendText = getTranslation(userLang, "extend_session_button");
+        const satisfiedText = getTranslation(userLang, "im_satisfied");
+        const complainText = getTranslation(userLang, "complain");
+      
+        // 4) Отправляем сообщение пользователю
+        await sendTelegramMessageToUser(
+          conversation.userId.toString(),
+          sessionEndedText,
+          {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: extendText, callback_data: "extend_session" }],
+                [{ text: satisfiedText, callback_data: "satisfied" }],
+                [{ text: complainText, callback_data: "complain" }],
+              ],
+            },
+          }
+        );
+      })();
       console.log(
         `Пользователю ID: ${conversation.userId.toString()} отправлено сообщение о завершении сеанса`
       );
