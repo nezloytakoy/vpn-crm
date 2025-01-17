@@ -29,7 +29,13 @@ export const translations = {
     complaint_approved_user: "Ваша жалоба одобрена. Вам начислен 1 койн. %explanation%",
     complaint_approved_assistant: "Жалоба пользователя показалась модератору убедительной. %explanation%",
     bot_tokens_missing: "Токены Telegram ботов не найдены",
-    no_text_message: "Пожалуйста, отправьте текстовое сообщение."
+    requests_increased: "Вам выданы дополнительные запросы",
+    requests_decreased: "Ваши запросы уменьшены",
+    subscription_basic: "Простая",
+    subscription_advanced: "Сложная",
+    subscription_expert: "Экспертная",
+    no_text_message: "Пожалуйста, отправьте текстовое сообщение.",
+    subscription_granted: "Вам выдана подписка: %subName%"
   },
   en: {
     no_username_error: "You have no username in Telegram. Please set it and try again.",
@@ -59,7 +65,13 @@ export const translations = {
     complaint_approved_user: "Your complaint was approved. You have been awarded 1 coin. %explanation%",
     complaint_approved_assistant: "The user's complaint was deemed valid by the moderator. %explanation%",
     bot_tokens_missing: "No Telegram bot tokens found",
-    no_text_message: "Please send a text message."
+    no_text_message: "Please send a text message.",
+    requests_increased: "You have been granted additional assistant requests",
+    requests_decreased: "Your assistant requests have been decreased",
+    subscription_basic: "Basic",
+    subscription_advanced: "Advanced",
+    subscription_expert: "Expert",
+    subscription_granted: "You have been granted a subscription: %subName%"
   }
 } as const;
 
