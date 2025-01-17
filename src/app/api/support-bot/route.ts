@@ -1206,6 +1206,13 @@ bot.command('online', async (ctx) => {
     });
 
     if (pendingRequest) {
+
+      if (!pendingRequest.subject) {
+        // Если темы нет — завершаем
+        ctx.reply(`${getTranslation(lang, 'assistantRequestMessage')} — ${getTranslation(lang, 'no_subject')}`);
+        return;
+      }
+
       // Переводим запрос в статус IN_PROGRESS и назначаем ассистента
       const updatedRequest = await prisma.assistantRequest.update({
         where: { id: pendingRequest.id },

@@ -280,7 +280,7 @@ function PaymentPage() {
                 }`}
               onClick={handleContinue}
             >
-              {isLoading ? "Loading..." : "Continue"}
+              {isLoading ? t("loading") : t("continue")}
             </div>
           </div>
         </div>
