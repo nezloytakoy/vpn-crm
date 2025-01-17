@@ -114,6 +114,8 @@ type TranslationKey =
   // Добавленные ключи:
   | 'no_active_complaint'
   | 'waiting_for_assistant'
+  | 'no_assistant_found'
+  | 'assistant_already_offline'
   | 'complaintPhotoReceived';
 
 type Language = 'en' | 'ru';
@@ -181,6 +183,8 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       // Новые ключи:
       no_active_complaint: "У вас нет активной жалобы для добавления фотографий.",
       waiting_for_assistant: "Ассистент ещё не присоединился к диалогу.",
+      no_assistant_found: "Ассистент не найден",
+      assistant_already_offline: "Ассистент уже завершил работу",
       complaintPhotoReceived: "Фотография успешно добавлена в жалобу."
     },
     en: {
@@ -244,6 +248,8 @@ const getTranslation = (languageCode: string | undefined, key: TranslationKey): 
       // New keys:
       no_active_complaint: "You have no active complaint to add photos to.",
       waiting_for_assistant: "The assistant has not yet joined the conversation.",
+      no_assistant_found: "Assistant not found",
+      assistant_already_offline: "The assistant has already finished working",
       complaintPhotoReceived: "Photo has been successfully added to the complaint."
     }
   };
@@ -825,111 +831,119 @@ bot.on('callback_query', async (ctx) => {
       await ctx.reply(getTranslation(languageCode, 'thanks_for_using'));
       await ctx.answerCallbackQuery(); // Закрываем уведомление о callback query
     } else if (callbackData === 'extend_session') {
-      // Обработчик для продления сеанса
       if (!ctx.from?.id) {
-        await ctx.reply(getTranslation(languageCode, 'no_user_id'));
+        await ctx.reply(getTranslation(languageCode, "no_user_id"));
         return;
       }
 
       const userId = BigInt(ctx.from.id);
 
-      // Получаем пользователя (для получения последнего диалога)
+      // 2) Ищем пользователя (с его последним диалогом)
       const user = await prisma.user.findUnique({
         where: { telegramId: userId },
         include: {
           conversations: {
-            orderBy: { createdAt: 'desc' },
+            orderBy: { createdAt: "desc" },
             take: 1,
           },
         },
       });
 
       if (!user) {
-        await ctx.reply(getTranslation(languageCode, 'no_user_found'));
+        await ctx.reply(getTranslation(languageCode, "no_user_found"));
         return;
       }
 
-      // Считаем, сколько у пользователя всего доступных запросов к ассистенту
+      // 3) Считаем общее количество оставшихся запросов к ассистенту
       const now = new Date();
       const userTariffs = await prisma.userTariff.findMany({
         where: {
           userId: userId,
-          expirationDate: { gte: now }, // тариф действует, если не истек
+          expirationDate: { gte: now },
           remainingAssistantRequests: { gt: 0 },
         },
         orderBy: {
-          expirationDate: 'asc', // сортируем, чтобы можно было списать из самого "старого" тарифа
+          expirationDate: "asc",
         },
       });
 
-      // Суммируем все remainingAssistantRequests
       const totalAvailable = userTariffs.reduce(
         (acc, t) => acc + t.remainingAssistantRequests,
         0
       );
 
-      // Если запросов недостаточно, отправляем сообщение
       if (totalAvailable < 1) {
-        await ctx.reply(getTranslation(languageCode, 'no_requests'));
+        await ctx.reply(getTranslation(languageCode, "no_requests"));
         return;
       }
 
-      // Выбираем первый тариф, у которого remainingAssistantRequests > 0
+      // 4) Берём первый тариф и списываем 1 запрос
       const firstTariff = userTariffs.find((t) => t.remainingAssistantRequests > 0);
       if (!firstTariff) {
-        // Теоретически не должно случиться, так как totalAvailable > 0
-        await ctx.reply(getTranslation(languageCode, 'no_requests'));
+        // Теоретически не должно случиться
+        await ctx.reply(getTranslation(languageCode, "no_requests"));
         return;
       }
 
-      // Списываем 1 запрос у найденного тарифа
       await prisma.userTariff.update({
         where: { id: firstTariff.id },
-        data: {
-          remainingAssistantRequests: {
-            decrement: 1,
-          },
-        },
+        data: { remainingAssistantRequests: { decrement: 1 } },
       });
 
-      // Проверяем, есть ли последний диалог
+      // 5) Получаем последний диалог
       const lastConversation = user.conversations[0];
       if (!lastConversation || !lastConversation.assistantId) {
-        await ctx.reply(getTranslation(languageCode, 'assistant_not_found_for_last_dialog'));
+        await ctx.reply(getTranslation(languageCode, "assistant_not_found_for_last_dialog"));
         return;
       }
 
       const assistantId = lastConversation.assistantId;
 
-      // 1) Сначала получаем язык ассистента по его telegramId
-      const assistantRecord = await prisma.assistant.findUnique({
+      // 6) Проверяем, работает ли ассистент (assistant.isWorking = true ?)
+      const assistantObj = await prisma.assistant.findUnique({
         where: { telegramId: assistantId },
-        select: { language: true },
+        select: {
+          isWorking: true,
+          language: true,
+        },
       });
 
-      // 2) Если assistantRecord не найден или язык не указан – берём fallback "en"
-      const assistantLang = assistantRecord?.language ?? "en";
+      // Если ассистент не найден или не работает
+      if (!assistantObj) {
+        // Локализованное сообщение: «Ассистент не найден»
+        await ctx.reply(getTranslation(languageCode, "no_assistant_found"));
+        return;
+      }
 
-      // 3) Отправляем ассистенту запрос на продление, используя assistantLang
+      if (!assistantObj.isWorking) {
+        // Предположим, у вас есть ключ "assistant_already_offline" => «Ассистент уже завершил работу»
+        await ctx.reply(getTranslation(languageCode, "assistant_already_offline"));
+        return;
+      }
+
+      // 7) Если ассистент ещё работает, отправляем ему запрос на продление
+      const assistantLang = assistantObj.language ?? "en";
+
       await sendTelegramMessageWithButtons(
         assistantId.toString(),
-        getTranslation(assistantLang, "extend_session_new_request"),  // <-- язык ассистента
+        getTranslation(assistantLang, "extend_session_new_request"),
         [
           {
-            text: getTranslation(assistantLang, "accept"),            // <-- язык ассистента
-            callback_data: `acceptConv_${lastConversation.id}`
+            text: getTranslation(assistantLang, "accept"),
+            callback_data: `acceptConv_${lastConversation.id}`,
           },
           {
-            text: getTranslation(assistantLang, "reject"),            // <-- язык ассистента
-            callback_data: `rejectConv_${lastConversation.id}`
+            text: getTranslation(assistantLang, "reject"),
+            callback_data: `rejectConv_${lastConversation.id}`,
           },
         ]
       );
 
+      // 8) Пользователю сообщаем, что запрос отправлен
+      await ctx.reply(getTranslation(languageCode, "extend_session_request_sent"));
 
-      // Сообщаем пользователю, что запрос на продление отправлен ассистенту
-      await ctx.reply(getTranslation(languageCode, 'extend_session_request_sent'));
-      await ctx.answerCallbackQuery(); // Закрываем уведомление о callback query
+      // Закрываем уведомление Callback (если это callback)
+      await ctx.answerCallbackQuery?.();
     }
   } catch (error) {
     console.error('Ошибка при обработке callback_query:', error);
