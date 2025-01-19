@@ -38,7 +38,7 @@ function PaymentPage() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const queryPrice = searchParams.get("price");
-      const queryTariff = searchParams.get("tariff");
+      const queryTariff = searchParams.get("tariffName");
       const queryAssistantRequests = searchParams.get("assistantRequests");
       const queryAiRequests = searchParams.get("aiRequests");
       const months = searchParams.get("months")

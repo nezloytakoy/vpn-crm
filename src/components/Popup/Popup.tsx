@@ -225,9 +225,10 @@ const Popup: React.FC<PopupProps> = ({
 
     const tariffName = config.title; // или buttonText, на ваше усмотрение
     const months = selectedTariff.months;
+    console.log(tariffName)
 
     router.push(
-      `/payment-methods?price=${selectedTariff.price}&tariffName=${encodeURIComponent(tariffName)}&months=${months}`
+      `/payment-methods?price=${selectedTariff.price}&tariffName=${tariffName}&months=${months}`
     );
 
     handleClose();
