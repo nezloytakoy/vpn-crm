@@ -4,24 +4,38 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 
+// Пропы Popup
 interface PopupProps {
   isVisible: boolean;
   onClose: () => void;
   buttonText: string;
   price: number | undefined;
-  popupId?: string;
+  popupId?: string; // "FIRST" | "SECOND" | "THIRD"
 }
 
-// Пример отправки логов в Телеграм
+// Тип ответа для /api/get-prices
+interface SubscriptionPrice {
+  id: string;        // Например 1,2,3
+  name: string;      // "Basic", "Advanced", ...
+  description?: string;
+  price1m: number;
+  price3m: number;
+  price6m: number;
+}
+
+// Тип для локальных опций (месяц + цена)
+interface TariffOption {
+  months: number;
+  price: number;
+}
+
+// Отправка логов в Телеграм
 const sendLogToTelegram = async (message: string) => {
-  const TELEGRAM_BOT_TOKEN = 'YOUR_BOT_TOKEN';
+  const TELEGRAM_BOT_TOKEN = '7956735167:AAGzZ_G97SfqE-ulMJZgi1Jt1l8VrR5aC5M';
   const CHAT_ID = '5829159515';
 
   const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-  const body = {
-    chat_id: CHAT_ID,
-    text: message,
-  };
+  const body = { chat_id: CHAT_ID, text: message };
 
   try {
     await fetch(url, {
@@ -36,36 +50,23 @@ const sendLogToTelegram = async (message: string) => {
 
 /**
  * Конфиг по popupId (FIRST, SECOND, THIRD).
- * Храним здесь все данные: фон, главная картинка, пункты, цвета, цены иконок и проч.
+ * Тут *нет* тарифных цен, только визуальная часть — фон, иконки, текст фич, цвета и т. п.
  */
 const popupConfigs: Record<
   string,
   {
-    // Главная картинка (логотип вверху)
-    mainImage: string;
-    // Фоновая картинка
-    bgImage: string;
-    // Пункты (список) - массив строк
-    features: string[];
-    // Иконка возле пунктов (features)
-    featuresCheckIcon: string;
-    // Иконка галочки, когда тариф выбран (в блоках 1/3/6 месяцев)
-    selectedCheckIcon: string;
-    // Иконка галочки, когда тариф НЕ выбран
-    unselectedCheckIcon: string;
-    // Цвет кнопки "Pay", если тариф выбран
-    buttonColor: string;
-    // Цвет бордюра выбранного тарифа
-    borderColor: string;
-    // Цвет числа месяцев, если тариф выбран
-    monthsNumberColor: string;
-    // Заголовок тарифа (например, "Basic", "Standard", "Pro")
-    title: string;
-    // Опции тарифов (месяц + цена)
-    tariffOptions: { months: number; price: number }[];
+    mainImage: string;         // Картинка (логотип) вверху
+    bgImage: string;           // Фоновая картинка
+    features: string[];        // Фичи (список)
+    featuresCheckIcon: string; // Иконка для каждой фичи
+    selectedCheckIcon: string; // Галочка при выборе
+    unselectedCheckIcon: string; // Галочка невыбранная
+    buttonColor: string;       // Цвет кнопки
+    borderColor: string;       // Цвет границы выбранного тарифа
+    monthsNumberColor: string; // Цвет числа месяцев (при выборе)
+    title: string;             // Заголовок ("Basic", "Standard", "Pro")
   }
 > = {
-  // FIRST
   FIRST: {
     mainImage:
       "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966877%20(12)-oJUehz2c7vkkCW4dIJyDHhzS3N1cTq.svg",
@@ -82,14 +83,7 @@ const popupConfigs: Record<
     borderColor: "#00A6DE",
     monthsNumberColor: "#00A6DE",
     title: "Basic",
-    tariffOptions: [
-      { months: 1, price: 19 },
-      { months: 3, price: 50 },
-      { months: 6, price: 90 },
-    ],
   },
-
-  // SECOND
   SECOND: {
     mainImage:
       "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966878%20(2)-LImo5iDFFGIPHaLv3QsdvksQuaCrcw.svg",
@@ -106,14 +100,7 @@ const popupConfigs: Record<
     borderColor: "#FF9500",
     monthsNumberColor: "#FF9500",
     title: "Standard",
-    tariffOptions: [
-      { months: 1, price: 29 },
-      { months: 3, price: 60 },
-      { months: 6, price: 100 },
-    ],
   },
-
-  // THIRD
   THIRD: {
     mainImage:
       "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966878%20(3)-gRvwa1WuEuwi6lrS9cPJngpxMVmBGE.svg",
@@ -130,12 +117,14 @@ const popupConfigs: Record<
     borderColor: "#6624FF",
     monthsNumberColor: "#6624FF",
     title: "Pro",
-    tariffOptions: [
-      { months: 1, price: 49 },
-      { months: 3, price: 80 },
-      { months: 6, price: 120 },
-    ],
   },
+};
+
+// Сопоставляем popupId -> subscriptionId (для /api/get-prices)
+const popupIdToSubIdMap: Record<string, number> = {
+  FIRST: 1,   // Basic
+  SECOND: 2,  // Standard
+  THIRD: 3,   // Pro
 };
 
 const Popup: React.FC<PopupProps> = ({
@@ -146,27 +135,72 @@ const Popup: React.FC<PopupProps> = ({
   popupId
 }) => {
   const router = useRouter();
-  const [isClosing, setIsClosing] = useState(false);
-  // Состояние для выбранного тарифа (месяцы + цена)
-  const [selectedTariff, setSelectedTariff] = useState<{
-    months: number;
-    price: number;
-  } | null>(null);
-
   const { t } = useTranslation();
 
-  // Берём конфиг из popupConfigs, если popupId не задан - подставляем "FIRST" как дефолт
-  const config = popupConfigs[popupId || "FIRST"] || popupConfigs["FIRST"];
+  const [isClosing, setIsClosing] = useState(false);
+  const [selectedTariff, setSelectedTariff] = useState<TariffOption | null>(null);
 
+  // Будем хранить локальный массив тарифов (1/3/6 месяцев)
+  const [localTariffOptions, setLocalTariffOptions] = useState<TariffOption[]>([]);
+
+  // Определяем конфиг (визуал) по popupId
+  const configKey = popupId || "FIRST";
+  const config = popupConfigs[configKey] || popupConfigs["FIRST"];
+
+  // Сопоставляем popupId => subscriptionId (1,2,3)
+  const subscriptionId = popupIdToSubIdMap[configKey] || 1;
+
+  // 1) Когда попап становится видимым, загружаем /api/get-prices
+  // 2) Находим нужную запись (по subscriptionId)
+  // 3) Формируем localTariffOptions = [ {months:1, price:...}, ... ]
   useEffect(() => {
-    console.log(
-      `Popup opened => buttonText: ${buttonText}, price: ${price}, popupId: ${popupId}`
-    );
-    sendLogToTelegram(
-      `Popup opened => buttonText: ${buttonText}, price: ${price}, popupId: ${popupId}`
-    );
-  }, [buttonText, price, popupId]);
+    if (!isVisible) return; // Если попап не открыт, не грузим
 
+    const fetchPrices = async () => {
+      try {
+        const resp = await fetch("/api/get-prices");
+        const data = await resp.json();
+        console.log(data)
+        if (data.error) {
+          console.warn("get-prices error:", data.error);
+          return;
+        }
+        // Находим запись
+        const subArray: SubscriptionPrice[] = data.subscriptions || [];
+        const found = subArray.find((s) => s.id === subscriptionId.toString());
+        if (!found) {
+          console.warn(`No subscription found for id=${subscriptionId}`);
+          return;
+        }
+
+        // Формируем локальный массив
+        const arr: TariffOption[] = [
+          { months: 1, price: found.price1m },
+          { months: 3, price: found.price3m },
+          { months: 6, price: found.price6m },
+        ];
+        setLocalTariffOptions(arr);
+      } catch (error) {
+        console.error("Error fetching /api/get-prices:", error);
+      }
+    };
+
+    fetchPrices();
+  }, [isVisible, subscriptionId]);
+
+  // Логирование при открытии
+  useEffect(() => {
+    if (isVisible) {
+      console.log(
+        `Popup opened => buttonText: ${buttonText}, price: ${price}, popupId: ${popupId}`
+      );
+      sendLogToTelegram(
+        `Popup opened => buttonText: ${buttonText}, price: ${price}, popupId: ${popupId}`
+      );
+    }
+  }, [isVisible, buttonText, price, popupId]);
+
+  // Закрытие
   const handleClose = () => {
     setIsClosing(true);
     setTimeout(() => {
@@ -175,39 +209,36 @@ const Popup: React.FC<PopupProps> = ({
     }, 400);
   };
 
-  // Обработчик выбора тарифа
+  // Выбор тарифа (1 / 3 / 6)
   const handleTariffSelect = (months: number, price: number) => {
     setSelectedTariff({ months, price });
   };
 
-  // Обработчик кнопки оплаты
+  // Переход к оплате
   const handlePay = () => {
     if (!selectedTariff) return;
     router.push(
-      `/payment-methods?price=${selectedTariff.price}&tariff=${encodeURIComponent(
-        buttonText
-      )}`
+      `/payment-methods?price=${selectedTariff.price}&tariff=${encodeURIComponent(buttonText)}`
     );
     handleClose();
   };
 
+  // Если попап не виден и не закрывается анимированно, не рендерим
   if (!isVisible && !isClosing) return null;
 
   return (
     <div
-      className={`${styles.popupOverlay} ${isClosing ? styles.fadeOutOverlay : ""
-        }`}
+      className={`${styles.popupOverlay} ${isClosing ? styles.fadeOutOverlay : ""}`}
     >
       <div
-        className={`${styles.popupContent} ${isClosing ? styles.slideDown : styles.slideUp
-          }`}
+        className={`${styles.popupContent} ${isClosing ? styles.slideDown : styles.slideUp}`}
         style={{
           backgroundImage: `url("${config.bgImage}")`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       >
-        {/* Заголовок и кнопка закрытия */}
+        {/* Хедер попапа */}
         <div className={styles.popupHeader}>
           <div></div>
           <button onClick={handleClose} className={styles.closeButton}>
@@ -220,9 +251,9 @@ const Popup: React.FC<PopupProps> = ({
           </button>
         </div>
 
-        {/* Содержимое попапа */}
+        {/* Контент */}
         <div className={styles.content}>
-          {/* Логотип (mainImage) + Заголовок (title) */}
+          {/* Логотип + Заголовок */}
           <div className={styles.logobox}>
             <Image
               src={config.mainImage}
@@ -233,13 +264,13 @@ const Popup: React.FC<PopupProps> = ({
             <h1>{config.title}</h1>
           </div>
 
-          {/* Блок с фичами (features) + нужная иконка featuresCheckIcon */}
+          {/* Фичи */}
           <div className={styles.features}>
             {config.features.map((feature, idx) => (
               <div className={styles.line} key={idx}>
                 <Image
                   src={config.featuresCheckIcon}
-                  alt="check"
+                  alt="check-icon"
                   width={24}
                   height={24}
                 />
@@ -248,11 +279,11 @@ const Popup: React.FC<PopupProps> = ({
             ))}
           </div>
 
-          {/* Тарифы (месяцы) - берем из config.tariffOptions */}
+          {/* Тарифы — уже из localTariffOptions */}
           <div className={styles.tariffsbox}>
             <p>Select your subscription period</p>
 
-            {config.tariffOptions.map((tariff) => {
+            {localTariffOptions.map((tariff) => {
               const isSelected =
                 selectedTariff?.months === tariff.months &&
                 selectedTariff?.price === tariff.price;
@@ -260,8 +291,7 @@ const Popup: React.FC<PopupProps> = ({
               return (
                 <div
                   key={tariff.months}
-                  className={`${styles.tariff} ${isSelected ? styles.selectedTariff : ""
-                    }`}
+                  className={`${styles.tariff} ${isSelected ? styles.selectedTariff : ""}`}
                   style={{
                     border: isSelected
                       ? `2px solid ${config.borderColor}`
@@ -281,7 +311,9 @@ const Popup: React.FC<PopupProps> = ({
                     {tariff.months}
                   </div>
                   <div className={styles.textblock}>
-                    <p>For {tariff.months} month{tariff.months > 1 ? 's' : ''}</p>
+                    <p>
+                      For {tariff.months} month{tariff.months > 1 ? "s" : ""}
+                    </p>
                     <h1>${tariff.price}</h1>
                   </div>
                   <Image
@@ -299,23 +331,21 @@ const Popup: React.FC<PopupProps> = ({
               );
             })}
 
-            {/* Кнопка Pay — меняем цвет, если тариф выбран */}
+            {/* Кнопка Pay */}
             <div
               className={styles.button}
               style={
                 selectedTariff
                   ? {
-                    backgroundColor: config.buttonColor,
-                    color: '#fff',
-                  }
+                      backgroundColor: config.buttonColor,
+                      color: "#fff",
+                    }
                   : undefined
               }
               onClick={handlePay}
             >
-              {selectedTariff ? `Pay $${selectedTariff.price}` : 'Pay'}
+              {selectedTariff ? `Pay $${selectedTariff.price}` : "Pay"}
             </div>
-
-
           </div>
         </div>
       </div>

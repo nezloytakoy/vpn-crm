@@ -632,14 +632,16 @@ bot.on("message:successful_payment", async (ctx) => {
     await sendLogToTelegram(`userId: ${userId}, type: ${typeof userId}`);
 
     if (payment && userId) {
+      // totalStars пригодятся, например, если у вас реферальные бонусы считаются от суммы
       const totalStars = payment.total_amount;
       await sendLogToTelegram(`totalStars: ${totalStars}, type: ${typeof totalStars}`);
 
       const payloadData = JSON.parse(payment.invoice_payload);
       await sendLogToTelegram(`payloadData: ${JSON.stringify(serializeBigInt(payloadData))}, type: ${typeof payloadData}`);
 
-      const { userId: decodedUserId, assistantRequests, aiRequests } = payloadData;
+      const { userId: decodedUserId, assistantRequests, aiRequests, tariffName } = payloadData;
       await sendLogToTelegram(`decodedUserId: ${decodedUserId}, type: ${typeof decodedUserId}`);
+      await sendLogToTelegram(`tariffName: ${tariffName}, type: ${typeof tariffName}`);
 
       let decodedUserIdBigInt;
       try {
@@ -651,25 +653,24 @@ bot.on("message:successful_payment", async (ctx) => {
         throw new Error(`Invalid decodedUserId format for BigInt conversion`);
       }
 
-      // Пытаемся найти подписку по цене totalStars
-      let subscription;
-      try {
-        await sendLogToTelegram(`Before subscription query: totalStars = ${totalStars}`);
-        subscription = await prisma.subscription.findFirst({
-          where: {
-            price: {
-              gte: Number(totalStars) - 0.01,
-              lte: Number(totalStars) + 0.01,
-            },
-          },
-        });
+      // Если есть tariffName, ищем подписку по имени
+      if (tariffName) {
+        await sendLogToTelegram(`Looking for subscription with name=${tariffName}`);
+        try {
+          const subscription = await prisma.subscription.findFirst({
+            where: { name: tariffName },
+          });
 
-        if (subscription) {
-          // Подписка найдена — это тарифная покупка
+          if (!subscription) {
+            await sendLogToTelegram(`Subscription not found for name=${tariffName}. Aborting.`);
+            throw new Error(`Subscription with name=${tariffName} not found`);
+          }
+
           await sendLogToTelegram(`Subscription found: ${JSON.stringify(serializeBigInt(subscription))}`);
 
+          // Пример: делаем подписку на 1 месяц
           const expirationDate = new Date();
-          expirationDate.setMonth(expirationDate.getMonth() + 1); // Срок действия подписки: 1 месяц
+          expirationDate.setMonth(expirationDate.getMonth() + 1);
 
           try {
             await prisma.userTariff.create({
@@ -680,62 +681,57 @@ bot.on("message:successful_payment", async (ctx) => {
                 totalAIRequests: subscription.aiRequestCount || 0,
                 remainingAssistantRequests: subscription.assistantRequestCount || 0,
                 remainingAIRequests: subscription.aiRequestCount || 0,
-                expirationDate, // Дата истечения подписки
+                expirationDate,
               },
             });
 
             await sendLogToTelegram(
-              `User ${decodedUserIdBigInt.toString()} successfully added a tariff with subscription ID ${subscription.id}.`
+              `User ${decodedUserIdBigInt.toString()} successfully purchased tariff [${tariffName}] (subscription ID ${subscription.id}).`
             );
           } catch (userTariffError) {
             const errorMessage = userTariffError instanceof Error ? userTariffError.message : String(userTariffError);
             await sendLogToTelegram(`Error creating UserTariff entry: ${errorMessage}`);
             throw userTariffError;
           }
-        } else {
-          // Подписка не найдена — это покупка дополнительных запросов
-          await sendLogToTelegram(`Subscription not found for price: ${totalStars} stars, treating as extra requests purchase`);
-
-          try {
-            await prisma.userTariff.create({
-              data: {
-                userId: decodedUserIdBigInt,
-                totalAssistantRequests: assistantRequests || 0,
-                totalAIRequests: aiRequests || 0,
-                remainingAssistantRequests: assistantRequests || 0,
-                remainingAIRequests: aiRequests || 0,
-                expirationDate: new Date("9999-12-31T23:59:59.999Z"), // Без срока действия
-              },
-            });
-
-            await sendLogToTelegram(
-              `User ${decodedUserIdBigInt.toString()} successfully added extra requests: Assistant = ${assistantRequests}, AI = ${aiRequests}`
-            );
-          } catch (userTariffError) {
-            const errorMessage = userTariffError instanceof Error ? userTariffError.message : String(userTariffError);
-            await sendLogToTelegram(`Error creating UserTariff entry for extra requests: ${errorMessage}`);
-            throw userTariffError;
-          }
+        } catch (subscriptionError) {
+          const errorMessage = subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError);
+          await sendLogToTelegram(`Error finding subscription by tariffName: ${errorMessage}`);
+          throw subscriptionError;
         }
-      } catch (subscriptionError) {
-        const errorMessage = subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError);
-        await sendLogToTelegram(`Error finding subscription: ${errorMessage}`);
-        throw subscriptionError;
+      } else {
+        // Если tariffName отсутствует, значит это покупка дополнительных запросов
+        await sendLogToTelegram(`tariffName not provided => treat as extra requests purchase`);
+
+        try {
+          await prisma.userTariff.create({
+            data: {
+              userId: decodedUserIdBigInt,
+              totalAssistantRequests: assistantRequests || 0,
+              totalAIRequests: aiRequests || 0,
+              remainingAssistantRequests: assistantRequests || 0,
+              remainingAIRequests: aiRequests || 0,
+              expirationDate: new Date("9999-12-31T23:59:59.999Z"),
+            },
+          });
+
+          await sendLogToTelegram(
+            `User ${decodedUserIdBigInt.toString()} successfully added extra requests: Assistant = ${assistantRequests}, AI = ${aiRequests}`
+          );
+        } catch (userTariffError) {
+          const errorMessage = userTariffError instanceof Error ? userTariffError.message : String(userTariffError);
+          await sendLogToTelegram(`Error creating UserTariff entry for extra requests: ${errorMessage}`);
+          throw userTariffError;
+        }
       }
 
-      // Логика реферальных бонусов
+      // Логика реферальных бонусов (не меняется)
       try {
         const referral = await prisma.referral.findFirst({
-          where: {
-            referredUserId: decodedUserIdBigInt,
-            isUsed: true,
-          },
-          select: {
-            userId: true,
-          },
+          where: { referredUserId: decodedUserIdBigInt, isUsed: true },
+          select: { userId: true },
         });
 
-        await sendLogToTelegram(`referral: ${JSON.stringify(serializeBigInt(referral))}, type: ${typeof referral}`);
+        await sendLogToTelegram(`referral: ${JSON.stringify(serializeBigInt(referral))}`);
 
         if (referral) {
           const referringUser = await prisma.user.findUnique({
@@ -746,7 +742,7 @@ bot.on("message:successful_payment", async (ctx) => {
           if (referringUser) {
             const referralCoins = totalStars * (referringUser.referralPercentage || 0);
             await sendLogToTelegram(
-              `Referral found for User ${decodedUserIdBigInt.toString()}. Referring User ${referral.userId.toString()} receives ${referralCoins} coins`
+              `Referral found. Referring User ${referral.userId.toString()} receives ${referralCoins} coins`
             );
 
             await prisma.user.update({
@@ -756,10 +752,10 @@ bot.on("message:successful_payment", async (ctx) => {
 
             await sendLogToTelegram(`User ${referral.userId.toString()} received ${referralCoins} coins as a referral bonus.`);
           } else {
-            await sendLogToTelegram(`Referring user not found for User ${decodedUserIdBigInt.toString()}`);
+            await sendLogToTelegram(`Referring user not found for referral entry: ${JSON.stringify(referral)}`);
           }
         } else {
-          await sendLogToTelegram(`No referral found for User ${decodedUserIdBigInt.toString()}`);
+          await sendLogToTelegram(`No referral found for userId=${decodedUserIdBigInt.toString()}`);
         }
       } catch (referralError) {
         const errorMessage = referralError instanceof Error ? referralError.message : String(referralError);

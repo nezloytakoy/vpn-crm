@@ -153,12 +153,15 @@ model Subscription {
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @default(now()) @updatedAt
 
-  // Связь с User через lastPaidSubscription
-  users                 User[]      @relation("User_lastPaidSubscription")
+  price1m               Float       @default(0.0)
+  price3m               Float       @default(0.0)
+  price6m               Float       @default(0.0)
 
-  // Связь с UserTariff (для регистрации купленных подписок)
+  users                 User[]      @relation("User_lastPaidSubscription")
   userTariffs           UserTariff[]
 }
+
+
 
 model Rewards {
   id                          Int      @id @default(autoincrement())
