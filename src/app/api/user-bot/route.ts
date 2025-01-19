@@ -632,15 +632,12 @@ bot.on("message:successful_payment", async (ctx) => {
     await sendLogToTelegram(`userId: ${userId}, type: ${typeof userId}`);
 
     if (payment && userId) {
-      // totalStars пригодятся для реф. бонусов
       const totalStars = payment.total_amount;
       await sendLogToTelegram(`totalStars: ${totalStars}, type: ${typeof totalStars}`);
 
-      // Извлекаем payload
       const payloadData = JSON.parse(payment.invoice_payload);
       await sendLogToTelegram(`payloadData: ${JSON.stringify(serializeBigInt(payloadData))}`);
 
-      // Распаковываем нужные поля
       const { userId: decodedUserId, assistantRequests, aiRequests, tariffName, months } = payloadData;
       await sendLogToTelegram(`decodedUserId: ${decodedUserId}, tariffName: ${tariffName}, months: ${months}`);
 
@@ -655,24 +652,33 @@ bot.on("message:successful_payment", async (ctx) => {
         throw new Error(`Invalid decodedUserId format for BigInt conversion`);
       }
 
-      // Если есть tariffName, создаём подписку
+      // Маппинг названий
+      const tariffMap: Record<string, string> = {
+        Basic: "FIRST",
+        Advanced: "SECOND",
+        Expert: "THIRD",
+      };
+
+      // Если есть tariffName, то используем маппинг
       if (tariffName) {
-        await sendLogToTelegram(`Looking for subscription with name=${tariffName}`);
+        await sendLogToTelegram(`Given tariffName=${tariffName}; mapping...`);
+        // Если в тарифной карте нет ключа, оставим как есть
+        const internalName = tariffMap[tariffName] || tariffName;
+
+        await sendLogToTelegram(`Looking for subscription with name=${internalName}`);
         try {
           const subscription = await prisma.subscription.findFirst({
-            where: { name: tariffName },
+            where: { name: internalName },
           });
 
           if (!subscription) {
-            await sendLogToTelegram(`Subscription not found for name=${tariffName}. Aborting.`);
-            throw new Error(`Subscription with name=${tariffName} not found`);
+            await sendLogToTelegram(`Subscription not found for name=${internalName}. Aborting.`);
+            throw new Error(`Subscription with name=${internalName} not found`);
           }
 
           await sendLogToTelegram(`Subscription found: ${JSON.stringify(serializeBigInt(subscription))}`);
 
-          // Если "months" не передан, подставляем 1 (или любое значение по умолчанию)
           const monthsCount = typeof months === "number" && months > 0 ? months : 1;
-
           const expirationDate = new Date();
           expirationDate.setMonth(expirationDate.getMonth() + monthsCount);
 
@@ -685,12 +691,12 @@ bot.on("message:successful_payment", async (ctx) => {
                 totalAIRequests: subscription.aiRequestCount || 0,
                 remainingAssistantRequests: subscription.assistantRequestCount || 0,
                 remainingAIRequests: subscription.aiRequestCount || 0,
-                expirationDate, // <-- используем monthsCount
+                expirationDate,
               },
             });
 
             await sendLogToTelegram(
-              `User ${decodedUserIdBigInt.toString()} purchased tariff [${tariffName}] for ${monthsCount} month(s).`
+              `User ${decodedUserIdBigInt.toString()} purchased tariff [${internalName}] for ${monthsCount} month(s).`
             );
           } catch (userTariffError) {
             const errorMessage = userTariffError instanceof Error ? userTariffError.message : String(userTariffError);
@@ -703,7 +709,7 @@ bot.on("message:successful_payment", async (ctx) => {
           throw subscriptionError;
         }
       } else {
-        // Иначе это покупка дополнительных запросов
+        // Покупка дополнительных запросов (tariffName отсутствует)
         await sendLogToTelegram(`tariffName not provided => treat as extra requests purchase`);
 
         try {
@@ -727,7 +733,6 @@ bot.on("message:successful_payment", async (ctx) => {
           throw userTariffError;
         }
       }
-
       // Логика реферальных бонусов (не меняется)
       try {
         const referral = await prisma.referral.findFirst({
