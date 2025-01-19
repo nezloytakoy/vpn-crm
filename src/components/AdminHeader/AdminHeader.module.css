@@ -677,5 +677,9 @@
         margin-left: 0px;
         transition: all 0.3s ease;
     }
-}
 
+    /* ВАЖНО: Отменяем transform на мобильных */
+    .containerOpen .button {
+        transform: none;
+    }
+}

@@ -59,7 +59,7 @@ adminBot.command('start', async (ctx) => {
     if (args.length > 1 && args[1].startsWith('invite_')) {
       const inviteToken = args[1].replace('invite_', '');
 
-      // handleInvitation(...) и processModeratorInvitation(...) 
+      // handleInvitation(...) и processModeratorInvitation(...)
       // — ваши существующие функции
       const { invitation, moderatorId } = await handleInvitation(ctx.from.id, inviteToken);
 
@@ -69,7 +69,7 @@ adminBot.command('start', async (ctx) => {
       }
 
       // --- Прежде чем вызвать processModeratorInvitation, 
-      // --- мы можем сохранить аватарку в базу Moderator
+      // --- мы можем сохранить аватарку в базу Moderator, но в бинарном виде
 
       // 1) Получаем фото профиля
       const userProfilePhotos = await ctx.api.getUserProfilePhotos(ctx.from.id, {
@@ -77,7 +77,6 @@ adminBot.command('start', async (ctx) => {
         limit: 1,
       });
 
-      let avatarUrl: string | null = null;
       if (userProfilePhotos.total_count > 0) {
         const photos = userProfilePhotos.photos[0];
         const largestPhoto = photos[photos.length - 1];
@@ -88,23 +87,38 @@ adminBot.command('start', async (ctx) => {
         // 3) Формируем полный URL для скачивания, используя TELEGRAM_ADMIN_BOT_TOKEN
         //    (Убедитесь, что именно этим токеном adminBot создан)
         const fullUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_ADMIN_BOT_TOKEN}/${fileObj.file_path}`;
-        avatarUrl = fullUrl;
+
+        // 4) Скачиваем сам файл в виде ArrayBuffer / Buffer
+        const fetch = globalThis.fetch || (await import('node-fetch')).default;
+        // ↑ Если вы в Node.js < 18, в котором нет встроенного fetch, 
+        //   нужно подгрузить 'node-fetch' (или другой пакет) вручную.
+
+        const response = await fetch(fullUrl);
+        // В среде Node.js (fetch из 'node-fetch') есть метод .arrayBuffer() или .buffer()
+        // Самый надёжный — .arrayBuffer().
+        const arrayBuffer = await response.arrayBuffer();
+        // Превращаем ArrayBuffer в Buffer, чтобы Prisma мог сохранить в Bytes
+        const avatarBuffer = Buffer.from(arrayBuffer);
+
+        // 5) Сохраняем avatarBuffer в avatarData
+        if (moderatorId) {
+          await prisma.moderator.update({
+            where: { id: BigInt(moderatorId) },
+            data: {
+              avatarData: avatarBuffer,
+            },
+          });
+        }
       }
 
-      // 4) Сохраняем avatarUrl в таблицу Moderator
-      //    Предполагается, что "moderatorId" — это первичный ключ в таблице Moderator.
-      //    Или, если "moderatorId" — это BigInt, адаптируйте под вашу схему.
-      if (moderatorId && avatarUrl) {
-        await prisma.moderator.update({
-          where: { id: BigInt(moderatorId) },
-          data: {
-            avatarUrl,
-          },
-        });
-      }
-
-
-      await processModeratorInvitation(invitation, moderatorId, ctx.from.username, lang, showModeratorMenu, ctx);
+      await processModeratorInvitation(
+        invitation,
+        moderatorId,
+        ctx.from.username,
+        lang,
+        showModeratorMenu,
+        ctx
+      );
 
     } else {
       // Если /start без invite-токена
@@ -116,6 +130,7 @@ adminBot.command('start', async (ctx) => {
     await ctx.reply(getTranslation(lang, 'error_processing_message'));
   }
 });
+
 
 adminBot.callbackQuery('message_user', async (ctx) => {
   const lang = detectUserLanguage(ctx);

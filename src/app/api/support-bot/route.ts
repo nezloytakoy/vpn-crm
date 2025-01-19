@@ -1389,7 +1389,7 @@ bot.on('callback_query:data', async (ctx) => {
       text: `${getTranslation(lang, 'activated_request_with_subject')}: ${conversation.assistantRequest.subject}`,
     });
     await ctx.reply(
-      `${getTranslation(lang, 'now_chatting_with_user')}: ${conversation.user.username || conversation.userId}`
+      `${getTranslation(lang, 'now_chatting_with_user')}: ${conversation.user?.username || conversation.userId}`
     );
   } else if (data.startsWith('accept_') || data.startsWith('reject_')) {
     // Handle accept or reject actions

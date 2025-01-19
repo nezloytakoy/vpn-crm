@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+/* @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
 
 
 .popupOverlay {
@@ -76,20 +76,15 @@
 
 
 .popupContent {
-  /* Фон из картинки */
+  
   background-size: cover;
-  /* растянуть с сохранением пропорций */
+  
   background-position: center;
-  /* центрировать картинку */
+  
   background-repeat: no-repeat;
-  /* не повторять */
-
-  /* или один шорткат вариант:
-       background: url("path/to/your-image.jpg") center/cover no-repeat;
-    */
 
   background-color: #333;
-  /* fallback-цвет, если картинка не загрузится */
+  
   padding: 20px;
   border-radius: 35px 35px 0 0;
   width: 100%;
@@ -226,4 +221,300 @@
 .number {
   font-size: 40px;
   color: white;
+} */
+
+
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+
+
+.popupOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  z-index: 10000;
+  opacity: 0;
+  animation: fade-in 0.4s ease-out forwards;
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+
+.slideUp {
+  animation: slide-up 0.4s ease-out forwards;
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+
+.slideDown {
+  animation: slide-down 0.4s ease-out forwards;
+}
+
+@keyframes slide-down {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(100%);
+  }
+}
+
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+
+.fadeOutOverlay {
+  animation: fade-out 0.4s ease-out forwards;
+}
+
+
+.popupContent {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #333;
+
+  /* Условно фиксированная высота */
+  height: 600px;
+
+  padding: 20px;
+  border-radius: 35px 35px 0 0;
+  width: 100%;
+  text-align: center;
+  color: white;
+  position: relative;
+
+  /* Включаем вертикальную прокрутку, если содержимого больше, чем высота */
+  overflow-y: auto;
+}
+
+
+
+
+@keyframes neon-glow {
+  0% {
+    box-shadow: 0px -20px 50px rgba(69, 129, 233, 0.3),
+      0px -30px 70px rgba(69, 129, 233, 0.2),
+      0px -40px 90px rgba(69, 129, 233, 0.1);
+    border-top-color: rgba(69, 129, 233, 0.5);
+  }
+
+  100% {
+    box-shadow: 0px -30px 80px rgba(69, 129, 233, 1),
+      0px -40px 100px rgba(69, 129, 233, 0.8),
+      0px -50px 120px rgba(69, 129, 233, 0.6);
+    border-top-color: rgba(69, 129, 233, 1);
+  }
+}
+
+
+
+.slideUp {
+  animation: slide-up 0.4s ease-out forwards;
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+
+.slideDown {
+  animation: slide-down 0.4s ease-out forwards;
+}
+
+@keyframes slide-down {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(100%);
+  }
+}
+
+
+
+.popupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.closeButton {
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  margin-right: 10px;
+  margin-top: 10px;
+}
+
+.content {}
+
+.logobox {
+  width: 100%;
+  display: flex;
+  text-align: center;
+  align-items: center;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+
+.logobox h1 {
+  margin-left: 30px;
+}
+
+.features {
+  width: 100%;
+  margin-top: 30px;
+}
+
+.line {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  font-size: 18px;
+  font-weight: 500;
+  margin-top: 10px;
+}
+
+.line p {
+  margin-left: 15px;
+}
+
+.tariffsbox {
+  width: 100%;
+  display: flex;
+  margin-top: 40px;
+  color: grey;
+  flex-direction: column;
+}
+
+.tariffsbox p {
+  width: 100%;
+  text-align: left;
+}
+
+.tariff {
+  width: 100%;
+  height: 73px;
+  background-color: orange;
+  border-radius: 16px;
+  margin-top: 20px;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+}
+
+.mounthsnum {
+  border-radius: 50px;
+  /* Градиент от #ccc к #fff, направление справа снизу → справа нижнему */
+  background: linear-gradient(to bottom right, rgba(77, 76, 76, 0.08), rgba(255, 255, 255, 0.08));
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  width: 49px;
+  height: 49px;
+  margin-left: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: white;
+  font-weight: 500;
+  font-size: 24px;
+}
+
+.textblock {
+  margin-left: 15px;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.textblock h1 {
+  color: white;
+  margin-top: 5px;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.checkbox {
+  position: absolute;
+  right: 35px;
+}
+
+.button {
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  height: 56px;
+  border-radius: 16px;
+  margin-top: 30px;
+  font-weight: 500;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.buttonactive {
+  width: 100%;
+  background-color: #00A6DE;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  height: 56px;
+  border-radius: 16px;
+  margin-top: 30px;
+  font-weight: 500;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.selectedTariff {
+  /* Стили для выбранного тарифа */
+  border: 2px solid #00A6DE;
 }

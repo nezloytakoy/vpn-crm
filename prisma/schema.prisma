@@ -29,7 +29,7 @@ model Moderator {
   userMessagesCount       Int         @default(0)
   username                String      @default("Отсутствует")
   complaints              Complaint[] @relation("ModeratorComplaints")
-  avatarUrl               String?
+  avatarData               Bytes?
 }
 
 model Invitation {
@@ -113,7 +113,7 @@ model User {
   unblockDate            DateTime?
 
   // Новое поле для ссылки на лого/аватар
-  avatarUrl              String?            // <-- Добавлено
+  avatarData              Bytes?           // <-- Добавлено
 
   // Связь с последней оплаченной подпиской
   lastPaidSubscriptionId BigInt?
@@ -123,7 +123,7 @@ model User {
   requests               AssistantRequest[]
 
   // Связь с Conversation
-  conversations          Conversation[]
+  conversations Conversation[]  @relation("UserToConversation")
 
   // Связь с реферальной системой
   referredUsers          Referral?          @relation("Referred")
@@ -211,7 +211,7 @@ model Conversation {
   // Relations
   assistant              Assistant?        @relation("AssistantToConversations", fields: [assistantId], references: [telegramId])
   assistantRequest       AssistantRequest @relation(fields: [requestId], references: [id])
-  user                   User             @relation(fields: [userId], references: [telegramId])
+  user       User?   @relation("UserToConversation", fields: [userId], references: [telegramId], onDelete: Cascade)
 
   // Reverse relation for active conversation
   activeAssistant        Assistant?       @relation("AssistantActiveConversation")

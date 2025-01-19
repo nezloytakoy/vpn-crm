@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
-// Для Node.js < 18, если нужно:
+// Для Node.js < 18, если нужно, подключите 'node-fetch'
 // import fetch from 'node-fetch';
 
 const prisma = new PrismaClient();
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const moderatorIdParam = searchParams.get('moderatorId');
 
-    console.log('Proxying image for moderator with ID:', moderatorIdParam);
+    console.log('Fetching binary avatar for moderator with ID:', moderatorIdParam);
 
     // 1) Проверяем, что есть moderatorId
     if (!moderatorIdParam) {
@@ -20,10 +20,10 @@ export async function GET(request: Request) {
     }
 
     try {
-        // 2) Ищем запись в таблице Moderator
+        // 2) Ищем запись в таблице Moderator, достаём avatarData
         const moderator = await prisma.moderator.findUnique({
             where: { id: BigInt(moderatorIdParam) }, // Если у вас тип поля - BigInt
-            select: { avatarUrl: true },
+            select: { avatarData: true },
         });
 
         if (!moderator) {
@@ -31,40 +31,26 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Moderator not found' }, { status: 404 });
         }
 
-        // 3) Если avatarUrl отсутствует или пустая строка
-        const avatarLink = moderator.avatarUrl || '';
-        if (!avatarLink) {
+        // 3) Если avatarData нет, возвращаем "no avatar"
+        if (!moderator.avatarData) {
             console.log('Moderator has no avatar => returning no avatar (200 OK)');
             return NextResponse.json({ error: 'no avatar' }, { status: 200 });
         }
 
-        console.log('Fetching avatar from:', avatarLink);
+        console.log('Returning avatar from DB for moderator...');
 
-        // 4) Делаем запрос к avatarLink
-        const response = await fetch(avatarLink);
-        if (!response.ok) {
-            // Ошибка при загрузке изображения — вернём JSON с error (200)
-            console.error('Ошибка загрузки изображения:', response.status, response.statusText);
-            return NextResponse.json({ error: 'Ошибка загрузки изображения' }, { status: 200 });
-        }
-
-        // 5) Считываем бинарные данные
-        const imageBuffer = await response.arrayBuffer();
-
-        // Определяем content-type (или по умолчанию image/jpeg)
-        const contentType = response.headers.get('content-type') || 'image/jpeg';
-        console.log(`Got content-type from server: ${contentType}`);
-
-        // 6) Возвращаем «сырое» изображение, ставим корректный Content-Type
-        return new Response(imageBuffer, {
+        // 4) Возвращаем «сырое» изображение из базы
+        //    Предполагаем, что это JPEG. Если вы храните MIME-тип, используйте его вместо 'image/jpeg'
+        return new Response(moderator.avatarData, {
             headers: {
-                'Content-Type': contentType,
+                'Content-Type': 'image/jpeg',
                 // Укажите кэширование по желанию:
                 'Cache-Control': 'public, max-age=86400',
             },
         });
+
     } catch (error) {
-        console.error('Ошибка при проксировании изображения (moderator):', error);
+        console.error('Ошибка при получении аватарки (moderator):', error);
         // Аналогично, возвращаем JSON при ошибке
         return NextResponse.json({ error: 'Ошибка сервера' }, { status: 200 });
     }

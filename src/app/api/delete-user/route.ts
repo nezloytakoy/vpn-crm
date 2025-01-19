@@ -31,13 +31,24 @@ export async function DELETE(request: Request) {
       where: { userId: userTelegramId },
     });
 
-    // 4. Удаляем записи в assistantRequest
-    await prisma.assistantRequest.deleteMany({
-      where: { userId: userTelegramId },
+    // A) Сначала удаляем записи в RequestAction, которые принадлежат AssistantRequest пользователя
+    await prisma.requestAction.deleteMany({
+      where: {
+        AssistantRequest: {
+          userId: userTelegramId,
+        }
+      }
     });
+
+
 
     // 5. Удаляем записи в conversation
     await prisma.conversation.deleteMany({
+      where: { userId: userTelegramId },
+    });
+
+    // B) Теперь можно удалять AssistantRequest
+    await prisma.assistantRequest.deleteMany({
       where: { userId: userTelegramId },
     });
 

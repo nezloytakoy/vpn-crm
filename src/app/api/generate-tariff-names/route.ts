@@ -27,13 +27,30 @@ export async function POST() {
         console.log('Subscriptions fetched:', subscriptions);
 
         // Generate updated names for the subscriptions
-        const updatedSubscriptions = subscriptions.map((sub, index) => {
+        const updatedSubscriptions = subscriptions.map((sub) => {
             let newName;
-            if (index === subscriptions.length - 1) {
-                newName = 'Только AI';
+
+            // Сравниваем sub.id, если это BigInt, приводим к Number
+            const subIdNum = Number(sub.id);
+            const assistantRequests = sub.assistantRequestCount ?? 0;
+
+            // Если нужно строго:
+            // id=1 => "Простая", id=2 => "Сложная", id=3 => "Экспертная"
+            // Иначе используем вашу логику "AI + X запросов" / "Только AI"
+            if (subIdNum === 1) {
+                newName = "Простая";
+            } else if (subIdNum === 2) {
+                newName = "Сложная";
+            } else if (subIdNum === 3) {
+                newName = "Экспертная";
             } else {
-                const assistantRequests = sub.assistantRequestCount ?? 0;
-                newName = `AI + ${assistantRequests} запросов ассистенту`;
+                // Например, если assistantRequestCount > 0 => "AI + X запросов ассистенту"
+                // Иначе => "Только AI"
+                if (assistantRequests > 0) {
+                    newName = `AI`;
+                } else {
+                    newName = "Только AI";
+                }
             }
 
             return {

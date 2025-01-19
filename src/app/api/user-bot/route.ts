@@ -530,13 +530,25 @@ bot.command('start', async (ctx) => {
       // Формируем URL для скачивания
       const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_USER_BOT_TOKEN}/${fileObj.file_path}`;
 
-      // Обновляем поле avatarUrl в таблице User
-      await prisma.user.update({
-        where: { telegramId },
-        data: { avatarUrl: fileUrl },
-      });
+      // 1) Скачиваем как бинарные данные
+      const response = await fetch(fileUrl);
+      if (!response.ok) {
+        console.error("Ошибка при скачивании аватарки:", response.statusText);
+      } else {
+        // 2) Преобразуем в Buffer (Node.js)
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
 
-      console.log('Аватарка обновлена:', fileUrl);
+        // 3) Сохраняем buffer в поле avatarData (Bytes)
+        await prisma.user.update({
+          where: { telegramId },
+          data: {
+            avatarData: buffer,
+          },
+        });
+
+        console.log(`Бинарная аватарка сохранена в БД: ${buffer.length} байт`);
+      }
     } else {
       console.log('У пользователя нет фото профиля, пропускаем обновление аватарки.');
     }

@@ -1,17 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+/* @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
 
 .background {
-    /* Пусть фоновое изображение будет во всю ширину/высоту блока */
+    
     background-image: url("https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(3)-XNz1W2wKQ2BAlBI5PNqZTSHeA2xiFy.png");
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     background-color: black;
 
-    /* При необходимости задать ширину/высоту или растянуть на весь экран */
+    
     width: 100%;
     height: 100vh;
-    /* например, на всю высоту экрана */
+    
     font-family: "Plus Jakarta Sans", sans-serif;
 }
 
@@ -19,16 +19,8 @@
     width: 100%;
     height: 120px;
 
-    /* Полупрозрачный красный (50% прозрачности) */
-    background-color: rgba(197, 192, 192, 0.1);
-
-    /* Размытие фона «за» блоком */
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    /* Для Safari */
-
-    /* Если нужно, чтобы элемент был над другими */
-    /* position: relative; или position: fixed; */
+    
+    
     display: flex;
     justify-content: center;
     align-items: center;
@@ -95,10 +87,10 @@
 .subscriptions {
     width: 90%;
     border-radius: 16px;
-    /* Полупрозрачный красный (50% прозрачности) */
+    
     background-color: rgba(108, 106, 106, 0.2);
     color: white;
-    /* Размытие фона «за» блоком */
+    
     backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(10px);
     display: flex;
@@ -107,14 +99,7 @@
     flex-direction: column;
 }
 
-.subblock {
-    width: 90%;
-    height: 70px;
-    display: flex;
-    align-items: center;
-    position: relative;
-    border-bottom: 2px dotted rgb(53, 53, 53);
-}
+
 
 .image {
     width: 49px;
@@ -150,13 +135,13 @@
     width: 49px;
     height: 49px;
     border-radius: 50%;
-    background-color: #ccc; /* или ваш цвет */
+    background-color: #ccc; 
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 32px; /* побольше, чтобы буква была крупной */
-    color: #fff; /* цвет текста */
-    /* Доп. стили, например тень, рамка и т.д. */
+    font-size: 32px; 
+    color: #fff; 
+    
     background-color: #2473FF;
     border-radius: 50%;
     width: 64px;
@@ -170,7 +155,7 @@
     justify-content: center;
     height: 50px;
     width: 100px;
-    /* Подберите нужные размеры */
+    
   }
   
   .loader {
@@ -182,8 +167,246 @@
     animation: spin 0.8s linear infinite;
     margin-top: 55px;
   }
+
+
   
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+  } */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+
+
+
+.background {
+
+    background-image: url("https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(3)-XNz1W2wKQ2BAlBI5PNqZTSHeA2xiFy.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: black;
+
+
+    width: 100%;
+    height: 100vh;
+
+    font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+
+.header {
+    width: 100%;
+    height: 120px;
+
+
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+.subblock {
+    position: absolute;
+    top: 35px;
+    color: white;
+    z-index: 2;
+    width: 100%;
+}
+
+.subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    /* Белый с 30% прозрачности */
+}
+
+.subscription {
+    font-size: 20px;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+.content {
+
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.points {
+    position: relative; /* Нужно для абсолютного позиционирования псевдоэлемента */
+    background-color: rgba(255, 255, 255, 0.08);
+    width: 93%;
+    height: 200px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+  
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(10px);
+  
+    /* Маска: вырезает круг радиусом 75px */
+    -webkit-mask-image: radial-gradient(
+      circle 75px at 50% 50%,
+      transparent 74px,
+      black 75px
+    );
+    -webkit-mask-repeat: no-repeat;
+  
+    mask-image: radial-gradient(
+      circle 75px at 50% 50%,
+      transparent 74px,
+      black 75px
+    );
+    mask-repeat: no-repeat;
   }
+  
+  /* Псевдоэлемент, рисующий белую рамку */
+  .points::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 150px;        /* Диаметр = радиус*2 */
+    height: 150px;
+    transform: translate(-50%, -50%);
+  
+    border: 1px solid rgba(255, 255, 255, 0.13);   /* Белая рамка */
+    border-radius: 50%;        /* Круг */
+    pointer-events: none;      /* Чтобы клики проходили сквозь */
+  }
+  
+
+.left {
+
+    height: 100%;
+    width: 27%;
+}
+
+.daysblock {
+
+    height: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.datablock h1 {
+    font-weight: 500;
+    font-size: 48px;
+    color: white;
+}
+
+.datablock p {
+    font-size: 20px;
+    color: grey;
+}
+
+.middle {
+
+    height: 100%;
+    width: 45%;
+}
+
+.right {
+
+    height: 100%;
+    width: 27%;
+}
+
+.hoursblock {
+    height: 50%;
+    margin-left: 35px;
+    margin-top: 15px;
+    width: 100%;
+
+}
+
+.hoursnumberblock {
+
+    height: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: -30px;
+}
+
+.datablocktwo h1 {
+    font-weight: 500;
+    font-size: 48px;
+    color: white;
+    text-align: right;
+}
+
+.datablocktwo p {
+    font-size: 20px;
+    color: grey;
+}
+
+.subscriptionsFather {
+    width: 100%;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+.subscriptions {
+    width: 93%;
+    border-radius: 16px;
+
+    background-color: rgba(108, 106, 106, 0.2);
+    color: white;
+
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    margin-top: 35px;
+}
+
+.subblocktwo {
+    width: 90%;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    position: relative;
+    border-bottom: 1px solid rgb(53, 53, 53);
+}
+
+.image {
+    width: 49px;
+}
+
+.subname {
+    font-size: 16px;
+    font-weight: 500;
+    margin-left: 15px;
+}
+
+.arrow {
+    position: absolute;
+    right: 0;
+}
+
+.assistant {
+    width: 93%;
+    border-radius: 16px;
+    height: 56px;
+    background-color: rgba(108, 106, 106, 0.2);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(10px);
+    margin-top: 15px;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
