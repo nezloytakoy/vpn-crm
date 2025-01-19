@@ -217,9 +217,19 @@ const Popup: React.FC<PopupProps> = ({
   // Переход к оплате
   const handlePay = () => {
     if (!selectedTariff) return;
+
+    // Допустим, хотим передавать query:
+    // 1) price  (из selectedTariff.price)
+    // 2) tariffName (из config.title, или buttonText)
+    // 3) months (из selectedTariff.months)
+
+    const tariffName = config.title; // или buttonText, на ваше усмотрение
+    const months = selectedTariff.months;
+
     router.push(
-      `/payment-methods?price=${selectedTariff.price}&tariff=${encodeURIComponent(buttonText)}`
+      `/payment-methods?price=${selectedTariff.price}&tariffName=${encodeURIComponent(tariffName)}&months=${months}`
     );
+
     handleClose();
   };
 
@@ -337,9 +347,9 @@ const Popup: React.FC<PopupProps> = ({
               style={
                 selectedTariff
                   ? {
-                      backgroundColor: config.buttonColor,
-                      color: "#fff",
-                    }
+                    backgroundColor: config.buttonColor,
+                    color: "#fff",
+                  }
                   : undefined
               }
               onClick={handlePay}

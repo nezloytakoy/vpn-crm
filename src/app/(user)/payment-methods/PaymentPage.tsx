@@ -22,6 +22,8 @@ function PaymentPage() {
   const [assistantRequests, setAssistantRequests] = useState<number>(0);
   const [aiRequests, setAiRequests] = useState<number>(0);
 
+  const [months, setMonths] = useState<number>(0);
+
   // Цены на запросы (пример)
   const ASSISTANT_REQUEST_PRICE = 0.1;
   const AI_REQUEST_PRICE = 0.2;
@@ -39,7 +41,10 @@ function PaymentPage() {
       const queryTariff = searchParams.get("tariff");
       const queryAssistantRequests = searchParams.get("assistantRequests");
       const queryAiRequests = searchParams.get("aiRequests");
+      const months = searchParams.get("months")
 
+
+      if (months) setMonths(Number(months))
       if (queryPrice) setPrice(Number(queryPrice));
       if (queryTariff) setTariffName(queryTariff);
       if (queryAssistantRequests) setAssistantRequests(Number(queryAssistantRequests));
@@ -86,9 +91,9 @@ function PaymentPage() {
       alert("Please select a payment method.");
       return;
     }
-
+  
     setIsLoading(true);
-
+  
     try {
       if (tariffName) {
         // --- Основная логика (старый тариф) ---
@@ -97,20 +102,21 @@ function PaymentPage() {
           userId: userId ?? "???",
           priceInDollars: price,
           tariffName,
+          months, // <-- Добавляем количество месяцев, например, из стейта или query
         };
-
+  
         const response = await fetch("/api/telegram-invoice", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(requestBody),
         });
         const data = await response.json();
-
+  
         if (!response.ok) {
           alert(data.message || "Error creating invoice.");
           return;
         }
-
+  
         // Открываем счёт (ссылка из data.invoiceLink)
         window.open(data.invoiceLink, "_blank");
       } else {
@@ -120,7 +126,7 @@ function PaymentPage() {
           assistantRequests,
           aiRequests,
         };
-
+  
         // Шлём запрос на /api/extra-requests
         const extraRes = await fetch("/api/extra-requests", {
           method: "POST",
@@ -128,12 +134,12 @@ function PaymentPage() {
           body: JSON.stringify(extraBody),
         });
         const extraData = await extraRes.json();
-
+  
         if (!extraRes.ok) {
           alert(extraData.message || "Error adding extra requests.");
           return;
         }
-
+  
         // Если бэкенд тоже возвращает invoiceLink (как в /api/telegram-invoice),
         // открываем ссылку. Предположим, extraData.invoiceLink есть.
         if (extraData.invoiceLink) {
@@ -150,6 +156,7 @@ function PaymentPage() {
       setIsLoading(false);
     }
   }
+  
 
   return (
     <Suspense fallback={<div>Loading...</div>}>

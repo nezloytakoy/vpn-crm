@@ -632,28 +632,30 @@ bot.on("message:successful_payment", async (ctx) => {
     await sendLogToTelegram(`userId: ${userId}, type: ${typeof userId}`);
 
     if (payment && userId) {
-      // totalStars пригодятся, например, если у вас реферальные бонусы считаются от суммы
+      // totalStars пригодятся для реф. бонусов
       const totalStars = payment.total_amount;
       await sendLogToTelegram(`totalStars: ${totalStars}, type: ${typeof totalStars}`);
 
+      // Извлекаем payload
       const payloadData = JSON.parse(payment.invoice_payload);
-      await sendLogToTelegram(`payloadData: ${JSON.stringify(serializeBigInt(payloadData))}, type: ${typeof payloadData}`);
+      await sendLogToTelegram(`payloadData: ${JSON.stringify(serializeBigInt(payloadData))}`);
 
-      const { userId: decodedUserId, assistantRequests, aiRequests, tariffName } = payloadData;
-      await sendLogToTelegram(`decodedUserId: ${decodedUserId}, type: ${typeof decodedUserId}`);
-      await sendLogToTelegram(`tariffName: ${tariffName}, type: ${typeof tariffName}`);
+      // Распаковываем нужные поля
+      const { userId: decodedUserId, assistantRequests, aiRequests, tariffName, months } = payloadData;
+      await sendLogToTelegram(`decodedUserId: ${decodedUserId}, tariffName: ${tariffName}, months: ${months}`);
 
+      // Преобразуем decodedUserId => BigInt
       let decodedUserIdBigInt;
       try {
         decodedUserIdBigInt = BigInt(decodedUserId);
-        await sendLogToTelegram(`decodedUserIdBigInt: ${decodedUserIdBigInt.toString()}, type: ${typeof decodedUserIdBigInt}`);
+        await sendLogToTelegram(`decodedUserIdBigInt: ${decodedUserIdBigInt.toString()}`);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         await sendLogToTelegram(`Failed to convert decodedUserId to BigInt: ${errorMessage}`);
         throw new Error(`Invalid decodedUserId format for BigInt conversion`);
       }
 
-      // Если есть tariffName, ищем подписку по имени
+      // Если есть tariffName, создаём подписку
       if (tariffName) {
         await sendLogToTelegram(`Looking for subscription with name=${tariffName}`);
         try {
@@ -668,9 +670,11 @@ bot.on("message:successful_payment", async (ctx) => {
 
           await sendLogToTelegram(`Subscription found: ${JSON.stringify(serializeBigInt(subscription))}`);
 
-          // Пример: делаем подписку на 1 месяц
+          // Если "months" не передан, подставляем 1 (или любое значение по умолчанию)
+          const monthsCount = typeof months === "number" && months > 0 ? months : 1;
+
           const expirationDate = new Date();
-          expirationDate.setMonth(expirationDate.getMonth() + 1);
+          expirationDate.setMonth(expirationDate.getMonth() + monthsCount);
 
           try {
             await prisma.userTariff.create({
@@ -681,12 +685,12 @@ bot.on("message:successful_payment", async (ctx) => {
                 totalAIRequests: subscription.aiRequestCount || 0,
                 remainingAssistantRequests: subscription.assistantRequestCount || 0,
                 remainingAIRequests: subscription.aiRequestCount || 0,
-                expirationDate,
+                expirationDate, // <-- используем monthsCount
               },
             });
 
             await sendLogToTelegram(
-              `User ${decodedUserIdBigInt.toString()} successfully purchased tariff [${tariffName}] (subscription ID ${subscription.id}).`
+              `User ${decodedUserIdBigInt.toString()} purchased tariff [${tariffName}] for ${monthsCount} month(s).`
             );
           } catch (userTariffError) {
             const errorMessage = userTariffError instanceof Error ? userTariffError.message : String(userTariffError);
@@ -699,7 +703,7 @@ bot.on("message:successful_payment", async (ctx) => {
           throw subscriptionError;
         }
       } else {
-        // Если tariffName отсутствует, значит это покупка дополнительных запросов
+        // Иначе это покупка дополнительных запросов
         await sendLogToTelegram(`tariffName not provided => treat as extra requests purchase`);
 
         try {

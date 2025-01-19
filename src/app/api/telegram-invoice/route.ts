@@ -14,41 +14,60 @@ const sendLogToTelegram = async (message: string) => {
 
 export async function POST(request: Request) {
   try {
-    const { userId, priceInDollars, tariffName } = await request.json();
+    // Читаем из тела запроса
+    // { userId, priceInDollars, tariffName, months }
+    const { userId, priceInDollars, tariffName, months } = await request.json();
 
-    await sendLogToTelegram(`Received tariffName: ${tariffName}, price: ${priceInDollars}`);
+    await sendLogToTelegram(
+      `Received tariffName: ${tariffName}, price: ${priceInDollars}, months: ${months}`
+    );
 
-    // Преобразуем priceInDollars в целое число для amount
+    // Преобразуем priceInDollars в целое число
     const starsAmount = Math.ceil(priceInDollars * 1);
-
     if (starsAmount <= 0) {
       await sendLogToTelegram(`Некорректная цена: ${starsAmount}`);
-      return new Response(JSON.stringify({ message: "Некорректная цена" }), { status: 400 });
+      return new Response(JSON.stringify({ message: "Некорректная цена" }), {
+        status: 400,
+      });
     }
 
-    const title = "Оплата через Звезды Telegram";
-    const description = "Оплата за товар через звезды Telegram.";
-    const payload = JSON.stringify({ userId, tariffName });
-    const currency = "XTR";
-    const prices = [{ amount: starsAmount, label: "Оплата через звезды" }];
+    // Формируем title/description, где можно упомянуть количество месяцев
+    const title = `Оплата (${months} мес) через Звезды Telegram`;
+    const description = `Оплата за тариф: ${tariffName}, на срок: ${months} месяцев.`;
 
+    // Сохраняем все нужные поля (userId, tariffName, months) в payload,
+    // чтобы потом в "successful_payment" это считать
+    const payload = JSON.stringify({ userId, tariffName, months });
+
+    // Устанавливаем валюту и массив цен
+    const currency = "XTR";
+    const prices = [
+      {
+        amount: starsAmount,
+        label: `${tariffName || "NoName"} (${months}m)`, // Можно дополнительно указать в label
+      },
+    ];
+
+    // Параметр provider_token временно пустой
     const invoiceLink = await bot.api.createInvoiceLink(
       title,
       description,
       payload,
-      "", // provider_token пока пустой
+      "",  // provider_token
       currency,
       prices
     );
 
-    await sendLogToTelegram(`Invoice created for user: ${userId} with tariff: ${tariffName}`);
+    await sendLogToTelegram(
+      `Invoice created for user: ${userId}, tariff: ${tariffName}, months: ${months}`
+    );
 
     return new Response(JSON.stringify({ invoiceLink }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Ошибка создания инвойса:", errorMessage);
     await sendLogToTelegram(`Error creating invoice: ${errorMessage}`);
 
