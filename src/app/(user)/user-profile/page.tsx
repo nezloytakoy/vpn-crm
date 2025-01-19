@@ -389,15 +389,15 @@ function Page() {
         }
     };
 
-    // Считаем отображение assistantRequests
-    let displayAssistantRequests: string;
-    if (assistantRequests === null || assistantRequests === undefined) {
-        displayAssistantRequests = "...";
-    } else if (assistantRequests === 0) {
-        displayAssistantRequests = "0";
-    } else {
-        displayAssistantRequests = String(assistantRequests);
-    }
+    // // Считаем отображение assistantRequests
+    // let displayAssistantRequests: string;
+    // if (assistantRequests === null || assistantRequests === undefined) {
+    //     displayAssistantRequests = "...";
+    // } else if (assistantRequests === 0) {
+    //     displayAssistantRequests = "0";
+    // } else {
+    //     displayAssistantRequests = String(assistantRequests);
+    // }
 
     // Логика для подписок (попап)
     const [tariffs, setTariffs] = useState<Record<string, TariffInfo>>({});
