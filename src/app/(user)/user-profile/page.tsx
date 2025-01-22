@@ -325,7 +325,7 @@ import styles from "./profile.module.css";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
-
+import { sendLogToTelegram } from './utils';
 import { fetchTariffs, TariffInfo } from "./utils";
 import { useProfile } from "./useProfile";
 import { handleAssistantClick } from "./handlers";
@@ -444,6 +444,8 @@ export default function Page() {
           });
           const data = await response.json();
           console.log("Response from /api/test-post:", data);
+
+          sendLogToTelegram(`Response from /api/test-post:" ${data}`);
 
           if (data.error) {
             setSubscriptionId(0);
