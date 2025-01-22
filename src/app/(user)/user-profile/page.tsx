@@ -405,6 +405,7 @@ export default function Page() {
     // Берём данные пользователя
     const { assistantRequests, telegramId } = useProfile();
 
+
     // Состояния для «дней/часов»
     const [days, setDays] = useState(0);
    
