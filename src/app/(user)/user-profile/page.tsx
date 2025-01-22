@@ -405,7 +405,6 @@ export default function Page() {
 
   // Левый блок: days/hours (получаем из /api/user-tariff)
   const [days, setDays] = useState(0);
-  const [hours, setHours] = useState(0);
 
   // **Новый** стейт для assistantRequestsFromServer (правый блок)
   const [assistantRequestsLeft, setAssistantRequestsLeft] = useState(0);
@@ -426,11 +425,11 @@ export default function Page() {
 
           if (data.error) {
             setDays(0);
-            setHours(0);
+
           } else {
             const totalH = data.remainingHours ?? 0;
             setDays(Math.floor(totalH / 24));
-            setHours(totalH % 24);
+
           }
         }
 
@@ -473,7 +472,6 @@ export default function Page() {
       } catch (err) {
         console.error("[ProfilePage] Error fetching data:", err);
         setDays(0);
-        setHours(0);
         setSubscriptionId(0);
         setAssistantRequestsLeft(0);
       } finally {
@@ -481,6 +479,7 @@ export default function Page() {
       }
     })();
   }, [telegramId]);
+  
 
   // Кнопка ассистента
   const [loading, setLoading] = useState(false);
