@@ -325,7 +325,7 @@ import styles from "./profile.module.css";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
-
+import { sendLogToTelegram } from './utils';
 import { fetchTariffs, TariffInfo } from "./utils";
 import { useProfile } from "./useProfile";
 import { handleAssistantClick } from "./handlers";
@@ -407,7 +407,7 @@ export default function Page() {
 
     // Состояния для «дней/часов»
     const [days, setDays] = useState(0);
-    const [hours, setHours] = useState(0);
+   
 
     // Состояние для текущего тарифа (0 = нет)
     const [subscriptionId, setSubscriptionId] = useState<number>(0);
@@ -428,11 +428,11 @@ export default function Page() {
 
                     if (data.error) {
                         setDays(0);
-                        setHours(0);
+                    
                     } else {
                         const totalH = data.remainingHours ?? 0;
                         setDays(Math.floor(totalH / 24));
-                        setHours(totalH % 24);
+                     
                     }
                 }
 
@@ -447,6 +447,8 @@ export default function Page() {
                     const data = await response.json();
                     console.log("Response from /api/test-post:", data);
 
+                    sendLogToTelegram(`Response from /api/test-post: ${data}`);
+
                     if (data.error) {
                         setSubscriptionId(0);
                     } else if (data.tariffId) {
@@ -460,7 +462,7 @@ export default function Page() {
             } catch (err) {
                 console.error("[ProfilePage] Error fetching data:", err);
                 setDays(0);
-                setHours(0);
+              
                 setSubscriptionId(0);
             } finally {
                 // Данные загружены (успешно или с ошибкой)
@@ -612,7 +614,7 @@ export default function Page() {
 
                         <div className={styles.hoursnumberblock}>
                             <div className={styles.datablocktwo}>
-                                <h1>{hours}</h1>
+                                <h1>{assistantRequests}</h1>
                                 <p>Hours</p>
                             </div>
                         </div>
