@@ -549,7 +549,7 @@ export default function Page() {
         <div
             className={styles.background}
             style={{
-                backgroundImage: `url(${bgUrl})`,
+                backgroundImage: `url("${bgUrl}")`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
             }}
