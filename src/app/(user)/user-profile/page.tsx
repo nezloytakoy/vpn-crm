@@ -333,355 +333,359 @@ import Popup from "../../../components/Popup/Popup";
 
 // Мапа: ID тарифа => набор данных (картинки, текст, цвета)
 const subscriptionConfigs: Record<
-  number,
-  {
-    headerArrow: string;
-    subscriptionText: string;
-    subscriptionIcon?: string;
-    backgroundImage: string;
-    hoursIcon: string;
-    assistantBtnColor?: string;
-  }
+    number,
+    {
+        headerArrow: string;
+        subscriptionText: string;
+        subscriptionIcon?: string;
+        backgroundImage: string;
+        hoursIcon: string;
+        assistantBtnColor?: string;
+    }
 > = {
-  0: {
-    headerArrow:
-      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966864%20(1)-lrbnCy7zKVWc8bYMwShbQZtZX4gyh4.svg",
-    subscriptionText: "Inactive",
-    backgroundImage:
-      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(3)-XNz1W2wKQ2BAlBI5PNqZTSHeA2xiFy.png",
-    hoursIcon:
-      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Group%201707479996-StHoLhbV66tAj5mVIKAgUK2GK9fC83.svg",
-  },
-  1: {
-    headerArrow:
-      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966864%20(2)-P0TsGzN2t7yXk0aHsm9qnwF1YKJ3Dl.svg",
-    subscriptionText: "Basic",
-    subscriptionIcon:
-      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Vector-9fV32frRxMXDJkWD65r9oa553dT9Kj.svg",
-    backgroundImage:
-      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(1)-POTjb8wZXqqH6HDsO7j509TQOPuyX1.svg",
-    hoursIcon:
-      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Group%201707479996%20(1)-FoheJXBEI3bMJlRIpdriCuuQ2nhpni.svg",
-    assistantBtnColor: "#00A6DE",
-  },
-  2: {
-    headerArrow:
-      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966864%20(3)-2ZNRRGIIJjTUNMQQgMFE5urBg10yO2.svg",
-    subscriptionText: "Advanced",
-    subscriptionIcon:
-      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Vector-Sku8woXGYnyhMF1nWSABfdTdb4QRcu.svg",
-    backgroundImage:
-      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(2)-mfTNL1DoZYl5Rbv4lM10pkZ4rzP5z3.svg",
-    hoursIcon:
-      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Group%201707479996%20(2)-zYeENIdjfZN94bosfo1MJNA6dmLtIT.svg",
-    assistantBtnColor: "#FF9500",
-  },
-  3: {
-    headerArrow:
-      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966864%20(4)-qWZVIp94jbcSI5pJQyihmkCuTBLiL7.svg",
-    subscriptionText: "Expert",
-    subscriptionIcon:
-      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Vector-ZqQoCwocPbx929JtHnRwvgBMtFMmfq.svg",
-    backgroundImage:
-      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(3)-IjvTJhbjp3HyEBUuGFNBTNAzjQr2rK.svg",
-    hoursIcon:
-      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Group%201707479996%20(3)-qEkHaThJWjW0rwSxUauXax1BUjVqGU.svg",
-    assistantBtnColor: "#6624FF",
-  },
+    0: {
+        headerArrow:
+            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966864%20(1)-lrbnCy7zKVWc8bYMwShbQZtZX4gyh4.svg",
+        subscriptionText: "Inactive",
+        backgroundImage:
+            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(3)-XNz1W2wKQ2BAlBI5PNqZTSHeA2xiFy.png",
+        hoursIcon:
+            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Group%201707479996-StHoLhbV66tAj5mVIKAgUK2GK9fC83.svg",
+    },
+    1: {
+        headerArrow:
+            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966864%20(2)-P0TsGzN2t7yXk0aHsm9qnwF1YKJ3Dl.svg",
+        subscriptionText: "Basic",
+        subscriptionIcon:
+            "https://92eaarerohohicw5.public.blob.vercel-storage.com/box-TqSyqXiFHkU1GgDaQdEKJULKR8atEh.svg",
+        backgroundImage:
+            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(1)-POTjb8wZXqqH6HDsO7j509TQOPuyX1.svg",
+        hoursIcon:
+            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Group%201707479996%20(1)-FoheJXBEI3bMJlRIpdriCuuQ2nhpni.svg",
+        assistantBtnColor: "#00A6DE",
+    },
+    2: {
+        headerArrow:
+            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966864%20(3)-2ZNRRGIIJjTUNMQQgMFE5urBg10yO2.svg",
+        subscriptionText: "Advanced",
+        subscriptionIcon:
+            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Vector-Sku8woXGYnyhMF1nWSABfdTdb4QRcu.svg",
+        backgroundImage:
+            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(2)-mfTNL1DoZYl5Rbv4lM10pkZ4rzP5z3.svg",
+        hoursIcon:
+            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Group%201707479996%20(2)-zYeENIdjfZN94bosfo1MJNA6dmLtIT.svg",
+        assistantBtnColor: "#FF9500",
+    },
+    3: {
+        headerArrow:
+            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966864%20(4)-qWZVIp94jbcSI5pJQyihmkCuTBLiL7.svg",
+        subscriptionText: "Expert",
+        subscriptionIcon:
+            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Vector-ZqQoCwocPbx929JtHnRwvgBMtFMmfq.svg",
+        backgroundImage:
+            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(3)-IjvTJhbjp3HyEBUuGFNBTNAzjQr2rK.svg",
+        hoursIcon:
+            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Group%201707479996%20(3)-qEkHaThJWjW0rwSxUauXax1BUjVqGU.svg",
+        assistantBtnColor: "#6624FF",
+    },
 };
 
 export default function Page() {
-  const { t } = useTranslation();
+    const { t } = useTranslation();
 
-  // Данные пользователя
-  const { assistantRequests } = useProfile();
-  const telegramId = 214663034;
+    // Данные пользователя
+    const { assistantRequests } = useProfile();
+    const telegramId = window?.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+    if (!telegramId) throw new Error("Не удалось получить айди пользователя")
 
-  // Состояния для «дней/часов»
-  const [days, setDays] = useState(0);
-  const [hours, setHours] = useState(0);
+    // Состояния для «дней/часов»
+    const [days, setDays] = useState(0);
+    const [hours, setHours] = useState(0);
 
-  // Состояние для текущего тарифа (0 = нет)
-  const [subscriptionId, setSubscriptionId] = useState<number>(0);
+    // Состояние для текущего тарифа (0 = нет)
+    const [subscriptionId, setSubscriptionId] = useState<number>(0);
 
-  useEffect(() => {
-    if (!telegramId) return;
+    useEffect(() => {
+        if (!telegramId) return;
 
-    (async () => {
-      try {
-        // 1) /api/user-tariff (GET)
-        {
-          const url = `/api/user-tariff?userId=${telegramId}`;
-          const response = await fetch(url);
-          const data = await response.json();
+        (async () => {
+            try {
+                // 1) /api/user-tariff (GET)
+                {
+                    const url = `/api/user-tariff?userId=${telegramId}`;
+                    const response = await fetch(url);
+                    const data = await response.json();
 
-          if (data.error) {
-            setDays(0);
-            setHours(0);
-          } else {
-            const totalH = data.remainingHours ?? 0;
-            const d = Math.floor(totalH / 24);
-            const h = totalH % 24;
-            setDays(d);
-            setHours(h);
-          }
+                    if (data.error) {
+                        setDays(0);
+                        setHours(0);
+                    } else {
+                        const totalH = data.remainingHours ?? 0;
+                        const d = Math.floor(totalH / 24);
+                        const h = totalH % 24;
+                        setDays(d);
+                        setHours(h);
+                    }
+                }
+
+                // 2) /api/test-post (POST), где вы получаете tariffId
+                {
+                    const response = await fetch("/api/test-post", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ userId: telegramId }),
+                    });
+
+                    const data = await response.json();
+                    console.log("Response from /api/test-post:", data);
+
+                    // Если ошибка
+                    if (data.error) {
+                        setSubscriptionId(0);
+                    } else if (data.tariffId) {
+                        // Если пришел tariffId
+                        setSubscriptionId(data.tariffId);
+                    } else {
+                        // На всякий случай
+                        setSubscriptionId(0);
+                    }
+                }
+            } catch (err) {
+                console.error("[ProfilePage] Error fetching data:", err);
+                setDays(0);
+                setHours(0);
+                setSubscriptionId(0);
+            }
+        })();
+    }, [telegramId]);
+
+    // Кнопка ассистента
+    const [loading, setLoading] = useState(false);
+    const onAssistantClick = async () => {
+        if (!assistantRequests || assistantRequests <= 0) {
+            return;
         }
-
-        // 2) /api/test-post (POST), где вы получаете tariffId
-        {
-          const response = await fetch("/api/test-post", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: telegramId }),
-          });
-
-          const data = await response.json();
-          console.log("Response from /api/test-post:", data);
-
-          // Если ошибка
-          if (data.error) {
-            setSubscriptionId(0);
-          } else if (data.tariffId) {
-            // Если пришел tariffId
-            setSubscriptionId(data.tariffId);
-          } else {
-            // На всякий случай
-            setSubscriptionId(0);
-          }
+        setLoading(true);
+        try {
+            await handleAssistantClick(assistantRequests, setLoading, t);
+        } catch (error) {
+            console.error("Error in onAssistantClick:", error);
+        } finally {
+            setLoading(false);
         }
-      } catch (err) {
-        console.error("[ProfilePage] Error fetching data:", err);
-        setDays(0);
-        setHours(0);
-        setSubscriptionId(0);
-      }
-    })();
-  }, [telegramId]);
+    };
 
-  // Кнопка ассистента
-  const [loading, setLoading] = useState(false);
-  const onAssistantClick = async () => {
-    if (!assistantRequests || assistantRequests <= 0) {
-      return;
-    }
-    setLoading(true);
-    try {
-      await handleAssistantClick(assistantRequests, setLoading, t);
-    } catch (error) {
-      console.error("Error in onAssistantClick:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Логика для Popup (не меняется)
+    const [tariffs, setTariffs] = useState<Record<string, TariffInfo>>({});
+    const [isPopupVisible, setPopupVisible] = useState(false);
+    const [popupId, setPopupId] = useState<string>("");
+    const [buttonText, setButtonText] = useState("");
+    const [price, setPrice] = useState<number>(0);
 
-  // Логика для Popup (не меняется)
-  const [tariffs, setTariffs] = useState<Record<string, TariffInfo>>({});
-  const [isPopupVisible, setPopupVisible] = useState(false);
-  const [popupId, setPopupId] = useState<string>("");
-  const [buttonText, setButtonText] = useState("");
-  const [price, setPrice] = useState<number>(0);
+    useEffect(() => {
+        async function loadTariffs() {
+            try {
+                const result = await fetchTariffs(t);
+                setTariffs(result);
+            } catch (error) {
+                console.error("[ProfilePage] Error fetching tariffs:", error);
+            }
+        }
+        loadTariffs();
+    }, [t]);
 
-  useEffect(() => {
-    async function loadTariffs() {
-      try {
-        const result = await fetchTariffs(t);
-        setTariffs(result);
-      } catch (error) {
-        console.error("[ProfilePage] Error fetching tariffs:", error);
-      }
-    }
-    loadTariffs();
-  }, [t]);
+    const handleButtonClick = (tariffKey: string) => {
+        const tariff = tariffs[tariffKey];
+        if (!tariff) {
+            console.warn("[ProfilePage] Тариф не найден:", tariffKey);
+            return;
+        }
+        setPopupId(tariffKey);
+        setButtonText(tariff.displayName);
+        setPrice(tariff.price);
+        setPopupVisible(true);
+    };
 
-  const handleButtonClick = (tariffKey: string) => {
-    const tariff = tariffs[tariffKey];
-    if (!tariff) {
-      console.warn("[ProfilePage] Тариф не найден:", tariffKey);
-      return;
-    }
-    setPopupId(tariffKey);
-    setButtonText(tariff.displayName);
-    setPrice(tariff.price);
-    setPopupVisible(true);
-  };
+    const handleClosePopup = () => {
+        setPopupVisible(false);
+    };
 
-  const handleClosePopup = () => {
-    setPopupVisible(false);
-  };
+    // Выбираем конфиг
+    const currentConfig = subscriptionConfigs[subscriptionId] || subscriptionConfigs[0];
 
-  // Выбираем конфиг
-  const currentConfig = subscriptionConfigs[subscriptionId] || subscriptionConfigs[0];
-
-  return (
-    <div
-      className={styles.background}
-      style={{
-        backgroundImage: `url(${currentConfig.backgroundImage})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
-      {/* Шапка */}
-      <div className={styles.header} style={{ position: "relative" }}>
-        <Image
-          src={currentConfig.headerArrow}
-          alt="arrow"
-          width={350}
-          height={80}
-        />
-
-        <div className={styles.subblock}>
-          <h3 className={styles.subtitle}>Subscription</h3>
-
-          <p className={styles.subscription}>
-            {currentConfig.subscriptionIcon && (
-              <Image
-                src={currentConfig.subscriptionIcon}
-                alt="sub-icon"
-                width={14}
-                height={14}
-                style={{ marginRight: 6 }}
-              />
-            )}
-            {currentConfig.subscriptionText}
-          </p>
-        </div>
-      </div>
-
-      <div className={styles.content}>
-        {/* Блок "days/hours" */}
-        <div className={styles.points}>
-          <div className={styles.left}>
-            <div className={styles.daysblock}>
-              <div className={styles.datablock}>
-                <h1>{days}</h1>
-                <p>Days</p>
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.middle}></div>
-
-          <div className={styles.right}>
-            <div className={styles.hoursblock}>
-              <Link href="/buy-requests">
-                <Image
-                  src={currentConfig.hoursIcon}
-                  alt="hours-icon"
-                  width={48}
-                  height={48}
-                  style={{ cursor: "pointer" }}
-                />
-              </Link>
-            </div>
-
-            <div className={styles.hoursnumberblock}>
-              <div className={styles.datablocktwo}>
-                <h1>{hours}</h1>
-                <p>Hours</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Блок подписок (тарифы) */}
-        <div className={styles.subscriptionsFather}>
-          <div className={styles.subscriptions}>
-            <div
-              className={styles.subblocktwo}
-              onClick={() => handleButtonClick("FIRST")}
-            >
-              <Image
-                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966877%20(12)-oJUehz2c7vkkCW4dIJyDHhzS3N1cTq.svg"
-                alt="Some description"
-                width={49}
-                height={49}
-                className={styles.image}
-              />
-              <p className={styles.subname}>{t("ai_5_hours")}</p>
-              <Image
-                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Hero%20Button%20Icon%20(1)-fI1JQdwAOAvfII9IY4KXkvN4lUMfIS.svg"
-                alt="arrow"
-                width={24}
-                height={24}
-                className={styles.arrow}
-              />
-            </div>
-
-            <div
-              className={styles.subblocktwo}
-              onClick={() => handleButtonClick("SECOND")}
-            >
-              <Image
-                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966878%20(2)-LImo5iDFFGIPHaLv3QsdvksQuaCrcw.svg"
-                alt="Some description"
-                width={49}
-                height={49}
-                className={styles.image}
-              />
-              <p className={styles.subname}>{t("ai_14_hours")}</p>
-              <Image
-                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Hero%20Button%20Icon%20(1)-fI1JQdwAOAvfII9IY4KXkvN4lUMfIS.svg"
-                alt="arrow"
-                width={24}
-                height={24}
-                className={styles.arrow}
-              />
-            </div>
-
-            <div
-              className={styles.subblocktwo}
-              style={{ borderBottom: "none" }}
-              onClick={() => handleButtonClick("THIRD")}
-            >
-              <Image
-                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966878%20(3)-gRvwa1WuEuwi6lrS9cPJngpxMVmBGE.svg"
-                alt="Some description"
-                width={49}
-                height={49}
-                className={styles.image}
-              />
-              <p className={styles.subname}>{t("ai_30_hours")}</p>
-              <Image
-                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Hero%20Button%20Icon%20(1)-fI1JQdwAOAvfII9IY4KXkvN4lUMfIS.svg"
-                alt="arrow"
-                width={24}
-                height={24}
-                className={styles.arrow}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Кнопка ассистента */}
+    return (
         <div
-          className={styles.assistant}
-          style={{
-            pointerEvents:
-              assistantRequests && assistantRequests > 0 ? "auto" : "none",
-            cursor:
-              assistantRequests && assistantRequests > 0 ? "pointer" : "default",
-            backgroundColor:
-              assistantRequests && assistantRequests > 0 && currentConfig.assistantBtnColor
-                ? currentConfig.assistantBtnColor
-                : undefined,
-          }}
-          onClick={onAssistantClick}
+            className={styles.background}
+            style={{
+                backgroundImage: `url(${currentConfig.backgroundImage})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+            }}
         >
-          {loading ? <div className={styles.loader} /> : "Contact the assistant"}
-        </div>
-      </div>
+            {/* Шапка */}
+            <div className={styles.header} style={{ position: "relative" }}>
+                <Image
+                    src={currentConfig.headerArrow}
+                    alt="arrow"
+                    width={350}
+                    height={80}
+                />
 
-      {/* Попап (подписка) */}
-      {isPopupVisible && (
-        <Popup
-          isVisible={isPopupVisible}
-          onClose={handleClosePopup}
-          buttonText={buttonText}
-          price={price}
-          popupId={popupId}
-        />
-      )}
-    </div>
-  );
+                <div className={styles.subblock}>
+                    <h3 className={styles.subtitle}>Subscription</h3>
+
+                    <p className={styles.subscription}>
+                        {currentConfig.subscriptionIcon && (
+                            <Image
+                                src={currentConfig.subscriptionIcon}
+                                alt="sub-icon"
+                                width={40}
+                                height={40}
+                                style={{
+                                    marginRight: -10,
+                                    marginBottom: -12
+                                }}
+                            />
+                        )}
+                        {currentConfig.subscriptionText}
+                    </p>
+                </div>
+            </div>
+
+            <div className={styles.content}>
+                {/* Блок "days/hours" */}
+                <div className={styles.points}>
+                    <div className={styles.left}>
+                        <div className={styles.daysblock}>
+                            <div className={styles.datablock}>
+                                <h1>{days}</h1>
+                                <p>Days</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className={styles.middle}></div>
+
+                    <div className={styles.right}>
+                        <div className={styles.hoursblock}>
+                            <Link href="/buy-requests">
+                                <Image
+                                    src={currentConfig.hoursIcon}
+                                    alt="hours-icon"
+                                    width={48}
+                                    height={48}
+                                    style={{ cursor: "pointer" }}
+                                />
+                            </Link>
+                        </div>
+
+                        <div className={styles.hoursnumberblock}>
+                            <div className={styles.datablocktwo}>
+                                <h1>{hours}</h1>
+                                <p>Hours</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Блок подписок (тарифы) */}
+                <div className={styles.subscriptionsFather}>
+                    <div className={styles.subscriptions}>
+                        <div
+                            className={styles.subblocktwo}
+                            onClick={() => handleButtonClick("FIRST")}
+                        >
+                            <Image
+                                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966877%20(12)-oJUehz2c7vkkCW4dIJyDHhzS3N1cTq.svg"
+                                alt="Some description"
+                                width={49}
+                                height={49}
+                                className={styles.image}
+                            />
+                            <p className={styles.subname}>{t("ai_5_hours")}</p>
+                            <Image
+                                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Hero%20Button%20Icon%20(1)-fI1JQdwAOAvfII9IY4KXkvN4lUMfIS.svg"
+                                alt="arrow"
+                                width={24}
+                                height={24}
+                                className={styles.arrow}
+                            />
+                        </div>
+
+                        <div
+                            className={styles.subblocktwo}
+                            onClick={() => handleButtonClick("SECOND")}
+                        >
+                            <Image
+                                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966878%20(2)-LImo5iDFFGIPHaLv3QsdvksQuaCrcw.svg"
+                                alt="Some description"
+                                width={49}
+                                height={49}
+                                className={styles.image}
+                            />
+                            <p className={styles.subname}>{t("ai_14_hours")}</p>
+                            <Image
+                                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Hero%20Button%20Icon%20(1)-fI1JQdwAOAvfII9IY4KXkvN4lUMfIS.svg"
+                                alt="arrow"
+                                width={24}
+                                height={24}
+                                className={styles.arrow}
+                            />
+                        </div>
+
+                        <div
+                            className={styles.subblocktwo}
+                            style={{ borderBottom: "none" }}
+                            onClick={() => handleButtonClick("THIRD")}
+                        >
+                            <Image
+                                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966878%20(3)-gRvwa1WuEuwi6lrS9cPJngpxMVmBGE.svg"
+                                alt="Some description"
+                                width={49}
+                                height={49}
+                                className={styles.image}
+                            />
+                            <p className={styles.subname}>{t("ai_30_hours")}</p>
+                            <Image
+                                src="https://92eaarerohohicw5.public.blob.vercel-storage.com/Hero%20Button%20Icon%20(1)-fI1JQdwAOAvfII9IY4KXkvN4lUMfIS.svg"
+                                alt="arrow"
+                                width={24}
+                                height={24}
+                                className={styles.arrow}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Кнопка ассистента */}
+                <div
+                    className={styles.assistant}
+                    style={{
+                        pointerEvents:
+                            assistantRequests && assistantRequests > 0 ? "auto" : "none",
+                        cursor:
+                            assistantRequests && assistantRequests > 0 ? "pointer" : "default",
+                        backgroundColor:
+                            assistantRequests && assistantRequests > 0 && currentConfig.assistantBtnColor
+                                ? currentConfig.assistantBtnColor
+                                : undefined,
+                    }}
+                    onClick={onAssistantClick}
+                >
+                    {loading ? <div className={styles.loader} /> : "Contact the assistant"}
+                </div>
+            </div>
+
+            {/* Попап (подписка) */}
+            {isPopupVisible && (
+                <Popup
+                    isVisible={isPopupVisible}
+                    onClose={handleClosePopup}
+                    buttonText={buttonText}
+                    price={price}
+                    popupId={popupId}
+                />
+            )}
+        </div>
+    );
 }
