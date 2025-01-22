@@ -552,7 +552,7 @@ export default function Page() {
         <div
             className={styles.background}
             style={{
-                backgroundImage: `url(${currentConfig.backgroundImage})`,
+                background: `linear-gradient(${overlayColor}, ${overlayColor}), url(${baseBgUrl})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
             }}
