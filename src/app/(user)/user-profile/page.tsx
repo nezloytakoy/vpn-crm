@@ -318,6 +318,7 @@
 
 // export default ProfilePage;
 
+
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -331,7 +332,7 @@ import { useProfile } from "./useProfile";
 import { handleAssistantClick } from "./handlers";
 import Popup from "../../../components/Popup/Popup";
 
-// Мапа subscriptionId => URL фоновой картинки
+// Мапа subscriptionId => фон
 const subscriptionBackgrounds: Record<number, string> = {
   0: "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(3)-XNz1W2wKQ2BAlBI5PNqZTSHeA2xiFy.png",
   1: "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(4)-ZAVg2fNeJtt0GWuu4xcLmAfYWb2OrF.png",
@@ -339,7 +340,7 @@ const subscriptionBackgrounds: Record<number, string> = {
   3: "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(6)-Jl43zzG7MShBe7JZcZLZ97xOUAT5gb.png",
 };
 
-// Словарь subscriptionId => конфиг
+// Конфиг для каждого subscriptionId (тут без изменений)
 const subscriptionConfigs: Record<
   number,
   {
@@ -402,28 +403,27 @@ export default function Page() {
   const { t } = useTranslation();
   const { assistantRequests, telegramId } = useProfile();
 
-  // Храним days/hours как раньше
+  // Левый блок: days/hours (получаем из /api/user-tariff)
   const [days, setDays] = useState(0);
   const [hours, setHours] = useState(0);
 
-  // ID текущего тарифа
-  const [subscriptionId, setSubscriptionId] = useState<number>(0);
-  // Лоадинг
-  const [isPageLoading, setPageLoading] = useState(true);
+  // **Новый** стейт для assistantRequestsFromServer (правый блок)
+  const [assistantRequestsLeft, setAssistantRequestsLeft] = useState(0);
 
-  // **Новый стейт** для sumExtraAssistantRequests
-  const [extraAssistantRequests, setExtraAssistantRequests] = useState<number>(0);
+  const [subscriptionId, setSubscriptionId] = useState<number>(0);
+  const [isPageLoading, setPageLoading] = useState(true);
 
   useEffect(() => {
     if (!telegramId) return;
 
     (async () => {
       try {
-        // 1) /api/user-tariff => получаем remainingHours, конвертим в days/hours
+        // 1) Запрос на /api/user-tariff
         {
           const url = `/api/user-tariff?userId=${telegramId}`;
           const response = await fetch(url);
           const data = await response.json();
+
           if (data.error) {
             setDays(0);
             setHours(0);
@@ -434,7 +434,7 @@ export default function Page() {
           }
         }
 
-        // 2) /api/test-post => получаем tariffId => subscriptionId
+        // 2) Запрос на /api/test-post (определить subscriptionId)
         {
           const response = await fetch("/api/test-post", {
             method: "POST",
@@ -442,6 +442,8 @@ export default function Page() {
             body: JSON.stringify({ userId: telegramId }),
           });
           const data = await response.json();
+          console.log("Response from /api/test-post:", data);
+
           if (data.error) {
             setSubscriptionId(0);
           } else if (data.tariffId) {
@@ -451,20 +453,21 @@ export default function Page() {
           }
         }
 
-        // 3) /api/get-remaining-requests => возвращает sumExtraAssistantRequests
+        // 3) Новый роут -> например, /api/get-remaining-requests
         {
-          const response = await fetch("/api/get-remaining-requests", {
+          const resp = await fetch("/api/get-remaining-requests", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ userId: telegramId }),
           });
-          const data = await response.json();
-          console.log("[ProfilePage] get-remaining-requests =>", data);
+          const data = await resp.json();
+          console.log("[ProfilePage] /api/get-remaining-requests =>", data);
+
           if (data.error) {
-            setExtraAssistantRequests(0);
+            setAssistantRequestsLeft(0);
           } else {
-            // допустим, поле называется sumExtraAssistantRequests
-            setExtraAssistantRequests(data.sumExtraAssistantRequests || 0);
+            // Допустим, поле называется sumExtraAssistantRequests
+            setAssistantRequestsLeft(data.sumExtraAssistantRequests || 0);
           }
         }
       } catch (err) {
@@ -472,7 +475,7 @@ export default function Page() {
         setDays(0);
         setHours(0);
         setSubscriptionId(0);
-        setExtraAssistantRequests(0);
+        setAssistantRequestsLeft(0);
       } finally {
         setPageLoading(false);
       }
@@ -493,7 +496,7 @@ export default function Page() {
     }
   };
 
-  // Popup
+  // Логика Popup
   const [tariffs, setTariffs] = useState<Record<string, TariffInfo>>({});
   const [isPopupVisible, setPopupVisible] = useState(false);
   const [popupId, setPopupId] = useState<string>("");
@@ -513,7 +516,10 @@ export default function Page() {
 
   const handleButtonClick = (tariffKey: string) => {
     const tariff = tariffs[tariffKey];
-    if (!tariff) return;
+    if (!tariff) {
+      console.warn("[ProfilePage] Тариф не найден:", tariffKey);
+      return;
+    }
     setPopupId(tariffKey);
     setButtonText(tariff.displayName);
     setPrice(tariff.price);
@@ -524,11 +530,11 @@ export default function Page() {
     setPopupVisible(false);
   };
 
-  // Определяем фон
+  // Фон
   const bgUrl = subscriptionBackgrounds[subscriptionId] || subscriptionBackgrounds[0];
   const currentConfig = subscriptionConfigs[subscriptionId] || subscriptionConfigs[0];
 
-  // Loader
+  // Если грузим
   if (isPageLoading) {
     return (
       <div
@@ -574,7 +580,10 @@ export default function Page() {
                 alt="sub-icon"
                 width={40}
                 height={40}
-                style={{ marginRight: -13, marginBottom: -10 }}
+                style={{
+                  marginRight: -13,
+                  marginBottom: -10,
+                }}
               />
             )}
             {currentConfig.subscriptionText}
@@ -583,9 +592,8 @@ export default function Page() {
       </div>
 
       <div className={styles.content}>
-        {/* Блок "days/hours" */}
+        {/* Левый блок - days */}
         <div className={styles.points}>
-          {/* Левый блок (Days) */}
           <div className={styles.left}>
             <div className={styles.daysblock}>
               <div className={styles.datablock}>
@@ -597,7 +605,7 @@ export default function Page() {
 
           <div className={styles.middle}></div>
 
-          {/* Правый блок (Hours) => Заменим на sumExtraAssistantRequests */}
+          {/* Правый блок - assistantRequestsLeft */}
           <div className={styles.right}>
             <div className={styles.hoursblock}>
               <Link href="/buy-requests">
@@ -610,12 +618,11 @@ export default function Page() {
                 />
               </Link>
             </div>
-
             <div className={styles.hoursnumberblock}>
               <div className={styles.datablocktwo}>
-                {/* Показываем extraAssistantRequests */}
-                <h1>{extraAssistantRequests}</h1>
-                <p>Assistant<br />Requests</p>
+                {/* Показываем assistantRequestsLeft */}
+                <h1>{assistantRequestsLeft}</h1>
+                <p>Hours</p>
               </div>
             </div>
           </div>
@@ -710,7 +717,6 @@ export default function Page() {
         </div>
       </div>
 
-      {/* Попап (подписка) */}
       {isPopupVisible && (
         <Popup
           isVisible={isPopupVisible}
