@@ -318,7 +318,6 @@
 
 // export default ProfilePage;
 
-
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -332,7 +331,7 @@ import { useProfile } from "./useProfile";
 import { handleAssistantClick } from "./handlers";
 import Popup from "../../../components/Popup/Popup";
 
-// Мапа subscriptionId => фон
+// Мапа subscriptionId => URL фоновой картинки
 const subscriptionBackgrounds: Record<number, string> = {
   0: "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(3)-XNz1W2wKQ2BAlBI5PNqZTSHeA2xiFy.png",
   1: "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(4)-ZAVg2fNeJtt0GWuu4xcLmAfYWb2OrF.png",
@@ -340,7 +339,7 @@ const subscriptionBackgrounds: Record<number, string> = {
   3: "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(6)-Jl43zzG7MShBe7JZcZLZ97xOUAT5gb.png",
 };
 
-// Конфиг для каждого subscriptionId (тут без изменений)
+// Словарь subscriptionId => конфиг (заголовок, иконки, цвета кнопки и т. д.)
 const subscriptionConfigs: Record<
   number,
   {
@@ -401,14 +400,15 @@ const subscriptionConfigs: Record<
 
 export default function Page() {
   const { t } = useTranslation();
+
+  // Данные пользователя
   const { assistantRequests, telegramId } = useProfile();
 
-  // Левый блок: days/hours (получаем из /api/user-tariff)
+  // Храним отдельно days, hours
   const [days, setDays] = useState(0);
 
-  // **Новый** стейт для assistantRequestsFromServer (правый блок)
-  const [assistantRequestsLeft, setAssistantRequestsLeft] = useState(0);
 
+  // ID текущего тарифа (0 = нет)
   const [subscriptionId, setSubscriptionId] = useState<number>(0);
   const [isPageLoading, setPageLoading] = useState(true);
 
@@ -417,23 +417,25 @@ export default function Page() {
 
     (async () => {
       try {
-        // 1) Запрос на /api/user-tariff
+        // 1) /api/user-tariff
         {
           const url = `/api/user-tariff?userId=${telegramId}`;
           const response = await fetch(url);
           const data = await response.json();
 
           if (data.error) {
+            // Нет тарифа
             setDays(0);
-
+      
           } else {
+            // Преобразуем в дни / остаток часов
             const totalH = data.remainingHours ?? 0;
             setDays(Math.floor(totalH / 24));
-
+          
           }
         }
 
-        // 2) Запрос на /api/test-post (определить subscriptionId)
+        // 2) /api/test-post
         {
           const response = await fetch("/api/test-post", {
             method: "POST",
@@ -451,35 +453,16 @@ export default function Page() {
             setSubscriptionId(0);
           }
         }
-
-        // 3) Новый роут -> например, /api/get-remaining-requests
-        {
-          const resp = await fetch("/api/get-remaining-requests", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: telegramId }),
-          });
-          const data = await resp.json();
-          console.log("[ProfilePage] /api/get-remaining-requests =>", data);
-
-          if (data.error) {
-            setAssistantRequestsLeft(0);
-          } else {
-            // Допустим, поле называется sumExtraAssistantRequests
-            setAssistantRequestsLeft(data.sumExtraAssistantRequests || 0);
-          }
-        }
       } catch (err) {
         console.error("[ProfilePage] Error fetching data:", err);
         setDays(0);
+
         setSubscriptionId(0);
-        setAssistantRequestsLeft(0);
       } finally {
         setPageLoading(false);
       }
     })();
   }, [telegramId]);
-  
 
   // Кнопка ассистента
   const [loading, setLoading] = useState(false);
@@ -495,7 +478,7 @@ export default function Page() {
     }
   };
 
-  // Логика Popup
+  // Popup
   const [tariffs, setTariffs] = useState<Record<string, TariffInfo>>({});
   const [isPopupVisible, setPopupVisible] = useState(false);
   const [popupId, setPopupId] = useState<string>("");
@@ -529,11 +512,12 @@ export default function Page() {
     setPopupVisible(false);
   };
 
-  // Фон
+  // Определяем фон
   const bgUrl = subscriptionBackgrounds[subscriptionId] || subscriptionBackgrounds[0];
+  // Текущий конфиг (для ассистента, иконок и т.д.)
   const currentConfig = subscriptionConfigs[subscriptionId] || subscriptionConfigs[0];
 
-  // Если грузим
+  // Лоадер, если ещё грузим
   if (isPageLoading) {
     return (
       <div
@@ -553,6 +537,7 @@ export default function Page() {
     );
   }
 
+  // Основной контент
   return (
     <div
       className={styles.background}
@@ -570,6 +555,7 @@ export default function Page() {
           width={350}
           height={80}
         />
+
         <div className={styles.subblock}>
           <h3 className={styles.subtitle}>Subscription</h3>
           <p className={styles.subscription}>
@@ -591,11 +577,12 @@ export default function Page() {
       </div>
 
       <div className={styles.content}>
-        {/* Левый блок - days */}
+        {/* Блок "days/hours" */}
         <div className={styles.points}>
           <div className={styles.left}>
             <div className={styles.daysblock}>
               <div className={styles.datablock}>
+                {/* Выводим дни */}
                 <h1>{days}</h1>
                 <p>Days</p>
               </div>
@@ -604,7 +591,6 @@ export default function Page() {
 
           <div className={styles.middle}></div>
 
-          {/* Правый блок - assistantRequestsLeft */}
           <div className={styles.right}>
             <div className={styles.hoursblock}>
               <Link href="/buy-requests">
@@ -617,10 +603,11 @@ export default function Page() {
                 />
               </Link>
             </div>
+
             <div className={styles.hoursnumberblock}>
               <div className={styles.datablocktwo}>
-                {/* Показываем assistantRequestsLeft */}
-                <h1>{assistantRequestsLeft}</h1>
+                {/* Выводим часы */}
+                <h1>{assistantRequests}</h1>
                 <p>Hours</p>
               </div>
             </div>
@@ -630,7 +617,6 @@ export default function Page() {
         {/* Блок подписок */}
         <div className={styles.subscriptionsFather}>
           <div className={styles.subscriptions}>
-            {/* FIRST */}
             <div
               className={styles.subblocktwo}
               onClick={() => handleButtonClick("FIRST")}
@@ -651,7 +637,7 @@ export default function Page() {
                 className={styles.arrow}
               />
             </div>
-            {/* SECOND */}
+
             <div
               className={styles.subblocktwo}
               onClick={() => handleButtonClick("SECOND")}
@@ -672,7 +658,7 @@ export default function Page() {
                 className={styles.arrow}
               />
             </div>
-            {/* THIRD */}
+
             <div
               className={styles.subblocktwo}
               style={{ borderBottom: "none" }}
@@ -716,6 +702,7 @@ export default function Page() {
         </div>
       </div>
 
+      {/* Попап (подписка) */}
       {isPopupVisible && (
         <Popup
           isVisible={isPopupVisible}
