@@ -331,6 +331,17 @@ import { useProfile } from "./useProfile";
 import { handleAssistantClick } from "./handlers";
 import Popup from "../../../components/Popup/Popup";
 
+
+const baseBgUrl =
+    "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(3)-XNz1W2wKQ2BAlBI5PNqZTSHeA2xiFy.png";
+
+const overlayColors: Record<number, string> = {
+    1: "rgba(0, 166, 222, 0.3)",   // #00A6DE с прозрачностью
+    2: "rgba(255, 149, 0, 0.3)",   // #FF9500
+    3: "rgba(102, 36, 255, 0.3)",  // #6624FF
+    0: "rgba(0, 0, 0, 0)",         // или без наложения
+};
+
 // Мапа: ID тарифа => набор данных (картинки, текст, цвета)
 const subscriptionConfigs: Record<
     number,
@@ -389,6 +400,7 @@ const subscriptionConfigs: Record<
         assistantBtnColor: "#6624FF",
     },
 };
+
 
 export default function Page() {
     const { t } = useTranslation();
@@ -509,6 +521,8 @@ export default function Page() {
         setPopupVisible(false);
     };
 
+    const overlayColor = overlayColors[subscriptionId] || "rgba(0,0,0,0)";
+
     // Выбираем конфиг
     const currentConfig = subscriptionConfigs[subscriptionId] || subscriptionConfigs[0];
 
@@ -518,7 +532,7 @@ export default function Page() {
             <div
                 className={styles.background}
                 style={{
-                    backgroundImage: `url(${currentConfig.backgroundImage})`,
+                    background: `linear-gradient(${overlayColor}, ${overlayColor}), url(${baseBgUrl})`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                     minHeight: "100vh", // чтобы занять полный экран
