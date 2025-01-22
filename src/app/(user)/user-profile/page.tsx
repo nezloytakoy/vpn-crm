@@ -335,24 +335,22 @@ import Popup from "../../../components/Popup/Popup";
 const subscriptionConfigs: Record<
   number,
   {
-    headerArrow: string;          // Ссылка на картинку в шапке
-    subscriptionText: string;     // Text в шапке (Basic / Advanced / Expert / Inactive и т.п.)
-    subscriptionIcon?: string;    // Иконка перед текстом (если нужна)
-    backgroundImage: string;      // Фон всей страницы
-    hoursIcon: string;            // Иконка для блока часов
-    assistantBtnColor?: string;   // Цвет кнопки "Contact the assistant" (если тариф активен)
+    headerArrow: string;
+    subscriptionText: string;
+    subscriptionIcon?: string;
+    backgroundImage: string;
+    hoursIcon: string;
+    assistantBtnColor?: string;
   }
 > = {
   0: {
-    // Нет подписки
-    headerArrow: "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966864%20(1)-lrbnCy7zKVWc8bYMwShbQZtZX4gyh4.svg",
+    headerArrow:
+      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966864%20(1)-lrbnCy7zKVWc8bYMwShbQZtZX4gyh4.svg",
     subscriptionText: "Inactive",
-    // subscriptionIcon: undefined,
     backgroundImage:
-      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(3)-XNz1W2wKQ2BAlBI5PNqZTSHeA2xiFy.png", // В вашем коде по умолчанию
+      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(3)-XNz1W2wKQ2BAlBI5PNqZTSHeA2xiFy.png",
     hoursIcon:
       "https://92eaarerohohicw5.public.blob.vercel-storage.com/Group%201707479996-StHoLhbV66tAj5mVIKAgUK2GK9fC83.svg",
-    // assistantBtnColor: undefined, // Оставляем стиль по умолчанию
   },
   1: {
     headerArrow:
@@ -395,81 +393,72 @@ const subscriptionConfigs: Record<
 export default function Page() {
   const { t } = useTranslation();
 
-  // Данные пользователя (username, кол-во запросов, telegramId)
-  const { assistantRequests, telegramId } = useProfile();
+  // Данные пользователя
+  const { assistantRequests } = useProfile();
+  const telegramId = 214663034;
 
-  // Состояния для «дней/часов» (у вас /api/user-tariff)
+  // Состояния для «дней/часов»
   const [days, setDays] = useState(0);
   const [hours, setHours] = useState(0);
 
   // Состояние для текущего тарифа (0 = нет)
   const [subscriptionId, setSubscriptionId] = useState<number>(0);
 
-  // 1) Подгружаем информацию о том, сколько осталось часов/дней (старый ваш код)
   useEffect(() => {
     if (!telegramId) return;
 
-    const url = `/api/user-tariff?userId=${telegramId}`;
-    fetch(url)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.error) {
-          setDays(0);
-          setHours(0);
-        } else {
-          const totalH = data.remainingHours ?? 0;
-          const d = Math.floor(totalH / 24);
-          const h = totalH % 24;
-          setDays(d);
-          setHours(h);
-        }
-      })
-      .catch((err) => {
-        console.error("Error fetching user-tariff:", err);
-        setDays(0);
-        setHours(0);
-      });
-  }, [telegramId]);
+    (async () => {
+      try {
+        // 1) /api/user-tariff (GET)
+        {
+          const url = `/api/user-tariff?userId=${telegramId}`;
+          const response = await fetch(url);
+          const data = await response.json();
 
-  // 2) Подгружаем информацию о подписке (маршрут get-subscription)
-  useEffect(() => {
-    if (!telegramId) return;
-
-    const subUrl = `/api/get-subscription?telegramId=${telegramId}`;
-    fetch(subUrl)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.error) {
-          // Значит либо нет юзера, либо нет подписки
-          // Считаем тариф = 0 (Inactive)
-          setSubscriptionId(0);
-        } else {
-          // Если подписка есть, нам нужно определить ID
-          // Допустим, в data.subscription.name лежит 'Basic', 'Advanced', 'Expert'
-          // или у вас может быть поле 'id'. 
-          // Предположим, что 'name' = 'Basic' => subscriptionId=1
-          // 'Advanced' => 2, 'Expert' => 3
-
-          const subName = data.subscription.name; // например "Basic"
-          if (subName === "Basic") {
-            setSubscriptionId(1);
-          } else if (subName === "Advanced") {
-            setSubscriptionId(2);
-          } else if (subName === "Expert") {
-            setSubscriptionId(3);
+          if (data.error) {
+            setDays(0);
+            setHours(0);
           } else {
-            // Что если пришло неизвестное название?
+            const totalH = data.remainingHours ?? 0;
+            const d = Math.floor(totalH / 24);
+            const h = totalH % 24;
+            setDays(d);
+            setHours(h);
+          }
+        }
+
+        // 2) /api/test-post (POST), где вы получаете tariffId
+        {
+          const response = await fetch("/api/test-post", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: telegramId }),
+          });
+
+          const data = await response.json();
+          console.log("Response from /api/test-post:", data);
+
+          // Если ошибка
+          if (data.error) {
+            setSubscriptionId(0);
+          } else if (data.tariffId) {
+            // Если пришел tariffId
+            setSubscriptionId(data.tariffId);
+          } else {
+            // На всякий случай
             setSubscriptionId(0);
           }
         }
-      })
-      .catch((err) => {
-        console.error("[ProfilePage] Error fetching get-subscription:", err);
+      } catch (err) {
+        console.error("[ProfilePage] Error fetching data:", err);
+        setDays(0);
+        setHours(0);
         setSubscriptionId(0);
-      });
+      }
+    })();
   }, [telegramId]);
 
-  // 3) При клике на кнопку ассистента
+  // Кнопка ассистента
   const [loading, setLoading] = useState(false);
   const onAssistantClick = async () => {
     if (!assistantRequests || assistantRequests <= 0) {
@@ -485,7 +474,7 @@ export default function Page() {
     }
   };
 
-  // 4) Подписки (попап)
+  // Логика для Popup (не меняется)
   const [tariffs, setTariffs] = useState<Record<string, TariffInfo>>({});
   const [isPopupVisible, setPopupVisible] = useState(false);
   const [popupId, setPopupId] = useState<string>("");
@@ -520,7 +509,7 @@ export default function Page() {
     setPopupVisible(false);
   };
 
-  // 5) Определяем нужные данные из subscriptionConfigs
+  // Выбираем конфиг
   const currentConfig = subscriptionConfigs[subscriptionId] || subscriptionConfigs[0];
 
   return (
@@ -664,7 +653,7 @@ export default function Page() {
           </div>
         </div>
 
-        {/* Кнопка ассистента (Contact the assistant) */}
+        {/* Кнопка ассистента */}
         <div
           className={styles.assistant}
           style={{
@@ -677,13 +666,13 @@ export default function Page() {
                 ? currentConfig.assistantBtnColor
                 : undefined,
           }}
-          onClick={() => onAssistantClick()}
+          onClick={onAssistantClick}
         >
           {loading ? <div className={styles.loader} /> : "Contact the assistant"}
         </div>
       </div>
 
-      {/* Если попап открыт — рендерим его */}
+      {/* Попап (подписка) */}
       {isPopupVisible && (
         <Popup
           isVisible={isPopupVisible}
