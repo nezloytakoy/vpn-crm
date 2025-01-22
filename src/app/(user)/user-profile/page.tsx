@@ -337,8 +337,8 @@ const subscriptionBackgrounds: Record<number, string> = {
     1: "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(4)-ZAVg2fNeJtt0GWuu4xcLmAfYWb2OrF.png",
     2: "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(5)-k0rTdLbmPBPqe6WcevVJt7hb7cS2hd.png",
     3: "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(6)-Jl43zzG7MShBe7JZcZLZ97xOUAT5gb.png",
-  };
-  
+};
+
 // Мапа: ID тарифа => набор данных (картинки, текст, цвета)
 const subscriptionConfigs: Record<
     number,
@@ -408,7 +408,7 @@ export default function Page() {
 
     // Состояния для «дней/часов»
     const [days, setDays] = useState(0);
-   
+
 
     // Состояние для текущего тарифа (0 = нет)
     const [subscriptionId, setSubscriptionId] = useState<number>(0);
@@ -429,11 +429,11 @@ export default function Page() {
 
                     if (data.error) {
                         setDays(0);
-                    
+
                     } else {
                         const totalH = data.remainingHours ?? 0;
                         setDays(Math.floor(totalH / 24));
-                     
+
                     }
                 }
 
@@ -463,7 +463,7 @@ export default function Page() {
             } catch (err) {
                 console.error("[ProfilePage] Error fetching data:", err);
                 setDays(0);
-              
+
                 setSubscriptionId(0);
             } finally {
                 // Данные загружены (успешно или с ошибкой)
@@ -593,7 +593,7 @@ export default function Page() {
                         <div className={styles.daysblock}>
                             <div className={styles.datablock}>
                                 <h1>{days}</h1>
-                                <p>Days</p>
+                                <p>{t("days")}</p>
                             </div>
                         </div>
                     </div>
@@ -616,7 +616,7 @@ export default function Page() {
                         <div className={styles.hoursnumberblock}>
                             <div className={styles.datablocktwo}>
                                 <h1>{assistantRequests}</h1>
-                                <p>Hours</p>
+                                <p>{t("hours")}</p>
                             </div>
                         </div>
                     </div>
@@ -706,7 +706,11 @@ export default function Page() {
                     }}
                     onClick={onAssistantClick}
                 >
-                    {loading ? <div className={styles.loader} /> : "Contact the assistant"}
+                    {loading ? (
+                        <div className={styles.loader} />
+                    ) : (
+                        t("contact") // <-- заменяем "Contact the assistant" на t("contact")
+                    )}
                 </div>
             </div>
 

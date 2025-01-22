@@ -52,19 +52,21 @@ const sendLogToTelegram = async (message: string) => {
  * Конфиг по popupId (FIRST, SECOND, THIRD).
  * Тут *нет* тарифных цен, только визуальная часть — фон, иконки, текст фич, цвета и т. п.
  */
-const popupConfigs: Record<
+export const popupConfigs: Record<
   string,
   {
-    mainImage: string;         // Картинка (логотип) вверху
-    bgImage: string;           // Фоновая картинка
-    features: string[];        // Фичи (список)
-    featuresCheckIcon: string; // Иконка для каждой фичи
-    selectedCheckIcon: string; // Галочка при выборе
-    unselectedCheckIcon: string; // Галочка невыбранная
-    buttonColor: string;       // Цвет кнопки
-    borderColor: string;       // Цвет границы выбранного тарифа
-    monthsNumberColor: string; // Цвет числа месяцев (при выборе)
-    title: string;             // Заголовок ("Basic", "Standard", "Pro")
+    mainImage: string;
+    bgImage: string;
+    // Массив ключей для features
+    featureKeys: string[];
+    featuresCheckIcon: string;
+    selectedCheckIcon: string;
+    unselectedCheckIcon: string;
+    buttonColor: string;
+    borderColor: string;
+    monthsNumberColor: string;
+    // Ключ для локализации title
+    titleKey: string;
   }
 > = {
   FIRST: {
@@ -72,7 +74,12 @@ const popupConfigs: Record<
       "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966877%20(12)-oJUehz2c7vkkCW4dIJyDHhzS3N1cTq.svg",
     bgImage:
       "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966892%20(6)-KlvNhb9PWs8ImUs40kllpt02Bb7PDy.png",
-    features: ["Text messages only", "Basic assistant qualification"],
+
+    // Вместо готового текста => массив ключей
+    featureKeys: [
+      "popup_first_feature_1",
+      "popup_first_feature_2",
+    ],
     featuresCheckIcon:
       "https://92eaarerohohicw5.public.blob.vercel-storage.com/Hero%20Button%20Icon%20(9)-KcQxDsgamlx6KOoPbCWTFtNnPF3QBa.svg",
     selectedCheckIcon:
@@ -82,14 +89,22 @@ const popupConfigs: Record<
     buttonColor: "#00A6DE",
     borderColor: "#00A6DE",
     monthsNumberColor: "#00A6DE",
-    title: "Basic",
+
+    // Вместо "Basic" => ключ
+    titleKey: "popup_first_title",
   },
+
   SECOND: {
     mainImage:
       "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966878%20(2)-LImo5iDFFGIPHaLv3QsdvksQuaCrcw.svg",
     bgImage:
       "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966892%20(9)-weDQP3znBt3EMnzHGfSrgFjwVlcjNR.png",
-    features: ["Text messages", "Voice messages", "Requiring qualification"],
+
+    featureKeys: [
+      "popup_second_feature_1",
+      "popup_second_feature_2",
+      "popup_second_feature_3",
+    ],
     featuresCheckIcon:
       "https://92eaarerohohicw5.public.blob.vercel-storage.com/Hero%20Button%20Icon%20(10)-8Fgm52rtMGKia13PatoEuwop90SZEE.svg",
     selectedCheckIcon:
@@ -99,14 +114,22 @@ const popupConfigs: Record<
     buttonColor: "#FF9500",
     borderColor: "#FF9500",
     monthsNumberColor: "#FF9500",
-    title: "Standard",
+
+    titleKey: "popup_second_title",
   },
+
   THIRD: {
     mainImage:
       "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966878%20(3)-gRvwa1WuEuwi6lrS9cPJngpxMVmBGE.svg",
     bgImage:
       "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966892%20(10)-EonnRfdOqhRjqTkcT8aaGNffjELZJ9.png",
-    features: ["Text messages", "Voice messages", "Video messages", "Professional assistants"],
+
+    featureKeys: [
+      "popup_third_feature_1",
+      "popup_third_feature_2",
+      "popup_third_feature_3",
+      "popup_third_feature_4",
+    ],
     featuresCheckIcon:
       "https://92eaarerohohicw5.public.blob.vercel-storage.com/Hero%20Button%20Icon%20(11)-sZT4RMoIw4cZAgLF4p61EhLuxpP6VI.svg",
     selectedCheckIcon:
@@ -116,7 +139,8 @@ const popupConfigs: Record<
     buttonColor: "#6624FF",
     borderColor: "#6624FF",
     monthsNumberColor: "#6624FF",
-    title: "Pro",
+
+    titleKey: "popup_third_title",
   },
 };
 
@@ -135,7 +159,7 @@ const Popup: React.FC<PopupProps> = ({
   popupId
 }) => {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [isClosing, setIsClosing] = useState(false);
   const [selectedTariff, setSelectedTariff] = useState<TariffOption | null>(null);
@@ -217,23 +241,21 @@ const Popup: React.FC<PopupProps> = ({
   // Переход к оплате
   const handlePay = () => {
     if (!selectedTariff) return;
-
-    // Допустим, хотим передавать query:
-    // 1) price  (из selectedTariff.price)
-    // 2) tariffName (из config.title, или buttonText)
-    // 3) months (из selectedTariff.months)
-
-    const tariffName = config.title; // или buttonText, на ваше усмотрение
-    const months = selectedTariff.months;
-    console.log(tariffName)
-
+  
+    // получаем «фиксированный» t для 'en'
+    const tEnglish = i18n.getFixedT("en");
+  
+    // выдергиваем английский вариант
+    const tariffName = tEnglish(config.titleKey);
+  
+    console.log("Selected EN tariff name:", tariffName);
+  
     router.push(
-      `/payment-methods?price=${selectedTariff.price}&tariffName=${tariffName}&months=${months}`
+      `/payment-methods?price=${selectedTariff.price}&tariffName=${tariffName}&months=${selectedTariff.months}`
     );
-
+  
     handleClose();
   };
-
   // Если попап не виден и не закрывается анимированно, не рендерим
   if (!isVisible && !isClosing) return null;
 
@@ -272,12 +294,12 @@ const Popup: React.FC<PopupProps> = ({
               width={88}
               height={88}
             />
-            <h1>{config.title}</h1>
+            <h1>{t(config.titleKey)}</h1>
           </div>
 
           {/* Фичи */}
           <div className={styles.features}>
-            {config.features.map((feature, idx) => (
+            {config.featureKeys.map((featureKey, idx) => (
               <div className={styles.line} key={idx}>
                 <Image
                   src={config.featuresCheckIcon}
@@ -285,14 +307,14 @@ const Popup: React.FC<PopupProps> = ({
                   width={24}
                   height={24}
                 />
-                <p>{feature}</p>
+                <p>{t(featureKey)}</p>  {/* <-- локализация */}
               </div>
             ))}
           </div>
 
           {/* Тарифы — уже из localTariffOptions */}
           <div className={styles.tariffsbox}>
-            <p>Select your subscription period</p>
+            <p>{t("popup_select_period")}</p>
 
             {localTariffOptions.map((tariff) => {
               const isSelected =
@@ -323,7 +345,7 @@ const Popup: React.FC<PopupProps> = ({
                   </div>
                   <div className={styles.textblock}>
                     <p>
-                      For {tariff.months} month{tariff.months > 1 ? "s" : ""}
+                      {t("popup_for_n_months", { count: tariff.months })}
                     </p>
                     <h1>${tariff.price}</h1>
                   </div>
@@ -355,7 +377,9 @@ const Popup: React.FC<PopupProps> = ({
               }
               onClick={handlePay}
             >
-              {selectedTariff ? `Pay $${selectedTariff.price}` : "Pay"}
+              {selectedTariff
+                ? t("popup_pay_price", { price: selectedTariff.price })
+                : t("popup_pay")}
             </div>
           </div>
         </div>

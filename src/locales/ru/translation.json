@@ -72,5 +72,22 @@
   "popup_no_text": "Нет текста для этого тарифа",
   "popup_close_icon": "Закрыть",
   "popup_main_image_alt": "Иллюстрация",
-  "amount_to_pay": "К оплате"
+  "amount_to_pay": "К оплате",
+  "contact": "Связаться с ассистентом",
+  "popup_select_period": "Выберите период подписки",
+  "popup_for_n_months": "На {{count}} месяц",
+  "popup_for_n_months_plural": "На {{count}} месяцев",
+  "popup_pay_price": "Оплатить ${{price}}",
+  "popup_first_title": "Простая",
+  "popup_first_feature_1": "Только текстовые сообщения",
+  "popup_first_feature_2": "Базовая квалификация ассистента",
+  "popup_second_title": "Сложная",
+  "popup_second_feature_1": "Текстовые сообщения",
+  "popup_second_feature_2": "Голосовые сообщения",
+  "popup_second_feature_3": "Запросы, требующие квалификации",
+  "popup_third_title": "Экспертная",
+  "popup_third_feature_1": "Текстовые сообщения",
+  "popup_third_feature_2": "Голосовые сообщения",
+  "popup_third_feature_3": "Видео-сообщения",
+  "popup_third_feature_4": "Профессиональные ассистенты"
 }
