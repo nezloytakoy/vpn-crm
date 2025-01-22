@@ -179,14 +179,14 @@
 
 
 
-.background {
+/* .background {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     width: 100%;
-    min-height: 100vh; /* вместо height: 100vh */
+    min-height: 100vh; 
     font-family: "Plus Jakarta Sans", sans-serif;
-}
+} */
 
 
 

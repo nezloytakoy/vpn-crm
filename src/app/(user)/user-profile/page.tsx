@@ -521,7 +521,7 @@ export default function Page() {
         setPopupVisible(false);
     };
 
-    const overlayColor = overlayColors[subscriptionId] || "rgba(0,0,0,0)";
+    const overlayColor = overlayColors[subscriptionId] || "rgba(0, 0, 0, 0)";
 
     // Выбираем конфиг
     const currentConfig = subscriptionConfigs[subscriptionId] || subscriptionConfigs[0];
@@ -532,7 +532,7 @@ export default function Page() {
             <div
                 className={styles.background}
                 style={{
-                    background: `linear-gradient(${overlayColor}, ${overlayColor}), url(${baseBgUrl})`,
+                    background: `linear-gradient(${overlayColor}, ${overlayColor}), url("${baseBgUrl}")`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                     minHeight: "100vh", // чтобы занять полный экран
