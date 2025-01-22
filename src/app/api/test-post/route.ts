@@ -27,23 +27,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // Ищем самую "свежую" запись userTariff,
-    // где expirationDate ещё не наступила (expirationDate > now).
+    // Ищем самую "свежую" запись userTariff, не истекшую
     const now = new Date();
     const freshestTariff = await prisma.userTariff.findFirst({
       where: {
         userId: telegramIdBigInt,
-        expirationDate: {
-          gt: now, // вы ещё хотите активные тарифы
-        },
+        expirationDate: { gt: now },
       },
-      orderBy: {
-        expirationDate: 'desc', // самая свежая (expirationDate больше)
-      },
+      orderBy: { expirationDate: 'desc' },
     });
 
     if (!freshestTariff) {
-      // Не нашли ни одной актуальной записи
       console.log("No active tariff found for user", userId);
       return NextResponse.json(
         { error: 'No active tariff found for this user.' },
@@ -51,15 +45,19 @@ export async function POST(request: Request) {
       );
     }
 
-    // Вернём tariffId, или вы можете вернуть всю запись.
-    // Допустим, возвращаем { tariffId: ..., expirationDate: ... }
+    // Преобразуем BigInt -> string, чтобы не было ошибки
     return NextResponse.json(
       {
-        tariffId: freshestTariff.tariffId,
+        // Если tariffId не null, переводим в строку,
+        // иначе null
+        tariffId: freshestTariff.tariffId
+          ? freshestTariff.tariffId.toString()
+          : null,
         expirationDate: freshestTariff.expirationDate,
       },
       { status: 200 }
     );
+
   } catch (error) {
     console.error('Error in test-post route logic:', error);
     return NextResponse.json(
