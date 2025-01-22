@@ -339,63 +339,62 @@ const subscriptionBackgrounds: Record<number, string> = {
     3: "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(6)-Jl43zzG7MShBe7JZcZLZ97xOUAT5gb.png",
 };
 
-// Мапа: ID тарифа => набор данных (картинки, текст, цвета)
 const subscriptionConfigs: Record<
-    number,
-    {
-        headerArrow: string;
-        subscriptionText: string;
-        subscriptionIcon?: string;
-        backgroundImage: string;
-        hoursIcon: string;
-        assistantBtnColor?: string;
-    }
+  number,
+  {
+    headerArrow: string;
+    subscriptionTextKey: string;  // <-- Заменили subscriptionText на subscriptionTextKey
+    subscriptionIcon?: string;
+    backgroundImage: string;
+    hoursIcon: string;
+    assistantBtnColor?: string;
+  }
 > = {
-    0: {
-        headerArrow:
-            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966864%20(1)-lrbnCy7zKVWc8bYMwShbQZtZX4gyh4.svg",
-        subscriptionText: "Inactive",
-        backgroundImage:
-            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(3)-XNz1W2wKQ2BAlBI5PNqZTSHeA2xiFy.png",
-        hoursIcon:
-            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Group%201707479996-StHoLhbV66tAj5mVIKAgUK2GK9fC83.svg",
-    },
-    1: {
-        headerArrow:
-            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966864%20(2)-P0TsGzN2t7yXk0aHsm9qnwF1YKJ3Dl.svg",
-        subscriptionText: "Basic",
-        subscriptionIcon:
-            "https://92eaarerohohicw5.public.blob.vercel-storage.com/box-TqSyqXiFHkU1GgDaQdEKJULKR8atEh.svg",
-        backgroundImage:
-            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(1)-POTjb8wZXqqH6HDsO7j509TQOPuyX1.svg",
-        hoursIcon:
-            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Group%201707479996%20(1)-FoheJXBEI3bMJlRIpdriCuuQ2nhpni.svg",
-        assistantBtnColor: "#00A6DE",
-    },
-    2: {
-        headerArrow:
-            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966864%20(3)-2ZNRRGIIJjTUNMQQgMFE5urBg10yO2.svg",
-        subscriptionText: "Advanced",
-        subscriptionIcon:
-            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Vector-Sku8woXGYnyhMF1nWSABfdTdb4QRcu.svg",
-        backgroundImage:
-            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(2)-mfTNL1DoZYl5Rbv4lM10pkZ4rzP5z3.svg",
-        hoursIcon:
-            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Group%201707479996%20(2)-zYeENIdjfZN94bosfo1MJNA6dmLtIT.svg",
-        assistantBtnColor: "#FF9500",
-    },
-    3: {
-        headerArrow:
-            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966864%20(4)-qWZVIp94jbcSI5pJQyihmkCuTBLiL7.svg",
-        subscriptionText: "Expert",
-        subscriptionIcon:
-            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Vector-ZqQoCwocPbx929JtHnRwvgBMtFMmfq.svg",
-        backgroundImage:
-            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(3)-IjvTJhbjp3HyEBUuGFNBTNAzjQr2rK.svg",
-        hoursIcon:
-            "https://92eaarerohohicw5.public.blob.vercel-storage.com/Group%201707479996%20(3)-qEkHaThJWjW0rwSxUauXax1BUjVqGU.svg",
-        assistantBtnColor: "#6624FF",
-    },
+  0: {
+    headerArrow:
+      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966864%20(1)-lrbnCy7zKVWc8bYMwShbQZtZX4gyh4.svg",
+    subscriptionTextKey: "subscription_inactive", // <-- вместо "Inactive"
+    backgroundImage:
+      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(3)-XNz1W2wKQ2BAlBI5PNqZTSHeA2xiFy.png",
+    hoursIcon:
+      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Group%201707479996-StHoLhbV66tAj5mVIKAgUK2GK9fC83.svg",
+  },
+  1: {
+    headerArrow:
+      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966864%20(2)-P0TsGzN2t7yXk0aHsm9qnwF1YKJ3Dl.svg",
+    subscriptionTextKey: "subscription_basic", // <-- вместо "Basic"
+    subscriptionIcon:
+      "https://92eaarerohohicw5.public.blob.vercel-storage.com/box-TqSyqXiFHkU1GgDaQdEKJULKR8atEh.svg",
+    backgroundImage:
+      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(1)-POTjb8wZXqqH6HDsO7j509TQOPuyX1.svg",
+    hoursIcon:
+      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Group%201707479996%20(1)-FoheJXBEI3bMJlRIpdriCuuQ2nhpni.svg",
+    assistantBtnColor: "#00A6DE",
+  },
+  2: {
+    headerArrow:
+      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966864%20(3)-2ZNRRGIIJjTUNMQQgMFE5urBg10yO2.svg",
+    subscriptionTextKey: "subscription_advanced", // <-- вместо "Advanced"
+    subscriptionIcon:
+      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Vector-Sku8woXGYnyhMF1nWSABfdTdb4QRcu.svg",
+    backgroundImage:
+      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(2)-mfTNL1DoZYl5Rbv4lM10pkZ4rzP5z3.svg",
+    hoursIcon:
+      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Group%201707479996%20(2)-zYeENIdjfZN94bosfo1MJNA6dmLtIT.svg",
+    assistantBtnColor: "#FF9500",
+  },
+  3: {
+    headerArrow:
+      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Frame%20480966864%20(4)-qWZVIp94jbcSI5pJQyihmkCuTBLiL7.svg",
+    subscriptionTextKey: "subscription_expert",  // <-- вместо "Expert"
+    subscriptionIcon:
+      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Vector-ZqQoCwocPbx929JtHnRwvgBMtFMmfq.svg",
+    backgroundImage:
+      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Main%20Container%20(3)-IjvTJhbjp3HyEBUuGFNBTNAzjQr2rK.svg",
+    hoursIcon:
+      "https://92eaarerohohicw5.public.blob.vercel-storage.com/Group%201707479996%20(3)-qEkHaThJWjW0rwSxUauXax1BUjVqGU.svg",
+    assistantBtnColor: "#6624FF",
+  },
 };
 
 
@@ -567,7 +566,7 @@ export default function Page() {
                 />
 
                 <div className={styles.subblock}>
-                    <h3 className={styles.subtitle}>Subscription</h3>
+                    <h3 className={styles.subtitle}>{t("user_subscription")}</h3>
                     <p className={styles.subscription}>
                         {currentConfig.subscriptionIcon && (
                             <Image
@@ -581,7 +580,7 @@ export default function Page() {
                                 }}
                             />
                         )}
-                        {currentConfig.subscriptionText}
+                        {t(currentConfig.subscriptionTextKey)}
                     </p>
                 </div>
             </div>

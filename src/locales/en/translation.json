@@ -90,5 +90,10 @@
   "popup_third_feature_1": "Text messages",
   "popup_third_feature_2": "Voice messages",
   "popup_third_feature_3": "Video messages",
-  "popup_third_feature_4": "Professional assistants"
+  "popup_third_feature_4": "Professional assistants",
+  "user_subscription": "Subscription",
+  "subscription_inactive": "Inactive",
+  "subscription_basic": "Basic",
+  "subscription_advanced": "Advanced",
+  "subscription_expert": "Expert"
 }

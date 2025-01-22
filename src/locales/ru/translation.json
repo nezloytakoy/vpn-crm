@@ -84,10 +84,16 @@
   "popup_second_title": "Сложная",
   "popup_second_feature_1": "Текстовые сообщения",
   "popup_second_feature_2": "Голосовые сообщения",
-  "popup_second_feature_3": "Запросы, требующие квалификации",
+  "popup_second_feature_3": "Сложные запросы",
   "popup_third_title": "Экспертная",
   "popup_third_feature_1": "Текстовые сообщения",
   "popup_third_feature_2": "Голосовые сообщения",
   "popup_third_feature_3": "Видео-сообщения",
-  "popup_third_feature_4": "Профессиональные ассистенты"
+  "popup_third_feature_4": "Профессиональные ассистенты",
+  "user_subscription": "Подписка",
+  "days": "Дней",
+  "subscription_inactive": "Неактивна",
+  "subscription_basic": "Базовая",
+  "subscription_advanced": "Расширенная",
+  "subscription_expert": "Экспертная"
 }
