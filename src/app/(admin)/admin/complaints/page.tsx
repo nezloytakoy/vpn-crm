@@ -215,7 +215,7 @@ const Complaints: React.FC = () => {
               Жалобы на ассистентов <span>({data.length})</span>
             </h3>
           </div>
-          <Table columns={columns} data={data} onRowClick={handleRowClick} />
+          <Table columns={columns} data={data} onRowClick={handleRowClick} isRowClickable={true}/>
         </div>
       </div>
 

@@ -43,8 +43,8 @@ export async function GET() {
 
         // Новая система статусов
         const status = (() => {
-          const logMessage = `Assistant: ${assistant.telegramId} - isBlocked: ${assistant.isBlocked}, isWorking: ${assistant.isWorking}`;
-          sendDebugLogToTelegram(logMessage); // Отправляем лог в Telegram
+          // const logMessage = `Assistant: ${assistant.telegramId} - isBlocked: ${assistant.isBlocked}, isWorking: ${assistant.isWorking}`;
+          // sendDebugLogToTelegram(logMessage); // Отправляем лог в Telegram
 
           if (assistant.isBlocked) {
             return 'Выкинуло с линии';

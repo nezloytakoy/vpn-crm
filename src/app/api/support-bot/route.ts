@@ -1209,7 +1209,7 @@ bot.command('online', async (ctx) => {
 
       if (!pendingRequest.subject) {
         // Если темы нет — завершаем
-        ctx.reply(`${getTranslation(lang, 'assistantRequestMessage')} — ${getTranslation(lang, 'no_subject')}`);
+        // ctx.reply(`${getTranslation(lang, 'assistantRequestMessage')} — ${getTranslation(lang, 'no_subject')}`);
         return;
       }
 

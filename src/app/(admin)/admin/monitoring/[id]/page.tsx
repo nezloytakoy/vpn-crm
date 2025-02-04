@@ -2,18 +2,18 @@
 
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import styles from './Assistent.module.css';
-import Link from 'next/link';
-import { FaEllipsisH } from 'react-icons/fa';
-import Table from '@/components/Table/Table';
-import { Column } from 'react-table';
-import confetti from 'canvas-confetti';
-import Image from 'next/image';
+import React, { useState, useRef, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import styles from "./Assistent.module.css";
+import Link from "next/link";
+import { FaEllipsisH } from "react-icons/fa";
+import Table from "@/components/Table/Table";
+import { Column } from "react-table";
+import confetti from "canvas-confetti";
+import Image from "next/image";
 
 interface Message {
-  sender: 'USER' | 'ASSISTANT';
+  sender: "USER" | "ASSISTANT";
   message: string;
   timestamp: string;
 }
@@ -83,7 +83,7 @@ interface ComplaintDetails {
   assistantId: string;
   assistantNickname: string;
   conversationLogs: {
-    sender: 'USER' | 'ASSISTANT';
+    sender: "USER" | "ASSISTANT";
     message: string;
     timestamp: string;
   }[];
@@ -91,7 +91,7 @@ interface ComplaintDetails {
 
 function formatComplexDuration(totalSeconds: number): string {
   if (totalSeconds <= 0) {
-    return '0с';
+    return "0с";
   }
 
   // Посчитаем величины в каждой единице
@@ -115,12 +115,12 @@ function formatComplexDuration(totalSeconds: number): string {
   // Определяем, какие единицы реально задействованы
   // Составляем их в порядке убывания «приоритета»
   const units = [
-    { label: 'мес', value: months },
-    { label: 'нед', value: weeks },
-    { label: 'дн', value: days },
-    { label: 'ч', value: hours },
-    { label: 'мин', value: minutes },
-    { label: 'с', value: seconds },
+    { label: "мес", value: months },
+    { label: "нед", value: weeks },
+    { label: "дн", value: days },
+    { label: "ч", value: hours },
+    { label: "мин", value: minutes },
+    { label: "с", value: seconds },
   ];
 
   // Теперь нам надо вывести ровно "три старших" ненулевых единицы
@@ -130,7 +130,7 @@ function formatComplexDuration(totalSeconds: number): string {
   const firstNonZeroIndex = units.findIndex((u) => u.value !== 0);
   if (firstNonZeroIndex === -1) {
     // Значит всё было по нулям, вернём "0с"
-    return '0с';
+    return "0с";
   }
 
   // Возьмём срез из units, начиная с первой ненулевой, на 3 элемента
@@ -141,12 +141,10 @@ function formatComplexDuration(totalSeconds: number): string {
   const finalUnits = sliced.filter((u) => u.value !== 0);
 
   // Формируем строку типа "2мес 3нед 7дн"
-  const result = finalUnits.map((u) => `${u.value}${u.label}`).join(' ');
+  const result = finalUnits.map((u) => `${u.value}${u.label}`).join(" ");
 
-  return result || '0с';
+  return result || "0с";
 }
-
-
 
 function Page() {
   const { id: currentAssistantId } = useParams();
@@ -160,22 +158,24 @@ function Page() {
   const pupilDropdownRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
 
-  const [pupilId, setPupilId] = useState('');
+  const [pupilId, setPupilId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const [assistantData, setAssistantData] = useState<AssistantData | null>(null);
+  const [assistantData, setAssistantData] = useState<AssistantData | null>(
+    null
+  );
 
   const [isLoadingData, setIsLoadingData] = useState(true);
-  const [userRole, setUserRole] = useState<string>('');
+  const [userRole, setUserRole] = useState<string>("");
 
-  const [blockHours, setBlockHours] = useState('');
+  const [blockHours, setBlockHours] = useState("");
   const [isBlocking, setIsBlocking] = useState(false);
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [coins, setCoins] = useState(''); // Хранение введённых данных
-  const [error, setError] = useState(''); // Хранение ошибок
-  const [success, setSuccess] = useState(''); // Сообщение об успехе
+  const [coins, setCoins] = useState(""); // Хранение введённых данных
+  const [error, setError] = useState(""); // Хранение ошибок
+  const [success, setSuccess] = useState(""); // Сообщение об успехе
 
   // New state for complaints
   const [complaintsData, setComplaintsData] = useState<ComplaintData[]>([]);
@@ -184,16 +184,18 @@ function Page() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   const [showComplaintPopup, setShowComplaintPopup] = useState(false); // показывает попап
-  const [isFormVisible, setIsFormVisible] = useState(false);          // показывает форму объяснения
-  const [fadeOut, setFadeOut] = useState(false);                      // анимация скрытия
-  const [action, setAction] = useState<'approve' | 'reject' | null>(null);
+  const [isFormVisible, setIsFormVisible] = useState(false); // показывает форму объяснения
+  const [fadeOut, setFadeOut] = useState(false); // анимация скрытия
+  const [action, setAction] = useState<"approve" | "reject" | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [explanation, setExplanation] = useState('');                 // введённый текст
-  const [selectedComplaint, setSelectedComplaint] = useState<ComplaintData | null>(null);
-  const [complaintDetails, setComplaintDetails] = useState<ComplaintDetails | null>(null);
+  const [explanation, setExplanation] = useState(""); // введённый текст
+  const [selectedComplaint, setSelectedComplaint] =
+    useState<ComplaintData | null>(null);
+  const [complaintDetails, setComplaintDetails] =
+    useState<ComplaintDetails | null>(null);
 
   const handleApproveComplaint = () => {
-    setAction('approve');
+    setAction("approve");
     setFadeOut(true);
     // Ждём окончание анимации 300ms (или сколько у вас в CSS)
     setTimeout(() => {
@@ -203,7 +205,7 @@ function Page() {
   };
 
   const handleRejectComplaint = () => {
-    setAction('reject');
+    setAction("reject");
     setFadeOut(true);
     setTimeout(() => {
       setIsFormVisible(true);
@@ -217,17 +219,18 @@ function Page() {
 
     try {
       // Пример: получаем moderatorId (если нужно)
-      const modResp = await fetch('/api/get-moder-id');
-      if (!modResp.ok) throw new Error('Не удалось получить moderatorId');
+      const modResp = await fetch("/api/get-moder-id");
+      if (!modResp.ok) throw new Error("Не удалось получить moderatorId");
       const { userId: moderatorId } = await modResp.json();
 
-      const endpoint = action === 'approve'
-        ? `/api/approve-complaint?id=${selectedComplaint.id}`
-        : `/api/reject-complaint?id=${selectedComplaint.id}`;
+      const endpoint =
+        action === "approve"
+          ? `/api/approve-complaint?id=${selectedComplaint.id}`
+          : `/api/reject-complaint?id=${selectedComplaint.id}`;
 
       const resp = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           complaintId: selectedComplaint.id,
           explanation,
@@ -236,7 +239,11 @@ function Page() {
       });
 
       if (!resp.ok) {
-        throw new Error(`Ошибка при ${action === 'approve' ? 'одобрении' : 'отклонении'} жалобы`);
+        throw new Error(
+          `Ошибка при ${
+            action === "approve" ? "одобрении" : "отклонении"
+          } жалобы`
+        );
       }
 
       // Если всё ок — закрываем попап и сбрасываем стейт
@@ -244,35 +251,34 @@ function Page() {
       setIsFormVisible(false);
       setSelectedComplaint(null);
       setComplaintDetails(null);
-      setExplanation('');
+      setExplanation("");
       setAction(null);
 
       // Возможно, стоит обновить список жалоб, чтобы изменения отобразились
       // refreshComplaints(); // <-- функция, чтобы заново сходить в /api/... и обновить complaints
-
     } catch (err) {
-      console.error('Ошибка при обработке жалобы:', err);
-      alert('Произошла ошибка');
+      console.error("Ошибка при обработке жалобы:", err);
+      alert("Произошла ошибка");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-
-
   // Function to fetch complaints data
   useEffect(() => {
     const fetchComplaintsData = async () => {
       try {
-        const response = await fetch(`/api/get-assistant-complaints?assistantId=${currentAssistantId}`);
+        const response = await fetch(
+          `/api/get-assistant-complaints?assistantId=${currentAssistantId}`
+        );
         const data = await response.json();
         if (response.ok) {
           setComplaintsData(data);
         } else {
-          console.error('Ошибка:', data.error);
+          console.error("Ошибка:", data.error);
         }
       } catch (error) {
-        console.error('Ошибка при получении жалоб:', error);
+        console.error("Ошибка при получении жалоб:", error);
       } finally {
         setIsLoadingComplaints(false);
       }
@@ -284,21 +290,20 @@ function Page() {
   }, [currentAssistantId]);
 
   useEffect(() => {
-
     if (!assistantData) return;
     if (!currentAssistantId) return;
 
     const rawUrl = `/api/get-assistant-avatar?assistantId=${currentAssistantId}&raw=true`;
-    console.log('[AssistantPage] fetch avatar =>', rawUrl);
+    console.log("[AssistantPage] fetch avatar =>", rawUrl);
 
     setAvatarUrl(null);
 
     fetch(rawUrl)
       .then(async (res) => {
-        if (res.headers.get('content-type')?.includes('application/json')) {
+        if (res.headers.get("content-type")?.includes("application/json")) {
           const jsonData = await res.json().catch(() => ({}));
-          if (jsonData.error === 'no avatar') {
-            console.log('[AssistantPage] no avatar => null');
+          if (jsonData.error === "no avatar") {
+            console.log("[AssistantPage] no avatar => null");
             return;
           }
           return;
@@ -313,26 +318,26 @@ function Page() {
   const handleSubmit = async () => {
     // Проверка на пустой инпут
     if (!coins.trim()) {
-      setError('Пожалуйста, введите количество коинов.');
-      setSuccess('');
+      setError("Пожалуйста, введите количество коинов.");
+      setSuccess("");
       return;
     }
 
     const coinsNumber = parseInt(coins, 10);
 
     if (isNaN(coinsNumber) || coinsNumber <= 0) {
-      setError('Введите корректное число.');
-      setSuccess('');
+      setError("Введите корректное число.");
+      setSuccess("");
       return;
     }
 
-    setError(''); // Очистка ошибки
+    setError(""); // Очистка ошибки
 
     try {
-      const response = await fetch('/api/add-coins', {
-        method: 'POST',
+      const response = await fetch("/api/add-coins", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           assistantId: currentAssistantId,
@@ -343,33 +348,35 @@ function Page() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Ошибка при добавлении коинов');
+        throw new Error(data.error || "Ошибка при добавлении коинов");
       }
 
       // Вместо установки сообщения успешного состояния, выводим alert
-      alert('Коины успешно подарены!');
-      setCoins(''); // Очистка инпута
+      alert("Коины успешно подарены!");
+      setCoins(""); // Очистка инпута
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('Произошла неизвестная ошибка.');
+        setError("Произошла неизвестная ошибка.");
       }
-      setSuccess('');
+      setSuccess("");
     }
   };
   useEffect(() => {
     const fetchAssistantData = async () => {
       try {
-        const response = await fetch(`/api/get-assistant?assistantId=${currentAssistantId}`);
+        const response = await fetch(
+          `/api/get-assistant?assistantId=${currentAssistantId}`
+        );
         const data = await response.json();
         if (response.ok) {
           setAssistantData(data);
         } else {
-          console.error('Ошибка:', data.error);
+          console.error("Ошибка:", data.error);
         }
       } catch (error) {
-        console.error('Ошибка при получении данных:', error);
+        console.error("Ошибка при получении данных:", error);
       } finally {
         setIsLoadingData(false);
       }
@@ -381,9 +388,9 @@ function Page() {
   }, [currentAssistantId]);
 
   const complaintsColumns: Column<ComplaintData>[] = [
-    { Header: 'ID Жалобы', accessor: 'id' },
-    { Header: 'ID Пользователя', accessor: 'userId' },
-    { Header: 'Username', accessor: 'username' },
+    { Header: "ID Жалобы", accessor: "id" },
+    { Header: "ID Пользователя", accessor: "userId" },
+    { Header: "Username", accessor: "username" },
   ];
 
   const handleAddPupil = async () => {
@@ -391,19 +398,19 @@ function Page() {
 
     try {
       if (!currentAssistantId) {
-        throw new Error('ID ассистента не найден в роуте');
+        throw new Error("ID ассистента не найден в роуте");
       }
 
-      const response = await fetch('/api/add-pupil', {
-        method: 'POST',
+      const response = await fetch("/api/add-pupil", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ pupilId, assistantId: currentAssistantId }),
       });
 
       if (!response.ok) {
-        throw new Error('Ошибка при добавлении подопечного');
+        throw new Error("Ошибка при добавлении подопечного");
       }
 
       confetti({
@@ -412,12 +419,12 @@ function Page() {
         origin: { y: 0.6 },
       });
 
-      alert('Подопечный успешно добавлен 🎉');
+      alert("Подопечный успешно добавлен 🎉");
     } catch (error: unknown) {
       if (error instanceof Error) {
-        alert('Ошибка: ' + error.message + ' ❌❌❌');
+        alert("Ошибка: " + error.message + " ❌❌❌");
       } else {
-        alert('Произошла неизвестная ошибка ❌❌❌');
+        alert("Произошла неизвестная ошибка ❌❌❌");
       }
     } finally {
       setIsLoading(false);
@@ -428,73 +435,71 @@ function Page() {
     setIsBlocking(true);
     try {
       if (!currentAssistantId) {
-        throw new Error('ID ассистента не найден в роуте');
+        throw new Error("ID ассистента не найден в роуте");
       }
       if (!blockHours) {
-        throw new Error('Введите количество часов');
+        throw new Error("Введите количество часов");
       }
       const hours = parseInt(blockHours, 10);
       if (isNaN(hours) || hours <= 0) {
-        throw new Error('Количество часов должно быть положительным числом');
+        throw new Error("Количество часов должно быть положительным числом");
       }
-      const response = await fetch('/api/block-assistant', {
-        method: 'POST',
+      const response = await fetch("/api/block-assistant", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ assistantId: currentAssistantId, hours }),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Ошибка при блокировке ассистента');
+        throw new Error(data.error || "Ошибка при блокировке ассистента");
       }
 
-      alert('Ассистент успешно заблокирован');
-      setBlockHours('');
+      alert("Ассистент успешно заблокирован");
+      setBlockHours("");
     } catch (error: unknown) {
       if (error instanceof Error) {
-        alert('Ошибка: ' + error.message);
+        alert("Ошибка: " + error.message);
       } else {
-        alert('Произошла неизвестная ошибка');
+        alert("Произошла неизвестная ошибка");
       }
     } finally {
       setIsBlocking(false);
     }
   };
 
-
   const handleDeleteAssistant = async () => {
     setIsDeleting(true);
     try {
       if (!currentAssistantId) {
-        throw new Error('ID ассистента не найден в роуте');
+        throw new Error("ID ассистента не найден в роуте");
       }
-      const response = await fetch('/api/delete-assistant', {
-        method: 'DELETE',
+      const response = await fetch("/api/delete-assistant", {
+        method: "DELETE",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ telegramId: currentAssistantId }),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Ошибка при удалении ассистента');
+        throw new Error(data.error || "Ошибка при удалении ассистента");
       }
 
-
       setTimeout(() => {
-        router.push('/admin/monitoring');
+        router.push("/admin/monitoring");
       }, 3000);
     } catch (error: unknown) {
       if (error instanceof Error) {
         setDeleteError(error.message);
-        console.log(deleteError)
-        alert('Ошибка: ' + error.message);
+        console.log(deleteError);
+        alert("Ошибка: " + error.message);
       } else {
-        setDeleteError('Произошла неизвестная ошибка');
-        alert('Произошла неизвестная ошибка');
+        setDeleteError("Произошла неизвестная ошибка");
+        alert("Произошла неизвестная ошибка");
       }
     } finally {
       setIsDeleting(false);
@@ -505,12 +510,12 @@ function Page() {
 
   const handleDownload = (messages: Message[], filename: string) => {
     const content = messages
-      .map(msg => `[${msg.timestamp}] ${msg.sender}: ${msg.message}`)
-      .join('\n');
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      .map((msg) => `[${msg.timestamp}] ${msg.sender}: ${msg.message}`)
+      .join("\n");
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
 
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
     link.download = `${filename}.txt`;
     document.body.appendChild(link);
@@ -522,14 +527,14 @@ function Page() {
 
   // Определение столбцов для таблицы запросов
   const requestColumns: Column<AssistantRequest>[] = [
-    { Header: 'ID запроса', accessor: 'id' },
-    { Header: 'Действие', accessor: 'status' },
+    { Header: "ID запроса", accessor: "id" },
+    { Header: "Действие", accessor: "status" },
     {
-      Header: 'Лог',
-      accessor: 'messages',
+      Header: "Лог",
+      accessor: "messages",
       Cell: ({ row }: { row: { original: AssistantRequest } }) => {
         const { messages, status, id } = row.original;
-        if (status === 'IGNORED' || status === 'REJECTED') {
+        if (status === "IGNORED" || status === "REJECTED") {
           return <span>-</span>;
         }
         return (
@@ -542,26 +547,27 @@ function Page() {
         );
       },
     },
-    { Header: 'ID пользователя', accessor: 'userId' },
+    { Header: "ID пользователя", accessor: "userId" },
   ];
 
-  const requestData: AssistantRequest[] = assistantData?.assistantRequests || [];
+  const requestData: AssistantRequest[] =
+    assistantData?.assistantRequests || [];
 
   const transactionColumns: Column<TransactionData>[] = [
-    { Header: 'ID', accessor: 'id' },
-    { Header: 'Количество', accessor: 'amount' },
-    { Header: 'Причина', accessor: 'reason' },
+    { Header: "ID", accessor: "id" },
+    { Header: "Количество", accessor: "amount" },
+    { Header: "Причина", accessor: "reason" },
     {
-      Header: 'Время',
-      accessor: 'createdAt',
+      Header: "Время",
+      accessor: "createdAt",
       Cell: ({ value }: { value: string }) => {
         const date = new Date(value);
-        const formattedDate = date.toLocaleString('ru-RU', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
+        const formattedDate = date.toLocaleString("ru-RU", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
         });
         return formattedDate;
       },
@@ -595,32 +601,31 @@ function Page() {
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
-
   }, []);
 
   useEffect(() => {
     const fetchUserRole = async () => {
       try {
-        const response = await fetch('/api/get-user-role', {
-          method: 'POST',
+        const response = await fetch("/api/get-user-role", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({ id: currentAssistantId }),
         });
 
         if (!response.ok) {
-          throw new Error('Не удалось получить роль пользователя');
+          throw new Error("Не удалось получить роль пользователя");
         }
 
         const result = await response.json();
         setUserRole(result.role);
       } catch (error) {
-        console.error('Ошибка при получении роли пользователя:', error);
+        console.error("Ошибка при получении роли пользователя:", error);
       }
     };
 
@@ -642,14 +647,14 @@ function Page() {
   }
 
   function handleComplaintRowClick(rowData: ComplaintData) {
-    console.log('[handleComplaintRowClick] invoked with =', rowData);
+    console.log("[handleComplaintRowClick] invoked with =", rowData);
     // 1) Сохраняем выбранную жалобу (чтобы знать её id)
     setSelectedComplaint(rowData);
 
     // 2) Делаем запрос за деталями: /api/get-complaint-details?id=...
     fetch(`/api/get-complaint-details?id=${rowData.id}`)
       .then(async (res) => {
-        if (!res.ok) throw new Error('Ошибка при получении деталей жалобы');
+        if (!res.ok) throw new Error("Ошибка при получении деталей жалобы");
         return res.json();
       })
       .then((details: ComplaintDetails) => {
@@ -659,25 +664,26 @@ function Page() {
         // 4) Показываем попап
         setShowComplaintPopup(true);
         setIsFormVisible(false);
-        setExplanation('');
+        setExplanation("");
         setAction(null);
         setFadeOut(false);
       })
       .catch((err) => {
-        console.error('Ошибка при загрузке деталей жалобы:', err);
-        alert('Не удалось загрузить детали жалобы');
+        console.error("Ошибка при загрузке деталей жалобы:", err);
+        alert("Не удалось загрузить детали жалобы");
       });
   }
 
   return (
     <div className={styles.main}>
-
       <div className={styles.titlebox}>
         <h1 className={styles.title}>Ассистент</h1>
         <div className={styles.pointerblock}>
           <p className={styles.pointertext}>
-            <Link href="/admin/monitoring" className={styles.link}>Мониторинг</Link> &nbsp;&nbsp;/&nbsp;&nbsp;
-            Ассистент
+            <Link href="/admin/monitoring" className={styles.link}>
+              Мониторинг
+            </Link>{" "}
+            &nbsp;&nbsp;/&nbsp;&nbsp; Ассистент
           </p>
         </div>
       </div>
@@ -695,7 +701,7 @@ function Page() {
                       className={styles.avatarImage}
                       width={100}
                       height={100}
-                      style={{ objectFit: 'cover' }}
+                      style={{ objectFit: "cover" }}
                     />
                   ) : (
                     <Image
@@ -704,17 +710,21 @@ function Page() {
                       width={100}
                       height={100}
                       className={styles.avatarImage}
-                      style={{ objectFit: 'cover' }}
+                      style={{ objectFit: "cover" }}
                     />
                   )}
                 </div>
                 <div className={styles.numbers}>
                   <div className={styles.metric}>
-                    <p className={styles.number}>{assistantData?.allRequests}</p>
+                    <p className={styles.number}>
+                      {assistantData?.allRequests}
+                    </p>
                     <p className={styles.smalltitle}>Запросы</p>
                   </div>
                   <div className={styles.metric}>
-                    <p className={styles.number}>{assistantData?.rejectedRequests}</p>
+                    <p className={styles.number}>
+                      {assistantData?.rejectedRequests}
+                    </p>
                     <p className={styles.smalltitle}>Отказы</p>
                   </div>
                   <div className={styles.metric}>
@@ -722,7 +732,6 @@ function Page() {
                     <p className={styles.smalltitle}>Жалобы</p>
                   </div>
                   <div className={styles.metrictwo}>
-
                     <button
                       className={styles.iconButton}
                       onClick={() => setShowDropdown(!showDropdown)}
@@ -733,21 +742,36 @@ function Page() {
                     </button>
 
                     {showDropdown && (
-                      <div className={`${styles.dropdownMenu} ${showDropdown ? styles.fadeIn : styles.fadeOut}`} ref={dropdownRef}>
+                      <div
+                        className={`${styles.dropdownMenu} ${
+                          showDropdown ? styles.fadeIn : styles.fadeOut
+                        }`}
+                        ref={dropdownRef}
+                      >
                         <div className={styles.dropdownItem}>
-                          <p className={styles.number}>{assistantData?.requestsThisMonth}</p>
+                          <p className={styles.number}>
+                            {assistantData?.requestsThisMonth}
+                          </p>
                           <p className={styles.smalltitle}>Запросы/месяц</p>
                         </div>
                         <div className={styles.dropdownItem}>
-                          <p className={styles.number}>{assistantData?.requestsThisWeek}</p>
+                          <p className={styles.number}>
+                            {assistantData?.requestsThisWeek}
+                          </p>
                           <p className={styles.smalltitle}>Запросы/неделя</p>
                         </div>
                         <div className={styles.dropdownItem}>
-                          <p className={styles.number}>{assistantData?.requestsToday}</p>
+                          <p className={styles.number}>
+                            {assistantData?.requestsToday}
+                          </p>
                           <p className={styles.smalltitle}>Запросы/сутки</p>
                         </div>
                         <div className={styles.dropdownItem}>
-                          <p className={styles.number}>{assistantData?.averageResponseTime ? assistantData.averageResponseTime.toFixed(2) : 0}</p>
+                          <p className={styles.number}>
+                            {assistantData?.averageResponseTime
+                              ? assistantData.averageResponseTime.toFixed(2)
+                              : 0}
+                          </p>
                           <p className={styles.smalltitle}>Время ответа(с)</p>
                         </div>
                       </div>
@@ -758,28 +782,40 @@ function Page() {
 
               <div className={styles.datablock}>
                 <div className={styles.nameblock}>
-                  <p className={styles.name}>@{assistantData?.assistant.username}</p>
-                  <p className={styles.undername}>ID: {assistantData?.assistant.telegramId}</p>
+                  <p className={styles.name}>
+                    @{assistantData?.assistant.username}
+                  </p>
+                  <p className={styles.undername}>
+                    ID: {assistantData?.assistant.telegramId}
+                  </p>
                 </div>
                 <div className={styles.numberstwo}>
                   <div className={styles.metric}>
-                    <p className={styles.number}>{assistantData?.sessionCount}</p>
+                    <p className={styles.number}>
+                      {assistantData?.sessionCount}
+                    </p>
                     <p className={styles.smalltitle}>Рабочие сессии</p>
                   </div>
                   <div className={styles.metric}>
                     <p className={styles.number}>
                       {assistantData?.averageSessionTime
-                        ? formatComplexDuration(assistantData.averageSessionTime)
-                        : '0с'}
+                        ? formatComplexDuration(
+                            assistantData.averageSessionTime
+                          )
+                        : "0с"}
                     </p>
                     <p className={styles.smalltitle}>Время сессии</p>
                   </div>
                   <div className={styles.metric}>
-                    <p className={styles.number}>{assistantData?.ignoredRequests}</p>
+                    <p className={styles.number}>
+                      {assistantData?.ignoredRequests}
+                    </p>
                     <p className={styles.smalltitle}>Пропусков запросов</p>
                   </div>
                   <div className={styles.metric}>
-                    <p className={styles.number}>{assistantData?.assistant.orderNumber}</p>
+                    <p className={styles.number}>
+                      {assistantData?.assistant.orderNumber}
+                    </p>
                     <p className={styles.smalltitle}>Номер(№) ассистента</p>
                   </div>
                 </div>
@@ -787,7 +823,9 @@ function Page() {
               <div className={styles.numbersthree}>
                 <div className={styles.messageboxthree}>
                   <h1 className={styles.gifttitle}>Заблокировать ассистента</h1>
-                  <h1 className={styles.undertitletwo}>Введите на какое время (в часах)</h1>
+                  <h1 className={styles.undertitletwo}>
+                    Введите на какое время (в часах)
+                  </h1>
                   <div className={styles.inputContainertwo}>
                     <input
                       type="text"
@@ -804,7 +842,7 @@ function Page() {
                       onClick={handleBlockAssistant}
                       disabled={isBlocking}
                     >
-                      {isBlocking ? 'Загрузка...' : 'Подтвердить'}
+                      {isBlocking ? "Загрузка..." : "Подтвердить"}
                     </button>
                     <button
                       className={styles.submitButtonthree}
@@ -816,7 +854,6 @@ function Page() {
                 </div>
               </div>
             </div>
-
           </div>
           <div className={styles.messagebox}>
             <h1 className={styles.gifttitle}>Подарить коины</h1>
@@ -830,10 +867,10 @@ function Page() {
               />
               <span className={styles.label}>Коинов</span>
             </div>
-
-            {error && <p className={styles.error}>{error}</p>} {/* Отображение ошибок */}
-            {success && <p className={styles.success}>{success}</p>} {/* Отображение успешного сообщения */}
-
+            {error && <p className={styles.error}>{error}</p>}{" "}
+            {/* Отображение ошибок */}
+            {success && <p className={styles.success}>{success}</p>}{" "}
+            {/* Отображение успешного сообщения */}
             <button
               className={`${styles.submitButtonfive}`}
               onClick={handleSubmit} // Вызов функции при нажатии
@@ -854,14 +891,26 @@ function Page() {
           </div>
 
           {showPupilDropdown && (
-            <div className={`${styles.pupilDropdown} ${showPupilDropdown ? styles.fadeIn : styles.fadeOut}`} ref={pupilDropdownRef}>
-              <div onClick={toggleMessagebox} className={styles.pupilDropdownItem}>
-                {isMessageboxVisible ? 'Список' : 'Добавить'}
+            <div
+              className={`${styles.pupilDropdown} ${
+                showPupilDropdown ? styles.fadeIn : styles.fadeOut
+              }`}
+              ref={pupilDropdownRef}
+            >
+              <div
+                onClick={toggleMessagebox}
+                className={styles.pupilDropdownItem}
+              >
+                {isMessageboxVisible ? "Список" : "Добавить"}
               </div>
             </div>
           )}
 
-          <div className={`${styles.messageboxtwo} ${isMessageboxVisible ? styles.show : styles.hide}`}>
+          <div
+            className={`${styles.messageboxtwo} ${
+              isMessageboxVisible ? styles.show : styles.hide
+            }`}
+          >
             <h1 className={styles.gifttitle}>Добавить подопечного</h1>
             <h1 className={styles.undertitletwo}>Введите айди подопечного</h1>
             <div className={styles.inputContainerthree}>
@@ -879,19 +928,25 @@ function Page() {
                 onClick={handleAddPupil}
                 disabled={isLoading}
               >
-                {isLoading ? 'Загрузка...' : 'Подтвердить'}
+                {isLoading ? "Загрузка..." : "Подтвердить"}
               </button>
             </div>
           </div>
 
-          <div className={`${styles.pupilsblock} ${isMessageboxVisible ? styles.hidePupils : styles.showPupils}`}>
+          <div
+            className={`${styles.pupilsblock} ${
+              isMessageboxVisible ? styles.hidePupils : styles.showPupils
+            }`}
+          >
             {isLoadingData ? (
               <p>Данные загружаются...</p>
             ) : pupils?.length > 0 ? (
               pupils.map((pupil) => {
                 const lastActiveAt = new Date(pupil.lastActiveAt);
                 const now = new Date();
-                const minutesAgo = Math.floor((now.getTime() - lastActiveAt.getTime()) / 60000);
+                const minutesAgo = Math.floor(
+                  (now.getTime() - lastActiveAt.getTime()) / 60000
+                );
 
                 const formatTimeAgo = (minutesAgo: number) => {
                   if (minutesAgo < 10) {
@@ -910,9 +965,13 @@ function Page() {
                   }
                 };
 
-                const circleClass = `${styles.activecircle} ${!pupil.isWorking ? styles.grayCircle :
-                  pupil.isWorking && !pupil.isBusy ? styles.redCircle :
-                    styles.greenCircle}`;
+                const circleClass = `${styles.activecircle} ${
+                  !pupil.isWorking
+                    ? styles.grayCircle
+                    : pupil.isWorking && !pupil.isBusy
+                    ? styles.redCircle
+                    : styles.greenCircle
+                }`;
 
                 return (
                   <div>
@@ -924,12 +983,19 @@ function Page() {
                         <div className={styles.pupilinnername}>
                           <p className={styles.nametext}>{pupil.username}</p>
                           <div className={styles.pupilinfo}>
-                            <p className={styles.infotext} dangerouslySetInnerHTML={{ __html: formatTimeAgo(minutesAgo) }} />
+                            <p
+                              className={styles.infotext}
+                              dangerouslySetInnerHTML={{
+                                __html: formatTimeAgo(minutesAgo),
+                              }}
+                            />
                           </div>
                         </div>
                         <div className={styles.pupilunderblock}>
                           <p className={styles.undertext}>{pupil.telegramId}</p>
-                          <p className={styles.undertext}>№{pupil.orderNumber}</p>
+                          <p className={styles.undertext}>
+                            №{pupil.orderNumber}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -959,7 +1025,7 @@ function Page() {
           )}
         </div>
       </div>
-      {userRole === 'Администратор' && (
+      {userRole === "Администратор" && (
         <div className={styles.tablebox}>
           <div className={styles.tableWrapper}>
             <div className={styles.header}>
@@ -985,9 +1051,10 @@ function Page() {
               columns={complaintsColumns}
               data={complaintsData}
               onRowClick={(rowData) => {
-                console.log('[AssistantPage] onRowClick called with rowData =', rowData);
-                handleComplaintRowClick(rowData);  // <-- Далее идёт ваша логика
+                handleComplaintRowClick(rowData);
               }}
+              isRowClickable={true}
+              isRowClickable={true}
             />
           ) : (
             <p>Жалобы не найдены.</p>
@@ -999,16 +1066,23 @@ function Page() {
         <>
           <div className={styles.overlay} />
           <div className={styles.popup} ref={popupRef}>
-            <h2 className={styles.popupTitle}>Вы действительно хотите удалить ассистента?</h2>
+            <h2 className={styles.popupTitle}>
+              Вы действительно хотите удалить ассистента?
+            </h2>
             <div className={styles.popupButtons}>
               <button
                 className={styles.confirmButton}
                 onClick={handleDeleteAssistant}
                 disabled={isDeleting}
               >
-                {isDeleting ? 'Удаление...' : 'Да'}
+                {isDeleting ? "Удаление..." : "Да"}
               </button>
-              <button className={styles.cancelButton} onClick={() => setShowPopup(false)}>Нет</button>
+              <button
+                className={styles.cancelButton}
+                onClick={() => setShowPopup(false)}
+              >
+                Нет
+              </button>
             </div>
           </div>
         </>
@@ -1017,42 +1091,58 @@ function Page() {
       {showComplaintPopup && complaintDetails && (
         <>
           <div className={styles.overlay} />
-          <div className={`${styles.popup} ${fadeOut ? styles.fadeOut : ''}`}>
+          <div className={`${styles.popup} ${fadeOut ? styles.fadeOut : ""}`}>
             {!isFormVisible ? (
               <>
                 {/* Блок с краткой информацией о жалобе */}
-                <p><strong>Сообщение:</strong> {complaintDetails.text}</p>
+                <p>
+                  <strong>Сообщение:</strong> {complaintDetails.text}
+                </p>
 
                 {complaintDetails.photoUrls?.length > 0 && (
                   <div>
                     <strong>Скриншоты:</strong>
                     <div className={styles.imagesContainer}>
-                      {complaintDetails.photoUrls.map((url: string, index: number) => (
-                        <Image
-                          key={index}
-                          src={`/api/get-image-proxy?url=${encodeURIComponent(url)}`}
-                          alt={`Скриншот ${index + 1}`}
-                          className={styles.image}
-                          width={200}
-                          height={120}
-                        />
-                      ))}
+                      {complaintDetails.photoUrls.map(
+                        (url: string, index: number) => (
+                          <Image
+                            key={index}
+                            src={`/api/get-image-proxy?url=${encodeURIComponent(
+                              url
+                            )}`}
+                            alt={`Скриншот ${index + 1}`}
+                            className={styles.image}
+                            width={200}
+                            height={120}
+                          />
+                        )
+                      )}
                     </div>
                   </div>
                 )}
 
                 <div className={styles.buttonGroup}>
-                  <button onClick={handleApproveComplaint} className={styles.approveButton}>
+                  <button
+                    onClick={handleApproveComplaint}
+                    className={styles.approveButton}
+                  >
                     Одобрить
                   </button>
-                  <button onClick={handleRejectComplaint} className={styles.rejectButton}>
+                  <button
+                    onClick={handleRejectComplaint}
+                    className={styles.rejectButton}
+                  >
                     Отклонить
                   </button>
                 </div>
               </>
             ) : (
               <div className={styles.formContainer}>
-                <h3>{action === 'approve' ? 'Одобрение жалобы' : 'Отклонение жалобы'}</h3>
+                <h3>
+                  {action === "approve"
+                    ? "Одобрение жалобы"
+                    : "Отклонение жалобы"}
+                </h3>
                 <textarea
                   placeholder="Введите ваше объяснение"
                   value={explanation}
@@ -1064,7 +1154,11 @@ function Page() {
                   className={styles.submitButton}
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? <div className={styles.buttonLoader} /> : 'Отправить'}
+                  {isSubmitting ? (
+                    <div className={styles.buttonLoader} />
+                  ) : (
+                    "Отправить"
+                  )}
                 </button>
               </div>
             )}

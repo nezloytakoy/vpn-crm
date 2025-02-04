@@ -945,6 +945,7 @@ function Page() {
             columns={complaintColumns}
             data={userData?.complaints || []}
             onRowClick={handleComplaintRowClick}
+            isRowClickable={true}
           />
         </div>
       </div>

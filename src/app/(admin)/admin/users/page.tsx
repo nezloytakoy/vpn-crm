@@ -1154,6 +1154,7 @@ function Page() {
                                 columns={columnsData as Column<UserData>[]}
                                 data={sortedData}
                                 onRowClick={(row) => handleRowClick(row.telegramId)}
+                                isRowClickable={true}
                             />
                         )}
                     </div>

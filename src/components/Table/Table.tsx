@@ -1,5 +1,4 @@
 /* eslint-disable react/jsx-key */
-
 'use client';
 
 import React, { useRef, useEffect, useState } from 'react';
@@ -27,6 +26,11 @@ interface TableProps<T extends object> {
   columns: Column<T>[];
   data: T[];
   onRowClick?: (rowData: T) => void;
+  /**
+   * Флаг, определяющий, должна ли таблица быть кликабельной по строкам (cursor: pointer).
+   * По умолчанию `false`.
+   */
+  isRowClickable?: boolean;
 }
 
 type TableStateWithPagination<T extends object> = TableState<T> & UsePaginationState<T>;
@@ -36,18 +40,17 @@ type TableInstanceWithPagination<T extends object> = TableInstance<T> &
     state: TableStateWithPagination<T>;
   };
 
-const Table = <T extends object>({ columns, data, onRowClick }: TableProps<T>) => {
+const Table = <T extends object>({
+  columns,
+  data,
+  onRowClick,
+  isRowClickable = false, // Значение по умолчанию
+}: TableProps<T>) => {
   const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
 
-  const isComplaintsOrCoinsRoute =
-    isMounted &&
-    (
-      pathname === "/admin/complaints" ||
-      pathname === "/admin/coins" ||
-      pathname.startsWith("/admin/users") ||
-      pathname === "/admin/moderators"
-    );
+  // Если у вас есть логика, завязанная на pathname, можно дополнительно проверить
+  // const isSomeAdminRoute = pathname.startsWith('/admin/...');
 
   const instance = useTable<T>(
     {
@@ -95,7 +98,11 @@ const Table = <T extends object>({ columns, data, onRowClick }: TableProps<T>) =
     <>
       <div className={styles.animatedTableWrapper} ref={wrapperRef}>
         <div className={styles.scrollableTableWrapper}>
-          <table {...getTableProps()} className={styles.taskTable} ref={tableRef}>
+          <table
+            {...getTableProps()}
+            className={styles.taskTable}
+            ref={tableRef}
+          >
             <thead>
               {headerGroups.map((headerGroup) => (
                 <tr {...headerGroup.getHeaderGroupProps()}>
@@ -110,14 +117,20 @@ const Table = <T extends object>({ columns, data, onRowClick }: TableProps<T>) =
             <tbody {...getTableBodyProps()}>
               {page.map((row) => {
                 prepareRow(row);
+
                 return (
                   <tr
                     {...row.getRowProps()}
+                    // Если isRowClickable=true и передан onRowClick, делаем строку "кликабельной"
+                    className={
+                      isRowClickable && onRowClick ? styles.clickableRow : ''
+                    }
                     onClick={() => {
-                      console.log('[Table] Row clicked, row.original =', row.original);
-                      onRowClick?.(row.original);
+                      if (onRowClick) {
+                        onRowClick(row.original);
+                      }
                     }}
-                    className={isComplaintsOrCoinsRoute ? styles.clickableRow : ''}>
+                  >
                     {row.cells.map((cell) => (
                       <td {...cell.getCellProps()} className={styles.td}>
                         {cell.render('Cell')}
@@ -150,7 +163,10 @@ const Table = <T extends object>({ columns, data, onRowClick }: TableProps<T>) =
         <button onClick={() => gotoPage(pageCount - 1)} disabled={!canNextPage}>
           <FaAngleDoubleRight />
         </button>
-        <select value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
+        <select
+          value={pageSize}
+          onChange={(e) => setPageSize(Number(e.target.value))}
+        >
           {[5, 10, 20, 30, 40, 50].map((size) => (
             <option key={size} value={size}>
               Показать {size}

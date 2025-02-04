@@ -169,6 +169,7 @@ export default function Page() {
                                 columns={columns}
                                 data={data}
                                 onRowClick={(row) => handleRowClick(row.id)}
+                                isRowClickable={true}
                             />
                         ) : (
                             <div>Нет данных для отображения</div>
